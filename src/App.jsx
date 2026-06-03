@@ -280,9 +280,9 @@ export default function App() {
           <div style={s.navLabel}>Main</div>
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-            { id: 'donors',    icon: '👥', label: 'Donors' },
             { id: 'donations', icon: '💳', label: 'Donations' },
             { id: 'analytics', icon: '📈', label: 'Analytics' },
+            { id: 'donors',    icon: '👥', label: 'Donors' },
           ].map(item => (
             <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>{item.label}
