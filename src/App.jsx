@@ -44,6 +44,7 @@ export default function App() {
   const [editingManual, setEditingManual] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [nricRequestSent, setNricRequestSent] = useState({})
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -227,6 +228,11 @@ export default function App() {
       XLSX.utils.book_append_sheet(wb, wsMissing, 'Missing NRIC ⚠️')
     }
     XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
+  }
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
   }
 
   function exportPDF() {
@@ -579,7 +585,7 @@ export default function App() {
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <button style={s.btnForest} onClick={() => donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued).forEach(d => issueReceipt(d))}>🧾 Issue All Receipts</button>
-                  
+
                 </div>
               </div>
             </div>
@@ -751,7 +757,7 @@ export default function App() {
                             const { error } = await supabase.functions.invoke('send-thank-you', {
                               body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
                             })
-                            if (error) { alert('Failed to send email'); return }
+                            if (error) { showToast('Failed to send email', 'error'); return }
                             setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
                             alert(`NRIC request sent to ${selectedDonation.donor_email}`)
                           }}>📧 {nricRequestSent[selectedDonation.id] ? 'Email Sent ✓' : 'Request NRIC via Email'}</button>
@@ -836,8 +842,8 @@ export default function App() {
                                 date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
                               }
                             })
-                            if (error) { alert('Failed to send email'); return }
-                            alert(`Thank you email sent to ${selectedDonation.donor_email}`)
+                            if (error) { showToast('Failed to send email', 'error'); return }
+                            showToast(`Email sent to ${selectedDonation.donor_email}`)
                           }}>💌 Send Thank You Email</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
@@ -1134,6 +1140,18 @@ export default function App() {
         )}
 
       </div>
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 32, right: 32,
+          background: toast.type === 'success' ? C.forest : C.red,
+          color: 'white', padding: '14px 20px', borderRadius: 14,
+          fontSize: 13, fontWeight: 600, zIndex: 999,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
+        </div>
+      )}
     </div>
   )
 }
