@@ -438,7 +438,7 @@ export default function App() {
               {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You Email'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {donations.slice(0, 10).map(d => (
@@ -833,7 +833,10 @@ export default function App() {
                           </div>
                         )}
                         {selectedDonation.donor_email && (
-                          <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={async () => {
+                          <button style={{ ...s.btnGold, justifyContent: 'center', opacity: selectedDonation.thank_you_sent ? 0.7 : 1 }} onClick={async () => {
+                            if (selectedDonation.thank_you_sent) {
+                              if (!window.confirm('A thank you email was already sent for this donation. Send again?')) return
+                            }
                             const { error } = await supabase.functions.invoke('send-thank-you', {
                               body: {
                                 donor_name: selectedDonation.donor_name,
