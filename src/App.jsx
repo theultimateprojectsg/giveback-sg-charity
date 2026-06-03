@@ -579,18 +579,7 @@ export default function App() {
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <button style={s.btnForest} onClick={() => donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued).forEach(d => issueReceipt(d))}>🧾 Issue All Receipts</button>
-                  <button style={s.btnGold} onClick={async () => {
-                    const email = prompt('Enter donor email address:')
-                    if (!email) return
-                    const latestDonation = donations.filter(d => d.donor_name === selectedDonor.name)[0]
-                    try {
-                      const { data, error } = await supabase.functions.invoke('send-thank-you', {
-                        body: { donor_name: selectedDonor.name, donor_email: email, charity_name: charityName, amount: latestDonation?.amount, date: new Date(latestDonation?.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) }
-                      })
-                      if (error) { alert('Error: ' + JSON.stringify(error)); return }
-                      alert('Email sent!')
-                    } catch (e) { alert('Exception: ' + e.message) }
-                  }}>💌 Send Thank You Email</button>
+                  
                 </div>
               </div>
             </div>
@@ -835,6 +824,21 @@ export default function App() {
                             }}>✓ Save Changes</button>
                             <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => { setEditingManual(false); setEditForm({}) }}>Cancel</button>
                           </div>
+                        )}
+                        {selectedDonation.donor_email && (
+                          <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={async () => {
+                            const { error } = await supabase.functions.invoke('send-thank-you', {
+                              body: {
+                                donor_name: selectedDonation.donor_name,
+                                donor_email: selectedDonation.donor_email,
+                                charity_name: charityName,
+                                amount: selectedDonation.amount,
+                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                              }
+                            })
+                            if (error) { alert('Failed to send email'); return }
+                            alert(`Thank you email sent to ${selectedDonation.donor_email}`)
+                          }}>💌 Send Thank You Email</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { deleteDonation(selectedDonation.id); setSelectedDonation(null) }}>🗑️ Delete Entry</button>
