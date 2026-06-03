@@ -698,7 +698,7 @@ export default function App() {
                       {[
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
                         { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
-                        { label: 'Source', key: null, value: selectedDonation.source === 'manual' ? `Manual (${selectedDonation.payment_method})` : 'GiveBack SG App', editable: false },
+                        { label: 'Source', key: null, value: selectedDonation.source === 'manual' ? `Manual (${selectedDonation.payment_method})` : 'Giving Tree App', editable: false },
                         { label: 'Amount (SGD)', key: 'amount', value: `$${Number(selectedDonation.amount).toLocaleString()}`, editable: true, type: 'number' },
                         { label: 'Date', key: 'created_at', value: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), editable: true, type: 'date' },
                         { label: 'Receipt', key: null, value: selectedDonation.receipt_issued ? '✓ Issued' : 'Pending', editable: false },
