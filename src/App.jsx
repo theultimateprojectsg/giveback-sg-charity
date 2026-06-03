@@ -205,7 +205,7 @@ export default function App() {
       '250% Tax Deductible (SGD)': d.amount * 2.5,
       'Donation Type': d.payment_method || 'PayNow',
       'Receipt Issued': d.receipt_issued ? 'Yes' : 'No',
-      'Source': d.source === 'manual' ? 'Manual Entry' : 'GiveBack SG App',
+      'Source': d.source === 'manual' ? 'Manual Entry' : 'Giving Tree App',
       'Notes': d.notes || '',
     }))
     const missing = yearDonations.filter(d => !d.donor_nric).map(d => ({
@@ -226,13 +226,13 @@ export default function App() {
       wsMissing['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 45 }]
       XLSX.utils.book_append_sheet(wb, wsMissing, 'Missing NRIC ⚠️')
     }
-    XLSX.writeFile(wb, `GiveBackSG-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
+    XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
   }
 
   function exportPDF() {
     const doc = new jsPDF()
     doc.setFontSize(18); doc.setFont('helvetica', 'bold')
-    doc.text(`GiveBack SG — Donation Report ${filterYear}`, 14, 22)
+    doc.text(`Giving Tree — Donation Report ${filterYear}`, 14, 22)
     doc.setFontSize(11); doc.setFont('helvetica', 'normal')
     doc.text(`Charity: ${charityName}`, 14, 32)
     doc.text(`UEN: ${charityUen}`, 14, 39)
@@ -245,7 +245,7 @@ export default function App() {
       styles: { fontSize: 10 },
       headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
     })
-    doc.save(`GiveBackSG-Report-${charityName}-${filterYear}.pdf`)
+    doc.save(`GivingTree-Report-${charityName}-${filterYear}.pdf`)
   }
 
   if (authLoading) return (
@@ -261,7 +261,7 @@ export default function App() {
       {/* ── SIDEBAR ── */}
       <div style={s.sidebar}>
         <div style={s.sidebarLogo}>
-          <div style={s.logoText}>GiveBack SG</div>
+          <div style={s.logoText}>Giving Tree</div>
           <div style={s.logoSub}>Charity Portal</div>
         </div>
         <div style={s.charityBadge}>
@@ -400,7 +400,7 @@ export default function App() {
               <div style={s.irasHeader}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'white' }}>🏛️ IRAS Submission — Year of Assessment {filterYear}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Auto-generated from GiveBack SG donor records</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Auto-generated from Giving Tree donor records</div>
                 </div>
                 <div style={s.irasStatus}>✓ Ready to Export</div>
               </div>
@@ -622,7 +622,7 @@ export default function App() {
                   <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></div>
                   <div><div style={s.formLabel}>Payment Method</div>
                     <select style={s.formInput} value={manualForm.payment_method} onChange={e => setManualForm(f => ({ ...f, payment_method: e.target.value }))}>
-                      <option>Cash</option><option>Bank Transfer</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
+                      <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                     </select>
                   </div>
                   <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={manualForm.donor_email || ''} onChange={e => setManualForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
@@ -1030,7 +1030,7 @@ export default function App() {
                 <div style={{ fontSize: 24 }}>🏛️</div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Submission — Year of Assessment {filterYear}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Auto-generated from GiveBack SG donor records · Ready to export</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Auto-generated from Giving Tree donor records · Ready to export</div>
                 </div>
               </div>
               <div style={s.irasStatus}>✓ Ready</div>
