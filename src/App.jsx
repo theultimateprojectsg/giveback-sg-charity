@@ -438,7 +438,7 @@ export default function App() {
               {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You Email'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {donations.slice(0, 10).map(d => (
