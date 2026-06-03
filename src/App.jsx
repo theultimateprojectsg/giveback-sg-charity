@@ -340,7 +340,7 @@ export default function App() {
             </div>
 
             <div style={s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.sage, borderColor: C.sage }}>
+              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Received</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
                 <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{donations.length} donations</div>
@@ -471,7 +471,7 @@ export default function App() {
               </div>
             </div>
             <div style={s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.sage, borderColor: C.sage }}>
+              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Donors</div>
                 <div style={{ ...s.statValue, color: 'white' }}>{uniqueDonors.length}</div>
               </div>
@@ -882,7 +882,7 @@ export default function App() {
             </div>
 
             <div style={s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.sage, borderColor: C.sage }}>
+              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Raised</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
                 <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>Year to date</div>
