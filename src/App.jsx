@@ -438,7 +438,7 @@ export default function App() {
               {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {donations.slice(0, 10).map(d => (
@@ -451,6 +451,7 @@ export default function App() {
                         <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>
                         <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
                         <td style={s.td}><span style={{ fontSize: 12, color: d.donor_email ? C.forest : C.muted }}>{d.donor_email || '—'}</span></td>
+                        <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -657,7 +658,7 @@ export default function App() {
                   {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? <div style={s.empty}>No donations found.</div> : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
@@ -669,6 +670,7 @@ export default function App() {
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
                             <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>
+                            <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -842,6 +844,9 @@ export default function App() {
                               }
                             })
                             if (error) { showToast('Failed to send email', 'error'); return }
+                            await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
+                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
+                            setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
                             showToast(`Email sent to ${selectedDonation.donor_email}`)
                           }}>💌 Send Thank You Email</button>
                         )}
