@@ -798,7 +798,7 @@ export default function App() {
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {selectedDonation.payment_status !== 'confirmed' && (
-                          <button style={{ ...s.btnForest, background: C.sage }} onClick={async () => {
+                          <button style={{ ...s.btnForest, background: C.sage, justifyContent: 'center' }} onClick={async () => {
                             const { error } = await supabase.from('donations').update({ payment_status: 'confirmed' }).eq('id', selectedDonation.id)
                             if (error) { showToast('Error confirming payment', 'error'); return }
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed' } : x))
@@ -806,7 +806,7 @@ export default function App() {
                           }}>✓ Confirm Payment Received</button>
                         )}
                         {!selectedDonation.receipt_issued && selectedDonation.payment_status === 'confirmed' && (
-                          <button style={s.btnForest} onClick={() => { issueReceipt(selectedDonation); setSelectedDonation(prev => ({ ...prev, receipt_issued: true })) }}>🧾 Issue Receipt</button>
+                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => { issueReceipt(selectedDonation); setSelectedDonation(prev => ({ ...prev, receipt_issued: true })) }}>🧾 Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={s.viewBtn} onClick={() => { setEditingManual(true); setEditForm({}) }}>✏️ Edit Entry</button>
