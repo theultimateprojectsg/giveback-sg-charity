@@ -232,7 +232,6 @@ export default function App() {
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
   }
 
   function exportPDF() {
@@ -425,7 +424,7 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { alert('Please select a specific year to export'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+                  <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { showToast('Please select a specific year to export', 'error'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
                   <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
                 </div>
               </div>
@@ -753,13 +752,13 @@ export default function App() {
                         )}
                         {!selectedDonation.donor_nric && !editingManual && selectedDonation.donor_email && (
                           <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
-                            if (nricRequestSent[selectedDonation.id]) { alert('Email already sent for this donation'); return }
+                            if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
                             const { error } = await supabase.functions.invoke('send-thank-you', {
                               body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
                             })
                             if (error) { showToast('Failed to send email', 'error'); return }
                             setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
-                            alert(`NRIC request sent to ${selectedDonation.donor_email}`)
+                            showToast(`NRIC request sent to ${selectedDonation.donor_email}`)
                           }}>📧 {nricRequestSent[selectedDonation.id] ? 'Email Sent ✓' : 'Request NRIC via Email'}</button>
                         )}
                       </div>
@@ -799,7 +798,7 @@ export default function App() {
                         {selectedDonation.payment_status !== 'confirmed' && (
                           <button style={{ ...s.btnForest, background: C.sage }} onClick={async () => {
                             const { error } = await supabase.from('donations').update({ payment_status: 'confirmed' }).eq('id', selectedDonation.id)
-                            if (error) { alert('Error confirming payment'); return }
+                            if (error) { showToast('Error confirming payment', 'error'); return }
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed' } : x))
                             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed' }))
                           }}>✓ Confirm Payment Received</button>
@@ -822,7 +821,7 @@ export default function App() {
                                 created_at: editForm.created_at ?? selectedDonation.created_at,
                               }
                               const { error } = await supabase.from('donations').update(updates).eq('id', selectedDonation.id)
-                              if (error) { alert('Error saving'); return }
+                              if (error) { showToast('Error saving', 'error'); return }
                               setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, ...updates } : x))
                               setSelectedDonation(prev => ({ ...prev, ...updates }))
                               setEditingManual(false)
@@ -1078,7 +1077,7 @@ export default function App() {
               📋 <strong>How to submit to IRAS:</strong> Download the file below, then log in to <strong>myTax Portal</strong> (mytax.iras.gov.sg) using Corppass → Manage Donation Submissions → Upload file. Deadline: 31 January {parseInt(filterYear) + 1}.
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { alert('Please select a specific year to export'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { showToast('Please select a specific year to export', 'error'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
               <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
               {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts}>🧾 Issue All Receipts First</button>}
             </div>
@@ -1147,9 +1146,15 @@ export default function App() {
           color: 'white', padding: '14px 20px', borderRadius: 14,
           fontSize: 13, fontWeight: 600, zIndex: 999,
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', gap: 12,
+          maxWidth: 360,
         }}>
-          {toast.type === 'success' ? '✓' : '✕'} {toast.msg}
+          <span>{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span style={{ flex: 1 }}>{toast.msg}</span>
+          <span
+            onClick={() => setToast(null)}
+            style={{ cursor: 'pointer', opacity: 0.7, fontSize: 16, lineHeight: 1 }}
+          >✕</span>
         </div>
       )}
     </div>
