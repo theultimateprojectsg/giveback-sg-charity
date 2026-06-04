@@ -842,6 +842,20 @@ export default function App() {
                             )
                             if (!confirmed) return
 
+                            // Check current status from DB to prevent race condition
+            const { data: freshData } = await supabase
+            .from('donations')
+            .select('payment_status, receipt_issued')
+            .eq('id', selectedDonation.id)
+            .single()
+
+          if (freshData?.payment_status === 'confirmed') {
+            showToast('This donation was already confirmed by someone else', 'error')
+            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
+            setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
+            return
+          }
+
                             // Step 2 — Update DB
                             const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', selectedDonation.id)
                             if (error) { showToast('Error confirming payment', 'error'); return }
