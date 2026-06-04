@@ -85,8 +85,10 @@ export default function App() {
   }
 
   async function issueAllReceipts() {
-    const pending = donations.filter(d => !d.receipt_issued)
+    const pending = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
+    if (pending.length === 0) { showToast('No confirmed payments pending receipt', 'error'); return }
     for (const d of pending) await issueReceipt(d)
+    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued`)
   }
 
   function goToDonation(donation) {
@@ -98,8 +100,9 @@ export default function App() {
   }
 
   async function saveManualEntry() {
-    if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
-    if (!manualForm.amount || parseFloat(manualForm.amount) < 1) { setManualError('Please enter a valid amount'); return }
+  if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
+  if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
+  if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
     setSavingManual(true)
     setManualError('')
     const { data, error } = await supabase.from('donations').insert([{
@@ -127,10 +130,31 @@ export default function App() {
   async function deleteDonation(id) {
     if (!window.confirm('Delete this manual entry? This cannot be undone.')) return
     setDeletingId(id)
+    const donationToDelete = donations.find(d => d.id === id)
     const { error } = await supabase.from('donations').delete().eq('id', id)
     if (error) { console.error(error); setDeletingId(null); return }
     setDonations(prev => prev.filter(d => d.id !== id))
     setDeletingId(null)
+    setSelectedDonation(null)
+  
+    // Undo toast for 10 seconds
+    let cancelled = false
+    setToast({
+      msg: 'Entry deleted',
+      type: 'error',
+      undoable: true,
+      onUndo: async () => {
+        cancelled = true
+        const { error: restoreError } = await supabase.from('donations').insert([donationToDelete])
+        if (restoreError) { showToast('Could not restore entry', 'error'); return }
+        setDonations(prev => [donationToDelete, ...prev])
+        setToast(null)
+        showToast('Entry restored ✓')
+      }
+    })
+    setTimeout(() => {
+      if (!cancelled) setToast(null)
+    }, 10000)
   }
 
   const charityName  = session?.user?.user_metadata?.charity_name || 'Your Charity'
