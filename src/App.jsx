@@ -428,7 +428,16 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { showToast('Please select a specific year to export', 'error'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+                  {filterYear === 'All' && (
+                <div style={{ background: '#FDF3DC', border: '1.5px solid #E8CC7A', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#A07010', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  ⚠️ Select a year above to enable the export.
+                  <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                    <option value="All">Select year</option>
+                    {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              )}
+              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
                   <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
                 </div>
               </div>
@@ -1153,7 +1162,16 @@ export default function App() {
               📋 <strong>How to submit to IRAS:</strong> Download the file below, then log in to <strong>myTax Portal</strong> (mytax.iras.gov.sg) using Corppass → Manage Donation Submissions → Upload file. Deadline: 31 January {parseInt(filterYear) + 1}.
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') { showToast('Please select a specific year to export', 'error'); return } exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+              {filterYear === 'All' && (
+                <div style={{ background: '#FDF3DC', border: '1.5px solid #E8CC7A', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#A07010', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  ⚠️ Select a year above to enable the export.
+                  <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                    <option value="All">Select year</option>
+                    {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              )}
+              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
               <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
               {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts}>🧾 Issue All Receipts First</button>}
             </div>
