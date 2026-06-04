@@ -417,7 +417,7 @@ export default function App() {
                 <div style={s.irasInfoGrid}>
                   {[
                     { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: `${donations.length} transactions` },
-                    { label: 'Unique Donors', value: uniqueDonors.length, note: 'NRIC pending via SingPass' },
+                    { label: 'Unique Donors', value: uniqueDonors.length, note: 'All time' },
                     { label: '250% Deductible', value: `$${(totalThisYear * 2.5).toLocaleString()}`, note: 'Total tax deductible amount' },
                   ].map((item, i) => (
                     <div key={i} style={s.irasInfoItem}>
