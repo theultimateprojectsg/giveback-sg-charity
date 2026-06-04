@@ -807,7 +807,28 @@ export default function App() {
                             if (error) { showToast('Error confirming payment', 'error'); return }
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
                             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
-                            showToast('Payment confirmed and receipt issued')
+                            // Auto-send thank you email if donor has email
+                            if (selectedDonation.donor_email) {
+                              const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+                                body: {
+                                  donor_name: selectedDonation.donor_name,
+                                  donor_email: selectedDonation.donor_email,
+                                  charity_name: charityName,
+                                  amount: selectedDonation.amount,
+                                  date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                }
+                              })
+                              if (!emailError) {
+                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
+                                setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
+                                setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+                                showToast('Payment confirmed, receipt issued & thank you email sent 💌')
+                              } else {
+                                showToast('Payment confirmed and receipt issued')
+                              }
+                            } else {
+                              showToast('Payment confirmed and receipt issued')
+                            }
                           }}>✓ Confirm Payment & Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
