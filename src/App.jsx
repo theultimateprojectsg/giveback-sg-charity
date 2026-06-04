@@ -5,6 +5,7 @@ import Auth from './CharityAuth'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import logo from './assets/logo.png'
 import './App.css'
 
 const C = {
@@ -266,7 +267,10 @@ export default function App() {
       {/* ── SIDEBAR ── */}
       <div style={s.sidebar}>
         <div style={s.sidebarLogo}>
-          <div style={s.logoText}>Giving Tree</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <img src={logo} style={{ width: 32, height: 32, objectFit: 'contain' }} />
+            <div style={s.logoText}>Giving Tree</div>
+          </div>
           <div style={s.logoSub}>Charity Portal</div>
         </div>
         <div style={s.charityBadge}>
@@ -798,15 +802,13 @@ export default function App() {
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {selectedDonation.payment_status !== 'confirmed' && (
-                          <button style={{ ...s.btnForest, background: C.sage, justifyContent: 'center' }} onClick={async () => {
-                            const { error } = await supabase.from('donations').update({ payment_status: 'confirmed' }).eq('id', selectedDonation.id)
+                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
+                            const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', selectedDonation.id)
                             if (error) { showToast('Error confirming payment', 'error'); return }
-                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed' } : x))
-                            setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed' }))
-                          }}>✓ Confirm Payment Received</button>
-                        )}
-                        {!selectedDonation.receipt_issued && selectedDonation.payment_status === 'confirmed' && (
-                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => { issueReceipt(selectedDonation); setSelectedDonation(prev => ({ ...prev, receipt_issued: true })) }}>🧾 Issue Receipt</button>
+                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
+                            setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
+                            showToast('Payment confirmed and receipt issued')
+                          }}>✓ Confirm Payment & Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={s.viewBtn} onClick={() => { setEditingManual(true); setEditForm({}) }}>✏️ Edit Entry</button>
