@@ -803,32 +803,77 @@ export default function App() {
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {selectedDonation.payment_status !== 'confirmed' && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
+                            // Step 1 — Confirmation dialog
+                            const confirmed = window.confirm(
+                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt\n• Send a thank you email in 10 seconds`
+                            )
+                            if (!confirmed) return
+
+                            // Step 2 — Update DB
                             const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', selectedDonation.id)
                             if (error) { showToast('Error confirming payment', 'error'); return }
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
                             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
-                            // Auto-send thank you email if donor has email
-                            if (selectedDonation.donor_email) {
+
+                            if (!selectedDonation.donor_email) {
+                              showToast('Payment confirmed and receipt issued')
+                              return
+                            }
+
+                            // Step 3 — Show undo toast with 10s countdown
+                            let cancelled = false
+                            let countdown = 10
+                            const donationSnapshot = { ...selectedDonation }
+
+                            const updateCountdown = () => {
+                              setToast({
+                                msg: `Payment confirmed ✓ — Sending thank you email in ${countdown}s`,
+                                type: 'success',
+                                undoable: true,
+                                onUndo: async () => {
+                                  cancelled = true
+                                  const { error: revertError } = await supabase.from('donations').update({ payment_status: 'pending', receipt_issued: false }).eq('id', donationSnapshot.id)
+                                  if (revertError) { showToast('Error reverting — please refresh', 'error'); return }
+                                  setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, payment_status: 'pending', receipt_issued: false } : x))
+                                  setSelectedDonation(prev => ({ ...prev, payment_status: 'pending', receipt_issued: false }))
+                                  setToast(null)
+                                  showToast('Action undone ✓')
+                                }
+                              })
+                            }
+
+                            updateCountdown()
+                            const interval = setInterval(() => {
+                              countdown--
+                              if (cancelled || countdown <= 0) {
+                                clearInterval(interval)
+                                return
+                              }
+                              updateCountdown()
+                            }, 1000)
+
+                            // Step 4 — Send email after 10s delay
+                            setTimeout(async () => {
+                              if (cancelled) return
                               const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
                                 body: {
-                                  donor_name: selectedDonation.donor_name,
-                                  donor_email: selectedDonation.donor_email,
+                                  donor_name: donationSnapshot.donor_name,
+                                  donor_email: donationSnapshot.donor_email,
                                   charity_name: charityName,
-                                  amount: selectedDonation.amount,
-                                  date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                  amount: donationSnapshot.amount,
+                                  date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
                                 }
                               })
                               if (!emailError) {
-                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
-                                setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
+                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+                                setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
                                 setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                                showToast('Payment confirmed, receipt issued & thank you email sent 💌')
+                                showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
                               } else {
-                                showToast('Payment confirmed and receipt issued')
+                                showToast('Receipt issued but email failed — send manually', 'error')
                               }
-                            } else {
-                              showToast('Payment confirmed and receipt issued')
-                            }
+                            }, 10000)
+
                           }}>✓ Confirm Payment & Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
@@ -1178,10 +1223,16 @@ export default function App() {
           fontSize: 13, fontWeight: 600, zIndex: 999,
           boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           display: 'flex', alignItems: 'center', gap: 12,
-          maxWidth: 360,
+          maxWidth: 400,
         }}>
           <span>{toast.type === 'success' ? '✓' : '✕'}</span>
           <span style={{ flex: 1 }}>{toast.msg}</span>
+          {toast.undoable && (
+            <span
+              onClick={toast.onUndo}
+              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}
+            >Undo</span>
+          )}
           <span
             onClick={() => setToast(null)}
             style={{ cursor: 'pointer', opacity: 0.7, fontSize: 16, lineHeight: 1 }}
