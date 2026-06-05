@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>For the Charities That Need It Most — Giving Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --forest: #1B4332; --sage: #40916C;
+  --gold: #D4A017; --gold-light: #F0C84A;
+  --ivory: #FAF7F2; --ivory-dark: #F0EBE1; --border: #E2D9CC;
+  --text: #1C1C1C; --muted: #7A6E62; --white: #FFFFFF;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--ivory); color: var(--text); overflow-x: hidden; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(27,67,50,0.97); backdrop-filter: blur(16px);
+}
+.nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.nav-logo-text { font-family: 'Lora', serif; font-size: 17px; font-weight: 700; color: white; }
+.nav-cta {
+  color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500;
+  text-decoration: none; border: 1px solid rgba(255,255,255,0.25);
+  padding: 8px 16px; border-radius: 100px; transition: all 0.2s; white-space: nowrap;
+}
+.nav-cta:hover { color: white; border-color: rgba(255,255,255,0.6); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100svh; background: var(--forest);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 100px 24px 80px;
+  position: relative; overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 85%, rgba(64,145,108,0.2) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(212,160,23,0.12) 0%, transparent 50%);
+}
+.hero-content { position: relative; z-index: 1; max-width: 700px; width: 100%; }
+.hero-tree {
+  font-size: 52px; display: block; margin-bottom: 24px;
+  animation: sway 4s ease-in-out infinite;
+}
+.hero-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(36px, 8vw, 72px);
+  font-weight: 700; color: white; line-height: 1.12;
+  margin-bottom: 24px;
+  animation: fadeUp 0.8s ease both;
+}
+.hero-title em { color: var(--gold-light); font-style: italic; }
+.hero-sub {
+  font-size: clamp(15px, 2.5vw, 19px); color: rgba(255,255,255,0.58);
+  line-height: 1.85; margin-bottom: 44px; font-weight: 300;
+  animation: fadeUp 0.8s 0.15s ease both;
+}
+.hero-sub strong { color: rgba(255,255,255,0.9); font-weight: 600; }
+.hero-cta { animation: fadeUp 0.8s 0.3s ease both; }
+.btn-main {
+  display: inline-block;
+  background: var(--gold); color: var(--forest);
+  padding: 16px 40px; border-radius: 100px;
+  font-size: 15px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 8px 32px rgba(212,160,23,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-main:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(212,160,23,0.45); }
+.hero-note { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 14px; }
+.hero-scroll {
+  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.22); font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  animation: bounce 2.5s ease-in-out infinite;
+}
+.hero-scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, rgba(255,255,255,0.22), transparent); }
+
+/* ── STORY ── */
+.story { background: var(--ivory); padding: 80px 24px; }
+.story-inner { max-width: 640px; margin: 0 auto; text-align: center; }
+.section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--sage); margin-bottom: 20px; display: block;
+}
+.story-title {
+  font-family: 'Lora', serif; font-size: clamp(26px, 5vw, 42px); font-weight: 700;
+  color: var(--forest); line-height: 1.25; margin-bottom: 28px;
+}
+.story-title em { font-style: italic; color: var(--sage); }
+.divider { width: 40px; height: 3px; background: var(--gold); border-radius: 2px; margin: 0 auto 28px; }
+.story-body { font-size: clamp(15px, 2vw, 17px); color: var(--muted); line-height: 1.9; font-weight: 300; }
+.story-body p + p { margin-top: 18px; }
+.story-body strong { color: var(--forest); font-weight: 600; }
+
+/* ── PAIN ── */
+.pain { background: var(--forest); padding: 80px 24px; }
+.pain-inner { max-width: 900px; margin: 0 auto; }
+.pain-title {
+  font-family: 'Lora', serif; font-size: clamp(26px, 5vw, 46px); font-weight: 700;
+  color: white; text-align: center; margin-bottom: 48px; line-height: 1.2;
+}
+.pain-title em { color: var(--gold-light); font-style: italic; }
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.pain-item {
+  background: rgba(255,255,255,0.05); padding: 28px 24px;
+  border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.3s;
+}
+.pain-item:hover { background: rgba(255,255,255,0.08); }
+.pain-quote {
+  font-family: 'Lora', serif; font-size: clamp(14px, 1.8vw, 16px); font-style: italic;
+  color: rgba(255,255,255,0.75); line-height: 1.75; margin-bottom: 14px;
+}
+.pain-who { font-size: 11px; color: rgba(255,255,255,0.3); font-weight: 500; }
+
+/* ── PROMISE ── */
+.promise { background: var(--ivory-dark); padding: 80px 24px; }
+.promise-inner { max-width: 640px; margin: 0 auto; text-align: center; }
+.promise-icon { font-size: 48px; margin-bottom: 20px; display: block; }
+.promise-title {
+  font-family: 'Lora', serif; font-size: clamp(24px, 4vw, 40px); font-weight: 700;
+  color: var(--forest); line-height: 1.25; margin-bottom: 24px;
+}
+.promise-body {
+  font-size: clamp(15px, 2vw, 17px); color: var(--muted); line-height: 1.9; font-weight: 300;
+}
+.promise-body strong { color: var(--forest); font-weight: 600; }
+
+/* ── GIVE ── */
+.give { background: var(--white); padding: 80px 24px; }
+.give-inner { max-width: 960px; margin: 0 auto; }
+.give-header { text-align: center; margin-bottom: 48px; }
+.section-title {
+  font-family: 'Lora', serif; font-size: clamp(26px, 4vw, 42px); font-weight: 700;
+  color: var(--forest); margin-bottom: 10px; line-height: 1.2;
+}
+.section-sub { font-size: clamp(15px, 2vw, 17px); color: var(--muted); font-weight: 300; }
+
+.give-grid { display: flex; flex-direction: column; gap: 14px; }
+.give-card {
+  border-radius: 20px; padding: 28px 24px;
+  border: 1.5px solid var(--border); background: var(--white);
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.2s;
+}
+.give-card:hover { box-shadow: 0 12px 40px rgba(27,67,50,0.08); }
+.give-card.visible { opacity: 1; transform: translateY(0); }
+.give-card.featured { background: var(--forest); border-color: var(--forest); }
+.give-card-icon { font-size: 36px; margin-bottom: 14px; }
+.give-card-title {
+  font-family: 'Lora', serif; font-size: clamp(18px, 3vw, 22px); font-weight: 700;
+  color: var(--forest); margin-bottom: 8px;
+}
+.give-card.featured .give-card-title { color: var(--gold-light); }
+.give-card-desc { font-size: 14px; color: var(--muted); line-height: 1.75; }
+.give-card.featured .give-card-desc { color: rgba(255,255,255,0.58); }
+.give-tag {
+  display: inline-block; margin-top: 12px;
+  background: #EEF6F1; color: var(--sage);
+  font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 100px;
+}
+.give-card.featured .give-tag { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+
+/* Featured card inner layout — side by side on desktop, stacked on mobile */
+.featured-inner { display: flex; flex-direction: column; gap: 24px; }
+.mini-phone {
+  background: rgba(255,255,255,0.07); border-radius: 16px; padding: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.mini-label { font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+.mini-featured-item {
+  background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px;
+}
+.mini-feat-eyebrow { font-size: 9px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.mini-feat-name { font-size: 13px; font-weight: 700; color: white; margin-top: 3px; }
+.mini-feat-desc { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.mini-btn { width: 100%; padding: 9px; background: var(--gold); color: var(--forest); border-radius: 8px; font-size: 12px; font-weight: 700; text-align: center; margin-top: 8px; }
+
+/* ── PAYMENTS ── */
+.payments { background: var(--ivory-dark); padding: 80px 24px; }
+.payments-inner { max-width: 700px; margin: 0 auto; text-align: center; }
+.payments-title {
+  font-family: 'Lora', serif; font-size: clamp(22px, 4vw, 34px); font-weight: 700;
+  color: var(--forest); margin-bottom: 10px; line-height: 1.25;
+}
+.payments-sub { font-size: clamp(14px, 1.8vw, 16px); color: var(--muted); font-weight: 300; line-height: 1.75; margin-bottom: 32px; }
+.pay-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.pay-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 100px; padding: 11px 18px;
+  font-size: 14px; font-weight: 600; color: var(--forest);
+  opacity: 0; transform: translateY(14px);
+  transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.2s;
+}
+.pay-chip:hover { border-color: var(--sage); }
+.pay-chip.visible { opacity: 1; transform: translateY(0); }
+
+/* ── STEPS ── */
+.steps-section { background: var(--white); padding: 80px 24px; }
+.steps-inner { max-width: 860px; margin: 0 auto; }
+.steps-header { text-align: center; margin-bottom: 48px; }
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+.step {
+  text-align: center; padding: 0 8px;
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.step.visible { opacity: 1; transform: translateY(0); }
+.step-num {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--forest); color: white;
+  font-family: 'Lora', serif; font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  transition: background 0.2s, transform 0.2s;
+}
+.step:hover .step-num { background: var(--sage); transform: scale(1.08); }
+.step-title { font-size: 15px; font-weight: 700; color: var(--forest); margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+/* ── FINAL CTA ── */
+.final-cta {
+  background: var(--forest); padding: 100px 24px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.final-cta::after {
+  content: '🌳'; position: absolute; font-size: 300px; opacity: 0.04;
+  top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; line-height: 1;
+}
+.final-content { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; }
+.final-title {
+  font-family: 'Lora', serif; font-size: clamp(30px, 6vw, 54px); font-weight: 700;
+  color: white; line-height: 1.15; margin-bottom: 16px;
+}
+.final-title em { font-style: italic; color: var(--gold-light); }
+.final-sub { font-size: clamp(15px, 2vw, 17px); color: rgba(255,255,255,0.48); margin-bottom: 44px; font-weight: 300; line-height: 1.8; }
+.final-form {
+  display: flex; gap: 0; max-width: 420px; margin: 0 auto;
+  background: rgba(255,255,255,0.08); border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.15); overflow: hidden;
+}
+.final-input {
+  flex: 1; min-width: 0; padding: 15px 20px; background: transparent;
+  border: none; outline: none; color: white; font-size: 14px; font-family: inherit;
+}
+.final-input::placeholder { color: rgba(255,255,255,0.3); }
+.final-btn {
+  background: var(--gold); color: var(--forest); border: none;
+  padding: 15px 22px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.final-btn:hover { background: var(--gold-light); }
+.final-note { font-size: 12px; color: rgba(255,255,255,0.28); margin-top: 18px; line-height: 1.7; }
+.final-note a { color: rgba(255,255,255,0.48); text-decoration: none; }
+.final-note a:hover { color: white; }
+
+/* ── FOOTER ── */
+footer {
+  background: #0F2A1F; padding: 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  font-size: 12px; color: rgba(255,255,255,0.3);
+}
+footer a { color: rgba(255,255,255,0.45); text-decoration: none; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(10px); } }
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── DESKTOP UPGRADES (768px+) ── */
+@media (min-width: 768px) {
+  nav { padding: 18px 48px; }
+  .hero { padding: 120px 40px 100px; }
+  .story { padding: 100px 40px; }
+  .pain { padding: 100px 40px; }
+  .promise { padding: 100px 40px; }
+  .give { padding: 100px 40px; }
+  .payments { padding: 100px 40px; }
+  .steps-section { padding: 100px 40px; }
+  .final-cta { padding: 120px 40px; }
+
+  /* give grid — 2 col on desktop */
+  .give-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .give-card.featured {
+    grid-column: span 2;
+  }
+  .featured-inner {
+    flex-direction: row; align-items: flex-start; gap: 40px;
+  }
+  .featured-inner > div:first-child { flex: 1; }
+  .featured-inner > .mini-phone { flex: 0 0 260px; }
+
+  /* steps — 4 col on desktop with connecting line */
+  .steps-grid {
+    grid-template-columns: repeat(4, 1fr);
+    position: relative; gap: 0;
+  }
+  .steps-grid::before {
+    content: ''; position: absolute; top: 24px; left: 12%; right: 12%; height: 1px;
+    background: var(--border); z-index: 0;
+  }
+  .step-num { position: relative; z-index: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="https://givingtree.sg">
+    <span style="font-size:20px">🌳</span>
+    <span class="nav-logo-text">Giving Tree</span>
+  </a>
+  <a class="nav-cta" href="mailto:hello@givingtree.sg?subject=I want to partner with Giving Tree">Get in touch</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <span class="hero-tree">🌳</span>
+    <h1 class="hero-title">
+      For the charities<br/>
+      that need it <em>most.</em>
+    </h1>
+    <p class="hero-sub">
+      You show up every day for the people who need you.<br/>
+      <strong>We built Giving Tree to show up for you.</strong>
+    </p>
+    <div class="hero-cta">
+      <a class="btn-main" href="mailto:hello@givingtree.sg?subject=I want to partner with Giving Tree">Join Giving Tree — It's Free</a>
+      <p class="hero-note">No contracts. No hidden fees. Just support.</p>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    Our story
+  </div>
+</section>
+
+<!-- STORY -->
+<section class="story">
+  <div class="story-inner reveal">
+    <span class="section-label">Why We Built This</span>
+    <h2 class="story-title">The best charities in Singapore<br/>are <em>drowning in spreadsheets.</em></h2>
+    <div class="divider"></div>
+    <div class="story-body">
+      <p>Every year, thousands of dedicated volunteers and charity staff spend their nights reconciling donation records, chasing down missing NRICs, and manually preparing IRAS submissions — instead of doing the work they actually care about.</p>
+      <p><strong>The big charities have entire teams for this. The smaller ones don't.</strong> And yet the smaller ones are often doing the most important, most personal, most life-changing work in our communities.</p>
+      <p>We felt that wasn't right. So we built something to fix it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN -->
+<section class="pain">
+  <div class="pain-inner">
+    <div class="reveal">
+      <h2 class="pain-title">Sound <em>familiar?</em></h2>
+    </div>
+    <div class="pain-grid reveal">
+      <div class="pain-item">
+        <div class="pain-quote">"It's January again. I've been up since midnight trying to get the IRAS file ready. I'm a volunteer — I never signed up to be an accountant."</div>
+        <div class="pain-who">— Volunteer admin, small welfare charity</div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-quote">"We collected cash at our flag day. It's in an envelope with a handwritten list. I don't know how we're going to issue receipts for all of it."</div>
+        <div class="pain-who">— Operations manager, community services charity</div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-quote">"We want to thank our donors properly. We just don't have anyone to sit down and send 200 individual emails."</div>
+        <div class="pain-who">— Executive director, animal welfare organisation</div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-quote">"New donors find the big charities because they advertise. We do amazing work but nobody outside our circle knows we exist."</div>
+        <div class="pain-who">— Founder, youth mentorship charity</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROMISE -->
+<section class="promise">
+  <div class="promise-inner reveal">
+    <span class="promise-icon">💚</span>
+    <h2 class="promise-title">You shouldn't have to choose between doing good and doing admin.</h2>
+    <div class="divider"></div>
+    <p class="promise-body">
+      Giving Tree is built specifically for smaller, IPC-registered charities in Singapore.
+      It gives your charity <strong>free advertising to real donors</strong>, and a <strong>complete dashboard</strong> to manage every donation, issue every receipt, and file with IRAS — without the hours of manual work.
+    </p>
+  </div>
+</section>
+
+<!-- GIVE -->
+<section class="give">
+  <div class="give-inner">
+    <div class="give-header reveal">
+      <h2 class="section-title">Here's what we give you.</h2>
+      <p class="section-sub">Free. For charities that need it.</p>
+    </div>
+    <div class="give-grid">
+
+      <div class="give-card featured" style="transition-delay:0s">
+        <div class="featured-inner">
+          <div>
+            <div class="give-card-icon">📣</div>
+            <div class="give-card-title">Free advertising to Singapore donors</div>
+            <div class="give-card-desc">Your charity gets featured placement on the Giving Tree donor app — seen by every donor who opens it. Run campaigns, highlight urgent appeals, reach people who genuinely want to support your cause. No ad spend. No algorithms.</div>
+            <span class="give-tag">Your charity, front and centre</span>
+          </div>
+          <div class="mini-phone">
+            <div class="mini-label">Live on Donor App</div>
+            <div class="mini-featured-item">
+              <div class="mini-feat-eyebrow">⭐ Featured Charity</div>
+              <div class="mini-feat-name">Willing Hearts</div>
+              <div class="mini-feat-desc">3,000 meals delivered daily to those in need</div>
+              <div class="mini-btn">Donate Now</div>
+            </div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.22); text-align:center; margin-top:6px;">givingtree.sg · Singapore donors</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="give-card" style="transition-delay:0.1s">
+        <div class="give-card-icon">🧾</div>
+        <div class="give-card-title">Receipts & IRAS — done for you</div>
+        <div class="give-card-desc">Issue tax receipts with one click. Export a fully formatted IRAS file for myTax Portal. Never miss the 31 January deadline again.</div>
+        <span class="give-tag">One-click IRAS export</span>
+      </div>
+
+      <div class="give-card" style="transition-delay:0.2s">
+        <div class="give-card-icon">💌</div>
+        <div class="give-card-title">Thank every donor. Automatically.</div>
+        <div class="give-card-desc">Personalised thank you emails sent with one click. Every donor tracked — no one gets forgotten. Because a thank you matters.</div>
+        <span class="give-tag">Tracked per donation</span>
+      </div>
+
+      <div class="give-card" style="transition-delay:0.3s">
+        <div class="give-card-icon">⚠️</div>
+        <div class="give-card-title">Missing NRICs, flagged and followed up</div>
+        <div class="give-card-desc">Donors without NRICs are highlighted automatically. Send a one-click reminder so they can claim their 250% tax deduction — and you can file with IRAS.</div>
+        <span class="give-tag">Auto-flagged</span>
+      </div>
+
+      <div class="give-card" style="transition-delay:0.4s">
+        <div class="give-card-icon">📊</div>
+        <div class="give-card-title">See your giving community grow</div>
+        <div class="give-card-desc">Monthly trends, top donors, donation size breakdown. Simple, honest analytics that show you the impact your charity is making.</div>
+        <span class="give-tag">Visual insights</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PAYMENTS -->
+<section class="payments">
+  <div class="payments-inner reveal">
+    <h2 class="payments-title">Every donation captured.<br/>However it arrives.</h2>
+    <p class="payments-sub">Flag days. Charity dinners. Bank transfers. Online donations.<br/>It all flows into the same dashboard — every gift accounted for, every donor recognised.</p>
+    <div class="pay-row">
+      <div class="pay-chip" style="transition-delay:0s"><span>📱</span> PayNow</div>
+      <div class="pay-chip" style="transition-delay:0.08s"><span>💵</span> Cash</div>
+      <div class="pay-chip" style="transition-delay:0.16s"><span>📄</span> Cheque</div>
+      <div class="pay-chip" style="transition-delay:0.24s"><span>🏦</span> Bank Wire</div>
+      <div class="pay-chip" style="transition-delay:0.32s"><span>⚡</span> PayNow Direct</div>
+    </div>
+  </div>
+</section>
+
+<!-- STEPS -->
+<section class="steps-section">
+  <div class="steps-inner">
+    <div class="steps-header reveal">
+      <h2 class="section-title">Getting started takes minutes.</h2>
+      <p class="section-sub">We handle everything. You just show up.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step" style="transition-delay:0s">
+        <div class="step-num">1</div>
+        <div class="step-title">Reach out</div>
+        <div class="step-desc">Email us your charity name, UEN and preferred login email</div>
+      </div>
+      <div class="step" style="transition-delay:0.15s">
+        <div class="step-num">2</div>
+        <div class="step-title">We set up</div>
+        <div class="step-desc">Your dashboard and donor app listing are live within 24 hours</div>
+      </div>
+      <div class="step" style="transition-delay:0.3s">
+        <div class="step-num">3</div>
+        <div class="step-title">Go live</div>
+        <div class="step-desc">Log in at charity.givingtree.sg and start receiving donations</div>
+      </div>
+      <div class="step" style="transition-delay:0.45s">
+        <div class="step-num">4</div>
+        <div class="step-title">Tell your donors</div>
+        <div class="step-desc">Share givingtree.sg — they give, you manage, we handle the rest</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="final-content reveal">
+    <h2 class="final-title">Your cause deserves<br/>to be <em>found.</em></h2>
+    <p class="final-sub">If you're a smaller charity doing important work in Singapore — we'd love to have you. Reach out and we'll take care of the rest.</p>
+    <div class="final-form">
+      <input class="final-input" type="email" placeholder="your@charity.org.sg" id="cta-email" />
+      <button class="final-btn" onclick="const v=document.getElementById('cta-email').value; window.location.href='mailto:hello@givingtree.sg?subject=I want to partner with Giving Tree&body=Hi Giving Tree team,%0A%0AWe would love to partner with you.%0A%0ACharity name: %0AUEN: %0AContact email: '+encodeURIComponent(v||'')">Get in Touch</button>
+    </div>
+    <p class="final-note">
+      Or write to us at <a href="mailto:hello@givingtree.sg">hello@givingtree.sg</a><br/>
+      We respond to every message within 24 hours. 🌳
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2026 Giving Tree · Many Hearts. One Purpose. 🌳</span>
+  <span><a href="https://givingtree.sg">givingtree.sg</a> · <a href="mailto:hello@givingtree.sg">hello@givingtree.sg</a></span>
+</footer>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(el => {
+    if (el.isIntersecting) {
+      el.target.classList.add('visible');
+      el.target.querySelectorAll('.give-card, .step, .pay-chip').forEach((child, i) => {
+        setTimeout(() => child.classList.add('visible'), i * 100);
+      });
+    }
+  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.reveal, .give-card, .step, .pay-chip').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
