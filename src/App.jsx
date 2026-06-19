@@ -1389,6 +1389,7 @@ const s = {
   footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
   footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
   main: { marginLeft: 240, flex: 1 },
+  mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 72, width: '100%', boxSizing: 'border-box' },
   content: { padding: 32 },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   pageTitle: { fontSize: 24, fontWeight: 800, color: C.forest, marginBottom: 4 },
