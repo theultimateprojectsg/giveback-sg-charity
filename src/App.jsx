@@ -22,7 +22,18 @@ const C = {
   red:       '#C0392B',
 }
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint)
+  useEffect(() => {
+    function handleResize() { setIsMobile(window.innerWidth <= breakpoint) }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [breakpoint])
+  return isMobile
+}
+
 export default function App() {
+  const isMobile = useIsMobile()
   const [donations, setDonations] = useState([])
   const [loading, setLoading] = useState(true)
   const [issuing, setIssuing] = useState(null)
@@ -42,10 +53,11 @@ export default function App() {
   const [selectedDonation, setSelectedDonation] = useState(null)
   const [editingNoteId, setEditingNoteId] = useState(null)
   const [noteText, setNoteText] = useState('')
-  const [editingManual, setEditingManual] = useState(false)
+  const [editingManual, setEditingManual] = useState(false) 
   const [editForm, setEditForm] = useState({})
   const [nricRequestSent, setNricRequestSent] = useState({})
   const [toast, setToast] = useState(null)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -288,7 +300,8 @@ export default function App() {
   return (
     <div style={s.page}>
 
-      {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR (desktop) ── */}
+      {!isMobile && (
       <div style={s.sidebar}>
         <div style={s.sidebarLogo}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -335,9 +348,44 @@ export default function App() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* ── TOP BAR (mobile) ── */}
+      {isMobile && (
+      <div style={s.mobileTopBar}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src={logo} style={{ width: 26, height: 26, objectFit: 'contain' }} />
+          <div style={s.mobileTopBarTitle}>Giving Tree</div>
+        </div>
+        <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
+        {showMobileMenu && (
+          <div style={s.mobileOverflowMenu}>
+            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
+            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ── BOTTOM TAB BAR (mobile) ── */}
+      {isMobile && (
+      <div style={s.mobileTabBar}>
+        {[
+          { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+          { id: 'donations', icon: '💳', label: 'Donations' },
+          { id: 'analytics', icon: '📈', label: 'Analytics' },
+          { id: 'donors',    icon: '👥', label: 'Donors' },
+        ].map(item => (
+          <div key={item.id} style={s.mobileTabItem} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+            <div style={{ fontSize: 18, opacity: activeTab === item.id ? 1 : 0.5 }}>{item.icon}</div>
+            <div style={{ ...s.mobileTabLabel, color: activeTab === item.id ? C.sage : 'rgba(255,255,255,0.5)' }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
+      )}
 
       {/* ── MAIN ── */}
-      <div style={s.main}>
+      <div style={isMobile ? s.mainMobile : s.main}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
@@ -367,7 +415,7 @@ export default function App() {
               </select>
             </div>
 
-            <div style={s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Received</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
@@ -438,7 +486,7 @@ export default function App() {
                 <div style={s.irasStatus}>✓ Ready to Export</div>
               </div>
               <div style={s.irasBody}>
-                <div style={s.irasInfoGrid}>
+                <div style={isMobile ? s.irasInfoGridMobile : s.irasInfoGrid}>
                   {[
                     { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: `${donations.length} transactions` },
                     { label: 'Unique Donors', value: uniqueDonors.length, note: 'All time' },
@@ -472,7 +520,29 @@ export default function App() {
                 <div style={s.tableTitle}>Recent Donations</div>
                 {pendingCount > 0 && <div style={s.pendingBadge}>⚡ {pendingCount} pending</div>}
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : (
+              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : isMobile ? (
+                <div>
+                  {donations.slice(0, 10).map(d => (
+                    <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
+                      <div style={s.donationCardTop}>
+                        <div style={s.donationCardDonor}>
+                          <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                          <div>
+                            <div style={s.donationCardName}>{d.donor_name}</div>
+                            <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </div>
+                        </div>
+                        <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
+                      </div>
+                      <div style={s.donationCardBadges}>
+                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
+                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                        {d.thank_you_sent && <span style={s.badgeIssued}>💌 Sent</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <table style={s.table}>
                   <thead>
                     <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
@@ -507,7 +577,7 @@ export default function App() {
                 <div style={s.pageSub}>{uniqueDonors.length} donors · All time</div>
               </div>
             </div>
-            <div style={s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Donors</div>
                 <div style={{ ...s.statValue, color: 'white' }}>{uniqueDonors.length}</div>
@@ -996,7 +1066,7 @@ export default function App() {
               </select>
             </div>
 
-            <div style={s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Raised</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
@@ -1168,7 +1238,7 @@ export default function App() {
               <div style={s.irasStatus}>✓ Ready</div>
             </div>
 
-            <div style={s.irasInfoGrid}>
+            <div style={isMobile ? s.irasInfoGridMobile : s.irasInfoGrid}>
               {(() => {
                 const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
                 const missingNric = yearDons.filter(d => !d.donor_nric).length
@@ -1326,6 +1396,7 @@ const s = {
   deadlineBanner: { background: C.red, borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
   bannerBtn: { background: 'white', color: C.red, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 },
+  statsGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 },
   statCard: { background: C.white, borderRadius: 16, padding: 20, border: `1.5px solid ${C.border}` },
   statLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 8 },
   statValue: { fontSize: 28, fontWeight: 800, color: C.forest, letterSpacing: -0.5 },
@@ -1345,6 +1416,7 @@ const s = {
   irasStatus: { background: C.gold, color: C.forest, padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 },
   irasBody: { padding: 24 },
   irasInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 },
+  irasInfoGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 },
   irasInfoItem: { background: C.ivory, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` },
   irasInfoLabel: { fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 6 },
   irasInfoValue: { fontSize: 30, fontWeight: 800, color: C.forest },
@@ -1381,4 +1453,18 @@ const s = {
   infoValue: { fontSize: 18, fontWeight: 800, color: C.forest },
   formLabel: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
   formInput: { width: '100%', padding: '10px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.ivory, color: C.text, boxSizing: 'border-box' },
+  donationCard: { padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' },
+  donationCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  donationCardDonor: { display: 'flex', alignItems: 'center', gap: 10 },
+  donationCardName: { fontWeight: 700, color: C.forest, fontSize: 14 },
+  donationCardDate: { fontSize: 11, color: C.muted, marginTop: 1 },
+  donationCardAmount: { fontWeight: 800, color: C.forest, fontSize: 16, textAlign: 'right' },
+  donationCardBadges: { display: 'flex', flexWrap: 'wrap', gap: 6, marginLeft: 42 },
+  donationCard: { padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' },
+  donationCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  donationCardDonor: { display: 'flex', alignItems: 'center', gap: 10 },
+  donationCardName: { fontWeight: 700, color: C.forest, fontSize: 14 },
+  donationCardDate: { fontSize: 11, color: C.muted, marginTop: 1 },
+  donationCardAmount: { fontWeight: 800, color: C.forest, fontSize: 16, textAlign: 'right' },
+  donationCardBadges: { display: 'flex', flexWrap: 'wrap', gap: 6, marginLeft: 42 },
 }
