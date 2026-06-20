@@ -20,6 +20,11 @@ const C = {
   muted:     '#7A6E62',
   white:     '#FFFFFF',
   red:       '#C0392B',
+  warning:       '#A07010',
+  warningBg:     '#FDF3DC',
+  warningBorder: '#E8CC7A',
+  successBg: '#EEF6F1',
+  bucket1:   '#74C69D',
 }
 
 function useIsMobile(breakpoint = 768) {
@@ -431,10 +436,10 @@ export default function App() {
                 <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                 <div style={s.statNote}>Per transaction</div>
               </div>
-              <div style={{ ...s.statCard, background: pendingCount > 0 ? '#FDF3DC' : s.statCard.background, borderColor: pendingCount > 0 ? '#E8CC7A' : C.border }}>
-                <div style={{ ...s.statLabel, color: pendingCount > 0 ? '#A07010' : C.muted }}>Receipts Pending</div>
-                <div style={{ ...s.statValue, color: pendingCount > 0 ? '#A07010' : C.forest }}>{pendingCount}</div>
-                <div style={{ ...s.statNote, color: pendingCount > 0 ? '#A07010' : C.muted }}>{pendingCount > 0 ? 'Action needed' : 'All caught up ✓'}</div>
+              <div style={{ ...s.statCard, background: pendingCount > 0 ? C.warningBg : s.statCard.background, borderColor: pendingCount > 0 ? C.warningBorder : C.border }}>
+                <div style={{ ...s.statLabel, color: pendingCount > 0 ? C.warning : C.muted }}>Receipts Pending</div>
+                <div style={{ ...s.statValue, color: pendingCount > 0 ? C.warning : C.forest }}>{pendingCount}</div>
+                <div style={{ ...s.statNote, color: pendingCount > 0 ? C.warning : C.muted }}>{pendingCount > 0 ? 'Action needed' : 'All caught up ✓'}</div>
               </div>
             </div>
 
@@ -447,8 +452,8 @@ export default function App() {
                 </div>
                 <div style={s.stepLine} />
                 <div style={s.statusStep}>
-                  <div style={{ ...s.stepDot, background: pendingCount > 0 ? '#FDF3DC' : C.sage, color: pendingCount > 0 ? '#A07010' : 'white', border: pendingCount > 0 ? '2px solid #E8CC7A' : 'none' }}>{pendingCount > 0 ? '!' : '✓'}</div>
-                  <div><div style={{ ...s.stepTitle, color: pendingCount > 0 ? '#A07010' : C.forest }}>Receipts {pendingCount > 0 ? 'Pending' : 'Complete'}</div><div style={s.stepSub}>{pendingCount > 0 ? `${pendingCount} donations need receipts` : 'All receipts issued'}</div></div>
+                  <div style={{ ...s.stepDot, background: pendingCount > 0 ? C.warningBg : C.sage, color: pendingCount > 0 ? C.warning : 'white', border: pendingCount > 0 ? `2px solid ${C.warningBorder}` : 'none' }}>{pendingCount > 0 ? '!' : '✓'}</div>
+                  <div><div style={{ ...s.stepTitle, color: pendingCount > 0 ? C.warning : C.forest }}>Receipts {pendingCount > 0 ? 'Pending' : 'Complete'}</div><div style={s.stepSub}>{pendingCount > 0 ? `${pendingCount} donations need receipts` : 'All receipts issued'}</div></div>
                 </div>
                 <div style={s.stepLine} />
                 <div style={s.statusStep}>
@@ -463,10 +468,10 @@ export default function App() {
                 </div>
                 {[
                   { title: 'NRIC Reminder', desc: 'Donors asked to complete NRIC in app', status: 'Sent ✓', color: C.sage },
-                  { title: 'Deadline Alert', desc: 'All donors notified 15 Jan if submission pending', status: 'Scheduled', color: '#A07010' },
-                  { title: 'Missed Submission Alert', desc: 'Donors alerted to claim manually if not submitted', status: 'Standby', color: '#A07010' },
+                  { title: 'Deadline Alert', desc: 'All donors notified 15 Jan if submission pending', status: 'Scheduled', color: C.warning },
+                  { title: 'Missed Submission Alert', desc: 'Donors alerted to claim manually if not submitted', status: 'Standby', color: C.warning },
                 ].map((n, i) => (
-                  <div key={i} style={{ ...s.notifItem, background: i === 2 ? '#FDF3DC' : C.ivory, borderColor: i === 2 ? '#E8CC7A' : C.border }}>
+                  <div key={i} style={{ ...s.notifItem, background: i === 2 ? C.warningBg : C.ivory, borderColor: i === 2 ? C.warningBorder : C.border }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.forest }}>{n.title}</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: n.color }}>{n.status}</div>
@@ -501,7 +506,7 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                   {filterYear === 'All' && (
-                <div style={{ background: '#FDF3DC', border: '1.5px solid #E8CC7A', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#A07010', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: C.warning, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                   ⚠️ Select a year above to enable the export.
                   <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                     <option value="All">Select year</option>
@@ -698,14 +703,14 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {donations.filter(d => d.donor_name === selectedDonor.name).map(d => (
                     <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                      <div style={{ width: 36, height: 36, background: '#EEF6F1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💳</div>
+                      <div style={{ width: 36, height: 36, background: C.successBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💳</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{charityName}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
-                        <div style={{ fontSize: 10, color: d.receipt_issued ? C.sage : '#A07010', fontWeight: 600 }}>{d.receipt_issued ? '✓ Issued' : 'Pending'}</div>
+                        <div style={{ fontSize: 10, color: d.receipt_issued ? C.sage : C.warning, fontWeight: 600 }}>{d.receipt_issued ? '✓ Issued' : 'Pending'}</div>
                       </div>
                     </div>
                   ))}
@@ -736,7 +741,7 @@ export default function App() {
             {showManualForm && (
               <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.forest, marginBottom: 16 }}>📝 New Manual Entry</div>
-                {manualError && <div style={{ background: '#FDF3DC', color: '#A07010', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
+                {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
                   <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
@@ -812,7 +817,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
-                          <tr key={d.id} style={{ ...s.tr, background: selectedDonation?.id === d.id ? '#EEF6F1' : 'transparent', cursor: 'pointer' }} onClick={() => setSelectedDonation(selectedDonation?.id === d.id ? null : d)}>
+                          <tr key={d.id} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => setSelectedDonation(selectedDonation?.id === d.id ? null : d)}>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
@@ -885,7 +890,7 @@ export default function App() {
                           ) : selectedDonation.donor_nric ? (
                             <span style={{ fontSize: 12, fontWeight: 600, color: C.sage }}>✓ {selectedDonation.donor_nric}</span>
                           ) : (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#A07010' }}>⚠️ Missing</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.warning }}>⚠️ Missing</span>
                           )}
                         </div>
                         {!selectedDonation.donor_nric && !editingManual && (
@@ -1190,7 +1195,7 @@ export default function App() {
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
                 {[
-                  { label: 'Under $50', min: 0, max: 50, color: '#74C69D' },
+                  { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
                   { label: '$50 — $200', min: 50, max: 200, color: C.sage },
                   { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
                   { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
@@ -1228,7 +1233,7 @@ export default function App() {
                   </div>
                   <div>
                     <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.sage }}>{issuedCount}</span> receipts issued</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: '#A07010' }}>{pendingCount}</span> still pending</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.warning }}>{pendingCount}</span> still pending</div>
                     <div style={{ fontSize: 13, color: C.muted }}><span style={{ fontWeight: 700, color: C.forest }}>{donations.length}</span> total donations</div>
                   </div>
                 </div>
@@ -1292,29 +1297,29 @@ export default function App() {
                   { label: 'Receipts Pending', value: pendingCount, note: pendingCount > 0 ? 'Action needed' : 'All issued ✓', warn: pendingCount > 0 },
                 ]
                 return cards.map((item, i) => (
-                  <div key={i} style={{ ...s.irasInfoItem, background: item.warn ? '#FDF3DC' : C.ivory, borderColor: item.warn ? '#E8CC7A' : C.border, cursor: item.action ? 'pointer' : 'default' }}
+                  <div key={i} style={{ ...s.irasInfoItem, background: item.warn ? C.warningBg : C.ivory, borderColor: item.warn ? C.warningBorder : C.border, cursor: item.action ? 'pointer' : 'default' }}
                     onClick={() => item.action && setActiveTab('donations')}>
-                    <div style={{ ...s.irasInfoLabel, color: item.warn ? '#A07010' : C.muted }}>{item.label}</div>
-                    <div style={{ ...s.irasInfoValue, color: item.warn ? '#A07010' : C.forest }}>{item.value}</div>
-                    <div style={{ ...s.irasInfoNote, color: item.warn ? '#A07010' : C.muted }}>{item.note}</div>
-                    {item.warn && <div style={{ fontSize: 10, fontWeight: 700, color: '#A07010', marginTop: 6 }}>⚠️ {item.action ? 'Click to view' : 'Action needed'}</div>}
+                    <div style={{ ...s.irasInfoLabel, color: item.warn ? C.warning : C.muted }}>{item.label}</div>
+                    <div style={{ ...s.irasInfoValue, color: item.warn ? C.warning : C.forest }}>{item.value}</div>
+                    <div style={{ ...s.irasInfoNote, color: item.warn ? C.warning : C.muted }}>{item.note}</div>
+                    {item.warn && <div style={{ fontSize: 10, fontWeight: 700, color: C.warning, marginTop: 6 }}>⚠️ {item.action ? 'Click to view' : 'Action needed'}</div>}
                   </div>
                 ))
               })()}
             </div>
 
             {pendingCount > 0 && (
-              <div style={{ background: '#FDF3DC', border: `1.5px solid #E8CC7A`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#A07010', lineHeight: 1.5 }}>
+              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5 }}>
                 ⚠️ {pendingCount} donation{pendingCount > 1 ? 's' : ''} still pending receipt. Issue all receipts before submitting to IRAS.
               </div>
             )}
 
-            <div style={{ background: '#EEF6F1', border: `1.5px solid #74C69D`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.forest, lineHeight: 1.6 }}>
+            <div style={{ background: C.successBg, border: `1.5px solid ${C.bucket1}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.forest, lineHeight: 1.6 }}>
               📋 <strong>How to submit to IRAS:</strong> Download the file below, then log in to <strong>myTax Portal</strong> (mytax.iras.gov.sg) using Corppass → Manage Donation Submissions → Upload file. Deadline: 31 January {parseInt(filterYear) + 1}.
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
               {filterYear === 'All' && (
-                <div style={{ background: '#FDF3DC', border: '1.5px solid #E8CC7A', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#A07010', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: C.warning, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                   ⚠️ Select a year above to enable the export.
                   <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                     <option value="All">Select year</option>
@@ -1520,7 +1525,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   stepLine: { width: 2, height: 16, background: C.border, marginLeft: 13, marginBottom: 4 },
   stepTitle: { fontSize: 12, fontWeight: 700, color: C.forest },
   stepSub: { fontSize: 11, color: C.muted },
-  autoBadge: { background: '#EEF6F1', color: C.sage, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20 },
+  autoBadge: { background: C.successBg, color: C.sage, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20 },
   notifItem: { borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, marginBottom: 8 },
   irasCard: { background: C.white, borderRadius: 20, border: `1.5px solid ${C.border}`, marginBottom: 24, overflow: 'hidden' },
   irasHeader: { background: C.teal, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -1536,7 +1541,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   tableHeader: { padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` },
   tableTitle: { fontSize: 15, fontWeight: 700, color: C.forest },
   tableCount: { fontSize: 12, color: C.muted },
-  pendingBadge: { background: '#FDF3DC', color: '#A07010', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20 },
+  pendingBadge: { background: C.warningBg, color: C.warning, fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20 },
   empty: { padding: 40, textAlign: 'center', color: C.muted, fontSize: 14 },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { padding: '11px 20px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, background: C.ivory, borderBottom: `1px solid ${C.border}` },
@@ -1547,11 +1552,11 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   donorName: { fontWeight: 600, color: C.forest, fontSize: 13 },
   amountText: { fontWeight: 700, color: C.forest },
   dateText: { color: C.muted, fontSize: 12 },
-  badgeIssued: { fontSize: 10, fontWeight: 600, color: C.sage, background: '#EEF6F1', padding: '3px 10px', borderRadius: 20, display: 'inline-block' },
-  badgePending: { fontSize: 10, fontWeight: 600, color: '#A07010', background: '#FDF3DC', padding: '3px 10px', borderRadius: 20, display: 'inline-block' },
-  issueBtn: { padding: '6px 14px', background: C.sage, color: 'white', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  issuingBtn: { padding: '6px 14px', background: C.ivoryDark, color: C.muted, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
-  viewBtn: { padding: '6px 14px', background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
+  badgeIssued: { fontSize: 10, fontWeight: 600, color: C.sage, background: C.successBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block' },
+  badgePending: { fontSize: 10, fontWeight: 600, color: C.warning, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block' },
+  issueBtn: { padding: '6px 14px', background: C.sage, color: 'white', border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
+  issuingBtn: { padding: '6px 14px', background: C.ivoryDark, color: C.muted, border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
+  viewBtn: { padding: '6px 14px', background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' },
   btnGold: { background: C.gold, color: C.forest, border: 'none', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 },
   btnForest: { background: C.forest, color: 'white', border: 'none', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 },
   searchBox: { flex: 1, padding: '10px 16px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', background: C.white, color: C.text, outline: 'none' },
