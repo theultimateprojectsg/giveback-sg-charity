@@ -576,7 +576,7 @@ export default function App() {
                       <div style={s.donationCardBadges}>
                         {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>✕ Paid</span>}
                         {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>✕ Receipt</span>}
-                        <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Sent</span>
+                        <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Thank You</span>
                       </div>  
                     </div>
                   ))}
