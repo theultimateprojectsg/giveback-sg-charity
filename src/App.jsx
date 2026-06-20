@@ -750,8 +750,7 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button style={s.btnForest} onClick={() => donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued).forEach(d => issueReceipt(d))}>🧾 Issue All Receipts</button>
-
+                  <button style={issuing ? s.issuingBtn : s.btnForest} disabled={!!issuing} onClick={() => donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued).forEach(d => issueReceipt(d))}>{issuing ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
                 </div>
               </div>
             </div>
@@ -1121,7 +1120,7 @@ export default function App() {
                           }}>💌 Send Thank You Email</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
-                          <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { deleteDonation(selectedDonation.id); setSelectedDonation(null) }}>🗑️ Delete Entry</button>
+                          <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
                         )}
                       </div>
                     </div>
