@@ -911,7 +911,7 @@ export default function App() {
                         </div>
                       ))}
 
-                      {!selectedDonation.donor_email && !editingManual && selectedDonation.source === 'manual' && (
+                      {!selectedDonation.donor_email?.trim() && !editingManual && selectedDonation.source === 'manual' && (
                         <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <span style={{ fontSize: 12, color: C.muted }}>Add donor email to send a thank you</span>
@@ -960,7 +960,7 @@ export default function App() {
                             }}>Save</button>
                           </div>
                         )}
-                        {!selectedDonation.donor_nric && !editingManual && selectedDonation.donor_email && (
+                        {!selectedDonation.donor_nric && !editingManual && selectedDonation.donor_email?.trim() && (
                           <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
                             if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
                             const { error } = await supabase.functions.invoke('send-thank-you', {
@@ -1179,7 +1179,7 @@ export default function App() {
                             <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => { setEditingManual(false); setEditForm({}) }}>Cancel</button>
                           </div>
                         )}
-                        {selectedDonation.donor_email && (
+                        {selectedDonation.donor_email?.trim() && (
                           <button style={{ ...s.btnGold, justifyContent: 'center', opacity: selectedDonation.thank_you_sent ? 0.7 : 1 }} onClick={async () => {
                             if (selectedDonation.thank_you_sent) {
                               if (!window.confirm('A thank you email was already sent for this donation. Send again?')) return
