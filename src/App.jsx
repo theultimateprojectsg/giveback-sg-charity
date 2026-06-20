@@ -574,9 +574,9 @@ export default function App() {
                         <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
                       </div>
                       <div style={s.donationCardBadges}>
-                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
-                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                        {d.thank_you_sent && <span style={s.badgeIssued}>💌 Sent</span>}
+                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Payment confirmed</span> : <span style={s.badgePending}>⚠️ Payment unverified</span>}
+                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt issued</span> : <span style={s.badgePending}>Receipt pending</span>}
+                        {d.thank_you_sent && <span style={s.badgeIssued}>💌 Thank you sent</span>}
                       </div>
                     </div>
                   ))}
