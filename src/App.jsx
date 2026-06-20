@@ -438,7 +438,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.twoCol}>
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div style={s.card}>
                 <div style={s.cardTitle}>🏛️ IRAS Submission Status</div>
                 <div style={s.statusStep}>
@@ -634,7 +634,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button style={s.backBtn} onClick={() => setSelectedDonor(null)}>← Back to Donors</button>
             </div>
-            <div style={s.twoCol}>
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div>
                 <div style={{ ...s.card, background: C.teal, marginBottom: 16 }}>
                   <div style={{ ...s.donorAvatar, width: 56, height: 56, fontSize: 22, background: C.sage, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
@@ -1109,7 +1109,7 @@ export default function App() {
               </ResponsiveContainer>
             </div>
 
-            <div style={s.twoCol}>
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div style={s.card}>
                 <div style={s.cardTitle}>📈 Number of Donations per Month</div>
                 <ResponsiveContainer width="100%" height={200}>
@@ -1169,7 +1169,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.twoCol}>
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div style={s.card}>
                 <div style={s.cardTitle}>🧾 Receipt Completion Rate</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 16 }}>
@@ -1432,6 +1432,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   statValue: { fontSize: 28, fontWeight: 800, color: C.forest, letterSpacing: -0.5 },
   statNote: { fontSize: 11, color: C.muted, marginTop: 4 },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
+  twoColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
   card: { background: C.white, borderRadius: 16, padding: 20, border: `1.5px solid ${C.border}`, marginBottom: 0 },
   cardTitle: { fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 16 },
   statusStep: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
