@@ -911,6 +911,26 @@ export default function App() {
                         </div>
                       ))}
 
+                      {!selectedDonation.donor_email && !editingManual && selectedDonation.source === 'manual' && (
+                        <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span style={{ fontSize: 12, color: C.muted }}>Add donor email to send a thank you</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <input id="email-input" style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="donor@email.com" type="email" />
+                            <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
+                              const val = document.getElementById('email-input').value.trim()
+                              if (!val) return
+                              supabase.from('donations').update({ donor_email: val }).eq('id', selectedDonation.id)
+                                .then(() => {
+                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, donor_email: val } : x))
+                                  setSelectedDonation(prev => ({ ...prev, donor_email: val }))
+                                })
+                            }}>Save</button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* NRIC */}
                       <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (!selectedDonation.donor_nric && !editingManual) ? 8 : 0 }}>
