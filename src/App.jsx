@@ -762,7 +762,28 @@ export default function App() {
                     <div style={s.tableTitle}>All Donations</div>
                     <div style={s.tableCount}>{filteredDonations.length} records</div>
                   </div>
-                  {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? <div style={s.empty}>No donations found.</div> : (
+                  {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? <div style={s.empty}>No donations found.</div> : isMobile ? (
+                    <div>
+                      {filteredDonations.map(d => (
+                        <div key={d.id} style={s.donationCard} onClick={() => setSelectedDonation(d)}>
+                          <div style={s.donationCardTop}>
+                            <div style={s.donationCardDonor}>
+                              <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                              <div>
+                                <div style={s.donationCardName}>{d.donor_name}</div>
+                                <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              </div>
+                            </div>
+                            <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
+                          </div>
+                          <div style={s.donationCardBadges}>
+                            {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
+                            {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <table style={s.table}>
                       <thead>
                         <tr>{['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment', 'Thank You'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
@@ -787,8 +808,8 @@ export default function App() {
               </div>
 
               {selectedDonation && (
-                <div style={{ width: 320, flexShrink: 0 }}>
-                  <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, overflow: 'hidden', position: 'sticky', top: 24 }}>
+                <div style={isMobile ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, background: C.ivory, overflowY: 'auto' } : { width: 320, flexShrink: 0 }}>
+                  <div style={isMobile ? { background: C.white, minHeight: '100%' } : { background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, overflow: 'hidden', position: 'sticky', top: 24 }}>
                     <div style={{ background: C.teal, padding: '20px 20px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Donation Details</div>
