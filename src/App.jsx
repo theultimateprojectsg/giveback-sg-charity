@@ -985,6 +985,67 @@ export default function App() {
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
+                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
+                            const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
+                            if (error) { showToast('Error issuing receipt', 'error'); return }
+                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, receipt_issued: true } : x))
+                            setSelectedDonation(prev => ({ ...prev, receipt_issued: true }))
+
+                            if (!selectedDonation.donor_email) {
+                              showToast('Receipt issued ✓')
+                              return
+                            }
+
+                            let cancelled = false
+                            let countdown = 10
+                            const donationSnapshot = { ...selectedDonation, receipt_issued: true }
+
+                            const updateCountdown = () => {
+                              setToast({
+                                msg: `Receipt issued ✓ — Sending thank you email in ${countdown}s`,
+                                type: 'success',
+                                undoable: true,
+                                onUndo: () => {
+                                  cancelled = true
+                                  setToast(null)
+                                  showToast('Thank you email cancelled')
+                                }
+                              })
+                            }
+
+                            updateCountdown()
+                            const interval = setInterval(() => {
+                              countdown--
+                              if (cancelled || countdown <= 0) {
+                                clearInterval(interval)
+                                return
+                              }
+                              updateCountdown()
+                            }, 1000)
+
+                            setTimeout(async () => {
+                              if (cancelled) return
+                              const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+                                body: {
+                                  donor_name: donationSnapshot.donor_name,
+                                  donor_email: donationSnapshot.donor_email,
+                                  charity_name: charityName,
+                                  amount: donationSnapshot.amount,
+                                  date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                }
+                              })
+                              if (!emailError) {
+                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+                                setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+                                setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+                                showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+                              } else {
+                                showToast('Receipt issued but email failed — send manually', 'error')
+                              }
+                            }, 10000)
+                          }}>🧾 Issue Receipt</button>
+                        )}
                         {selectedDonation.payment_status !== 'confirmed' && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
                             // Step 1 — Confirmation dialog
