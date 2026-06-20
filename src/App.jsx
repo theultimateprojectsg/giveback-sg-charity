@@ -1389,6 +1389,7 @@ const s = {
   footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
   footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
   main: { marginLeft: 240, flex: 1 },
+  mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 72, width: '100%', boxSizing: 'border-box' },
   mobileTopBar: {
   position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 20,
   background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
