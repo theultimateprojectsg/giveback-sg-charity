@@ -146,7 +146,7 @@ export default function App() {
       donor_email: manualForm.donor_email,
       created_at: manualForm.date,
     }]).select()
-    if (error) { setManualError('Error saving. Please try again.'); setSavingManual(false); return }
+    if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
     setDonations(prev => [{ ...data[0] }, ...prev])
     setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
     setShowManualForm(false)
@@ -574,10 +574,10 @@ export default function App() {
                         <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
                       </div>
                       <div style={s.donationCardBadges}>
-                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Payment confirmed</span> : <span style={s.badgePending}>⚠️ Payment unverified</span>}
-                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                        {d.thank_you_sent && <span style={s.badgeIssued}>💌 Thank you sent</span>}
-                      </div>
+                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>✕ Paid</span>}
+                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>✕ Receipt</span>}
+                        <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Sent</span>
+                      </div>  
                     </div>
                   ))}
                 </div>
