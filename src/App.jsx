@@ -27,18 +27,27 @@ const C = {
   bucket1:   '#74C69D',
 }
 
-function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint)
+function useScreenSize() {
+  function getSize() {
+    const w = window.innerWidth
+    if (w <= 640) return 'mobile'
+    if (w <= 1024) return 'tablet'
+    return 'desktop'
+  }
+  const [screenSize, setScreenSize] = useState(getSize())
   useEffect(() => {
-    function handleResize() { setIsMobile(window.innerWidth <= breakpoint) }
+    function handleResize() { setScreenSize(getSize()) }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [breakpoint])
-  return isMobile
+  }, [])
+  return screenSize
 }
 
 export default function App() {
-  const isMobile = useIsMobile()
+  const screenSize = useScreenSize()
+  const isMobile = screenSize === 'mobile'
+  const isTablet = screenSize === 'tablet'
+  const isCompact = isMobile || isTablet
   const [donations, setDonations] = useState([])
   const [loading, setLoading] = useState(true)
   const [issuing, setIssuing] = useState(null)
@@ -305,8 +314,8 @@ export default function App() {
   return (
     <div style={s.page}>
 
-      {/* ── SIDEBAR (desktop) ── */}
-      {!isMobile && (
+      {/* ── SIDEBAR (desktop, full) ── */}
+      {screenSize === 'desktop' && (
       <div style={s.sidebar}>
         <div style={s.sidebarLogo}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -355,6 +364,31 @@ export default function App() {
       </div>
       )}
 
+      {/* ── SIDEBAR (tablet, icon-only) ── */}
+      {isTablet && (
+      <div style={s.sidebarTablet}>
+        <div style={s.sidebarTabletLogo}>
+          <img src={logo} style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        </div>
+        <div style={s.sidebarTabletNav}>
+          {[
+            { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+            { id: 'donations', icon: '💳', label: 'Donations' },
+            { id: 'analytics', icon: '📈', label: 'Analytics' },
+            { id: 'donors',    icon: '👥', label: 'Donors' },
+            { id: 'iras',      icon: '🏛️', label: 'IRAS Export' },
+          ].map(item => (
+            <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
+              <span style={{ fontSize: 20 }}>{item.icon}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ ...s.sidebarTabletItem, ...(activeTab === 'settings' ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }} title="Settings">
+          <span style={{ fontSize: 20 }}>⚙️</span>
+        </div>
+      </div>
+      )}
+
       {/* ── TOP BAR (mobile) ── */}
       {isMobile && (
       <div style={s.mobileTopBar}>
@@ -390,7 +424,7 @@ export default function App() {
       )}
 
       {/* ── MAIN ── */}
-      <div style={isMobile ? s.mainMobile : s.main}>
+      <div style={isMobile ? s.mainMobile : isTablet ? s.mainTablet : s.main}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
@@ -420,7 +454,7 @@ export default function App() {
               </select>
             </div>
 
-            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Received</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
@@ -491,7 +525,7 @@ export default function App() {
                 <div style={s.irasStatus}>✓ Ready to Export</div>
               </div>
               <div style={s.irasBody}>
-                <div style={isMobile ? s.irasInfoGridMobile : s.irasInfoGrid}>
+                <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
                   {[
                     { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: `${donations.length} transactions` },
                     { label: 'Unique Donors', value: uniqueDonors.length, note: 'All time' },
@@ -582,7 +616,7 @@ export default function App() {
                 <div style={s.pageSub}>{uniqueDonors.length} donors · All time</div>
               </div>
             </div>
-            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Donors</div>
                 <div style={{ ...s.statValue, color: 'white' }}>{uniqueDonors.length}</div>
@@ -768,7 +802,7 @@ export default function App() {
                 <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                   <option>All</option><option>Pending</option><option>Issued</option>
                 </select>
-                <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? '#E8CC7A' : C.border, background: filterNric !== 'All' ? '#FDF3DC' : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
+                <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
                   <option value="All">All NRICs</option>
                   <option value="Missing NRIC">⚠️ Missing NRIC</option>
                 </select>
@@ -1114,7 +1148,7 @@ export default function App() {
               </select>
             </div>
 
-            <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
+            <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Raised</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
@@ -1286,7 +1320,7 @@ export default function App() {
               <div style={s.irasStatus}>✓ Ready</div>
             </div>
 
-            <div style={isMobile ? s.irasInfoGridMobile : s.irasInfoGrid}>
+            <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
               {(() => {
                 const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
                 const missingNric = yearDons.filter(d => !d.donor_nric).length
@@ -1474,6 +1508,12 @@ const s = {
   footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
   footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
   main: { marginLeft: 240, flex: 1 },
+  mainTablet: { marginLeft: 72, flex: 1, minWidth: 0 },
+  sidebarTablet: { width: 72, background: C.forest, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10, paddingTop: 16, paddingBottom: 16 },
+  sidebarTabletLogo: { marginBottom: 20 },
+  sidebarTabletNav: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
+  sidebarTabletItem: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' },
+  sidebarTabletItemActive: { background: C.sage, color: 'white' },
   mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 72, width: '100%', boxSizing: 'border-box' },
   mobileTopBar: {
   position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 20,
@@ -1511,6 +1551,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   deadlineBanner: { background: C.red, borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
   bannerBtn: { background: 'white', color: C.red, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 },
+  statsGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 22 },
   statsGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 },
   statCard: { background: C.white, borderRadius: 16, padding: 20, border: `1.5px solid ${C.border}` },
   statLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 8 },
@@ -1532,6 +1573,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 600 },
   irasStatus: { background: C.gold, color: C.forest, padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 },
   irasBody: { padding: 24 },
   irasInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 },
+  irasInfoGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 18 },
   irasInfoGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 },
   irasInfoItem: { background: C.ivory, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` },
   irasInfoLabel: { fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600, marginBottom: 6 },
