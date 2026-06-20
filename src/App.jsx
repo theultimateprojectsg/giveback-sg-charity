@@ -596,16 +596,36 @@ export default function App() {
                 <div style={s.statNote}>of {donations.length} donations</div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <button style={s.exportSmallBtn} onClick={exportIRASExcel}>⬇️ Export XLSX</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportIRASExcel}>⬇️ Export XLSX</button>
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>All Donors</div>
                 <div style={s.tableCount}>{donorList.length} donors</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (
+              {loading ? <div style={s.empty}>Loading...</div> : donorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : isMobile ? (
+                <div>
+                  {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
+                    <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
+                      <div style={s.donationCardTop}>
+                        <div style={s.donationCardDonor}>
+                          <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                          <div>
+                            <div style={s.donationCardName}>{d.name}</div>
+                            <div style={s.donationCardDate}>{d.count} donation{d.count > 1 ? 's' : ''} · Last {new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </div>
+                        </div>
+                        <div style={s.donationCardAmount}>${d.total.toLocaleString()}</div>
+                      </div>
+                      <div style={s.donationCardBadges}>
+                        <span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} receipts issued</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <table style={s.table}>
                   <thead>
                     <tr>{['Donor', 'Total Given', 'Donations', 'Last Donation', 'Receipts', ''].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
@@ -737,22 +757,24 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search by donor name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <select style={s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                <option>All</option><option>Pending</option><option>Issued</option>
-              </select>
-              <select style={{ ...s.filterSelect, borderColor: filterNric !== 'All' ? '#E8CC7A' : C.border, background: filterNric !== 'All' ? '#FDF3DC' : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
-                <option value="All">All NRICs</option>
-                <option value="Missing NRIC">⚠️ Missing NRIC</option>
-              </select>
-              <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                <option>All</option>
-                {donations.length === 0
-  ? <option>{new Date().getFullYear()}</option>
-  : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
-}
-              </select>
+              <div style={isMobile ? { display: 'flex', gap: 10, flexWrap: 'wrap' } : { display: 'flex', gap: 12 }}>
+                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                  <option>All</option><option>Pending</option><option>Issued</option>
+                </select>
+                <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? '#E8CC7A' : C.border, background: filterNric !== 'All' ? '#FDF3DC' : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
+                  <option value="All">All NRICs</option>
+                  <option value="Missing NRIC">⚠️ Missing NRIC</option>
+                </select>
+                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option>All</option>
+                  {donations.length === 0
+    ? <option>{new Date().getFullYear()}</option>
+    : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
+  }
+                </select>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 24 }}>
@@ -1310,28 +1332,65 @@ export default function App() {
                 <div style={s.tableTitle}>Donor Submission Data</div>
                 <div style={s.tableCount}>{irasYearDonorList.length} donors in {filterYear}</div>
               </div>
-              <table style={s.table}>
-                <thead>
-                  <tr>{['Donor', 'Total Donated', 'Transactions', '250% Deductible', 'Est. Tax Savings', 'NRIC'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {irasYearDonorList.map((d, i) => (
-                    <tr key={i} style={s.tr}>
-                      <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
-                      <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
-                      <td style={s.td}><span style={s.dateText}>{d.count}</span></td>
-                      <td style={s.td}><span style={{ ...s.amountText, color: C.forest }}>${(d.total * 2.5).toLocaleString()}</span></td>
-                      <td style={s.td}><span style={{ ...s.amountText, color: C.sage }}>${(d.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></td>
-                      <td style={s.td}>
-                        {(() => {
-                          const nric = d.donations.find(x => x.donor_nric)?.donor_nric
-                          return nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {isMobile ? (
+                <div>
+                  {irasYearDonorList.map((d, i) => {
+                    const nric = d.donations.find(x => x.donor_nric)?.donor_nric
+                    return (
+                      <div key={i} style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div style={s.donorCell}>
+                            <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                            <div style={s.donorName}>{d.name}</div>
+                          </div>
+                          {nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Donated</div>
+                            <div style={{ ...s.amountText, fontSize: 14 }}>${d.total.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Transactions</div>
+                            <div style={{ ...s.dateText, fontSize: 14 }}>{d.count}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>250% Deductible</div>
+                            <div style={{ ...s.amountText, fontSize: 14, color: C.forest }}>${(d.total * 2.5).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Est. Tax Savings</div>
+                            <div style={{ ...s.amountText, fontSize: 14, color: C.sage }}>${(d.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <table style={s.table}>
+                  <thead>
+                    <tr>{['Donor', 'Total Donated', 'Transactions', '250% Deductible', 'Est. Tax Savings', 'NRIC'].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {irasYearDonorList.map((d, i) => (
+                      <tr key={i} style={s.tr}>
+                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
+                        <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
+                        <td style={s.td}><span style={s.dateText}>{d.count}</span></td>
+                        <td style={s.td}><span style={{ ...s.amountText, color: C.forest }}>${(d.total * 2.5).toLocaleString()}</span></td>
+                        <td style={s.td}><span style={{ ...s.amountText, color: C.sage }}>${(d.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></td>
+                        <td style={s.td}>
+                          {(() => {
+                            const nric = d.donations.find(x => x.donor_nric)?.donor_nric
+                            return nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>
+                          })()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
