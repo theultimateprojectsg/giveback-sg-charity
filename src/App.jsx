@@ -734,10 +734,10 @@ export default function App() {
             </div>
 
             {showManualForm && (
-              <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: 24, marginBottom: 24 }}>
+              <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: isMobile ? 16 : 24, marginBottom: 24 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.forest, marginBottom: 16 }}>📝 New Manual Entry</div>
                 {manualError && <div style={{ background: '#FDF3DC', color: '#A07010', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
                   <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
                   <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} /></div>
@@ -1188,7 +1188,7 @@ export default function App() {
 
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
                 {[
                   { label: 'Under $50', min: 0, max: 50, color: '#74C69D' },
                   { label: '$50 — $200', min: 50, max: 200, color: C.sage },
