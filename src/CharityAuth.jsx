@@ -1,8 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import logo from './assets/logo.png'
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint)
+  useEffect(() => {
+    function handleResize() { setIsMobile(window.innerWidth <= breakpoint) }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [breakpoint])
+  return isMobile
+}
+
 export default function CharityAuth() {
+  const isMobile = useIsMobile()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,9 +53,10 @@ export default function CharityAuth() {
       {/* Two column layout */}
       <div style={{
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         width: '100%',
         maxWidth: 1000,
-        minHeight: '100vh',
+        minHeight: isMobile ? 'auto' : '100vh',
         position: 'relative',
         zIndex: 1,
       }}>
@@ -56,29 +68,33 @@ export default function CharityAuth() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '60px 56px',
-          borderRight: '1px solid rgba(116,198,157,0.08)',
+          padding: isMobile ? '40px 24px 24px' : '60px 56px',
+          borderRight: isMobile ? 'none' : '1px solid rgba(116,198,157,0.08)',
+          borderBottom: isMobile ? '1px solid rgba(116,198,157,0.08)' : 'none',
         }}>
-          <div style={{ marginBottom: 28 }}>
-            <img src={logo} style={{ width: 110, height: 110, objectFit: 'contain' }} />
+          <div style={{ marginBottom: isMobile ? 16 : 28 }}>
+            <img src={logo} style={{ width: isMobile ? 64 : 110, height: isMobile ? 64 : 110, objectFit: 'contain' }} />
           </div>
-          <div style={{ fontSize: 36, fontWeight: 700, color: 'white', letterSpacing: '4px', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.1, marginBottom: 12 }}>
+          <div style={{ fontSize: isMobile ? 24 : 36, fontWeight: 700, color: 'white', letterSpacing: '4px', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.1, marginBottom: 12 }}>
             Giving Tree
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, width: 260 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, width: isMobile ? 180 : 260 }}>
             <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #D4A017)' }}/>
             <svg width="14" height="12" viewBox="0 0 16 14">
               <path d="M8 13 C8 13 1 7.5 1 3.5 C1 1.5 2.5 0.5 4 1.5 C5.5 2.5 8 5 8 5 C8 5 10.5 2.5 12 1.5 C13.5 0.5 15 1.5 15 3.5 C15 7.5 8 13 8 13Z" fill="#D4A017"/>
             </svg>
             <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, #D4A017, transparent)' }}/>
           </div>
-          <div style={{ fontSize: 11, color: '#74C69D', letterSpacing: '3px', textTransform: 'uppercase', textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: '#74C69D', letterSpacing: '3px', textTransform: 'uppercase', textAlign: 'center', marginBottom: isMobile ? 16 : 20 }}>
             Many Hearts. One Purpose.
           </div>
+          {!isMobile && (
           <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(116,198,157,0.15)', borderRadius: 16, padding: '16px 28px', textAlign: 'center', marginBottom: 20  }}>
             <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 0, fontFamily: 'sans-serif' }}>Charity Portal</div>
             
           </div>
+          )}
+          {!isMobile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { icon: '💳', text: 'Real-time donation tracking' },
@@ -92,6 +108,7 @@ export default function CharityAuth() {
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* ── RIGHT PANEL ── */}
@@ -100,8 +117,10 @@ export default function CharityAuth() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '60px 56px',
+          padding: isMobile ? '32px 24px 40px' : '60px 56px',
           background: 'rgba(255,255,255,0.02)',
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
 
@@ -109,7 +128,7 @@ export default function CharityAuth() {
               <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif', marginBottom: 10 }}>
                 Charity Portal Access
               </div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'white', marginBottom: 8 }}>Welcome back</div>
+              <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, color: 'white', marginBottom: 8 }}>Welcome back</div>
               <div style={{ fontSize: 13, color: '#52B788', fontFamily: 'sans-serif', lineHeight: 1.6 }}>
                 Sign in to manage donations and issue receipts.
               </div>
