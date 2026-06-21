@@ -26,10 +26,12 @@ export default function CharityAuth() {
     <div className="auth-page">
       <style>{`
         .auth-page {
+          min-height: 100vh;
           background: #0A1A0F;
           font-family: Georgia, serif;
           display: flex;
           justify-content: center;
+          align-items: center;
           padding: 24px 16px;
           box-sizing: border-box;
         }
