@@ -38,11 +38,13 @@ export default function CharityAuth() {
       minHeight: '100vh',
       background: '#0A1A0F',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-start' : 'center',
       justifyContent: 'center',
       fontFamily: 'Georgia, serif',
       position: 'relative',
-      overflow: 'hidden',
+      overflow: isMobile ? 'visible' : 'hidden',
+      padding: isMobile ? '24px 0' : 0,
+      boxSizing: 'border-box',
     }}>
 
       {/* Background */}
@@ -117,7 +119,7 @@ export default function CharityAuth() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: isMobile ? '32px 24px 40px' : '60px 56px',
+          padding: isMobile ? '32px 24px' : '60px 56px',
           background: 'rgba(255,255,255,0.02)',
           width: '100%',
           boxSizing: 'border-box',
