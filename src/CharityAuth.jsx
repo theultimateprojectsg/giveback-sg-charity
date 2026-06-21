@@ -36,15 +36,14 @@ export default function CharityAuth() {
   return (
     <div style={{
       minHeight: '100vh',
-      height: isMobile ? 'auto' : '100vh',
       background: '#0A1A0F',
-      display: 'flex',
-      alignItems: isMobile ? 'flex-start' : 'center',
-      justifyContent: 'center',
+      display: isMobile ? 'block' : 'flex',
+      alignItems: isMobile ? undefined : 'center',
+      justifyContent: isMobile ? undefined : 'center',
       fontFamily: 'Georgia, serif',
       position: 'relative',
       overflow: isMobile ? 'visible' : 'hidden',
-      padding: isMobile ? '24px 0' : 0,
+      padding: isMobile ? '24px 16px' : 0,
       boxSizing: 'border-box',
     }}>
 
