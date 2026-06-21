@@ -127,7 +127,7 @@ export default function CharityAuth() {
         }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
 
-            <div style={{ marginBottom: 36 }}>
+            <div style={{ marginBottom: 36, textAlign: isMobile ? 'center' : 'left' }}>
               <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif', marginBottom: 10 }}>
                 Charity Portal Access
               </div>
