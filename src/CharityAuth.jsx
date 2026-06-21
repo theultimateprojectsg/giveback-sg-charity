@@ -36,6 +36,7 @@ export default function CharityAuth() {
   return (
     <div style={{
       minHeight: '100vh',
+      height: isMobile ? 'auto' : '100vh',
       background: '#0A1A0F',
       display: 'flex',
       alignItems: isMobile ? 'flex-start' : 'center',
