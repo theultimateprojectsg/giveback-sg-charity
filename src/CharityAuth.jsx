@@ -138,6 +138,9 @@ export default function CharityAuth() {
 
         {/* ── LEFT PANEL ── */}
         <div className="auth-left">
+          <a href="https://givingtree.sg" style={{ fontSize: 11, color: '#52B788', fontFamily: 'sans-serif', textDecoration: 'none', marginBottom: 20, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ← Back to givingtree.sg
+          </a>
           <div style={{ marginBottom: 28 }}>
             <img src={logo} className="auth-logo-img" style={{ width: 110, height: 110, objectFit: 'contain' }} />
           </div>
