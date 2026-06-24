@@ -93,6 +93,7 @@ export default function App() {
       .from('donations')
       .select('*')
       .eq('charity_uen', session.user.user_metadata.charity_uen)
+      .neq('status', 'cancelled_by_donor')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
     setDonations(data)
