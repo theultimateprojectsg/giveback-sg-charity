@@ -230,6 +230,13 @@ export default function CharityAuth() {
               Contact <span style={{ color: '#D4A017' }}>hello@givingtree.sg</span> to get set up.
             </div>
 
+            <div style={{ marginTop: 14, fontSize: 11, color: 'rgba(116,198,157,0.55)', fontFamily: 'sans-serif', textAlign: 'center', lineHeight: 1.6 }}>
+              By signing in, your organisation agrees to Giving Tree's{' '}
+              <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#D4A017', textDecoration: 'underline' }}>Terms of Use</a>
+              {' '}and{' '}
+              <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#D4A017', textDecoration: 'underline' }}>Privacy Policy</a>.
+            </div>
+
             <div style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 10, opacity: 0.4 }}>
               <div style={{ flex: 1, height: 1, background: 'rgba(116,198,157,0.3)' }} />
               <div style={{ fontSize: 11, color: '#52B788', fontFamily: 'sans-serif', letterSpacing: '2px', textTransform: 'uppercase' }}>The Giving Tree</div>
