@@ -130,6 +130,7 @@ export default function App() {
       actor_email: session.user.email,
       action: 'receipt_issued',
       donation_id: donation.id,
+      details: { donor_name: donation.donor_name, amount: donation.amount },
     })
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, receipt_issued: true } : d))
     setIssuing(null)
@@ -1699,6 +1700,11 @@ export default function App() {
                       donation_edited: { label: 'Donation edited', icon: '✏️', color: C.gold },
                       receipt_issued: { label: 'Receipt issued', icon: '🧾', color: C.sage },
                       manual_entry_deleted: { label: 'Manual entry deleted', icon: '🗑️', color: C.red },
+                      manual_entry_created: { label: 'Manual entry added', icon: '➕', color: C.sage },
+                      nric_added: { label: 'NRIC added', icon: '🪪', color: C.sage },
+                      donation_created: { label: 'New donation received', icon: '💳', color: C.sage },
+                      payment_confirmed: { label: 'Payment confirmed', icon: '✓', color: C.sage },
+                      payment_confirmation_undone: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -1713,9 +1719,7 @@ export default function App() {
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
                               {entry.action === 'donation_edited'
                                 ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
-                                : entry.action === 'manual_entry_deleted'
-                                ? `${entry.details.donor_name} · $${entry.details.amount}`
-                                : ''}
+                                : [entry.details.donor_name, entry.details.amount != null ? `$${entry.details.amount}` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
                         </div>
