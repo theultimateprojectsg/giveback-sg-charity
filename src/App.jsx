@@ -145,6 +145,43 @@ export default function App() {
     showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued`)
   }
 
+  async function requestAllMissingNric() {
+    const missing = donations.filter(d => !d.donor_nric && d.donor_email?.trim())
+    if (missing.length === 0) { showToast('No donors with email on file are missing NRIC', 'error'); return }
+
+    const byDonor = {}
+    missing.forEach(d => {
+      if (!byDonor[d.donor_email]) byDonor[d.donor_email] = { donor_name: d.donor_name, donor_email: d.donor_email, total: 0, count: 0 }
+      byDonor[d.donor_email].total += d.amount
+      byDonor[d.donor_email].count += 1
+    })
+    const donorList = Object.values(byDonor)
+
+    if (!window.confirm(`Send a consolidated NRIC request to ${donorList.length} donor${donorList.length > 1 ? 's' : ''} missing NRIC?`)) return
+
+    let sent = 0
+    for (const donor of donorList) {
+      const { error } = await supabase.functions.invoke('send-thank-you', {
+        body: {
+          donor_name: donor.donor_name,
+          donor_email: donor.donor_email,
+          charity_name: charityName,
+          amount: donor.total,
+          date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+          request_nric: true,
+        }
+      })
+      if (!error) sent++
+    }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'bulk_nric_requested',
+      details: { donor_count: sent },
+    })
+    showToast(`NRIC request sent to ${sent} of ${donorList.length} donors`)
+  }
+
   function goToDonation(donation) {
     setFilterYear('All')
     setFilterType('All')
@@ -1591,6 +1628,12 @@ export default function App() {
             {pendingCount > 0 && (
               <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5 }}>
                 ⚠️ {pendingCount} donation{pendingCount > 1 ? 's' : ''} still pending receipt. Issue all receipts before submitting to IRAS.
+              </div>
+            )}
+            {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length > 0 && (
+              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <span>🪪 {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length} donations missing NRIC have a donor email on file.</span>
+                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={requestAllMissingNric}>Request All NRICs</button>
               </div>
             )}
 
