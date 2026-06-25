@@ -172,6 +172,13 @@ export default function App() {
       created_at: manualForm.date,
     }]).select()
     if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'manual_entry_created',
+      donation_id: data[0].id,
+      details: { donor_name: manualForm.donor_name, amount: parseFloat(manualForm.amount), payment_method: manualForm.payment_method },
+    })
     setDonations(prev => [{ ...data[0] }, ...prev])
     setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
     setShowManualForm(false)
@@ -1082,7 +1089,14 @@ export default function App() {
                               const val = document.getElementById('nric-input').value.trim().toUpperCase()
                               if (!val) return
                               supabase.from('donations').update({ donor_nric: val }).eq('id', selectedDonation.id)
-                                .then(() => {
+                                .then(async () => {
+                                  await supabase.from('audit_log').insert({
+                                    actor_type: 'charity',
+                                    actor_email: session.user.email,
+                                    action: 'nric_added',
+                                    donation_id: selectedDonation.id,
+                                    details: { donor_name: selectedDonation.donor_name },
+                                  })
                                   setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, donor_nric: val } : x))
                                   setSelectedDonation(prev => ({ ...prev, donor_nric: val }))
                                 })
@@ -1220,6 +1234,13 @@ export default function App() {
                             // Step 2 — Update DB
                             const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', selectedDonation.id)
                             if (error) { showToast('Error confirming payment', 'error'); return }
+                            await supabase.from('audit_log').insert({
+                              actor_type: 'charity',
+                              actor_email: session.user.email,
+                              action: 'payment_confirmed',
+                              donation_id: selectedDonation.id,
+                              details: { donor_name: selectedDonation.donor_name, amount: selectedDonation.amount },
+                            })
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
                             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
 
@@ -1242,6 +1263,12 @@ export default function App() {
                                   cancelled = true
                                   const { error: revertError } = await supabase.from('donations').update({ payment_status: 'pending', receipt_issued: false }).eq('id', donationSnapshot.id)
                                   if (revertError) { showToast('Error reverting — please refresh', 'error'); return }
+                                  await supabase.from('audit_log').insert({
+                                    actor_type: 'charity',
+                                    actor_email: session.user.email,
+                                    action: 'payment_confirmation_undone',
+                                    donation_id: donationSnapshot.id,
+                                  })
                                   setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, payment_status: 'pending', receipt_issued: false } : x))
                                   setSelectedDonation(prev => ({ ...prev, payment_status: 'pending', receipt_issued: false }))
                                   setToast(null)
