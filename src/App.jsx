@@ -281,8 +281,9 @@ export default function App() {
   const donorMap = {}
   donations.forEach(d => {
     if (!donorMap[d.donor_name]) {
-      donorMap[d.donor_name] = { name: d.donor_name, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
+      donorMap[d.donor_name] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
     }
+    if (!donorMap[d.donor_name].email && d.donor_email) donorMap[d.donor_name].email = d.donor_email
     donorMap[d.donor_name].total += d.amount
     donorMap[d.donor_name].count += 1
     if (d.receipt_issued) donorMap[d.donor_name].receipts += 1
@@ -363,6 +364,21 @@ export default function App() {
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
+  }
+
+  function exportDonorContactsCSV() {
+    const rows = donorList.map(d => ({
+      'Donor Name': d.name,
+      'Email': d.email || '',
+      'Total Given (SGD)': d.total,
+      'Number of Donations': d.count,
+      'Last Donation': new Date(d.lastDate).toLocaleDateString('en-SG'),
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 15 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Donor Contacts')
+    XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.csv`)
   }
 
   function exportPDF() {
@@ -813,7 +829,8 @@ export default function App() {
             </div>
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportIRASExcel}>⬇️ Export XLSX</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportIRASExcel}>⬇️ Export IRAS</button>
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
@@ -1775,6 +1792,7 @@ export default function App() {
                       donation_created: { label: 'New donation received', icon: '💳', color: C.sage },
                       payment_confirmed: { label: 'Payment confirmed', icon: '✓', color: C.sage },
                       payment_confirmation_undone: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
+                      bulk_nric_requested: { label: 'Bulk NRIC request sent', icon: '📧', color: C.sage },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -1789,6 +1807,8 @@ export default function App() {
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
                               {entry.action === 'donation_edited'
                                 ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
+                                : entry.action === 'bulk_nric_requested'
+                                ? `${entry.details.donor_count} donor${entry.details.donor_count > 1 ? 's' : ''}`
                                 : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
