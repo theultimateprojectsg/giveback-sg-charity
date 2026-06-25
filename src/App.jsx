@@ -107,6 +107,12 @@ export default function App() {
       .update({ receipt_issued: true })
       .eq('id', donation.id)
     if (error) { console.error(error); setIssuing(null); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'receipt_issued',
+      donation_id: donation.id,
+    })
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, receipt_issued: true } : d))
     setIssuing(null)
   }
@@ -160,6 +166,13 @@ export default function App() {
     const donationToDelete = donations.find(d => d.id === id)
     const { error } = await supabase.from('donations').delete().eq('id', id)
     if (error) { console.error(error); setDeletingId(null); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'manual_entry_deleted',
+      donation_id: id,
+      details: { donor_name: donationToDelete?.donor_name, amount: donationToDelete?.amount },
+    })
     setDonations(prev => prev.filter(d => d.id !== id))
     setDeletingId(null)
     setSelectedDonation(null)
