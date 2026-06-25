@@ -1809,7 +1809,7 @@ export default function App() {
                                 ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
                                 : entry.action === 'bulk_nric_requested'
                                 ? `${entry.details.donor_count} donor${entry.details.donor_count > 1 ? 's' : ''}`
-                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null].filter(Boolean).join(' · ')}
+                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
                         </div>
