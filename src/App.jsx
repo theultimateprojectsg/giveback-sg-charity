@@ -76,6 +76,8 @@ export default function App() {
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditActionFilter, setAuditActionFilter] = useState('All')
   const [auditDateFilter, setAuditDateFilter] = useState('30')
+  const [customMessage, setCustomMessage] = useState('')
+  const [savingMessage, setSavingMessage] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -89,8 +91,23 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (session) loadDonations()
+    if (session) {
+      loadDonations()
+      supabase.from('charity_contacts').select('custom_thank_you_message').eq('charity_uen', session.user.user_metadata.charity_uen).single()
+        .then(({ data }) => { if (data?.custom_thank_you_message) setCustomMessage(data.custom_thank_you_message) })
+    }
   }, [session])
+
+  async function saveCustomMessage() {
+    setSavingMessage(true)
+    const { error } = await supabase
+      .from('charity_contacts')
+      .update({ custom_thank_you_message: customMessage })
+      .eq('charity_uen', charityUen)
+    setSavingMessage(false)
+    if (error) { showToast('Error saving message', 'error'); return }
+    showToast('Thank you message saved ✓')
+  }
 
   async function loadAuditLog() {
     setAuditLoading(true)
@@ -1831,7 +1848,7 @@ export default function App() {
               <div style={s.pageTitle}>Settings</div>
             </div>
             <div style={{ maxWidth: 500 }}>
-              <div style={s.card}>
+              <div style={{ ...s.card, marginBottom: 20 }}>
                 <div style={s.cardTitle}>Charity Details</div>
                 {[
                   { label: 'Charity Name', value: charityName },
@@ -1844,6 +1861,19 @@ export default function App() {
                   </div>
                 ))}
                 <button style={{ ...s.btnForest, background: C.red, marginTop: 8 }} onClick={() => supabase.auth.signOut()}>🚪 Sign Out</button>
+              </div>
+              <div style={s.card}>
+                <div style={s.cardTitle}>Thank You Message</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Add a personal note from your charity. This appears in every thank-you email and NRIC request sent to donors.</div>
+                <textarea
+                  style={{ ...s.formInput, minHeight: 100, resize: 'vertical', marginBottom: 12 }}
+                  placeholder="e.g. On behalf of everyone at our charity, thank you for standing with us..."
+                  value={customMessage}
+                  onChange={e => setCustomMessage(e.target.value)}
+                  maxLength={500}
+                />
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 12, textAlign: 'right' }}>{customMessage.length}/500</div>
+                <button style={s.btnForest} onClick={saveCustomMessage} disabled={savingMessage}>{savingMessage ? 'Saving...' : '✓ Save Message'}</button>
               </div>
             </div>
           </div>
