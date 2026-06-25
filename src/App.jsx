@@ -72,6 +72,8 @@ export default function App() {
   const [nricRequestSent, setNricRequestSent] = useState({})
   const [toast, setToast] = useState(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [auditLog, setAuditLog] = useState([])
+  const [auditLoading, setAuditLoading] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -87,6 +89,22 @@ export default function App() {
   useEffect(() => {
     if (session) loadDonations()
   }, [session])
+
+  async function loadAuditLog() {
+    setAuditLoading(true)
+    const { data, error } = await supabase
+      .from('audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (error) { console.error(error); setAuditLoading(false); return }
+    setAuditLog(data)
+    setAuditLoading(false)
+  }
+
+  useEffect(() => {
+    if (session && activeTab === 'activity') loadAuditLog()
+  }, [session, activeTab])
 
   async function loadDonations() {
     const { data, error } = await supabase
@@ -422,7 +440,7 @@ export default function App() {
             </div>
           ))}
           <div style={s.navLabel}>Compliance</div>
-          {[{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }].map(item => (
+          {[{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }, { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
             <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>{item.label}
             </div>
@@ -455,6 +473,7 @@ export default function App() {
             { id: 'analytics', icon: '📈', label: 'Analytics' },
             { id: 'donors',    icon: '👥', label: 'Donors' },
             { id: 'iras',      icon: '🏛️', label: 'IRAS Export' },
+            { id: 'activity',  icon: '📋', label: 'Activity Log' },
           ].map(item => (
             <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
@@ -478,6 +497,7 @@ export default function App() {
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
+            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
           </div>
         )}
@@ -1280,6 +1300,13 @@ export default function App() {
                               }
                               const { error } = await supabase.from('donations').update(updates).eq('id', selectedDonation.id)
                               if (error) { showToast('Error saving', 'error'); return }
+                              await supabase.from('audit_log').insert({
+                                actor_type: 'charity',
+                                actor_email: session.user.email,
+                                action: 'donation_edited',
+                                donation_id: selectedDonation.id,
+                                details: { before: { donor_name: selectedDonation.donor_name, amount: selectedDonation.amount }, after: updates },
+                              })
                               setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, ...updates } : x))
                               setSelectedDonation(prev => ({ ...prev, ...updates }))
                               setEditingManual(false)
@@ -1623,6 +1650,57 @@ export default function App() {
             </div>
           </div>
         )}
+{/* ── ACTIVITY LOG ── */}
+{activeTab === 'activity' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>Activity Log</div>
+                <div style={s.pageSub}>A record of changes made to your donations — by you, your team, or donors.</div>
+              </div>
+            </div>
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>Recent Activity</div>
+                <div style={s.tableCount}>{auditLog.length} entries</div>
+              </div>
+              {auditLoading ? <div style={s.empty}>Loading...</div> : auditLog.length === 0 ? <div style={s.empty}>No activity recorded yet.</div> : (
+                <div>
+                  {auditLog.map(entry => {
+                    const actionLabels = {
+                      donation_cancelled: { label: 'Donation cancelled by donor', icon: '✕', color: C.red },
+                      donation_edited: { label: 'Donation edited', icon: '✏️', color: C.gold },
+                      receipt_issued: { label: 'Receipt issued', icon: '🧾', color: C.sage },
+                      manual_entry_deleted: { label: 'Manual entry deleted', icon: '🗑️', color: C.red },
+                    }
+                    const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
+                    return (
+                      <div key={entry.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: C.ivory, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{info.icon}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: info.color }}>{info.label}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                            {entry.actor_type === 'donor' ? 'Donor' : 'Charity staff'} ({entry.actor_email}) · {new Date(entry.created_at).toLocaleString('en-SG')}
+                          </div>
+                          {entry.details && (
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
+                              {entry.action === 'donation_edited'
+                                ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
+                                : entry.action === 'manual_entry_deleted'
+                                ? `${entry.details.donor_name} · $${entry.details.amount}`
+                                : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
 
         {/* ── SETTINGS ── */}
         {activeTab === 'settings' && (
