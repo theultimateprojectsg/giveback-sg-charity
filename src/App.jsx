@@ -74,6 +74,8 @@ export default function App() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [auditLog, setAuditLog] = useState([])
   const [auditLoading, setAuditLoading] = useState(false)
+  const [auditActionFilter, setAuditActionFilter] = useState('All')
+  const [auditDateFilter, setAuditDateFilter] = useState('30')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1687,14 +1689,39 @@ export default function App() {
                 <div style={s.pageSub}>A record of changes made to your donations — by you, your team, or donors.</div>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+              <select style={s.filterSelect} value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)}>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="All">All time</option>
+              </select>
+              <select style={s.filterSelect} value={auditActionFilter} onChange={e => setAuditActionFilter(e.target.value)}>
+                <option value="All">All activity</option>
+                <option value="donation_created">New donations</option>
+                <option value="donation_cancelled">Cancellations</option>
+                <option value="receipt_issued">Receipts issued</option>
+                <option value="payment_confirmed">Payments confirmed</option>
+                <option value="manual_entry_created">Manual entries added</option>
+                <option value="donation_edited">Edits</option>
+              </select>
+            </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>Recent Activity</div>
-                <div style={s.tableCount}>{auditLog.length} entries</div>
+                <div style={s.tableCount}>{auditLog.filter(entry => {
+                  const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
+                  const matchDate = auditDateFilter === 'All' || (Date.now() - new Date(entry.created_at).getTime()) < parseInt(auditDateFilter) * 24 * 60 * 60 * 1000
+                  return matchAction && matchDate
+                }).length} entries</div>
               </div>
               {auditLoading ? <div style={s.empty}>Loading...</div> : auditLog.length === 0 ? <div style={s.empty}>No activity recorded yet.</div> : (
                 <div>
-                  {auditLog.map(entry => {
+                  {auditLog.filter(entry => {
+                    const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
+                    const matchDate = auditDateFilter === 'All' || (Date.now() - new Date(entry.created_at).getTime()) < parseInt(auditDateFilter) * 24 * 60 * 60 * 1000
+                    return matchAction && matchDate
+                  }).map(entry => {
                     const actionLabels = {
                       donation_cancelled: { label: 'Donation cancelled by donor', icon: '✕', color: C.red },
                       donation_edited: { label: 'Donation edited', icon: '✏️', color: C.gold },
@@ -1719,7 +1746,7 @@ export default function App() {
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
                               {entry.action === 'donation_edited'
                                 ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
-                                : [entry.details.donor_name, entry.details.amount != null ? `$${entry.details.amount}` : null].filter(Boolean).join(' · ')}
+                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
                         </div>
