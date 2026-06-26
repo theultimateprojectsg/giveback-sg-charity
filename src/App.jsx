@@ -414,6 +414,37 @@ export default function App() {
     doc.save(`GivingTree-Report-${charityName}-${filterYear}.pdf`)
   }
 
+  function exportSingleReceiptPDF(donation) {
+    const doc = new jsPDF()
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Official Donation Receipt', 14, 25)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.text(charityName, 14, 35)
+    doc.text(`UEN: ${charityUen}`, 14, 42)
+    doc.line(14, 48, 196, 48)
+    doc.text(`Donor: ${donation.donor_name}`, 14, 60)
+    doc.text(`Amount: SGD $${Number(donation.amount).toFixed(2)}`, 14, 70)
+    doc.text(`Date: ${new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, 80)
+    doc.text(`Payment Method: ${donation.payment_method || (donation.source === 'manual' ? 'Manual Entry' : 'PayNow')}`, 14, 90)
+    if (donation.donor_nric) doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100)
+    doc.line(14, donation.donor_nric ? 108 : 98, 196, donation.donor_nric ? 108 : 98)
+    doc.setFont('helvetica', 'bold')
+    const y2 = donation.donor_nric ? 120 : 110
+    doc.text(`Tax Deductible (250%): SGD $${(donation.amount * 2.5).toFixed(2)}`, 14, y2)
+    doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    if (!donation.donor_nric) {
+      doc.setTextColor(160, 113, 16)
+      doc.text('⚠ NRIC/FIN not on file. Donor must provide this to claim the tax deduction.', 14, y2 + 22)
+      doc.setTextColor(0, 0, 0)
+    }
+    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, y2 + 32)
+    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}.pdf`)
+  }
+
   function exportYearEndSummary() {
     const doc = new jsPDF()
     const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
@@ -1186,6 +1217,9 @@ export default function App() {
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {selectedDonation.receipt_issued && (
+                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
+                        )}
                         {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
                             const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
