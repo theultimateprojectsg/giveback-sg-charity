@@ -136,6 +136,7 @@ export default function App() {
     }])
     setSavingCause(false)
     if (error) { setCauseError(`Error: ${error.message}`); return }
+    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, charity_name: charityName, type: 'campaign' } }).catch(err => console.error(err))
     setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
     setShowCauseForm(false)
     loadMyCauses()
@@ -156,6 +157,7 @@ export default function App() {
     }])
     setSavingSponsored(false)
     if (error) { setSponsoredError(`Error: ${error.message}`); return }
+    supabase.functions.invoke('notify-pending-approval', { body: { title: `${charityName} — Sponsored Spot`, charity_name: charityName, type: 'sponsored' } }).catch(err => console.error(err))
     setShowSponsoredForm(false)
     loadMyCauses()
     showToast('Sponsored banner request submitted for approval ✓')
@@ -2031,7 +2033,7 @@ export default function App() {
             </div>
           </div>
         )}
-        
+
         {/* ── SETTINGS ── */}
         {activeTab === 'settings' && (
           <div style={s.content}>
