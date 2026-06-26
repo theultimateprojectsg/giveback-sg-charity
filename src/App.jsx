@@ -670,8 +670,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              <div style={s.card}>
+            <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={s.cardTitle}>🏛️ IRAS Submission Status</div>
                 <div style={s.statusStep}>
                   <div style={{ ...s.stepDot, background: C.sage }}>✓</div>
@@ -687,26 +686,6 @@ export default function App() {
                   <div style={{ ...s.stepDot, background: C.ivoryDark, color: C.muted, border: `2px solid ${C.border}` }}>→</div>
                   <div><div style={{ ...s.stepTitle, color: C.muted }}>Submit to IRAS</div><div style={s.stepSub}>Due 31 January {currentYear + 1}</div></div>
                 </div>
-              </div>
-              <div style={s.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={s.cardTitle}>📨 Donor Notifications</div>
-                  <div style={s.autoBadge}>Auto-send</div>
-                </div>
-                {[
-                  { title: 'NRIC Reminder', desc: 'Donors asked to complete NRIC in app', status: 'Sent ✓', color: C.sage },
-                  { title: 'Deadline Alert', desc: 'All donors notified 15 Jan if submission pending', status: 'Scheduled', color: C.warning },
-                  { title: 'Missed Submission Alert', desc: 'Donors alerted to claim manually if not submitted', status: 'Standby', color: C.warning },
-                ].map((n, i) => (
-                  <div key={i} style={{ ...s.notifItem, background: i === 2 ? C.warningBg : C.ivory, borderColor: i === 2 ? C.warningBorder : C.border }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.forest }}>{n.title}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: n.color }}>{n.status}</div>
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted }}>{n.desc}</div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: 18, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
