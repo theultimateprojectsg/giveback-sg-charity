@@ -186,7 +186,6 @@ export default function App() {
           amount: donor.total,
           date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
           request_nric: true,
-          custom_message: customMessage,
         }
       })
       if (!error) sent++
@@ -1182,7 +1181,7 @@ export default function App() {
                           <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
                             if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
                             const { error } = await supabase.functions.invoke('send-thank-you', {
-                              body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true, custom_message: customMessage }
+                              body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
                             })
                             if (error) { showToast('Failed to send email', 'error'); return }
                             setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
