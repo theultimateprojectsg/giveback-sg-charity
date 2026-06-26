@@ -121,20 +121,22 @@ export default function App() {
     setLoading(false)
   }
 
-  async function issueReceipt(donation) {
+  async function issueReceipt(donation, skipLog = false) {
     setIssuing(donation.id)
     const { error } = await supabase
       .from('donations')
       .update({ receipt_issued: true })
       .eq('id', donation.id)
     if (error) { console.error(error); setIssuing(null); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'receipt_issued',
-      donation_id: donation.id,
-      details: { donor_name: donation.donor_name, amount: donation.amount },
-    })
+    if (!skipLog) {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'receipt_issued',
+        donation_id: donation.id,
+        details: { donor_name: donation.donor_name, amount: donation.amount },
+      })
+    }
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, receipt_issued: true } : d))
     setIssuing(null)
   }
@@ -143,7 +145,13 @@ export default function App() {
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) { showToast('No confirmed payments pending receipt for ' + filterYear, 'error'); return }
-    for (const d of pending) await issueReceipt(d)
+    for (const d of pending) await issueReceipt(d, true)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'bulk_receipts_issued',
+      details: { donation_count: pending.length, year: filterYear },
+    })
     showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${filterYear}`)
   }
 
@@ -1757,6 +1765,7 @@ export default function App() {
                 <option value="nric_added">NRIC added by charity</option>
                 <option value="nric_synced_by_donor">NRIC updated by donor</option>
                 <option value="bulk_nric_requested">Bulk NRIC requests</option>
+                <option value="bulk_receipts_issued">Bulk receipts issued</option>
               </select>
             </div>
             <div style={s.tableCard}>
@@ -1787,6 +1796,7 @@ export default function App() {
                       payment_confirmation_undone: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
                       bulk_nric_requested: { label: 'Bulk NRIC request sent', icon: '📧', color: C.sage },
                       nric_synced_by_donor: { label: 'Donor updated their NRIC', icon: '🪪', color: C.sage },
+                      bulk_receipts_issued: { label: 'Bulk receipts issued', icon: '🧾', color: C.sage },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -1805,6 +1815,8 @@ export default function App() {
                                 ? `${entry.details.donor_count} donor${entry.details.donor_count > 1 ? 's' : ''}`
                                 : entry.action === 'nric_synced_by_donor'
                                 ? `${entry.details.donation_count} donation${entry.details.donation_count > 1 ? 's' : ''} updated`
+                                : entry.action === 'bulk_receipts_issued'
+                                ? `${entry.details.donation_count} receipt${entry.details.donation_count > 1 ? 's' : ''} · ${entry.details.year}`
                                 : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
