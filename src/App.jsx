@@ -615,6 +615,18 @@ export default function App() {
                 <button style={s.bannerBtn} onClick={issueAllReceipts}>Issue All Receipts</button>
               </div>
             )}
+            {donations.filter(d => !d.donor_nric).length > 0 && (
+              <div style={{ ...s.deadlineBanner, background: C.teal, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: 24 }}>🪪</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{donations.filter(d => !d.donor_nric).length} donation{donations.filter(d => !d.donor_nric).length > 1 ? 's' : ''} missing NRIC</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed for donors to claim their 250% tax deduction</div>
+                  </div>
+                </div>
+                <button style={s.bannerBtn} onClick={() => setActiveTab('iras')}>Review →</button>
+              </div>
+            )}
             {donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
