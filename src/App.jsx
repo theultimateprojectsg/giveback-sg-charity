@@ -135,6 +135,7 @@ export default function App() {
     if (!window.confirm('This will move the approved item back to Pending Review so you can edit it, and it will be hidden from donors until re-approved. Continue?')) return
     const { error } = await supabase.from('causes').update({ status: 'pending' }).eq('id', c.id)
     if (error) { showToast('Error requesting revision', 'error'); return }
+    supabase.functions.invoke('notify-pending-approval', { body: { title: c.title, description: c.description, target_amount: c.target_amount, end_date: c.end_date, charity_name: charityName, type: c.type, id: c.id, is_revision: true } }).catch(err => console.error(err))
     loadMyCauses()
     if (c.type === 'campaign') startEditCause(c)
     showToast('Moved back to Pending Review — edit and resubmit')
@@ -175,7 +176,7 @@ export default function App() {
     }]).select()
     setSavingCause(false)
     if (error) { setCauseError(`Error: ${error.message}`); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, charity_name: charityName, type: 'campaign', id: data[0].id } }).catch(err => console.error(err))
+    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, description: causeForm.description, target_amount: causeForm.target_amount, end_date: causeForm.end_date, charity_name: charityName, type: 'campaign', id: data[0].id } }).catch(err => console.error(err))
     setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
     setShowCauseForm(false)
     loadMyCauses()
