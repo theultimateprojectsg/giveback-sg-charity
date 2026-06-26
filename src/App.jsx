@@ -140,15 +140,17 @@ export default function App() {
   }
 
   async function issueAllReceipts() {
-    const pending = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
-    if (pending.length === 0) { showToast('No confirmed payments pending receipt', 'error'); return }
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+    const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
+    if (pending.length === 0) { showToast('No confirmed payments pending receipt for ' + filterYear, 'error'); return }
     for (const d of pending) await issueReceipt(d)
-    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued`)
+    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${filterYear}`)
   }
 
   async function requestAllMissingNric() {
-    const missing = donations.filter(d => !d.donor_nric && d.donor_email?.trim())
-    if (missing.length === 0) { showToast('No donors with email on file are missing NRIC', 'error'); return }
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+    const missing = yearScoped.filter(d => !d.donor_nric && d.donor_email?.trim())
+    if (missing.length === 0) { showToast(`No donors with email on file are missing NRIC for ${filterYear}`, 'error'); return }
 
     const byDonor = {}
     missing.forEach(d => {
@@ -1498,15 +1500,17 @@ export default function App() {
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
-                {[
-                  { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
-                  { label: '$50 — $200', min: 50, max: 200, color: C.sage },
-                  { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
-                  { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
-                ].map((bucket, i) => {
-                  const count = donations.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
-                  const total = donations.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
-                  const pct = donations.length ? Math.round((count / donations.length) * 100) : 0
+                {(() => {
+                  const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+                  return [
+                    { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
+                    { label: '$50 — $200', min: 50, max: 200, color: C.sage },
+                    { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
+                    { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
+                  ].map((bucket, i) => {
+                  const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
+                  const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
+                  const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
                   return (
                     <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                       <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
@@ -1517,7 +1521,8 @@ export default function App() {
                       </div>
                     </div>
                   )
-                })}
+                  })
+                })()}
               </div>
             </div>
 
@@ -1529,16 +1534,25 @@ export default function App() {
                     <svg viewBox="0 0 36 36" style={{ width: 100, height: 100, transform: 'rotate(-90deg)' }}>
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke={C.border} strokeWidth="3" />
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke={C.sage} strokeWidth="3"
-                        strokeDasharray={`${donations.length ? (issuedCount / donations.length) * 100 : 0} 100`} strokeLinecap="round" />
+                        strokeDasharray={`${(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear); return yd.length ? (yd.filter(d => d.receipt_issued).length / yd.length) * 100 : 0 })()} 100`} strokeLinecap="round" />
                     </svg>
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 16, fontWeight: 800, color: C.forest }}>
-                      {donations.length ? Math.round((issuedCount / donations.length) * 100) : 0}%
+                      {(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear); return yd.length ? Math.round((yd.filter(d => d.receipt_issued).length / yd.length) * 100) : 0 })()}%
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.sage }}>{issuedCount}</span> receipts issued</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.warning }}>{pendingCount}</span> still pending</div>
-                    <div style={{ fontSize: 13, color: C.muted }}><span style={{ fontWeight: 700, color: C.forest }}>{donations.length}</span> total donations</div>
+                    {(() => {
+                      const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+                      const yIssued = yd.filter(d => d.receipt_issued).length
+                      const yPending = yd.length - yIssued
+                      return (
+                        <>
+                          <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.sage }}>{yIssued}</span> receipts issued</div>
+                          <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}><span style={{ fontWeight: 700, color: C.warning }}>{yPending}</span> still pending</div>
+                          <div style={{ fontSize: 13, color: C.muted }}><span style={{ fontWeight: 700, color: C.forest }}>{yd.length}</span> total donations</div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
                 {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts}>🧾 Issue All Pending Receipts</button>}
