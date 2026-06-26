@@ -1794,6 +1794,7 @@ export default function App() {
                       payment_confirmed: { label: 'Payment confirmed', icon: '✓', color: C.sage },
                       payment_confirmation_undone: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
                       bulk_nric_requested: { label: 'Bulk NRIC request sent', icon: '📧', color: C.sage },
+                      nric_synced_by_donor: { label: 'Donor updated their NRIC', icon: '🪪', color: C.sage },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -1810,6 +1811,8 @@ export default function App() {
                                 ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
                                 : entry.action === 'bulk_nric_requested'
                                 ? `${entry.details.donor_count} donor${entry.details.donor_count > 1 ? 's' : ''}`
+                                : entry.action === 'nric_synced_by_donor'
+                                ? `${entry.details.donation_count} donation${entry.details.donation_count > 1 ? 's' : ''} updated`
                                 : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
