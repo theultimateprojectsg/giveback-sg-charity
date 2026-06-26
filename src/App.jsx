@@ -661,7 +661,7 @@ export default function App() {
 
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
-                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Received</div>
+                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Confirmed, {filterYear}</div>
                 <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
                 <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{donations.length} donations</div>
               </div>
@@ -785,7 +785,7 @@ export default function App() {
                 <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
               </div>
               <div style={s.statCard}>
-                <div style={s.statLabel}>Total Raised</div>
+                <div style={s.statLabel}>Total Raised, All Time</div>
                 <div style={s.statValue}>${totalAllTime.toLocaleString()}</div>
               </div>
               <div style={s.statCard}>
