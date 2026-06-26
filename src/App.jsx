@@ -383,6 +383,9 @@ export default function App() {
   }
 
   function exportPDF() {
+    const yearDonationsForExport = filterYear === 'All'
+      ? donations
+      : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const doc = new jsPDF()
     doc.setFontSize(18); doc.setFont('helvetica', 'bold')
     doc.text(`Giving Tree — Donation Report ${filterYear}`, 14, 22)
@@ -390,11 +393,11 @@ export default function App() {
     doc.text(`Charity: ${charityName}`, 14, 32)
     doc.text(`UEN: ${charityUen}`, 14, 39)
     doc.text(`Generated: ${new Date().toLocaleDateString('en-SG')}`, 14, 46)
-    doc.text(`Total: SGD $${totalThisYear.toLocaleString()}`, 14, 53)
+    doc.text(`Total: SGD $${yearDonationsForExport.reduce((s, d) => s + d.amount, 0).toLocaleString()}`, 14, 53)
     autoTable(doc, {
       startY: 62,
       head: [['Donor', 'Amount (SGD)', 'Date', 'Receipt']],
-      body: filteredDonations.map(d => [d.donor_name, `$${d.amount.toFixed(2)}`, new Date(d.created_at).toLocaleDateString('en-SG'), d.receipt_issued ? 'Issued' : 'Pending']),
+      body: yearDonationsForExport.map(d => [d.donor_name, `$${d.amount.toFixed(2)}`, new Date(d.created_at).toLocaleDateString('en-SG'), d.receipt_issued ? 'Issued' : 'Pending']),
       styles: { fontSize: 10 },
       headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
     })
@@ -1729,8 +1732,13 @@ export default function App() {
                 <option value="donation_cancelled">Cancellations</option>
                 <option value="receipt_issued">Receipts issued</option>
                 <option value="payment_confirmed">Payments confirmed</option>
+                <option value="payment_confirmation_undone">Payment confirmations undone</option>
                 <option value="manual_entry_created">Manual entries added</option>
+                <option value="manual_entry_deleted">Manual entries deleted</option>
                 <option value="donation_edited">Edits</option>
+                <option value="nric_added">NRIC added by charity</option>
+                <option value="nric_synced_by_donor">NRIC updated by donor</option>
+                <option value="bulk_nric_requested">Bulk NRIC requests</option>
               </select>
             </div>
             <div style={s.tableCard}>
