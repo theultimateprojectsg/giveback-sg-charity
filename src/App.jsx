@@ -2045,41 +2045,55 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.tableCard}>
-              <div style={s.tableHeader}>
-                <div style={s.tableTitle}>Your Submissions</div>
-                <div style={s.tableCount}>{myCauses.length} total</div>
-              </div>
-              {myCauses.length === 0 ? <div style={s.empty}>No campaigns or sponsored requests submitted yet.</div> : (
-                <div>
-                  {myCauses.map(c => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                      <div style={{ fontSize: 18 }}>{c.type === 'sponsored' ? '⭐' : '🎯'}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.type === 'sponsored' ? 'Sponsored banner request' : 'Campaign'} · Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                      </div>
-                      <span style={
-                        c.status === 'approved' ? s.badgeIssued :
-                        c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBE9E7' } :
-                        s.badgePending
-                      }>
-                        {c.status === 'approved' ? '✓ Approved' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending Review'}
-                      </span>
-                      {c.status === 'pending' && c.type === 'campaign' && (
-                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => startEditCause(c)}>Edit</button>
-                      )}
-                      {c.status === 'pending' && (
-                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
-                      )}
-                      {c.status === 'approved' && (
-                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => requestRevision(c)}>Request Change</button>
-                      )}
-                    </div>
-                  ))}
+            {(() => {
+              const isPast = c => c.status === 'rejected' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
+              const activeCauses = myCauses.filter(c => !isPast(c))
+              const pastCauses = myCauses.filter(isPast)
+              const renderRow = c => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                  <div style={{ fontSize: 18 }}>{c.type === 'sponsored' ? '⭐' : '🎯'}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.type === 'sponsored' ? 'Sponsored banner request' : 'Campaign'} · Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.end_date ? ` · Ends ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}{c.target_amount ? ` · Target $${Number(c.target_amount).toLocaleString()}` : ''}</div>
+                    {c.description && <div style={{ fontSize: 12, color: C.text, marginTop: 4, lineHeight: 1.4 }}>{c.description}</div>}
+                  </div>
+                  <span style={
+                    c.status === 'approved' ? s.badgeIssued :
+                    c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBE9E7' } :
+                    s.badgePending
+                  }>
+                    {c.status === 'approved' ? '✓ Approved' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending Review'}
+                  </span>
+                  {c.status === 'pending' && c.type === 'campaign' && (
+                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => startEditCause(c)}>Edit</button>
+                  )}
+                  {c.status === 'pending' && (
+                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
+                  )}
+                  {c.status === 'approved' && !isPast(c) && (
+                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => requestRevision(c)}>Request Change</button>
+                  )}
                 </div>
-              )}
-            </div>
+              )
+              return (
+                <>
+                  <div style={{ ...s.tableCard, marginBottom: 24 }}>
+                    <div style={s.tableHeader}>
+                      <div style={s.tableTitle}>Active Submissions</div>
+                      <div style={s.tableCount}>{activeCauses.length} total</div>
+                    </div>
+                    {activeCauses.length === 0 ? <div style={s.empty}>No active campaigns or sponsored requests.</div> : <div>{activeCauses.map(renderRow)}</div>}
+                  </div>
+                  <div style={s.tableCard}>
+                    <div style={s.tableHeader}>
+                      <div style={s.tableTitle}>Past Submissions</div>
+                      <div style={s.tableCount}>{pastCauses.length} total</div>
+                    </div>
+                    {pastCauses.length === 0 ? <div style={s.empty}>No past campaigns yet.</div> : <div>{pastCauses.map(renderRow)}</div>}
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
 
