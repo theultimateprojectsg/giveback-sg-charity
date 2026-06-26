@@ -118,11 +118,50 @@ export default function App() {
     return session?.user?.user_metadata?.charity_uen || ''
   }
 
+  async function deleteCause(id) {
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return
+    const { error } = await supabase.from('causes').delete().eq('id', id)
+    if (error) { showToast('Error deleting', 'error'); return }
+    loadMyCauses()
+    showToast('Submission deleted')
+  }
+
+  function startEditCause(c) {
+    setCauseForm({ title: c.title, description: c.description, target_amount: c.target_amount?.toString() || '', end_date: c.end_date || '', editingId: c.id })
+    setShowCauseForm(true)
+  }
+
+  async function requestRevision(c) {
+    if (!window.confirm('This will move the approved item back to Pending Review so you can edit it, and it will be hidden from donors until re-approved. Continue?')) return
+    const { error } = await supabase.from('causes').update({ status: 'pending' }).eq('id', c.id)
+    if (error) { showToast('Error requesting revision', 'error'); return }
+    loadMyCauses()
+    if (c.type === 'campaign') startEditCause(c)
+    showToast('Moved back to Pending Review — edit and resubmit')
+  }
+
   async function submitCause() {
     if (!causeForm.title.trim()) { setCauseError('Title is required'); return }
     if (!causeForm.description.trim()) { setCauseError('Description is required'); return }
     setSavingCause(true)
     setCauseError('')
+
+    if (causeForm.editingId) {
+      const { error } = await supabase.from('causes').update({
+        title: causeForm.title,
+        description: causeForm.description,
+        target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
+        end_date: causeForm.end_date || null,
+      }).eq('id', causeForm.editingId)
+      setSavingCause(false)
+      if (error) { setCauseError(`Error: ${error.message}`); return }
+      setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
+      setShowCauseForm(false)
+      loadMyCauses()
+      showToast('Submission updated ✓')
+      return
+    }
+
     const { data, error } = await supabase.from('causes').insert([{
       title: causeForm.title,
       description: causeForm.description,
@@ -2026,6 +2065,15 @@ export default function App() {
                       }>
                         {c.status === 'approved' ? '✓ Approved' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending Review'}
                       </span>
+                      {c.status === 'pending' && c.type === 'campaign' && (
+                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => startEditCause(c)}>Edit</button>
+                      )}
+                      {c.status === 'pending' && (
+                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
+                      )}
+                      {c.status === 'approved' && (
+                        <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => requestRevision(c)}>Request Change</button>
+                      )}
                     </div>
                   ))}
                 </div>
