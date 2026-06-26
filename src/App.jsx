@@ -670,7 +670,8 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ ...s.card, marginBottom: 24 }}>
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              <div style={s.card}>
                 <div style={s.cardTitle}>🏛️ IRAS Submission Status</div>
                 <div style={s.statusStep}>
                   <div style={{ ...s.stepDot, background: C.sage }}>✓</div>
@@ -686,17 +687,18 @@ export default function App() {
                   <div style={{ ...s.stepDot, background: C.ivoryDark, color: C.muted, border: `2px solid ${C.border}` }}>→</div>
                   <div><div style={{ ...s.stepTitle, color: C.muted }}>Submit to IRAS</div><div style={s.stepSub}>Due 31 January {currentYear + 1}</div></div>
                 </div>
-            </div>
-
-            <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: 18, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 24 }}>🏛️</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>IRAS submission ready for {filterYear}</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Export your file, check missing NRICs, or generate a board summary</div>
-                </div>
               </div>
-              <button style={s.btnForest} onClick={() => setActiveTab('iras')}>Go to IRAS Export →</button>
+
+              <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <div style={{ fontSize: 24 }}>🏛️</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>IRAS submission ready for {filterYear}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Export your file, check missing NRICs, or generate a board summary</div>
+                  </div>
+                </div>
+                <button style={{ ...s.btnForest, marginTop: 'auto' }} onClick={() => setActiveTab('iras')}>Go to IRAS Export →</button>
+              </div>
             </div>
 
             <div style={s.tableCard}>
