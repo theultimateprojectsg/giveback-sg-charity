@@ -123,7 +123,7 @@ export default function App() {
     if (!causeForm.description.trim()) { setCauseError('Description is required'); return }
     setSavingCause(true)
     setCauseError('')
-    const { error } = await supabase.from('causes').insert([{
+    const { data, error } = await supabase.from('causes').insert([{
       title: causeForm.title,
       description: causeForm.description,
       charity_name: charityName,
@@ -133,10 +133,10 @@ export default function App() {
       type: 'campaign',
       status: 'pending',
       active: true,
-    }])
+    }]).select()
     setSavingCause(false)
     if (error) { setCauseError(`Error: ${error.message}`); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, charity_name: charityName, type: 'campaign' } }).catch(err => console.error(err))
+    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, charity_name: charityName, type: 'campaign', id: data[0].id } }).catch(err => console.error(err))
     setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
     setShowCauseForm(false)
     loadMyCauses()
@@ -146,7 +146,7 @@ export default function App() {
   async function submitSponsoredRequest() {
     setSavingSponsored(true)
     setSponsoredError('')
-    const { error } = await supabase.from('causes').insert([{
+    const { data, error } = await supabase.from('causes').insert([{
       title: `${charityName} — Sponsored Spot`,
       description: `Sponsored banner request from ${charityName}.`,
       charity_name: charityName,
@@ -154,10 +154,10 @@ export default function App() {
       type: 'sponsored',
       status: 'pending',
       active: true,
-    }])
+    }]).select()
     setSavingSponsored(false)
     if (error) { setSponsoredError(`Error: ${error.message}`); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: `${charityName} — Sponsored Spot`, charity_name: charityName, type: 'sponsored' } }).catch(err => console.error(err))
+    supabase.functions.invoke('notify-pending-approval', { body: { title: `${charityName} — Sponsored Spot`, charity_name: charityName, type: 'sponsored', id: data[0].id } }).catch(err => console.error(err))
     setShowSponsoredForm(false)
     loadMyCauses()
     showToast('Sponsored banner request submitted for approval ✓')
