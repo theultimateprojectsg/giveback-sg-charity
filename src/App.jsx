@@ -76,6 +76,14 @@ export default function App() {
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditActionFilter, setAuditActionFilter] = useState('All')
   const [auditDateFilter, setAuditDateFilter] = useState('30')
+  const [myCauses, setMyCauses] = useState([])
+  const [showCauseForm, setShowCauseForm] = useState(false)
+  const [causeForm, setCauseForm] = useState({ title: '', description: '', target_amount: '', end_date: '' })
+  const [causeError, setCauseError] = useState('')
+  const [savingCause, setSavingCause] = useState(false)
+  const [showSponsoredForm, setShowSponsoredForm] = useState(false)
+  const [sponsoredError, setSponsoredError] = useState('')
+  const [savingSponsored, setSavingSponsored] = useState(false)
   
 
   useEffect(() => {
@@ -90,8 +98,68 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (session) loadDonations()
+    if (session) {
+      loadDonations()
+      loadMyCauses()
+    }
   }, [session])
+
+  async function loadMyCauses() {
+    const { data, error } = await supabase
+      .from('causes')
+      .select('*')
+      .eq('charity_uen', charityUenFromSession())
+      .order('created_at', { ascending: false })
+    if (error) { console.error(error); return }
+    setMyCauses(data)
+  }
+
+  function charityUenFromSession() {
+    return session?.user?.user_metadata?.charity_uen || ''
+  }
+
+  async function submitCause() {
+    if (!causeForm.title.trim()) { setCauseError('Title is required'); return }
+    if (!causeForm.description.trim()) { setCauseError('Description is required'); return }
+    setSavingCause(true)
+    setCauseError('')
+    const { error } = await supabase.from('causes').insert([{
+      title: causeForm.title,
+      description: causeForm.description,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
+      end_date: causeForm.end_date || null,
+      type: 'campaign',
+      status: 'pending',
+      active: true,
+    }])
+    setSavingCause(false)
+    if (error) { setCauseError(`Error: ${error.message}`); return }
+    setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
+    setShowCauseForm(false)
+    loadMyCauses()
+    showToast('Cause submitted for approval ✓')
+  }
+
+  async function submitSponsoredRequest() {
+    setSavingSponsored(true)
+    setSponsoredError('')
+    const { error } = await supabase.from('causes').insert([{
+      title: `${charityName} — Sponsored Spot`,
+      description: `Sponsored banner request from ${charityName}.`,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      type: 'sponsored',
+      status: 'pending',
+      active: true,
+    }])
+    setSavingSponsored(false)
+    if (error) { setSponsoredError(`Error: ${error.message}`); return }
+    setShowSponsoredForm(false)
+    loadMyCauses()
+    showToast('Sponsored banner request submitted for approval ✓')
+  }
 
   async function loadAuditLog() {
     setAuditLoading(true)
@@ -113,7 +181,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('donations')
       .select('*')
-      .eq('charity_uen', session.user.user_metadata.charity_uen)
+      .eq('charity_uen', session.user.user_metadata.charity_uen)  
       .not('status', 'in', '(cancelled_by_donor,deleted_by_charity)')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
@@ -557,6 +625,9 @@ export default function App() {
             </div>
           ))}
           <div style={s.navLabel}>Account</div>
+          <div style={{ ...s.navItem, ...(activeTab === 'promotions' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null) }}>
+            <span style={s.navIcon}>📣</span>Promotions
+          </div>
           <div style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
             <span style={s.navIcon}>⚙️</span>Settings
           </div>
@@ -585,6 +656,7 @@ export default function App() {
             { id: 'donors',    icon: '👥', label: 'Donors' },
             { id: 'iras',      icon: '🏛️', label: 'IRAS Export' },
             { id: 'activity',  icon: '📋', label: 'Activity Log' },
+            { id: 'promotions', icon: '📣', label: 'Promotions' },
           ].map(item => (
             <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
@@ -609,6 +681,7 @@ export default function App() {
           <div style={s.mobileOverflowMenu}>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
+            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
           </div>
         )}
@@ -1867,7 +1940,98 @@ export default function App() {
           </div>
         )}
 
+{/* ── PROMOTIONS ── */}
+{activeTab === 'promotions' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>Promotions</div>
+                <div style={s.pageSub}>Submit campaigns and sponsored banner requests for Giving Tree's review</div>
+              </div>
+            </div>
 
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              <div style={s.card}>
+                <div style={s.cardTitle}>🎯 Run a Campaign</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>Submit a fundraising campaign or cause. Once approved, it appears in the Causes tab of the donor app.</div>
+                {!showCauseForm ? (
+                  <button style={s.btnGold} onClick={() => setShowCauseForm(true)}>+ Submit a Campaign</button>
+                ) : (
+                  <div>
+                    {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{causeError}</div>}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={s.formLabel}>Title *</div>
+                      <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm(f => ({ ...f, title: e.target.value }))} />
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={s.formLabel}>Description *</div>
+                      <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                      <div>
+                        <div style={s.formLabel}>Target Amount (SGD)</div>
+                        <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
+                      </div>
+                      <div>
+                        <div style={s.formLabel}>End Date</div>
+                        <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.btnForest} onClick={submitCause} disabled={savingCause}>{savingCause ? 'Submitting...' : '✓ Submit for Approval'}</button>
+                      <button style={s.viewBtn} onClick={() => { setShowCauseForm(false); setCauseError('') }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={s.card}>
+                <div style={s.cardTitle}>⭐ Sponsored Banner Spot</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>Request a featured spot in the donor app's homepage banner. Approved charities rotate into the spot.</div>
+                {!showSponsoredForm ? (
+                  <button style={s.btnGold} onClick={() => setShowSponsoredForm(true)}>+ Request Sponsored Spot</button>
+                ) : (
+                  <div>
+                    {sponsoredError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{sponsoredError}</div>}
+                    <div style={{ fontSize: 13, color: C.text, marginBottom: 16, lineHeight: 1.5 }}>This will submit a request for {charityName} to be featured in the rotating sponsored banner on the donor homepage. Giving Tree will review and approve.</div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.btnForest} onClick={submitSponsoredRequest} disabled={savingSponsored}>{savingSponsored ? 'Submitting...' : '✓ Submit Request'}</button>
+                      <button style={s.viewBtn} onClick={() => { setShowSponsoredForm(false); setSponsoredError('') }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>Your Submissions</div>
+                <div style={s.tableCount}>{myCauses.length} total</div>
+              </div>
+              {myCauses.length === 0 ? <div style={s.empty}>No campaigns or sponsored requests submitted yet.</div> : (
+                <div>
+                  {myCauses.map(c => (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ fontSize: 18 }}>{c.type === 'sponsored' ? '⭐' : '🎯'}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.type === 'sponsored' ? 'Sponsored banner request' : 'Campaign'} · Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      </div>
+                      <span style={
+                        c.status === 'approved' ? s.badgeIssued :
+                        c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBE9E7' } :
+                        s.badgePending
+                      }>
+                        {c.status === 'approved' ? '✓ Approved' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending Review'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* ── SETTINGS ── */}
         {activeTab === 'settings' && (
           <div style={s.content}>
