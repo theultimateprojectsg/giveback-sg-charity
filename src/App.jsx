@@ -709,42 +709,15 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.irasCard}>
-              <div style={s.irasHeader}>
+            <div style={{ background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, padding: 18, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 24 }}>🏛️</div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'white' }}>🏛️ IRAS Submission — Year of Assessment {filterYear}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Auto-generated from Giving Tree donor records</div>
-                </div>
-                <div style={s.irasStatus}>✓ Ready to Export</div>
-              </div>
-              <div style={s.irasBody}>
-                <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
-                  {[
-                    { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: `${donations.length} transactions` },
-                    { label: 'Unique Donors', value: uniqueDonors.length, note: 'All time' },
-                    { label: '250% Deductible', value: `$${(totalThisYear * 2.5).toLocaleString()}`, note: 'Total tax deductible amount' },
-                  ].map((item, i) => (
-                    <div key={i} style={s.irasInfoItem}>
-                      <div style={s.irasInfoLabel}>{item.label}</div>
-                      <div style={s.irasInfoValue}>{item.value}</div>
-                      <div style={s.irasInfoNote}>{item.note}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  {filterYear === 'All' && (
-                <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: C.warning, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  ⚠️ Select a year above to enable the export.
-                  <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                    <option value="All">Select year</option>
-                    {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              )}
-              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
-                  <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>IRAS submission ready for {filterYear}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Export your file, check missing NRICs, or generate a board summary</div>
                 </div>
               </div>
+              <button style={s.btnForest} onClick={() => setActiveTab('iras')}>Go to IRAS Export →</button>
             </div>
 
             <div style={s.tableCard}>
