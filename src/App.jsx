@@ -2079,14 +2079,14 @@ export default function App() {
                 <>
                   <div style={{ ...s.tableCard, marginBottom: 24 }}>
                     <div style={s.tableHeader}>
-                      <div style={s.tableTitle}>Active Submissions</div>
+                      <div style={s.tableTitle}>Active Campaigns</div>
                       <div style={s.tableCount}>{activeCauses.length} total</div>
                     </div>
                     {activeCauses.length === 0 ? <div style={s.empty}>No active campaigns or sponsored requests.</div> : <div>{activeCauses.map(renderRow)}</div>}
                   </div>
                   <div style={s.tableCard}>
                     <div style={s.tableHeader}>
-                      <div style={s.tableTitle}>Past Submissions</div>
+                      <div style={s.tableTitle}>Past Campaigns</div>
                       <div style={s.tableCount}>{pastCauses.length} total</div>
                     </div>
                     {pastCauses.length === 0 ? <div style={s.empty}>No past campaigns yet.</div> : <div>{pastCauses.map(renderRow)}</div>}
