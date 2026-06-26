@@ -624,7 +624,7 @@ export default function App() {
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed for donors to claim their 250% tax deduction</div>
                   </div>
                 </div>
-                <button style={s.bannerBtn} onClick={() => setActiveTab('iras')}>Review →</button>
+                <button style={s.bannerBtn} onClick={() => setActiveTab('donations')}>Review →</button>
               </div>
             )}
             {donations.length === 0 && (
