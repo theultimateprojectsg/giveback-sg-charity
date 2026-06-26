@@ -740,6 +740,7 @@ export default function App() {
                       <div style={s.donationCardBadges}>
                         {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>✕ Paid</span>}
                         {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>✕ Receipt</span>}
+                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                         <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Thank You</span>
                       </div>  
                     </div>
@@ -1354,6 +1355,9 @@ export default function App() {
                                 payment_method: editForm.payment_method ?? selectedDonation.payment_method,
                                 created_at: editForm.created_at ?? selectedDonation.created_at,
                               }
+                              if (!updates.donor_name?.trim()) { showToast('Donor name cannot be empty', 'error'); return }
+                              if (!updates.amount || updates.amount <= 0) { showToast('Amount must be greater than zero', 'error'); return }
+                              if (new Date(updates.created_at) > new Date()) { showToast('Date cannot be in the future', 'error'); return }
                               const { error } = await supabase.from('donations').update(updates).eq('id', selectedDonation.id)
                               if (error) { showToast('Error saving', 'error'); return }
                               await supabase.from('audit_log').insert({
