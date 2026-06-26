@@ -114,7 +114,7 @@ export default function App() {
       .from('donations')
       .select('*')
       .eq('charity_uen', session.user.user_metadata.charity_uen)
-      .neq('status', 'cancelled_by_donor')
+      .not('status', 'in', '(cancelled_by_donor,deleted_by_charity)')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
     setDonations(data)
@@ -237,10 +237,13 @@ export default function App() {
   }
 
   async function deleteDonation(id) {
-    if (!window.confirm('Delete this manual entry? This cannot be undone.')) return
-    setDeletingId(id)
     const donationToDelete = donations.find(d => d.id === id)
-    const { error } = await supabase.from('donations').delete().eq('id', id)
+    const warningText = donationToDelete?.receipt_issued
+      ? 'This entry already has a receipt issued. Delete anyway? The record will be kept for audit purposes but removed from your active lists.'
+      : 'Delete this manual entry? The record will be kept for audit purposes but removed from your active lists.'
+    if (!window.confirm(warningText)) return
+    setDeletingId(id)
+    const { error } = await supabase.from('donations').update({ status: 'deleted_by_charity' }).eq('id', id)
     if (error) { console.error(error); setDeletingId(null); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -261,7 +264,7 @@ export default function App() {
       undoable: true,
       onUndo: async () => {
         cancelled = true
-        const { error: restoreError } = await supabase.from('donations').insert([donationToDelete])
+        const { error: restoreError } = await supabase.from('donations').update({ status: 'confirmed' }).eq('id', id)
         if (restoreError) { showToast('Could not restore entry', 'error'); return }
         setDonations(prev => [donationToDelete, ...prev])
         setToast(null)
