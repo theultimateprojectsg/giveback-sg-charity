@@ -8,6 +8,8 @@ export default function CharityAuth() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
+  const [message, setMessage] = useState('')
 
   async function handleLogin() {
     if (!email || !password) { setError('Please fill in all fields'); return }
@@ -18,8 +20,23 @@ export default function CharityAuth() {
     setLoading(false)
   }
 
+  async function handleForgotPassword() {
+    if (!email) { setError('Please enter your email address first'); return }
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://charity.givingtree.sg',
+    })
+    if (error) { setError(error.message); setLoading(false); return }
+    setMessage('Password reset email sent! Check your inbox.')
+    setLoading(false)
+  }
+
   function handleKeyDown(e) {
-    if (e.key === 'Enter') handleLogin()
+    if (e.key === 'Enter') {
+      if (showForgot) handleForgotPassword()
+      else handleLogin()
+    }
   }
 
   return (
@@ -138,9 +155,6 @@ export default function CharityAuth() {
 
         {/* ── LEFT PANEL ── */}
         <div className="auth-left">
-          <a href="https://givingtree.sg" style={{ fontSize: 11, color: '#52B788', fontFamily: 'sans-serif', textDecoration: 'none', marginBottom: 20, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
-            ← Back to givingtree.sg
-          </a>
           <div style={{ marginBottom: 28 }}>
             <img src={logo} className="auth-logo-img" style={{ width: 110, height: 110, objectFit: 'contain' }} />
           </div>
@@ -197,21 +211,36 @@ export default function CharityAuth() {
                 {error}
               </div>
             )}
+            {message && (
+              <div style={{ background: 'rgba(64,145,108,0.15)', border: '1px solid rgba(64,145,108,0.3)', color: '#74C69D', padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20, fontFamily: 'sans-serif', lineHeight: 1.5 }}>
+                {message}
+              </div>
+            )}
 
             <div style={{ marginBottom: 18 }}>
               <label style={lbl}>Email Address</label>
               <input style={inp} placeholder="charity@email.com" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} autoCapitalize="none" autoFocus />
             </div>
 
-            <div style={{ marginBottom: 10, position: 'relative' }}>
-              <label style={lbl}>Password</label>
-              <input style={inp} placeholder="••••••••" type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} />
-              <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 16, bottom: 15, fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif', userSelect: 'none' }}>
-                {showPass ? 'Hide' : 'Show'}
+            {!showForgot && (
+              <div style={{ marginBottom: 10, position: 'relative' }}>
+                <label style={lbl}>Password</label>
+                <input style={inp} placeholder="••••••••" type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} />
+                <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 16, bottom: 15, fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif', userSelect: 'none' }}>
+                  {showPass ? 'Hide' : 'Show'}
+                </div>
               </div>
-            </div>
+            )}
 
-            <button onClick={handleLogin} disabled={loading} style={{
+            {!showForgot && (
+              <div style={{ textAlign: 'right', marginBottom: 10 }}>
+                <span onClick={() => { setShowForgot(true); setError(''); setMessage('') }} style={{ fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  Forgot password?
+                </span>
+              </div>
+            )}
+
+            <button onClick={showForgot ? handleForgotPassword : handleLogin} disabled={loading} style={{
               width: '100%', padding: '16px',
               background: loading ? 'rgba(64,145,108,0.3)' : 'linear-gradient(135deg, #40916C, #1B4332)',
               color: 'white', border: 'none', borderRadius: 14,
@@ -222,19 +251,20 @@ export default function CharityAuth() {
               boxShadow: loading ? 'none' : '0 6px 28px rgba(27,67,50,0.5)',
               marginTop: 20, transition: 'all 0.2s',
             }}>
-              {loading ? 'Signing in...' : 'Sign In to Dashboard'}
+              {loading ? 'Please wait...' : showForgot ? 'Send Reset Link' : 'Sign In to Dashboard'}
             </button>
+
+            {showForgot && (
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <span onClick={() => { setShowForgot(false); setError(''); setMessage('') }} style={{ fontSize: 12, color: '#D4A017', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  ← Back to Sign In
+                </span>
+              </div>
+            )}
 
             <div style={{ marginTop: 28, padding: '14px 18px', background: 'rgba(116,198,157,0.04)', border: '1px solid rgba(116,198,157,0.1)', borderRadius: 12, fontSize: 12, color: '#52B788', fontFamily: 'sans-serif', lineHeight: 1.7, textAlign: 'center' }}>
               🔒 Access restricted to registered charities only.<br />
               Contact <span style={{ color: '#D4A017' }}>hello@givingtree.sg</span> to get set up.
-            </div>
-
-            <div style={{ marginTop: 14, fontSize: 11, color: 'rgba(116,198,157,0.55)', fontFamily: 'sans-serif', textAlign: 'center', lineHeight: 1.6 }}>
-              By signing in, your organisation agrees to Giving Tree's{' '}
-              <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#D4A017', textDecoration: 'underline' }}>Terms of Use</a>
-              {' '}and{' '}
-              <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#D4A017', textDecoration: 'underline' }}>Privacy Policy</a>.
             </div>
 
             <div style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 10, opacity: 0.4 }}>
