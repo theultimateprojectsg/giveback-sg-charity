@@ -84,6 +84,7 @@ export default function App() {
   const [showSponsoredForm, setShowSponsoredForm] = useState(false)
   const [sponsoredError, setSponsoredError] = useState('')
   const [savingSponsored, setSavingSponsored] = useState(false)
+  const [bulkActionInProgress, setBulkActionInProgress] = useState(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -258,9 +259,11 @@ export default function App() {
   }
 
   async function issueAllReceipts() {
+    if (bulkActionInProgress) return
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) { showToast('No confirmed payments pending receipt for ' + filterYear, 'error'); return }
+    setBulkActionInProgress(true)
     for (const d of pending) await issueReceipt(d, true)
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -268,10 +271,12 @@ export default function App() {
       action: 'bulk_receipts_issued',
       details: { donation_count: pending.length, year: filterYear },
     })
+    setBulkActionInProgress(false)
     showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${filterYear}`)
   }
 
   async function requestAllMissingNric() {
+    if (bulkActionInProgress) return
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const missing = yearScoped.filter(d => !d.donor_nric && d.donor_email?.trim())
     if (missing.length === 0) { showToast(`No donors with email on file are missing NRIC for ${filterYear}`, 'error'); return }
@@ -286,6 +291,7 @@ export default function App() {
 
     if (!window.confirm(`Send a consolidated NRIC request to ${donorList.length} donor${donorList.length > 1 ? 's' : ''} missing NRIC?`)) return
 
+    setBulkActionInProgress(true)
     let sent = 0
     for (const donor of donorList) {
       const { error } = await supabase.functions.invoke('send-thank-you', {
@@ -306,15 +312,18 @@ export default function App() {
       action: 'bulk_nric_requested',
       details: { donor_count: sent },
     })
+    setBulkActionInProgress(false)
     showToast(`NRIC request sent to ${sent} of ${donorList.length} donors`)
   }
 
   function goToDonation(donation) {
+    const hadActiveFilters = filterYear !== 'All' || filterType !== 'All' || filterNric !== 'All'
     setFilterYear('All')
     setFilterType('All')
     setFilterNric('All')
     setSelectedDonation(donation)
     setActiveTab('donations')
+    if (hadActiveFilters) showToast('Filters cleared to show this donation')
   }
 
   async function saveManualEntry() {
@@ -806,7 +815,7 @@ export default function App() {
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending · Action required before deadline</div>
                   </div>
                 </div>
-                <button style={s.bannerBtn} onClick={issueAllReceipts}>Issue All Receipts</button>
+                <button style={s.bannerBtn} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : 'Issue All Receipts'}</button>
               </div>
             )}
             {donations.filter(d => !d.donor_nric).length > 0 && (
@@ -1121,7 +1130,7 @@ export default function App() {
                 <div style={s.pageSub}>{donations.length} total · {donations.filter(d => d.source === 'manual').length} manual entries</div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts}>🧾 Issue All Pending ({pendingCount})</button>}
+                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCount})`}</button>}
                 <button style={s.btnGold} onClick={() => setShowManualForm(true)}>+ Manual Entry</button>
               </div>
             </div>
@@ -1753,7 +1762,7 @@ export default function App() {
                     })()}
                   </div>
                 </div>
-                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts}>🧾 Issue All Pending Receipts</button>}
+                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Pending Receipts'}</button>}
               </div>
               <div style={s.card}>
                 <div style={s.cardTitle}>📅 Recent Activity</div>
@@ -1832,7 +1841,7 @@ export default function App() {
             {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length > 0 && (
               <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <span>🪪 {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length} donations missing NRIC have a donor email on file.</span>
-                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={requestAllMissingNric}>Request All NRICs</button>
+                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={requestAllMissingNric} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Sending...' : 'Request All NRICs'}</button>
               </div>
             )}
 
@@ -1852,7 +1861,7 @@ export default function App() {
               <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
               <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
               <button style={{ ...s.btnForest, background: C.teal }} onClick={() => { if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }; exportYearEndSummary() }}>🎉 Year-End Summary for Board</button>
-              {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts}>🧾 Issue All Receipts First</button>}
+              {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Receipts First'}</button>}
             </div>
 
             <div style={s.tableCard}>
