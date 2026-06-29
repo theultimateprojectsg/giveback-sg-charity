@@ -17,7 +17,19 @@ export default function CharityAuth() {
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError('Invalid email or password. Please try again.'); setLoading(false); return }
+    if (error) {
+      if (error.message?.toLowerCase().includes('invalid login credentials')) {
+        setError('Invalid email or password. Please try again.')
+      } else if (error.message?.toLowerCase().includes('rate limit') || error.status === 429) {
+        setError('Too many attempts. Please wait a moment and try again.')
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch')) {
+        setError('Could not connect. Please check your internet connection and try again.')
+      } else {
+        setError(error.message || 'Something went wrong. Please try again or contact hello@givingtree.sg.')
+      }
+      setLoading(false)
+      return
+    }
     setLoading(false)
   }
 
@@ -221,13 +233,13 @@ export default function CharityAuth() {
 
             <div style={{ marginBottom: 18 }}>
               <label style={lbl}>Email Address</label>
-              <input style={inp} placeholder="charity@email.com" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} autoCapitalize="none" autoFocus />
+              <input style={inp} placeholder="charity@email.com" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} autoCapitalize="none" autoComplete="email" autoFocus />
             </div>
 
             {!showForgot && (
               <div style={{ marginBottom: 10, position: 'relative' }}>
                 <label style={lbl}>Password</label>
-                <input style={inp} placeholder="••••••••" type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} />
+                <input style={inp} placeholder="••••••••" type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} autoComplete="current-password" />
                 <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 16, bottom: 15, fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif', userSelect: 'none' }}>
                   {showPass ? 'Hide' : 'Show'}
                 </div>
