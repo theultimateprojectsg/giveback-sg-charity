@@ -47,7 +47,6 @@ export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
   const isTablet = screenSize === 'tablet'
-  const isCompact = isMobile || isTablet
   const [donations, setDonations] = useState([])
   const [loading, setLoading] = useState(true)
   const [issuing, setIssuing] = useState(null)
