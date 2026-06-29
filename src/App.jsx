@@ -264,67 +264,7 @@ export default function App() {
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) {
       const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
-      if (awaitingConfirmation > 0) {{selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
-        <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
-          const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
-          if (error) { showToast('Error issuing receipt', 'error'); return }
-          setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, receipt_issued: true } : x))
-          setSelectedDonation(prev => ({ ...prev, receipt_issued: true }))
-
-          if (!selectedDonation.donor_email) {
-            showToast('Receipt issued ✓')
-            return
-          }
-
-          let cancelled = false
-          let countdown = 10
-          const donationSnapshot = { ...selectedDonation, receipt_issued: true }
-
-          const updateCountdown = () => {
-            setToast({
-              msg: `Receipt issued ✓ — Sending thank you email in ${countdown}s`,
-              type: 'success',
-              undoable: true,
-              onUndo: () => {
-                cancelled = true
-                setToast(null)
-                showToast('Thank you email cancelled')
-              }
-            })
-          }
-
-          updateCountdown()
-          const interval = setInterval(() => {
-            countdown--
-            if (cancelled || countdown <= 0) {
-              clearInterval(interval)
-              return
-            }
-            updateCountdown()
-          }, 1000)
-
-          setTimeout(async () => {
-            if (cancelled) return
-            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-              body: {
-                donor_name: donationSnapshot.donor_name,
-                donor_email: donationSnapshot.donor_email,
-                charity_name: charityName,
-                amount: donationSnapshot.amount,
-                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
-              }
-            })
-            if (!emailError) {
-              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
-              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
-              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-              showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
-            } else {
-              showToast('Receipt issued but email failed — send manually', 'error')
-            }
-          }, 10000)
-        }}>🧾 Issue Receipt</button>
-      )}
+      if (awaitingConfirmation > 0) {
         showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`, 'error')
       } else {
         showToast('No receipts pending for ' + filterYear, 'error')
@@ -1540,12 +1480,6 @@ export default function App() {
                             } else {
                               showToast('Payment confirmed but thank you email failed — send manually', 'error')
                             }
-                          }}>✓ Confirm Payment & Issue Receipt</button>
-                        )}
-                                showToast('Receipt issued but email failed — send manually', 'error')
-                              }
-                            }, 10000)
-
                           }}>✓ Confirm Payment & Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
