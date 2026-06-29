@@ -264,7 +264,67 @@ export default function App() {
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) {
       const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
-      if (awaitingConfirmation > 0) {
+      if (awaitingConfirmation > 0) {{selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
+        <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
+          const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
+          if (error) { showToast('Error issuing receipt', 'error'); return }
+          setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, receipt_issued: true } : x))
+          setSelectedDonation(prev => ({ ...prev, receipt_issued: true }))
+
+          if (!selectedDonation.donor_email) {
+            showToast('Receipt issued ✓')
+            return
+          }
+
+          let cancelled = false
+          let countdown = 10
+          const donationSnapshot = { ...selectedDonation, receipt_issued: true }
+
+          const updateCountdown = () => {
+            setToast({
+              msg: `Receipt issued ✓ — Sending thank you email in ${countdown}s`,
+              type: 'success',
+              undoable: true,
+              onUndo: () => {
+                cancelled = true
+                setToast(null)
+                showToast('Thank you email cancelled')
+              }
+            })
+          }
+
+          updateCountdown()
+          const interval = setInterval(() => {
+            countdown--
+            if (cancelled || countdown <= 0) {
+              clearInterval(interval)
+              return
+            }
+            updateCountdown()
+          }, 1000)
+
+          setTimeout(async () => {
+            if (cancelled) return
+            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+              body: {
+                donor_name: donationSnapshot.donor_name,
+                donor_email: donationSnapshot.donor_email,
+                charity_name: charityName,
+                amount: donationSnapshot.amount,
+                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+              }
+            })
+            if (!emailError) {
+              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+              showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+            } else {
+              showToast('Receipt issued but email failed — send manually', 'error')
+            }
+          }, 10000)
+        }}>🧾 Issue Receipt</button>
+      )}
         showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`, 'error')
       } else {
         showToast('No receipts pending for ' + filterYear, 'error')
@@ -1401,60 +1461,31 @@ export default function App() {
                               return
                             }
 
-                            let cancelled = false
-                            let countdown = 10
                             const donationSnapshot = { ...selectedDonation, receipt_issued: true }
-
-                            const updateCountdown = () => {
-                              setToast({
-                                msg: `Receipt issued ✓ — Sending thank you email in ${countdown}s`,
-                                type: 'success',
-                                undoable: true,
-                                onUndo: () => {
-                                  cancelled = true
-                                  setToast(null)
-                                  showToast('Thank you email cancelled')
-                                }
-                              })
+                            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+                              body: {
+                                donor_name: donationSnapshot.donor_name,
+                                donor_email: donationSnapshot.donor_email,
+                                charity_name: charityName,
+                                amount: donationSnapshot.amount,
+                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                              }
+                            })
+                            if (!emailError) {
+                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+                              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+                              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+                              showToast('Receipt issued ✓ — thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+                            } else {
+                              showToast('Receipt issued but thank you email failed — send manually', 'error')
                             }
-
-                            updateCountdown()
-                            const interval = setInterval(() => {
-                              countdown--
-                              if (cancelled || countdown <= 0) {
-                                clearInterval(interval)
-                                return
-                              }
-                              updateCountdown()
-                            }, 1000)
-
-                            setTimeout(async () => {
-                              if (cancelled) return
-                              const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-                                body: {
-                                  donor_name: donationSnapshot.donor_name,
-                                  donor_email: donationSnapshot.donor_email,
-                                  charity_name: charityName,
-                                  amount: donationSnapshot.amount,
-                                  date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
-                                }
-                              })
-                              if (!emailError) {
-                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
-                                setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
-                                setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                                showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
-                              } else {
-                                showToast('Receipt issued but email failed — send manually', 'error')
-                              }
-                            }, 10000)
                           }}>🧾 Issue Receipt</button>
                         )}
                         {selectedDonation.payment_status !== 'confirmed' && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
                             // Step 1 — Confirmation dialog
                             const confirmed = window.confirm(
-                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt\n• Send a thank you email in 10 seconds`
+                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt\n• Send a thank you email`
                             )
                             if (!confirmed) return
 
@@ -1490,62 +1521,27 @@ export default function App() {
                               return
                             }
 
-                            // Step 3 — Show undo toast with 10s countdown
-                            let cancelled = false
-                            let countdown = 10
+                            // Step 3 — Send thank you email immediately
                             const donationSnapshot = { ...selectedDonation }
-
-                            const updateCountdown = () => {
-                              setToast({
-                                msg: `Payment confirmed ✓ — Sending thank you email in ${countdown}s`,
-                                type: 'success',
-                                undoable: true,
-                                onUndo: async () => {
-                                  cancelled = true
-                                  const { error: revertError } = await supabase.from('donations').update({ payment_status: 'pending', receipt_issued: false }).eq('id', donationSnapshot.id)
-                                  if (revertError) { showToast('Error reverting — please refresh', 'error'); return }
-                                  await supabase.from('audit_log').insert({
-                                    actor_type: 'charity',
-                                    actor_email: session.user.email,
-                                    action: 'payment_confirmation_undone',
-                                    donation_id: donationSnapshot.id,
-                                  })
-                                  setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, payment_status: 'pending', receipt_issued: false } : x))
-                                  setSelectedDonation(prev => ({ ...prev, payment_status: 'pending', receipt_issued: false }))
-                                  setToast(null)
-                                  showToast('Action undone ✓')
-                                }
-                              })
-                            }
-
-                            updateCountdown()
-                            const interval = setInterval(() => {
-                              countdown--
-                              if (cancelled || countdown <= 0) {
-                                clearInterval(interval)
-                                return
+                            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+                              body: {
+                                donor_name: donationSnapshot.donor_name,
+                                donor_email: donationSnapshot.donor_email,
+                                charity_name: charityName,
+                                amount: donationSnapshot.amount,
+                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
                               }
-                              updateCountdown()
-                            }, 1000)
-
-                            // Step 4 — Send email after 10s delay
-                            setTimeout(async () => {
-                              if (cancelled) return
-                              const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-                                body: {
-                                  donor_name: donationSnapshot.donor_name,
-                                  donor_email: donationSnapshot.donor_email,
-                                  charity_name: charityName,
-                                  amount: donationSnapshot.amount,
-                                  date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
-                                }
-                              })
-                              if (!emailError) {
-                                await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
-                                setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
-                                setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                                showToast('Thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
-                              } else {
+                            })
+                            if (!emailError) {
+                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+                              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+                              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+                              showToast('Payment confirmed ✓ — thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+                            } else {
+                              showToast('Payment confirmed but thank you email failed — send manually', 'error')
+                            }
+                          }}>✓ Confirm Payment & Issue Receipt</button>
+                        )}
                                 showToast('Receipt issued but email failed — send manually', 'error')
                               }
                             }, 10000)
