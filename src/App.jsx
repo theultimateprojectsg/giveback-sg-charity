@@ -321,11 +321,12 @@ export default function App() {
   if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
+  if (manualForm.donor_nric && !/^[STFG]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
     setSavingManual(true)
     setManualError('')
     const { data, error } = await supabase.from('donations').insert([{
       donor_name: manualForm.donor_name,
-      donor_nric: manualForm.donor_nric,
+      donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
       charity_name: charityName,
       charity_uen: charityUen,
       amount: parseFloat(manualForm.amount),
