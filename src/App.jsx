@@ -1308,6 +1308,7 @@ export default function App() {
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
                               const val = document.getElementById('nric-input').value.trim().toUpperCase()
                               if (!val) return
+                              if (!/^[STFG]\d{7}[A-Z]$/.test(val)) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
                               supabase.from('donations').update({ donor_nric: val }).eq('id', selectedDonation.id)
                                 .then(async () => {
                                   await supabase.from('audit_log').insert({
