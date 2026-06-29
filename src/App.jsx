@@ -1035,7 +1035,7 @@ export default function App() {
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportIRASExcel}>⬇️ Export IRAS</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data', 'error'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
@@ -1782,7 +1782,7 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ fontSize: 24 }}>🏛️</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Submission — Year of Assessment {filterYear}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Submission — {filterYear === 'All' ? 'Select a Year' : `Year of Assessment ${parseInt(filterYear) + 1}`}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Auto-generated from Giving Tree donor records · Ready to export</div>
                 </div>
               </div>
@@ -1832,7 +1832,7 @@ export default function App() {
             )}
 
             <div style={{ background: C.successBg, border: `1.5px solid ${C.bucket1}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.forest, lineHeight: 1.6 }}>
-              📋 <strong>How to submit to IRAS:</strong> Download the file below, then log in to <strong>myTax Portal</strong> (mytax.iras.gov.sg) using Corppass → Manage Donation Submissions → Upload file. Deadline: 31 January {parseInt(filterYear) + 1}.
+              📋 <strong>How to submit to IRAS:</strong> Download the file below, then log in to <strong>myTax Portal</strong> (mytax.iras.gov.sg) using Corppass → Manage Donation Submissions → Upload file. {filterYear !== 'All' && `Deadline: 31 January ${parseInt(filterYear) + 1}.`}
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
               {filterYear === 'All' && (
