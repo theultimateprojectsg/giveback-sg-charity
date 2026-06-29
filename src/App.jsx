@@ -342,10 +342,11 @@ export default function App() {
   }
 
   function goToDonation(donation) {
-    const hadActiveFilters = filterYear !== 'All' || filterType !== 'All' || filterNric !== 'All'
+    const hadActiveFilters = filterYear !== 'All' || filterType !== 'All' || filterNric !== 'All' || searchTerm !== ''
     setFilterYear('All')
     setFilterType('All')
     setFilterNric('All')
+    setSearchTerm('')
     setSelectedDonation(donation)
     setActiveTab('donations')
     if (hadActiveFilters) showToast('Filters cleared to show this donation')
@@ -433,8 +434,8 @@ export default function App() {
   const totalThisYear = filterYear === 'All'
     ? donations.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
     : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
-  const pendingCount = donations.filter(d => !d.receipt_issued).length
-  const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)).filter(d => !d.receipt_issued).length
+  const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
+  const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
@@ -469,7 +470,7 @@ export default function App() {
 
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap = {}
-  donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
+  donations.filter(d => filterYear === 'All' || new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
     if (!irasYearDonorMap[d.donor_name]) irasYearDonorMap[d.donor_name] = { name: d.donor_name, total: 0, count: 0, donations: [] }
     irasYearDonorMap[d.donor_name].total += d.amount
     irasYearDonorMap[d.donor_name].count += 1
@@ -1764,7 +1765,9 @@ export default function App() {
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Auto-generated from Giving Tree donor records · Ready to export</div>
                 </div>
               </div>
-              <div style={s.irasStatus}>✓ Ready</div>
+              <div style={{ ...s.irasStatus, ...(pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0 ? { background: C.warning, color: 'white' } : {}) }}>
+                {pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0 ? '⚠️ Action Needed' : '✓ Ready'}
+              </div>
             </div>
 
             <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
