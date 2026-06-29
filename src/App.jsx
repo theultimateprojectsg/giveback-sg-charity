@@ -126,8 +126,11 @@ export default function App() {
   }
 
   async function deleteCause(id) {
+    if (bulkActionInProgress) return
     if (!window.confirm('Delete this submission? This cannot be undone.')) return
+    setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').delete().eq('id', id)
+    setBulkActionInProgress(false)
     if (error) { showToast('Error deleting', 'error'); return }
     loadMyCauses()
     showToast('Submission deleted')
@@ -139,8 +142,14 @@ export default function App() {
   }
 
   async function requestRevision(c) {
-    if (!window.confirm('This will move the approved item back to Pending Review so you can edit it, and it will be hidden from donors until re-approved. Continue?')) return
+    if (bulkActionInProgress) return
+    const warningText = c.type === 'campaign'
+      ? `This will immediately remove "${c.title}" from the donor app, including for anyone currently viewing it, until it's re-approved. Continue?`
+      : `This will immediately remove this sponsored banner from the donor app until it's re-approved. Continue?`
+    if (!window.confirm(warningText)) return
+    setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'pending' }).eq('id', c.id)
+    setBulkActionInProgress(false)
     if (error) { showToast('Error requesting revision', 'error'); return }
     supabase.functions.invoke('notify-pending-approval', { body: { title: c.title, description: c.description, target_amount: c.target_amount, end_date: c.end_date, charity_name: charityName, type: c.type, id: c.id, is_revision: true } }).catch(err => console.error(err))
     loadMyCauses()
@@ -287,7 +296,15 @@ export default function App() {
     if (bulkActionInProgress) return
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const missing = yearScoped.filter(d => !d.donor_nric && d.donor_email?.trim())
-    if (missing.length === 0) { showToast(`No donors with email on file are missing NRIC for ${filterYear}`, 'error'); return }
+    const missingNoEmail = yearScoped.filter(d => !d.donor_nric && !d.donor_email?.trim()).length
+    if (missing.length === 0) {
+      if (missingNoEmail > 0) {
+        showToast(`${missingNoEmail} donation${missingNoEmail > 1 ? 's' : ''} missing NRIC have no email on file either — you'll need to follow up directly`, 'error')
+      } else {
+        showToast(`No donors with email on file are missing NRIC for ${filterYear}`, 'error')
+      }
+      return
+    }
 
     const byDonor = {}
     missing.forEach(d => {
@@ -321,7 +338,7 @@ export default function App() {
       details: { donor_count: sent },
     })
     setBulkActionInProgress(false)
-    showToast(`NRIC request sent to ${sent} of ${donorList.length} donors`)
+    showToast(`NRIC request sent to ${sent} of ${donorList.length} donors${missingNoEmail > 0 ? ` — ${missingNoEmail} more missing NRIC have no email and need direct follow-up` : ''}`)
   }
 
   function goToDonation(donation) {
@@ -417,6 +434,7 @@ export default function App() {
     ? donations.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
     : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
   const pendingCount = donations.filter(d => !d.receipt_issued).length
+  const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)).filter(d => !d.receipt_issued).length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
@@ -820,10 +838,10 @@ export default function App() {
                   <div style={{ fontSize: 24 }}>⚠️</div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Deadline: 31 January {currentYear + 1} — {daysToDeadline} days remaining</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending · Action required before deadline</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending across all years{filterYear !== 'All' ? ` · ${pendingCountForYear} pending in ${filterYear}` : ''} · Action required before deadline</div>
                   </div>
                 </div>
-                <button style={s.bannerBtn} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : 'Issue All Receipts'}</button>
+                <button style={s.bannerBtn} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
               </div>
             )}
             {donations.filter(d => !d.donor_nric).length > 0 && (
@@ -1760,12 +1778,13 @@ export default function App() {
                   { label: 'Receipts Pending', value: pendingCount, note: pendingCount > 0 ? 'Action needed' : 'All issued ✓', warn: pendingCount > 0 },
                 ]
                 return cards.map((item, i) => (
-                  <div key={i} style={{ ...s.irasInfoItem, background: item.warn ? C.warningBg : C.ivory, borderColor: item.warn ? C.warningBorder : C.border, cursor: item.action ? 'pointer' : 'default' }}
+                  <div key={i} style={{ ...s.irasInfoItem, background: item.warn ? C.warningBg : C.ivory, borderColor: item.warn ? C.warningBorder : C.border, cursor: item.action ? 'pointer' : 'default', position: 'relative' }}
                     onClick={() => item.action && setActiveTab('donations')}>
+                    {item.action && <div style={{ position: 'absolute', top: 14, right: 14, fontSize: 16, color: C.warning }}>→</div>}
                     <div style={{ ...s.irasInfoLabel, color: item.warn ? C.warning : C.muted }}>{item.label}</div>
                     <div style={{ ...s.irasInfoValue, color: item.warn ? C.warning : C.forest }}>{item.value}</div>
                     <div style={{ ...s.irasInfoNote, color: item.warn ? C.warning : C.muted }}>{item.note}</div>
-                    {item.warn && <div style={{ fontSize: 10, fontWeight: 700, color: C.warning, marginTop: 6 }}>⚠️ {item.action ? 'Click to view' : 'Action needed'}</div>}
+                    {item.warn && <div style={{ fontSize: 10, fontWeight: 700, color: C.warning, marginTop: 6 }}>⚠️ {item.action ? 'Tap to view' : 'Action needed'}</div>}
                   </div>
                 ))
               })()}
@@ -1780,6 +1799,11 @@ export default function App() {
               <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <span>🪪 {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length} donations missing NRIC have a donor email on file.</span>
                 <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={requestAllMissingNric} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Sending...' : 'Request All NRICs'}</button>
+              </div>
+            )}
+            {donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length > 0 && (
+              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5 }}>
+                ⚠️ {donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length} donation{donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length > 1 ? 's' : ''} missing NRIC also have no email on file — these can't be reached by the bulk request and will need direct follow-up (phone, mail, or in person).
               </div>
             )}
 
@@ -1978,7 +2002,7 @@ export default function App() {
                 <div style={s.cardTitle}>🎯 Run a Campaign</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>Submit a fundraising campaign or cause. Once approved, it appears in the Causes tab of the donor app.</div>
                 {!showCauseForm ? (
-                  <button style={s.btnGold} onClick={() => setShowCauseForm(true)}>+ Submit a Campaign</button>
+                  <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCauseForm(true) }}>+ Submit a Campaign</button>
                 ) : (
                   <div>
                     {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{causeError}</div>}
@@ -2001,8 +2025,8 @@ export default function App() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.btnForest} onClick={submitCause} disabled={savingCause}>{savingCause ? 'Submitting...' : '✓ Submit for Approval'}</button>
-                      <button style={s.viewBtn} onClick={() => { setShowCauseForm(false); setCauseError('') }}>Cancel</button>
+                      <button style={s.btnForest} onClick={submitCause} disabled={savingCause}>{savingCause ? 'Submitting...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Submit for Approval')}</button>
+                      <button style={s.viewBtn} onClick={() => { setShowCauseForm(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
                     </div>
                   </div>
                 )}
