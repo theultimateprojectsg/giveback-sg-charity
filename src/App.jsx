@@ -90,6 +90,8 @@ export default function App() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [resetMsg, setResetMsg] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
+  const [quickEmailInput, setQuickEmailInput] = useState('')
+  const [quickNricInput, setQuickNricInput] = useState('')
   
 
   useEffect(() => {
@@ -348,7 +350,9 @@ export default function App() {
     setFilterNric('All')
     setSearchTerm('')
     setSelectedDonation(donation)
-    setActiveTab('donations')
+    setQuickEmailInput('')
+    setQuickNricInput('')
+    setActiveTab('donations') 
     if (hadActiveFilters) showToast('Filters cleared to show this donation')
   }
 
@@ -545,7 +549,7 @@ export default function App() {
     ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 15 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donor Contacts')
-    XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.csv`)
+    XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.xlsx`)
   }
 
   function exportPDF() {
@@ -592,12 +596,15 @@ export default function App() {
     doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
+    let noteY = y2 + 22
     if (!donation.donor_nric) {
       doc.setTextColor(160, 113, 16)
-      doc.text('⚠ NRIC/FIN not on file. Donor must provide this to claim the tax deduction.', 14, y2 + 22)
+      doc.text('⚠ NRIC/FIN not on file. Donor must provide this to claim the tax deduction.', 14, noteY)
       doc.setTextColor(0, 0, 0)
+      noteY += 7
     }
-    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, y2 + 32)
+    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', 14, noteY)
+    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY + 10)
     doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}.pdf`)
   }
 
@@ -963,7 +970,7 @@ export default function App() {
                         <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
                       </div>
                       <div style={s.donationCardBadges}>
-                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>✕ Paid</span>}
+                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
                         {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>✕ Receipt</span>}
                         {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                         <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Thank You</span>
@@ -1141,7 +1148,19 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button style={issuing ? s.issuingBtn : s.btnForest} disabled={!!issuing} onClick={() => donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued).forEach(d => issueReceipt(d))}>{issuing ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
+                  <button style={issuing ? s.issuingBtn : s.btnForest} disabled={!!issuing} onClick={async () => {
+                    const pending = donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued)
+                    for (const d of pending) await issueReceipt(d, true)
+                    if (pending.length > 1) {
+                      await supabase.from('audit_log').insert({
+                        actor_type: 'charity',
+                        actor_email: session.user.email,
+                        action: 'bulk_receipts_issued',
+                        details: { donation_count: pending.length, donor_name: selectedDonor.name },
+                      })
+                    }
+                    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${selectedDonor.name}`)
+                  }}>{issuing ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
                 </div>
               </div>
             </div>
@@ -1216,7 +1235,7 @@ export default function App() {
                   {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? <div style={s.empty}>No donations found.</div> : isMobile ? (
                     <div>
                       {filteredDonations.map(d => (
-                        <div key={d.id} style={s.donationCard} onClick={() => setSelectedDonation(d)}>
+                        <div key={d.id} style={s.donationCard} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={s.donationCardTop}>
                             <div style={s.donationCardDonor}>
                               <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
@@ -1241,7 +1260,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
-                          <tr key={d.id} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => setSelectedDonation(selectedDonation?.id === d.id ? null : d)}>
+                          <tr key={d.id} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
@@ -1264,7 +1283,7 @@ export default function App() {
                     <div style={{ background: C.teal, padding: '20px 20px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Donation Details</div>
-                        <button style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}) }}>✕</button>
+                        <button style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                       </div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: 'white', marginTop: 10 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
@@ -1309,14 +1328,15 @@ export default function App() {
                             <span style={{ fontSize: 12, color: C.muted }}>Add donor email to send a thank you</span>
                           </div>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <input id="email-input" style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="donor@email.com" type="email" />
+                            <input style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="donor@email.com" type="email" value={quickEmailInput} onChange={e => setQuickEmailInput(e.target.value)} />
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
-                              const val = document.getElementById('email-input').value.trim()
+                              const val = quickEmailInput.trim()
                               if (!val) return
                               supabase.from('donations').update({ donor_email: val }).eq('id', selectedDonation.id)
                                 .then(() => {
                                   setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, donor_email: val } : x))
                                   setSelectedDonation(prev => ({ ...prev, donor_email: val }))
+                                  setQuickEmailInput('')
                                 })
                             }}>Save</button>
                           </div>
@@ -1340,9 +1360,9 @@ export default function App() {
                         </div>
                         {!selectedDonation.donor_nric && !editingManual && (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <input id="nric-input" style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="e.g. S1234567A" maxLength={9} />
+                            <input style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="e.g. S1234567A" maxLength={9} value={quickNricInput} onChange={e => setQuickNricInput(e.target.value)} />
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
-                              const val = document.getElementById('nric-input').value.trim().toUpperCase()
+                              const val = quickNricInput.trim().toUpperCase()
                               if (!val) return
                               if (!/^[STFG]\d{7}[A-Z]$/.test(val)) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
                               supabase.from('donations').update({ donor_nric: val }).eq('id', selectedDonation.id)
@@ -1356,6 +1376,7 @@ export default function App() {
                                   })
                                   setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, donor_nric: val } : x))
                                   setSelectedDonation(prev => ({ ...prev, donor_nric: val }))
+                                  setQuickNricInput('')
                                 })
                             }}>Save</button>
                           </div>
@@ -1748,7 +1769,7 @@ export default function App() {
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>IRAS Export</div>
-                <div style={s.pageSub}>Year of Assessment {filterYear} · Due 31 January {parseInt(filterYear) + 1}</div>
+                <div style={s.pageSub}>{filterYear === 'All' ? 'Select a year to see submission deadline' : `Year of Assessment ${parseInt(filterYear) + 1} · Due 31 January ${parseInt(filterYear) + 1}`}</div>
               </div>
               <div style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: C.forest, color: 'white', border: 'none', cursor: 'pointer' }}>
                 <select style={{ background: 'transparent', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', outline: 'none' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
@@ -1976,7 +1997,7 @@ export default function App() {
                                 : entry.action === 'nric_synced_by_donor'
                                 ? `${entry.details.donation_count} donation${entry.details.donation_count > 1 ? 's' : ''} updated`
                                 : entry.action === 'bulk_receipts_issued'
-                                ? `${entry.details.donation_count} receipt${entry.details.donation_count > 1 ? 's' : ''} · ${entry.details.year}`
+                                ? `${entry.details.donation_count} receipt${entry.details.donation_count > 1 ? 's' : ''}${entry.details.year ? ` · ${entry.details.year}` : entry.details.donor_name ? ` · ${entry.details.donor_name}` : ''}`
                                 : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
