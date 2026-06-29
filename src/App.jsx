@@ -262,7 +262,15 @@ export default function App() {
     if (bulkActionInProgress) return
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
-    if (pending.length === 0) { showToast('No confirmed payments pending receipt for ' + filterYear, 'error'); return }
+    if (pending.length === 0) {
+      const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
+      if (awaitingConfirmation > 0) {
+        showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`, 'error')
+      } else {
+        showToast('No receipts pending for ' + filterYear, 'error')
+      }
+      return
+    }
     setBulkActionInProgress(true)
     for (const d of pending) await issueReceipt(d, true)
     await supabase.from('audit_log').insert({
