@@ -12,6 +12,7 @@ export default function CharityAuth() {
   const [message, setMessage] = useState('')
 
   async function handleLogin() {
+    if (loading) return
     if (!email || !password) { setError('Please fill in all fields'); return }
     setLoading(true)
     setError('')
@@ -21,6 +22,7 @@ export default function CharityAuth() {
   }
 
   async function handleForgotPassword() {
+    if (loading) return
     if (!email) { setError('Please enter your email address first'); return }
     setLoading(true)
     setError('')
