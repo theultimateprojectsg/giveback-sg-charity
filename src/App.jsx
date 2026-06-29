@@ -2147,7 +2147,24 @@ export default function App() {
                 ))}
                 <button style={{ ...s.btnForest, background: C.red, marginTop: 8 }} onClick={() => supabase.auth.signOut()}>🚪 Sign Out</button>
               </div>
-              
+
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>Account</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 600 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
+                </div>
+                <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
+                  style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
+                  🗑️ Request Account Deletion
+                </a>
+              </div>
+
+              <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
+                <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</a>
+                {' · '}
+                <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Terms of Use</a>
+              </div>
+
             </div>
           </div>
         )}
