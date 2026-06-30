@@ -931,7 +931,7 @@ export default function App() {
                 <button style={s.bannerBtn} onClick={() => setActiveTab('donations')}>Review →</button>
               </div>
             )}
-            {donations.length === 0 && (
+            {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>A few things to get you started:</div>
