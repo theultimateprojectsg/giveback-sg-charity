@@ -228,7 +228,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('audit_log')
       .select('*')
-      .or(`actor_email.eq.${session.user.email},details->charity_uen.eq.${charityUen}`)
+      .or(`actor_email.eq.${session.user.email},details->>charity_uen.eq.${charityUen}`)
       .order('created_at', { ascending: false })
       .limit(200)
     if (error) { console.error(error); setAuditLoading(false); return }
