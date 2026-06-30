@@ -132,9 +132,9 @@ export default function App() {
 
   async function deleteCause(id) {
     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
-    if (!window.confirm('Delete this submission? This cannot be undone.')) return
+    if (!window.confirm('Delete this submission? It will be moved to Past Campaigns and removed from the donor app.')) return
     setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').delete().eq('id', id)
+    const { error } = await supabase.from('causes').update({ status: 'deleted', active: false }).eq('id', id)
     setBulkActionInProgress(false)
     if (error) { showToast('Error deleting', 'error'); return }
     loadMyCauses()
@@ -157,6 +157,12 @@ export default function App() {
     setBulkActionInProgress(false)
     if (error) { showToast('Error requesting revision', 'error'); return }
     supabase.functions.invoke('notify-pending-approval', { body: { title: c.title, description: c.description, target_amount: c.target_amount, end_date: c.end_date, charity_name: charityName, type: c.type, id: c.id, is_revision: true } }).catch(err => console.error(err))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_revision_requested',
+      details: { title: c.title, charity_uen: charityUen },
+    })
     loadMyCauses()
     showToast('Moved back to Pending Review — click Edit to update and resubmit')
   }
@@ -176,6 +182,12 @@ export default function App() {
       }).eq('id', causeForm.editingId)
       setSavingCause(false)
       if (error) { setCauseError(`Error: ${error.message}`); return }
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'cause_edited',
+        details: { title: causeForm.title, charity_uen: charityUen },
+      })
       setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
       setShowCauseForm(false)
       loadMyCauses()
@@ -197,6 +209,12 @@ export default function App() {
     setSavingCause(false)
     if (error) { setCauseError(`Error: ${error.message}`); return }
     supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, description: causeForm.description, target_amount: causeForm.target_amount, end_date: causeForm.end_date, charity_name: charityName, type: 'campaign', id: data[0].id } }).catch(err => console.error(err))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_submitted',
+      details: { title: causeForm.title, charity_uen: charityUen },
+    })
     setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
     setShowCauseForm(false)
     loadMyCauses()
@@ -218,6 +236,12 @@ export default function App() {
     setSavingSponsored(false)
     if (error) { setSponsoredError(`Error: ${error.message}`); return }
     supabase.functions.invoke('notify-pending-approval', { body: { title: `${charityName} — Sponsored Spot`, charity_name: charityName, type: 'sponsored', id: data[0].id } }).catch(err => console.error(err))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'sponsored_requested',
+      details: { charity_uen: charityUen },
+    })
     setShowSponsoredForm(false)
     loadMyCauses()
     showToast('Sponsored banner request submitted for approval ✓')
@@ -2025,6 +2049,11 @@ export default function App() {
                     return matchAction && matchDate
                   }).map(entry => {
                     const actionLabels = {
+                      cause_deleted: { label: 'Campaign/banner deleted', icon: '🗑️', color: C.red },
+                      cause_submitted: { label: 'Campaign submitted for approval', icon: '🎯', color: C.gold },
+                      cause_edited: { label: 'Campaign edited', icon: '✏️', color: C.gold },
+                      cause_revision_requested: { label: 'Campaign sent back for revision', icon: '↩️', color: C.gold },
+                      sponsored_requested: { label: 'Sponsored banner requested', icon: '⭐', color: C.gold },
                       donation_cancelled: { label: 'Donation cancelled by donor', icon: '✕', color: C.red },
                       donation_edited: { label: 'Donation edited', icon: '✏️', color: C.gold },
                       receipt_issued: { label: 'Receipt issued', icon: '🧾', color: C.sage },
@@ -2134,7 +2163,7 @@ export default function App() {
             </div>
 
             {(() => {
-              const isPast = c => c.status === 'rejected' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
+              const isPast = c => c.status === 'rejected' || c.status === 'deleted' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
               const activeCauses = myCauses.filter(c => !isPast(c))
               const pastCauses = myCauses.filter(isPast)
               const renderRow = c => (
