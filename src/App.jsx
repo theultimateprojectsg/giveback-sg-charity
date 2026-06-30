@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { supabase } from './supabase'
 import Auth from './CharityAuth'
@@ -70,6 +70,7 @@ export default function App() {
   const [editForm, setEditForm] = useState({})
   const [nricRequestSent, setNricRequestSent] = useState({})
   const [toast, setToast] = useState(null)
+  const toastTimerRef = useRef(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [auditLog, setAuditLog] = useState([])
   const [auditLoading, setAuditLoading] = useState(false)
@@ -91,6 +92,7 @@ export default function App() {
   const [resetLoading, setResetLoading] = useState(false)
   const [quickEmailInput, setQuickEmailInput] = useState('')
   const [quickNricInput, setQuickNricInput] = useState('')
+  const selectedRowRef = useRef(null)
   
 
   useEffect(() => {
@@ -107,16 +109,18 @@ export default function App() {
 
   useEffect(() => {
     if (session) {
-      loadDonations()
+      loadDonations(session)
       loadMyCauses()
     }
   }, [session])
 
   async function loadMyCauses() {
+    const uen = charityUenFromSession()
+    if (!uen) { console.warn('loadMyCauses: no charity_uen in session metadata'); return }
     const { data, error } = await supabase
       .from('causes')
       .select('*')
-      .eq('charity_uen', charityUenFromSession())
+      .eq('charity_uen', uen)
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
     setMyCauses(data)
@@ -127,7 +131,7 @@ export default function App() {
   }
 
   async function deleteCause(id) {
-    if (bulkActionInProgress) return
+    if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
     if (!window.confirm('Delete this submission? This cannot be undone.')) return
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').delete().eq('id', id)
@@ -143,7 +147,7 @@ export default function App() {
   }
 
   async function requestRevision(c) {
-    if (bulkActionInProgress) return
+    if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
     const warningText = c.type === 'campaign'
       ? `This will immediately remove "${c.title}" from the donor app, including for anyone currently viewing it, until it's re-approved. Continue?`
       : `This will immediately remove this sponsored banner from the donor app until it's re-approved. Continue?`
@@ -154,8 +158,7 @@ export default function App() {
     if (error) { showToast('Error requesting revision', 'error'); return }
     supabase.functions.invoke('notify-pending-approval', { body: { title: c.title, description: c.description, target_amount: c.target_amount, end_date: c.end_date, charity_name: charityName, type: c.type, id: c.id, is_revision: true } }).catch(err => console.error(err))
     loadMyCauses()
-    if (c.type === 'campaign') startEditCause(c)
-    showToast('Moved back to Pending Review — edit and resubmit')
+    showToast('Moved back to Pending Review — click Edit to update and resubmit')
   }
 
   async function submitCause() {
@@ -225,6 +228,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('audit_log')
       .select('*')
+      .or(`actor_email.eq.${session.user.email},details->charity_uen.eq.${charityUen}`)
       .order('created_at', { ascending: false })
       .limit(200)
     if (error) { console.error(error); setAuditLoading(false); return }
@@ -234,13 +238,20 @@ export default function App() {
 
   useEffect(() => {
     if (session && activeTab === 'activity') loadAuditLog()
+    setShowMobileMenu(false)
   }, [session, activeTab])
 
-  async function loadDonations() {
+  useEffect(() => {
+    if (selectedDonation && selectedRowRef.current) {
+      selectedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [selectedDonation])
+
+  async function loadDonations(activeSession = session) {
     const { data, error } = await supabase
       .from('donations')
       .select('*')
-      .eq('charity_uen', session.user.user_metadata.charity_uen)  
+      .eq('charity_uen', activeSession.user.user_metadata.charity_uen)  
       .not('status', 'in', '(cancelled_by_donor,deleted_by_charity)')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
@@ -270,7 +281,7 @@ export default function App() {
 
   async function issueAllReceipts() {
     if (bulkActionInProgress) return
-    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) {
       const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
@@ -295,7 +306,7 @@ export default function App() {
 
   async function requestAllMissingNric() {
     if (bulkActionInProgress) return
-    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
     const missing = yearScoped.filter(d => !d.donor_nric && d.donor_email?.trim())
     const missingNoEmail = yearScoped.filter(d => !d.donor_nric && !d.donor_email?.trim()).length
     if (missing.length === 0) {
@@ -378,13 +389,17 @@ export default function App() {
       created_at: manualForm.date,
     }]).select()
     if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'manual_entry_created',
-      donation_id: data[0].id,
-      details: { donor_name: manualForm.donor_name, amount: parseFloat(manualForm.amount), payment_method: manualForm.payment_method },
-    })
+    try {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'manual_entry_created',
+        donation_id: data[0].id,
+        details: { donor_name: manualForm.donor_name, amount: parseFloat(manualForm.amount), payment_method: manualForm.payment_method },
+      })
+    } catch (auditErr) {
+      console.error('Audit log insert failed (non-blocking):', auditErr)
+    }
     setDonations(prev => [{ ...data[0] }, ...prev])
     setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
     setShowManualForm(false)
@@ -421,7 +436,8 @@ export default function App() {
         cancelled = true
         const { error: restoreError } = await supabase.from('donations').update({ status: 'confirmed' }).eq('id', id)
         if (restoreError) { showToast('Could not restore entry', 'error'); return }
-        setDonations(prev => [donationToDelete, ...prev])
+        const { data: freshData } = await supabase.from('donations').select('*').eq('id', id).single()
+        setDonations(prev => [freshData || donationToDelete, ...prev])
         setToast(null)
         showToast('Entry restored ✓')
       }
@@ -450,15 +466,16 @@ export default function App() {
 
   const donorMap = {}
   donations.forEach(d => {
-    if (!donorMap[d.donor_name]) {
-      donorMap[d.donor_name] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
+    const key = d.donor_email?.trim() || d.donor_name
+    if (!donorMap[key]) {
+      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
     }
-    if (!donorMap[d.donor_name].email && d.donor_email) donorMap[d.donor_name].email = d.donor_email
-    donorMap[d.donor_name].total += d.amount
-    donorMap[d.donor_name].count += 1
-    if (d.receipt_issued) donorMap[d.donor_name].receipts += 1
-    if (new Date(d.created_at) > new Date(donorMap[d.donor_name].lastDate)) {
-      donorMap[d.donor_name].lastDate = d.created_at
+    if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
+    donorMap[key].total += d.amount
+    donorMap[key].count += 1
+    if (d.receipt_issued) donorMap[key].receipts += 1
+    if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
+      donorMap[key].lastDate = d.created_at
     }
   })
   const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
@@ -473,7 +490,7 @@ export default function App() {
 
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap = {}
-  donations.filter(d => filterYear === 'All' || new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
+  donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
     if (!irasYearDonorMap[d.donor_name]) irasYearDonorMap[d.donor_name] = { name: d.donor_name, total: 0, count: 0, donations: [] }
     irasYearDonorMap[d.donor_name].total += d.amount
     irasYearDonorMap[d.donor_name].count += 1
@@ -482,7 +499,8 @@ export default function App() {
   const irasYearDonorList = Object.values(irasYearDonorMap).sort((a, b) => b.total - a.total)
 
   function exportIRASExcel() {
-    const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+    if (filterYear === 'All') { showToast('Select a specific year before exporting', 'error'); return }
+    const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
     const cover = [
       { 'Field': 'Charity Name', 'Value': charityName },
       { 'Field': 'UEN', 'Value': charityUen },
@@ -533,7 +551,9 @@ export default function App() {
   }
 
   function showToast(msg, type = 'success') {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast({ msg, type })
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000)
   }
 
   function exportDonorContactsCSV() {
@@ -608,6 +628,7 @@ export default function App() {
   }
 
   function exportYearEndSummary() {
+    if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }
     const doc = new jsPDF()
     const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
     const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
@@ -680,6 +701,23 @@ export default function App() {
     setResetMsg('Password updated! Redirecting...')
     setTimeout(() => { setShowResetPassword(false); setNewPassword(''); setConfirmPassword(''); setResetMsg('') }, 1500)
   }
+
+  const monthlyChartData = React.useMemo(() => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return months.map((month, i) => ({
+      month,
+      amount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
+      count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
+    }))
+  }, [donations, filterYear])
+
+  const monthlyCountData = React.useMemo(() => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return months.map((month, i) => ({
+      month,
+      count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
+    }))
+  }, [donations, filterYear])
 
   if (authLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.ivory, fontFamily: 'Segoe UI', fontSize: 16, color: C.muted }}>
@@ -1259,7 +1297,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
-                          <tr key={d.id} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
@@ -1501,21 +1539,20 @@ export default function App() {
                             }
 
                             // Step 3 — Send thank you email immediately
-                            const donationSnapshot = { ...selectedDonation }
                             const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
                               body: {
-                                donor_name: donationSnapshot.donor_name,
-                                donor_email: donationSnapshot.donor_email,
+                                donor_name: selectedDonation.donor_name,
+                                donor_email: selectedDonation.donor_email,
                                 charity_name: charityName,
-                                amount: donationSnapshot.amount,
-                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                amount: selectedDonation.amount,
+                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
                               }
                             })
                             if (!emailError) {
-                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
-                              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
+                              setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
                               setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                              showToast('Payment confirmed ✓ — thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+                              showToast('Payment confirmed ✓ — thank you email sent to ' + selectedDonation.donor_email + ' 💌')
                             } else {
                               showToast('Payment confirmed but thank you email failed — send manually', 'error')
                             }
@@ -1538,6 +1575,8 @@ export default function App() {
                               if (!updates.donor_name?.trim()) { showToast('Donor name cannot be empty', 'error'); return }
                               if (!updates.amount || updates.amount <= 0) { showToast('Amount must be greater than zero', 'error'); return }
                               if (new Date(updates.created_at) > new Date()) { showToast('Date cannot be in the future', 'error'); return }
+                              if (updates.donor_nric && !/^[STFG]\d{7}[A-Z]$/.test(updates.donor_nric.trim().toUpperCase())) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
+                              if (updates.donor_nric) updates.donor_nric = updates.donor_nric.trim().toUpperCase()
                               const { error } = await supabase.from('donations').update(updates).eq('id', selectedDonation.id)
                               if (error) { showToast('Error saving', 'error'); return }
                               await supabase.from('audit_log').insert({
@@ -1630,14 +1669,7 @@ export default function App() {
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>📊 Monthly Donations — {filterYear}</div>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={(() => {
-                  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-                  return months.map((month, i) => ({
-                    month,
-                    amount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
-                    count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
-                  }))
-                })()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
@@ -1651,10 +1683,7 @@ export default function App() {
               <div style={s.card}>
                 <div style={s.cardTitle}>📈 Number of Donations per Month</div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={(() => {
-                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-                    return months.map((month, i) => ({ month, count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length }))
-                  })()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1852,7 +1881,7 @@ export default function App() {
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>Donor Submission Data</div>
-                <div style={s.tableCount}>{irasYearDonorList.length} donors in {filterYear}</div>
+                <div style={s.tableCount}>{filterYear === 'All' ? 'Select a year above' : `${irasYearDonorList.length} donors in ${filterYear}`}</div>
               </div>
               {isMobile ? (
                 <div>
