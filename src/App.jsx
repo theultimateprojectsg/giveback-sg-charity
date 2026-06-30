@@ -286,9 +286,9 @@ export default function App() {
     if (pending.length === 0) {
       const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
       if (awaitingConfirmation > 0) {
-        showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`, 'error')
+        showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`)
       } else {
-        showToast('No receipts pending for ' + filterYear, 'error')
+        showToast('No receipts pending for ' + filterYear)
       }
       return
     }
@@ -311,9 +311,9 @@ export default function App() {
     const missingNoEmail = yearScoped.filter(d => !d.donor_nric && !d.donor_email?.trim()).length
     if (missing.length === 0) {
       if (missingNoEmail > 0) {
-        showToast(`${missingNoEmail} donation${missingNoEmail > 1 ? 's' : ''} missing NRIC have no email on file either — you'll need to follow up directly`, 'error')
+        showToast(`${missingNoEmail} donation${missingNoEmail > 1 ? 's' : ''} missing NRIC have no email on file either — you'll need to follow up directly`)
       } else {
-        showToast(`No donors with email on file are missing NRIC for ${filterYear}`, 'error')
+        showToast(`No donors with email on file are missing NRIC for ${filterYear}`)
       }
       return
     }
@@ -331,17 +331,21 @@ export default function App() {
     setBulkActionInProgress(true)
     let sent = 0
     for (const donor of donorList) {
-      const { error } = await supabase.functions.invoke('send-thank-you', {
-        body: {
-          donor_name: donor.donor_name,
-          donor_email: donor.donor_email,
-          charity_name: charityName,
-          amount: donor.total,
-          date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-          request_nric: true,
-        }
-      })
-      if (!error) sent++
+      try {
+        const { error } = await supabase.functions.invoke('send-thank-you', {
+          body: {
+            donor_name: donor.donor_name,
+            donor_email: donor.donor_email,
+            charity_name: charityName,
+            amount: donor.total,
+            date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+            request_nric: true,
+          }
+        })
+        if (!error) sent++
+      } catch (invokeErr) {
+        console.error('NRIC request failed for', donor.donor_email, invokeErr)
+      }
     }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -354,6 +358,7 @@ export default function App() {
   }
 
   function goToDonation(donation) {
+    if (bulkActionInProgress) { showToast('Please wait for the current bulk action to finish', 'error'); return }
     const hadActiveFilters = filterYear !== 'All' || filterType !== 'All' || filterNric !== 'All' || searchTerm !== ''
     setFilterYear('All')
     setFilterType('All')
@@ -454,7 +459,7 @@ export default function App() {
     ? donations.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
     : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
-  const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
+  const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
@@ -491,15 +496,16 @@ export default function App() {
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap = {}
   donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
-    if (!irasYearDonorMap[d.donor_name]) irasYearDonorMap[d.donor_name] = { name: d.donor_name, total: 0, count: 0, donations: [] }
-    irasYearDonorMap[d.donor_name].total += d.amount
-    irasYearDonorMap[d.donor_name].count += 1
-    irasYearDonorMap[d.donor_name].donations.push(d)
+    const key = d.donor_email?.trim() || d.donor_name
+    if (!irasYearDonorMap[key]) irasYearDonorMap[key] = { name: d.donor_name, total: 0, count: 0, donations: [] }
+    irasYearDonorMap[key].total += d.amount
+    irasYearDonorMap[key].count += 1
+    irasYearDonorMap[key].donations.push(d)
   })
   const irasYearDonorList = Object.values(irasYearDonorMap).sort((a, b) => b.total - a.total)
 
   function exportIRASExcel() {
-    if (filterYear === 'All') { showToast('Select a specific year before exporting', 'error'); return }
+    if (filterYear === 'All') { showToast('Select a specific year before exporting'); return }
     const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
     const cover = [
       { 'Field': 'Charity Name', 'Value': charityName },
@@ -574,7 +580,7 @@ export default function App() {
   function exportPDF() {
     const yearDonationsForExport = filterYear === 'All'
       ? donations
-      : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+      : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
     const doc = new jsPDF()
     doc.setFontSize(18); doc.setFont('helvetica', 'bold')
     doc.text(`Giving Tree — Donation Report ${filterYear}`, 14, 22)
@@ -628,9 +634,9 @@ export default function App() {
   }
 
   function exportYearEndSummary() {
-    if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }
+    if (filterYear === 'All') { showToast('Select a specific year first'); return }
     const doc = new jsPDF()
-    const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+    const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
     const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
     const yearDonors = new Set(yearDons.map(d => d.donor_name)).size
     const yearTop = Object.values(yearDons.reduce((acc, d) => {
@@ -886,7 +892,7 @@ export default function App() {
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending across all years{filterYear !== 'All' ? ` · ${pendingCountForYear} pending in ${filterYear}` : ''} · Action required before deadline</div>
                   </div>
                 </div>
-                <button style={s.bannerBtn} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
+                <button style={s.bannerBtn} onClick={() => { if (filterYear !== 'All' && pendingCountForYear === 0) { showToast(`No receipts pending in ${filterYear} — switch to "All" or another year to issue the ${pendingCount} pending elsewhere`, 'error'); return } issueAllReceipts() }} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
               </div>
             )}
             {donations.filter(d => !d.donor_nric).length > 0 && (
@@ -1072,7 +1078,7 @@ export default function App() {
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data', 'error'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
@@ -1133,7 +1139,7 @@ export default function App() {
                 <div style={{ ...s.card, background: C.teal, marginBottom: 16 }}>
                   <div style={{ ...s.donorAvatar, width: 56, height: 56, fontSize: 22, background: C.sage, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Donor since {new Date(donations.filter(d => d.donor_name === selectedDonor.name).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
                 </div>
                 <div style={s.card}>
                   <div style={s.cardTitle}>Giving Summary</div>
@@ -1170,7 +1176,7 @@ export default function App() {
               <div style={s.card}>
                 <div style={s.cardTitle}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {donations.filter(d => d.donor_name === selectedDonor.name).map(d => (
+                  {donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).map(d => (
                     <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
                       <div style={{ width: 36, height: 36, background: C.successBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💳</div>
                       <div style={{ flex: 1 }}>
@@ -1185,8 +1191,10 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <button style={issuing ? s.issuingBtn : s.btnForest} disabled={!!issuing} onClick={async () => {
-                    const pending = donations.filter(d => d.donor_name === selectedDonor.name && !d.receipt_issued)
+                  <button style={(issuing || bulkActionInProgress) ? s.issuingBtn : s.btnForest} disabled={!!issuing || bulkActionInProgress} onClick={async () => {
+                    if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
+                    setBulkActionInProgress(true)
+                    const pending = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name) && !d.receipt_issued)
                     for (const d of pending) await issueReceipt(d, true)
                     if (pending.length > 1) {
                       await supabase.from('audit_log').insert({
@@ -1196,8 +1204,9 @@ export default function App() {
                         details: { donation_count: pending.length, donor_name: selectedDonor.name },
                       })
                     }
+                    setBulkActionInProgress(false)
                     showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${selectedDonor.name}`)
-                  }}>{issuing ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
+                  }}>{(issuing || bulkActionInProgress) ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
                 </div>
               </div>
             </div>
@@ -1286,6 +1295,12 @@ export default function App() {
                           <div style={s.donationCardBadges}>
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
                             {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                            {d.source === 'manual' && (
+                              <span
+                                style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBE9E7', padding: '3px 10px', borderRadius: 20, marginLeft: 'auto' }}
+                                onClick={(e) => { e.stopPropagation(); deleteDonation(d.id) }}
+                              >🗑️ Delete</span>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1332,6 +1347,7 @@ export default function App() {
                         { label: 'Source', key: null, value: selectedDonation.source === 'manual' ? `Manual (${selectedDonation.payment_method})` : 'Giving Tree App', editable: false },
                         { label: 'Amount (SGD)', key: 'amount', value: `$${Number(selectedDonation.amount).toLocaleString()}`, editable: true, type: 'number' },
                         { label: 'Date', key: 'created_at', value: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), editable: true, type: 'date' },
+                        ...(selectedDonation.source === 'manual' ? [{ label: 'Payment Method', key: 'payment_method', value: selectedDonation.payment_method || '—', editable: true, type: 'select' }] : []),
                         ...(selectedDonation.payment_ref ? [{ label: 'Payment Reference', key: null, value: selectedDonation.payment_ref, editable: false }] : []),
                         { label: 'Receipt', key: null, value: selectedDonation.receipt_issued ? '✓ Issued' : 'Pending', editable: false },
                         { label: '250% Deductible', key: null, value: `$${(selectedDonation.amount * 2.5).toLocaleString()}`, editable: false },
@@ -1344,6 +1360,12 @@ export default function App() {
                               <input type="date" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
                                 value={editForm.created_at || selectedDonation.created_at?.split('T')[0]}
                                 onChange={e => setEditForm(f => ({ ...f, created_at: e.target.value }))} />
+                            ) : item.key === 'payment_method' ? (
+                              <select style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
+                                value={editForm.payment_method ?? selectedDonation.payment_method}
+                                onChange={e => setEditForm(f => ({ ...f, payment_method: e.target.value }))}>
+                                <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
+                              </select>
                             ) : item.key === 'amount' ? (
                               <input type="number" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 100, textAlign: 'right' }}
                                 value={editForm.amount ?? selectedDonation.amount}
@@ -1714,7 +1736,7 @@ export default function App() {
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
                 {(() => {
-                  const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+                  const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
                   return [
                     { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
                     { label: '$50 — $200', min: 50, max: 200, color: C.sage },
@@ -1747,15 +1769,15 @@ export default function App() {
                     <svg viewBox="0 0 36 36" style={{ width: 100, height: 100, transform: 'rotate(-90deg)' }}>
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke={C.border} strokeWidth="3" />
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke={C.sage} strokeWidth="3"
-                        strokeDasharray={`${(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear); return yd.length ? (yd.filter(d => d.receipt_issued).length / yd.length) * 100 : 0 })()} 100`} strokeLinecap="round" />
+                        strokeDasharray={`${(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear); return yd.length ? (yd.filter(d => d.receipt_issued).length / yd.length) * 100 : 0 })()} 100`} strokeLinecap="round" />
                     </svg>
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 16, fontWeight: 800, color: C.forest }}>
-                      {(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear); return yd.length ? Math.round((yd.filter(d => d.receipt_issued).length / yd.length) * 100) : 0 })()}%
+                      {(() => { const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear); return yd.length ? Math.round((yd.filter(d => d.receipt_issued).length / yd.length) * 100) : 0 })()}%
                     </div>
                   </div>
                   <div>
                     {(() => {
-                      const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear().toString() === filterYear)
+                      const yd = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
                       const yIssued = yd.filter(d => d.receipt_issued).length
                       const yPending = yd.length - yIssued
                       return (
@@ -1821,12 +1843,12 @@ export default function App() {
 
             <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
               {(() => {
-                const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+                const yearDons = filterYear === 'All' ? [] : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
                 const missingNric = yearDons.filter(d => !d.donor_nric).length
                 const cards = [
-                  { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: `${yearDons.length} transactions`, warn: false },
+                  { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: filterYear === 'All' ? 'Select a year for details' : `${yearDons.length} transactions`, warn: false },
                   { label: '250% Deductible', value: `$${(totalThisYear * 2.5).toLocaleString()}`, note: 'Total tax deductible amount', warn: false },
-                  { label: 'Missing NRIC', value: missingNric, note: missingNric > 0 ? 'Click to see affected donors' : 'All donors have NRIC ✓', warn: missingNric > 0, action: missingNric > 0 },
+                  { label: 'Missing NRIC', value: filterYear === 'All' ? '—' : missingNric, note: filterYear === 'All' ? 'Select a year to check' : missingNric > 0 ? 'Click to see affected donors' : 'All donors have NRIC ✓', warn: filterYear !== 'All' && missingNric > 0, action: filterYear !== 'All' && missingNric > 0 },
                   { label: 'Receipts Pending', value: pendingCount, note: pendingCount > 0 ? 'Action needed' : 'All issued ✓', warn: pendingCount > 0 },
                 ]
                 return cards.map((item, i) => (
@@ -1874,7 +1896,7 @@ export default function App() {
               )}
               <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
               <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
-              <button style={{ ...s.btnForest, background: C.teal }} onClick={() => { if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }; exportYearEndSummary() }}>🎉 Year-End Summary for Board</button>
+              <button style={{ ...s.btnForest, background: C.teal }} onClick={() => { if (filterYear === 'All') { showToast('Select a specific year first'); return }; exportYearEndSummary() }}>🎉 Year-End Summary for Board</button>
               {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Receipts First'}</button>}
             </div>
 
