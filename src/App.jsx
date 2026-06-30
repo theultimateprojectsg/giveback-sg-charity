@@ -2161,6 +2161,9 @@ export default function App() {
                   {c.status === 'approved' && !isPast(c) && (
                     <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => requestRevision(c)}>Request Change</button>
                   )}
+                  {c.status === 'approved' && !isPast(c) && (
+                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
+                  )}
                 </div>
               )
               return (
