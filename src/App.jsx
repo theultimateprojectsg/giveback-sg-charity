@@ -1506,8 +1506,11 @@ export default function App() {
                                 donor_name: donationSnapshot.donor_name,
                                 donor_email: donationSnapshot.donor_email,
                                 charity_name: charityName,
+                                charity_uen: charityUen,
                                 amount: donationSnapshot.amount,
-                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                payment_ref: donationSnapshot.payment_ref,
+                                notes: donationSnapshot.notes,
                               }
                             })
                             if (!emailError) {
@@ -1566,8 +1569,11 @@ export default function App() {
                                 donor_name: selectedDonation.donor_name,
                                 donor_email: selectedDonation.donor_email,
                                 charity_name: charityName,
+                                charity_uen: charityUen,
                                 amount: selectedDonation.amount,
-                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                payment_ref: selectedDonation.payment_ref,
+                                notes: selectedDonation.notes,
                               }
                             })
                             if (!emailError) {
@@ -1626,8 +1632,11 @@ export default function App() {
                                 donor_name: selectedDonation.donor_name,
                                 donor_email: selectedDonation.donor_email,
                                 charity_name: charityName,
+                                charity_uen: charityUen,
                                 amount: selectedDonation.amount,
-                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                payment_ref: selectedDonation.payment_ref,
+                                notes: selectedDonation.notes,
                               }
                             })
                             if (error) { showToast('Failed to send email', 'error'); return }
