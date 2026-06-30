@@ -539,7 +539,7 @@ export default function App() {
       'Donor Name': d.donor_name,
       'Donation Date': new Date(d.created_at).toLocaleDateString('en-SG'),
       'Amount (SGD)': d.amount,
-      'Action Required': 'Request NRIC/FIN from donor to qualify for tax deduction',
+      'Action Required': 'Request NRIC/FIN from donor before submitting this donation for tax deduction',
     }))
     const wb = XLSX.utils.book_new()
     const wsCover = XLSX.utils.json_to_sheet(cover)
@@ -624,7 +624,7 @@ export default function App() {
     let noteY = y2 + 22
     if (!donation.donor_nric) {
       doc.setTextColor(160, 113, 16)
-      doc.text('⚠ NRIC/FIN not on file. Donor must provide this to claim the tax deduction.', 14, noteY)
+      doc.text('⚠ NRIC/FIN not on file. Donor must provide this so it can be submitted for tax deduction.', 14, noteY)
       doc.setTextColor(0, 0, 0)
       noteY += 7
     }
@@ -901,7 +901,7 @@ export default function App() {
                   <div style={{ fontSize: 24 }}>🪪</div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{donations.filter(d => !d.donor_nric).length} donation{donations.filter(d => !d.donor_nric).length > 1 ? 's' : ''} missing NRIC</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed for donors to claim their 250% tax deduction</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed to submit these donations to IRAS for the 250% tax deduction</div>
                   </div>
                 </div>
                 <button style={s.bannerBtn} onClick={() => setActiveTab('donations')}>Review →</button>
