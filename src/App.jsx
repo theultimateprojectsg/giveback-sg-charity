@@ -965,12 +965,12 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div style={s.content}>
             {actionItems.length > 0 && (
-              <div style={{ ...s.deadlineBanner, background: '#FBE8A6', border: `1.5px solid ${C.warningBorder}`, marginBottom: 14 }}>
+              <div style={{ ...s.deadlineBanner, background: '#F5C9C4', border: `1.5px solid ${C.red}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ fontSize: 24 }}>⚡</div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.warning }}>{actionItems.length} thing{actionItems.length > 1 ? 's' : ''} need{actionItems.length > 1 ? '' : 's'} your attention</div>
-                    <div style={{ fontSize: 12, color: C.warning, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.red }}>{actionItems.length} thing{actionItems.length > 1 ? 's' : ''} need{actionItems.length > 1 ? '' : 's'} your attention</div>
+                    <div style={{ fontSize: 12, color: C.red, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
                   </div>
                 </div>
                 <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab(actionItems[0].tab)}>Review now</button>
