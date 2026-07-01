@@ -996,16 +996,20 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.white, borderRadius: 16, padding: '14px 20px', border: `1.5px solid ${C.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 20 }}>🏛️</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>
-                  IRAS: {daysToDeadline} days left · {pendingCount} receipt{pendingCount !== 1 ? 's' : ''} pending
-                  {donations.filter(d => !d.donor_nric).length > 0 && ` · ${donations.filter(d => !d.donor_nric).length} missing NRIC`}
+            {(pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0) && (
+              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.white, borderRadius: 16, padding: '14px 20px', border: `1.5px solid ${C.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 20 }}>🏛️</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>
+                    IRAS action needed: {pendingCount > 0 && `${pendingCount} receipt${pendingCount !== 1 ? 's' : ''} pending`}
+                    {pendingCount > 0 && donations.filter(d => !d.donor_nric).length > 0 && ' · '}
+                    {donations.filter(d => !d.donor_nric).length > 0 && `${donations.filter(d => !d.donor_nric).length} missing NRIC`}
+                    {' · '}{daysToDeadline} days to deadline
+                  </div>
                 </div>
+                <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setActiveTab('iras')}>View →</button>
               </div>
-              <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setActiveTab('iras')}>View →</button>
-            </div>
+            )}
 
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
