@@ -519,6 +519,21 @@ export default function App() {
     .filter(d => d.amount >= thankYouThreshold || donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5)
+  const donorMap = {}
+  donations.forEach(d => {
+    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+    if (!donorMap[key]) {
+      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
+    }
+    if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
+    donorMap[key].total += d.amount
+    donorMap[key].count += 1
+    if (d.receipt_issued) donorMap[key].receipts += 1
+    if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
+      donorMap[key].lastDate = d.created_at
+    }
+  })
+  const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -547,22 +562,6 @@ export default function App() {
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
-
-  const donorMap = {}
-  donations.forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-    if (!donorMap[key]) {
-      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
-    }
-    if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
-    donorMap[key].total += d.amount
-    donorMap[key].count += 1
-    if (d.receipt_issued) donorMap[key].receipts += 1
-    if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
-      donorMap[key].lastDate = d.created_at
-    }
-  })
-  const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
 
   const filteredDonations = donations.filter(d => {
     const matchSearch = d.donor_name?.toLowerCase().includes(searchTerm.toLowerCase())
