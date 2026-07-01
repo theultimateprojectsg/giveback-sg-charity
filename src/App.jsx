@@ -96,6 +96,7 @@ export default function App() {
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const selectedRowRef = useRef(null)
   const [hoveredMonth, setHoveredMonth] = useState(null)
+  const [confirmModal, setConfirmModal] = useState(null)
   
 
   useEffect(() => {
@@ -298,6 +299,64 @@ export default function App() {
     if (error) { console.error(error); return }
     setDonations(data)
     setLoading(false)
+  }
+
+  async function confirmPaymentFlow(donation) {
+    const { data: freshData, error: freshError } = await supabase
+      .from('donations')
+      .select('payment_status, receipt_issued')
+      .eq('id', donation.id)
+      .single()
+
+    if (freshError || !freshData) {
+      showToast('Could not verify this donation — it may have been deleted. Please refresh and try again.', 'error')
+      return
+    }
+
+    if (freshData.payment_status === 'confirmed') {
+      showToast('This donation was already confirmed by someone else', 'error')
+      setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
+      setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
+      return
+    }
+
+    const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', donation.id)
+    if (error) { showToast('Error confirming payment', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'payment_confirmed',
+      donation_id: donation.id,
+      details: { donor_name: donation.donor_name, amount: donation.amount, payment_ref: donation.payment_ref },
+    })
+    setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
+    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
+
+    if (!donation.donor_email) {
+      showToast('Payment confirmed and receipt issued')
+      return
+    }
+
+    const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        donor_name: donation.donor_name,
+        donor_email: donation.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: donation.amount,
+        date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        payment_ref: donation.payment_ref,
+        notes: donation.notes,
+      }
+    })
+    if (!emailError) {
+      await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
+      setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
+      setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
+      showToast('Payment confirmed ✓ — thank you email sent to ' + donation.donor_email + ' 💌')
+    } else {
+      showToast('Payment confirmed but thank you email failed — send manually', 'error')
+    }
   }
 
   async function issueReceipt(donation, skipLog = false) {
@@ -1643,71 +1702,14 @@ export default function App() {
                           }}>🧾 Issue Receipt</button>
                         )}
                         {selectedDonation.payment_status !== 'confirmed' && (
-                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
-                            // Step 1 — Confirmation dialog
-                            const confirmed = window.confirm(
-                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt${selectedDonation.donor_email ? '\n• Send a thank you email' : ''}`
-                            )
-                            if (!confirmed) return
-
-                            // Check current status from DB to prevent race condition
-            const { data: freshData, error: freshError } = await supabase
-            .from('donations')
-            .select('payment_status, receipt_issued')
-            .eq('id', selectedDonation.id)
-            .single()
-
-          if (freshError || !freshData) {
-            showToast('Could not verify this donation — it may have been deleted. Please refresh and try again.', 'error')
-            return
-          }
-
-          if (freshData.payment_status === 'confirmed') {
-            showToast('This donation was already confirmed by someone else', 'error')
-            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
-            setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
-            return
-          }
-
-                            // Step 2 — Update DB
-                            const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', selectedDonation.id)
-                            if (error) { showToast('Error confirming payment', 'error'); return }
-                            await supabase.from('audit_log').insert({
-                              actor_type: 'charity',
-                              actor_email: session.user.email,
-                              action: 'payment_confirmed',
-                              donation_id: selectedDonation.id,
-                              details: { donor_name: selectedDonation.donor_name, amount: selectedDonation.amount, payment_ref: selectedDonation.payment_ref },
+                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => {
+                            setConfirmModal({
+                              title: 'Confirm this payment?',
+                              description: `${selectedDonation.donor_name} · $${selectedDonation.amount}`,
+                              steps: ['Mark payment as confirmed', 'Issue a receipt', ...(selectedDonation.donor_email ? ['Send a thank-you email'] : [])],
+                              confirmLabel: 'Confirm payment',
+                              onConfirm: () => confirmPaymentFlow(selectedDonation),
                             })
-                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
-                            setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
-
-                            if (!selectedDonation.donor_email) {
-                              showToast('Payment confirmed and receipt issued')
-                              return
-                            }
-
-                            // Step 3 — Send thank you email immediately
-                            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-                              body: {
-                                donor_name: selectedDonation.donor_name,
-                                donor_email: selectedDonation.donor_email,
-                                charity_name: charityName,
-                                charity_uen: charityUen,
-                                amount: selectedDonation.amount,
-                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-                                payment_ref: selectedDonation.payment_ref,
-                                notes: selectedDonation.notes,
-                              }
-                            })
-                            if (!emailError) {
-                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
-                              setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
-                              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                              showToast('Payment confirmed ✓ — thank you email sent to ' + selectedDonation.donor_email + ' 💌')
-                            } else {
-                              showToast('Payment confirmed but thank you email failed — send manually', 'error')
-                            }
                           }}>✓ Confirm Payment & Issue Receipt</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
@@ -2386,6 +2388,31 @@ export default function App() {
         )}
 
       </div>
+      {confirmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 400, width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 20, color: C.forest }}>✓</span>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 6 }}>{confirmModal.title}</div>
+            {confirmModal.description && <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>{confirmModal.description}</div>}
+            {confirmModal.steps && confirmModal.steps.length > 0 && (
+              <div style={{ background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
+                {confirmModal.steps.map((step, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < confirmModal.steps.length - 1 ? 8 : 0 }}>
+                    <span style={{ fontSize: 13, color: C.sage }}>✓</span>
+                    <span style={{ fontSize: 13, color: C.text }}>{step}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmModal(null)}>Cancel</button>
+              <button style={{ flex: 1, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const action = confirmModal.onConfirm; setConfirmModal(null); action() }}>{confirmModal.confirmLabel || 'Confirm'}</button>
+            </div>
+          </div>
+        </div>
+      )}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 32, right: 32,
