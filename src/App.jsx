@@ -965,7 +965,7 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div style={s.content}>
             {actionItems.length > 0 && (
-              <div style={{ ...s.deadlineBanner, background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, marginBottom: 14 }}>
+              <div style={{ ...s.deadlineBanner, background: '#FBE8A6', border: `1.5px solid ${C.warningBorder}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ fontSize: 24 }}>⚡</div>
                   <div>
@@ -1057,30 +1057,40 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  <svg viewBox="0 0 260 50" style={{ width: '100%', height: 50, overflow: 'visible' }}>
+                  <svg viewBox="0 0 260 64" style={{ width: '100%', height: 64, overflow: 'visible' }}>
                     <polyline
                       points={sixMonthTrend.map((v, i) => `${i * 52},${44 - (v / trendMax) * 38}`).join(' ')}
                       fill="none" stroke={C.sage} strokeWidth="2"
                     />
-                    {sixMonthTrend.map((v, i) => (
-                      <circle
-                        key={i}
-                        cx={i * 52}
-                        cy={44 - (v / trendMax) * 38}
-                        r={hoveredMonth === i ? 5 : (i === 5 ? 4 : 2.5)}
-                        fill={C.sage}
-                        style={{ cursor: 'pointer' }}
-                        onMouseEnter={() => setHoveredMonth(i)}
-                        onMouseLeave={() => setHoveredMonth(null)}
-                      />
-                    ))}
-                  </svg>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                    {Array.from({ length: 6 }, (_, i) => {
-                      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-                      return <span key={i} style={{ fontSize: 10, color: hoveredMonth === i ? C.forest : C.muted, fontWeight: hoveredMonth === i ? 700 : 400 }}>{d.toLocaleDateString('en-SG', { month: 'short' })}</span>
+                    {sixMonthTrend.map((v, i) => {
+                      const cx = i * 52
+                      const cy = 44 - (v / trendMax) * 38
+                      const monthLabel = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1).toLocaleDateString('en-SG', { month: 'short' })
+                      return (
+                        <g key={i}>
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={hoveredMonth === i ? 5 : (i === 5 ? 4 : 2.5)}
+                            fill={C.sage}
+                            style={{ cursor: 'pointer' }}
+                            onMouseEnter={() => setHoveredMonth(i)}
+                            onMouseLeave={() => setHoveredMonth(null)}
+                          />
+                          <text
+                            x={cx}
+                            y={58}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fill={hoveredMonth === i ? C.forest : C.muted}
+                            fontWeight={hoveredMonth === i ? 700 : 400}
+                          >
+                            {monthLabel}
+                          </text>
+                        </g>
+                      )
                     })}
-                  </div>
+                  </svg>
                   {hoveredMonth !== null && (
                     <div style={{ position: 'absolute', top: 8, right: 12, background: C.forest, color: 'white', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8 }}>
                       {new Date(now.getFullYear(), now.getMonth() - (5 - hoveredMonth), 1).toLocaleDateString('en-SG', { month: 'short' })}: ${sixMonthTrend[hoveredMonth].toLocaleString()}
