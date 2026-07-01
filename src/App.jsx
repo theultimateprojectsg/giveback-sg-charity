@@ -820,7 +820,7 @@ export default function App() {
       noteY += 10
     }
     doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY)
-    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}-${donation.id.slice(0,6)}.pdf`)
+    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}-${String(donation.id).slice(0,6)}.pdf`)
   }
 
   function exportYearEndSummary() {
