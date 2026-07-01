@@ -479,6 +479,17 @@ export default function App() {
   if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
     setSavingManual(true)
     setManualError('')
+    const entryYear = new Date(manualForm.date).getFullYear()
+    const { count: existingManualCount, error: countError } = await supabase
+      .from('donations')
+      .select('id', { count: 'exact', head: true })
+      .eq('charity_uen', charityUen)
+      .eq('source', 'manual')
+      .gte('created_at', `${entryYear}-01-01`)
+      .lt('created_at', `${entryYear + 1}-01-01`)
+    if (countError) { console.error('Could not generate receipt number:', countError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
+    const nextSeq = (existingManualCount || 0) + 1
+    const receiptNumber = `MR-${entryYear}-${String(nextSeq).padStart(6, '0')}`
     const { data, error } = await supabase.from('donations').insert([{
       donor_name: manualForm.donor_name,
       donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
@@ -493,6 +504,7 @@ export default function App() {
       notes: manualForm.notes,
       donor_email: manualForm.donor_email,
       created_at: manualForm.date,
+      receipt_number: receiptNumber,
     }]).select()
     if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
     try {
@@ -777,10 +789,13 @@ export default function App() {
     doc.text(`Amount: SGD $${Number(donation.amount).toFixed(2)}`, 14, 70)
     doc.text(`Date: ${new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, 80)
     doc.text(`Payment Method: ${donation.payment_method || (donation.source === 'manual' ? 'Manual Entry' : 'PayNow')}`, 14, 90)
-    if (donation.donor_nric) doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100)
-    doc.line(14, donation.donor_nric ? 108 : 98, 196, donation.donor_nric ? 108 : 98)
+    const receiptRef = donation.payment_ref || donation.receipt_number
+    let nextY = 90
+    if (donation.donor_nric) { doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100); nextY = 100 }
+    if (receiptRef) { doc.text(`Receipt No: ${receiptRef}`, 14, nextY + 10); nextY += 10 }
+    doc.line(14, nextY + 8, 196, nextY + 8)
     doc.setFont('helvetica', 'bold')
-    const y2 = donation.donor_nric ? 120 : 110
+    const y2 = nextY + 20
     if (charityIsIpc) {
       doc.text(`Tax Deductible (250%): SGD $${(donation.amount * 2.5).toFixed(2)}`, 14, y2)
       doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
@@ -1470,6 +1485,7 @@ export default function App() {
                             </div>
                             <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
                           </div>
+                          <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginBottom: 6 }}>{d.payment_ref || d.receipt_number || '—'}</div>
                           <div style={s.donationCardBadges}>
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
                             {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
@@ -1486,7 +1502,7 @@ export default function App() {
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
@@ -1496,6 +1512,7 @@ export default function App() {
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
                             {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
@@ -1526,7 +1543,9 @@ export default function App() {
                         { label: 'Amount (SGD)', key: 'amount', value: `$${Number(selectedDonation.amount).toLocaleString()}`, editable: true, type: 'number' },
                         { label: 'Date', key: 'created_at', value: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), editable: true, type: 'date' },
                         ...(selectedDonation.source === 'manual' ? [{ label: 'Payment Method', key: 'payment_method', value: selectedDonation.payment_method || '—', editable: true, type: 'select' }] : []),
-                        ...(selectedDonation.payment_ref ? [{ label: 'Payment Reference', key: null, value: selectedDonation.payment_ref, editable: false }] : []),
+                        ...(selectedDonation.source === 'manual'
+                          ? [{ label: 'Receipt No.', key: 'receipt_number', value: selectedDonation.receipt_number || '—', editable: true }]
+                          : [{ label: 'Receipt No.', key: null, value: selectedDonation.payment_ref || '—', editable: false }]),
                         { label: 'Receipt', key: null, value: selectedDonation.receipt_issued ? '✓ Issued' : 'Pending', editable: false },
                         { label: '250% Deductible', key: null, value: `$${(selectedDonation.amount * 2.5).toLocaleString()}`, editable: false },
                         { label: 'Est. Tax Savings', key: null, value: `$${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, editable: false },
@@ -1703,9 +1722,13 @@ export default function App() {
                         )}
                         {selectedDonation.payment_status !== 'confirmed' && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => {
+                            const refToShow = selectedDonation.payment_ref || selectedDonation.receipt_number
                             setConfirmModal({
                               title: 'Confirm this payment?',
-                              description: `${selectedDonation.donor_name} · $${selectedDonation.amount}`,
+                              subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                              donorName: selectedDonation.donor_name,
+                              amount: selectedDonation.amount,
+                              reference: refToShow,
                               steps: ['Mark payment as confirmed', 'Issue a receipt', ...(selectedDonation.donor_email ? ['Send a thank-you email'] : [])],
                               confirmLabel: 'Confirm payment',
                               onConfirm: () => confirmPaymentFlow(selectedDonation),
@@ -1725,6 +1748,7 @@ export default function App() {
                                 amount: editForm.amount ? parseFloat(editForm.amount) : selectedDonation.amount,
                                 payment_method: editForm.payment_method ?? selectedDonation.payment_method,
                                 created_at: editForm.created_at ?? selectedDonation.created_at,
+                                receipt_number: editForm.receipt_number ?? selectedDonation.receipt_number,
                               }
                               if (!updates.donor_name?.trim()) { showToast('Donor name cannot be empty', 'error'); return }
                               if (!updates.amount || updates.amount <= 0) { showToast('Amount must be greater than zero', 'error'); return }
@@ -2395,7 +2419,33 @@ export default function App() {
               <span style={{ fontSize: 20, color: C.forest }}>✓</span>
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 6 }}>{confirmModal.title}</div>
+            {confirmModal.subtitle && <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>{confirmModal.subtitle}</div>}
             {confirmModal.description && <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>{confirmModal.description}</div>}
+            {(confirmModal.donorName || confirmModal.amount != null) && (
+              <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+                {confirmModal.donorName && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donor</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{confirmModal.donorName}</span>
+                  </div>
+                )}
+                {confirmModal.amount != null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Amount</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${Number(confirmModal.amount).toLocaleString()}</span>
+                  </div>
+                )}
+                <div style={{ borderTop: `1px solid ${C.border}`, margin: '10px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Transaction ref</span>
+                  {confirmModal.reference ? (
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.forest, fontFamily: 'monospace', background: C.successBg, padding: '3px 8px', borderRadius: 6 }}>{confirmModal.reference}</span>
+                  ) : (
+                    <span style={{ fontSize: 12, color: C.warning, fontWeight: 600 }}>⚠️ No reference on file</span>
+                  )}
+                </div>
+              </div>
+            )}
             {confirmModal.steps && confirmModal.steps.length > 0 && (
               <div style={{ background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
                 {confirmModal.steps.map((step, i) => (
