@@ -1029,6 +1029,13 @@ export default function App() {
                 <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{donations.length} donations</div>
               </div>
               <div style={s.statCard}>
+                <div style={s.statLabel}>This Month</div>
+                <div style={s.statValue}>${thisMonthTotal.toLocaleString()}</div>
+                <div style={{ ...s.statNote, color: monthChangePct === null ? C.muted : (monthChangePct >= 0 ? C.sage : C.red) }}>
+                  {monthChangePct === null ? 'No data last month' : `${monthChangePct >= 0 ? '↗' : '↘'} ${Math.abs(monthChangePct)}% vs last month`}
+                </div>
+              </div>
+              <div style={s.statCard}>
                 <div style={s.statLabel}>Unique Donors</div>
                 <div style={s.statValue}>{uniqueDonors.length}</div>
                 <div style={s.statNote}>All time</div>
