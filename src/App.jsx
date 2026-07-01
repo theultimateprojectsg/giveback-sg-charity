@@ -514,13 +514,29 @@ export default function App() {
     failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
   ].filter(Boolean)
   const thankYouThreshold = 200
+  const loyalDonorThreshold = 3
   const donorFirstDonationId = {}
+  const donationBadgeInfo = {}
+  const donorRunningTotals = {}
   ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
+    if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0 }
+    donorRunningTotals[key].count += 1
+    const isBiggestYet = d.amount > donorRunningTotals[key].maxAmount
+    if (d.amount > donorRunningTotals[key].maxAmount) donorRunningTotals[key].maxAmount = d.amount
+    donationBadgeInfo[d.id] = {
+      isFirstTime: donorFirstDonationId[key] === d.id,
+      isBigGift: d.amount >= thankYouThreshold,
+      isLoyal: donorRunningTotals[key].count >= loyalDonorThreshold,
+      isBiggestYet: isBiggestYet && donorRunningTotals[key].count > 1,
+    }
   })
   const noteworthyDonations = donations
-    .filter(d => d.amount >= thankYouThreshold || donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id)
+    .filter(d => {
+      const b = donationBadgeInfo[d.id]
+      return b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet
+    })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5)
   const donorMap = {}
@@ -1117,11 +1133,11 @@ export default function App() {
                 <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
               </div>
               {loading ? <div style={s.empty}>Loading...</div> : noteworthyDonations.length === 0 ? (
-                <div style={s.empty}>No first-time or ${thankYouThreshold}+ donations recently.</div>
+                <div style={s.empty}>No first-time, ${thankYouThreshold}+, loyal, or milestone donations recently.</div>
               ) : (
                 <div>
                   {noteworthyDonations.map(d => {
-                    const isFirstTime = donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id
+                    const b = donationBadgeInfo[d.id]
                     return (
                       <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
                         <div style={s.donationCardTop}>
@@ -1135,8 +1151,10 @@ export default function App() {
                           <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
                         </div>
                         <div style={s.donationCardBadges}>
-                          {isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
-                          {d.amount >= thankYouThreshold && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
+                          {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
+                          {b.isBigGift && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
+                          {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.teal, background: '#E8F0EE' }}>🔁 Loyal donor</span>}
+                          {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: '#993C1D', background: '#FAECE7' }}>📈 Biggest gift yet</span>}
                           {!d.donor_email?.trim() && <span style={s.badgePending}>No email on file</span>}
                         </div>
                       </div>
