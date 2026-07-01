@@ -964,15 +964,27 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div style={s.content}>
             {actionItems.length > 0 && (
-              <div style={{ ...s.deadlineBanner, background: C.gold, marginBottom: 14 }}>
+              <div style={{ ...s.deadlineBanner, background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ fontSize: 24 }}>⚡</div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>Needs your attention</div>
-                    <div style={{ fontSize: 12, color: C.teal, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.warning }}>{actionItems.length} thing{actionItems.length > 1 ? 's' : ''} need{actionItems.length > 1 ? '' : 's'} your attention</div>
+                    <div style={{ fontSize: 12, color: C.warning, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
                   </div>
                 </div>
-                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab(actionItems[0].tab)}>Review Now</button>
+                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab(actionItems[0].tab)}>Review now</button>
+              </div>
+            )}
+
+            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + donations.filter(d => !d.donor_nric).length > 0 && (
+              <div style={{ background: '#FBE9E7', border: `1.5px solid ${C.red}`, borderRadius: 12, padding: '12px 18px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 18 }}>🏛️</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>
+                    IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''} — {pendingCount} receipt{pendingCount !== 1 ? 's' : ''} and {donations.filter(d => !d.donor_nric).length} NRIC{donations.filter(d => !d.donor_nric).length !== 1 ? 's' : ''} still outstanding
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, color: C.red, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }} onClick={() => setActiveTab('iras')}>31 Jan {currentYear + 1} →</span>
               </div>
             )}
             
@@ -1020,15 +1032,15 @@ export default function App() {
                 <div style={s.statValue}>{uniqueDonors.length}</div>
                 <div style={s.statNote}>All time</div>
               </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Avg. Donation</div>
-                <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                <div style={s.statNote}>Per transaction</div>
-              </div>
               <div style={{ ...s.statCard, background: pendingCount > 0 ? C.warningBg : s.statCard.background, borderColor: pendingCount > 0 ? C.warningBorder : C.border }}>
                 <div style={{ ...s.statLabel, color: pendingCount > 0 ? C.warning : C.muted }}>Receipts Pending</div>
                 <div style={{ ...s.statValue, color: pendingCount > 0 ? C.warning : C.forest }}>{pendingCount}</div>
                 <div style={{ ...s.statNote, color: pendingCount > 0 ? C.warning : C.muted }}>{pendingCount > 0 ? 'Action needed' : 'All caught up ✓'}</div>
+              </div>
+              <div style={{ ...s.statCard, background: donations.filter(d => !d.donor_nric).length > 0 ? C.warningBg : s.statCard.background, borderColor: donations.filter(d => !d.donor_nric).length > 0 ? C.warningBorder : C.border }}>
+                <div style={{ ...s.statLabel, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.muted }}>Missing NRIC</div>
+                <div style={{ ...s.statValue, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.forest }}>{donations.filter(d => !d.donor_nric).length}</div>
+                <div style={{ ...s.statNote, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.muted }}>{donations.filter(d => !d.donor_nric).length > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
               </div>
             </div>
 
@@ -1040,7 +1052,7 @@ export default function App() {
                     <span style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${thisMonthTotal.toLocaleString()}</span>
                     {monthChangePct !== null && (
                       <span style={{ fontSize: 13, fontWeight: 700, color: monthChangePct >= 0 ? C.sage : C.red }}>
-                        {monthChangePct >= 0 ? '↑' : '↓'} {Math.abs(monthChangePct)}% vs last month
+                        {monthChangePct >= 0 ? '↗' : '↘'} {Math.abs(monthChangePct)}% vs last month
                       </span>
                     )}
                   </div>
@@ -1073,20 +1085,60 @@ export default function App() {
               </div>
             )}
 
-            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + donations.filter(d => !d.donor_nric).length > 0 && (
-              <div style={{ marginBottom: 24, background: C.white, borderRadius: 16, padding: '16px 20px', border: `1.5px solid ${daysToDeadline <= 14 ? C.red : C.border}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ fontSize: 20 }}>🏛️</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: daysToDeadline <= 14 ? C.red : C.forest }}>IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''}</div>
-                  </div>
-                  <button style={s.viewBtn} onClick={() => setActiveTab('iras')}>View →</button>
+            {myCauses.filter(c => c.status === 'approved' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>Active campaigns</div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
                 </div>
-                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 6, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.max(0, 100 - (daysToDeadline / 60) * 100)}%`, height: '100%', background: daysToDeadline <= 14 ? C.red : C.gold, borderRadius: 6 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
+                  {[
+                    { title: 'Winter Meal Drive', endDate: '2026-07-11', raised: 7850, goal: 10000, donors: 34 },
+                    { title: 'Wheelchair Fund', endDate: '2026-08-12', raised: 2100, goal: 15000, donors: 6 },
+                  ].map((c, i) => {
+                    const pct = Math.min(100, Math.round((c.raised / c.goal) * 100))
+                    const daysLeft = Math.max(0, Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24)))
+                    const behindPace = pct < 40
+                    return (
+                      <div key={i} style={s.card}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</div>
+                          </div>
+                          <span style={s.badgeIssued}>✓ Approved</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+                          <span style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${c.raised.toLocaleString()}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>of ${c.goal.toLocaleString()} goal</span>
+                        </div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 6 }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                          <span style={{ fontSize: 12, color: behindPace ? C.warning : C.muted }}>{pct}% funded{behindPace ? ' · behind pace' : ''}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{c.donors} donors</span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
+
+            {myCauses.filter(c => c.status === 'pending').length > 0 && (
+              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 18 }}>⏳</div>
+                  <div style={{ fontSize: 13, color: C.warning }}>
+                    <strong>{myCauses.filter(c => c.status === 'pending').length} campaign{myCauses.filter(c => c.status === 'pending').length > 1 ? 's' : ''} pending review</strong>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: C.warning, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>View →</div>
+              </div>
+            )}
+
+            
 
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
