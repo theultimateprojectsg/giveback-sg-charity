@@ -519,6 +519,27 @@ export default function App() {
     .filter(d => d.amount >= thankYouThreshold || donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5)
+  const now = new Date()
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const confirmedDonations = donations.filter(d => d.payment_status === 'confirmed')
+  const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
+  const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
+  const monthChangePct = lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : null
+  const sixMonthTrend = Array.from({ length: 6 }, (_, i) => {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1)
+    return confirmedDonations.filter(d => new Date(d.created_at) >= monthStart && new Date(d.created_at) < monthEnd).reduce((s, d) => s + d.amount, 0)
+  })
+  const trendMax = Math.max(...sixMonthTrend, 1)
+  const repeatDonorsThisMonth = Object.values(donorMap).filter(d => {
+    const donationsThisMonth = donations.filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === (d.email?.trim() || d.name) && new Date(don.created_at) >= thisMonthStart)
+    return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
+  }).length
+  const longestSupporter = donorList.length > 0
+    ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now - new Date([...donations].filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === (d.email?.trim() || d.name)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at)) / (1000 * 60 * 60 * 24 * 30))) }))
+        .sort((a, b) => b.monthsSupporting - a.monthsSupporting)[0]
+    : null
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
   const avgDonation  = donations.length ? (totalAllTime / donations.length) : 0
@@ -1011,6 +1032,47 @@ export default function App() {
                 <div style={{ ...s.statNote, color: pendingCount > 0 ? C.warning : C.muted }}>{pendingCount > 0 ? 'Action needed' : 'All caught up ✓'}</div>
               </div>
             </div>
+
+            {donations.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr', gap: 12, marginBottom: 24 }}>
+                <div style={s.card}>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>This month so far</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${thisMonthTotal.toLocaleString()}</span>
+                    {monthChangePct !== null && (
+                      <span style={{ fontSize: 13, fontWeight: 700, color: monthChangePct >= 0 ? C.sage : C.red }}>
+                        {monthChangePct >= 0 ? '↑' : '↓'} {Math.abs(monthChangePct)}% vs last month
+                      </span>
+                    )}
+                  </div>
+                  <svg viewBox="0 0 260 50" style={{ width: '100%', height: 50, overflow: 'visible' }}>
+                    <polyline
+                      points={sixMonthTrend.map((v, i) => `${i * 52},${44 - (v / trendMax) * 38}`).join(' ')}
+                      fill="none" stroke={C.sage} strokeWidth="2"
+                    />
+                    {sixMonthTrend.map((v, i) => (
+                      <circle key={i} cx={i * 52} cy={44 - (v / trendMax) * 38} r={i === 5 ? 4 : 2.5} fill={C.sage} />
+                    ))}
+                  </svg>
+                </div>
+                <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 2 }}>Worth knowing</div>
+                  {repeatDonorsThisMonth > 0 && (
+                    <div style={{ fontSize: 13, color: C.text, display: 'flex', gap: 8 }}>
+                      <span>🔁</span> {repeatDonorsThisMonth} donor{repeatDonorsThisMonth > 1 ? 's' : ''} gave again this month
+                    </div>
+                  )}
+                  {longestSupporter && longestSupporter.monthsSupporting >= 2 && (
+                    <div style={{ fontSize: 13, color: C.text, display: 'flex', gap: 8 }}>
+                      <span>❤️</span> {longestSupporter.name} has supported you for {longestSupporter.monthsSupporting} months
+                    </div>
+                  )}
+                  {repeatDonorsThisMonth === 0 && (!longestSupporter || longestSupporter.monthsSupporting < 2) && (
+                    <div style={{ fontSize: 13, color: C.muted }}>Nothing new to flag — check back after your next donation.</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + donations.filter(d => !d.donor_nric).length > 0 && (
               <div style={{ marginBottom: 24, background: C.white, borderRadius: 16, padding: '16px 20px', border: `1.5px solid ${daysToDeadline <= 14 ? C.red : C.border}` }}>
