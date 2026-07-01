@@ -2371,24 +2371,32 @@ export default function App() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 32, right: 32,
-          background: toast.type === 'success' ? C.forest : C.red,
-          color: 'white', padding: '14px 20px', borderRadius: 14,
-          fontSize: 13, fontWeight: 600, zIndex: 999,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-          display: 'flex', alignItems: 'center', gap: 12,
-          maxWidth: 400,
+          background: C.white,
+          borderLeft: `3px solid ${toast.undoable ? C.warning : toast.type === 'success' ? C.sage : C.red}`,
+          borderRadius: 14, padding: '14px 16px', zIndex: 999,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          maxWidth: 420,
         }}>
-          <span>{toast.type === 'success' ? '✓' : '✕'}</span>
-          <span style={{ flex: 1 }}>{toast.msg}</span>
+          <div style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+            background: toast.undoable ? C.warningBg : toast.type === 'success' ? C.successBg : '#FCEBEB',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: toast.undoable ? C.warning : toast.type === 'success' ? C.forest : '#791F1F' }}>
+              {toast.undoable ? '🗑' : toast.type === 'success' ? '✓' : '✕'}
+            </span>
+          </div>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.forest, lineHeight: 1.4, paddingTop: 2 }}>{toast.msg}</span>
           {toast.undoable && (
             <span
               onClick={toast.onUndo}
-              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}
+              style={{ cursor: 'pointer', color: C.sage, border: `0.5px solid ${C.sage}`, padding: '3px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, marginTop: 1 }}
             >Undo</span>
           )}
           <span
             onClick={() => setToast(null)}
-            style={{ cursor: 'pointer', opacity: 0.7, fontSize: 16, lineHeight: 1 }}
+            style={{ cursor: 'pointer', color: C.muted, fontSize: 14, lineHeight: 1, flexShrink: 0, marginTop: 3 }}
           >✕</span>
         </div>
       )}
