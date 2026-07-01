@@ -92,6 +92,7 @@ export default function App() {
   const [resetLoading, setResetLoading] = useState(false)
   const [quickEmailInput, setQuickEmailInput] = useState('')
   const [quickNricInput, setQuickNricInput] = useState('')
+  const [charityIsIpc, setCharityIsIpc] = useState(true)
   const selectedRowRef = useRef(null)
   
 
@@ -111,8 +112,21 @@ export default function App() {
     if (session) {
       loadDonations(session)
       loadMyCauses()
+      loadCharityIpcStatus(session)
     }
   }, [session])
+
+  async function loadCharityIpcStatus(activeSession) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('charity_contacts')
+      .select('ipc')
+      .eq('charity_uen', uen)
+      .single()
+    if (error) { console.error('Could not load charity IPC status:', error); return }
+    setCharityIsIpc(data?.ipc !== false)
+  }
 
   async function loadMyCauses() {
     const uen = charityUenFromSession()
@@ -399,7 +413,7 @@ export default function App() {
   if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
-  if (manualForm.donor_nric && !/^[STFG]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
+  if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
     setSavingManual(true)
     setManualError('')
     const { data, error } = await supabase.from('donations').insert([{
@@ -437,6 +451,7 @@ export default function App() {
 
   async function deleteDonation(id) {
     const donationToDelete = donations.find(d => d.id === id)
+    const originalStatus = donationToDelete?.status || 'confirmed'
     const warningText = donationToDelete?.receipt_issued
       ? 'This entry already has a receipt issued. Delete anyway? The record will be kept for audit purposes but removed from your active lists.'
       : 'Delete this manual entry? The record will be kept for audit purposes but removed from your active lists.'
@@ -463,7 +478,7 @@ export default function App() {
       undoable: true,
       onUndo: async () => {
         cancelled = true
-        const { error: restoreError } = await supabase.from('donations').update({ status: 'confirmed' }).eq('id', id)
+        const { error: restoreError } = await supabase.from('donations').update({ status: originalStatus }).eq('id', id)
         if (restoreError) { showToast('Could not restore entry', 'error'); return }
         const { data: freshData } = await supabase.from('donations').select('*').eq('id', id).single()
         setDonations(prev => [freshData || donationToDelete, ...prev])
@@ -549,7 +564,7 @@ export default function App() {
     const records = yearDonations.filter(d => d.donor_nric && d.payment_status === 'confirmed').map((d, i) => ({
       'No.': i + 1,
       'Donor Name': d.donor_name,
-      'ID Type': d.donor_nric.startsWith('S') || d.donor_nric.startsWith('T') || d.donor_nric.startsWith('F') || d.donor_nric.startsWith('G') ? 'NRIC/FIN' : 'UEN',
+      'ID Type': /^[A-Z]\d{7}[A-Z]$/.test(d.donor_nric) ? 'NRIC/FIN' : 'UEN',
       'ID Number (NRIC/FIN/UEN)': d.donor_nric,
       'Donation Date': new Date(d.created_at).toLocaleDateString('en-SG'),
       'Donation Amount (SGD)': d.amount,
@@ -641,19 +656,31 @@ export default function App() {
     doc.line(14, donation.donor_nric ? 108 : 98, 196, donation.donor_nric ? 108 : 98)
     doc.setFont('helvetica', 'bold')
     const y2 = donation.donor_nric ? 120 : 110
-    doc.text(`Tax Deductible (250%): SGD $${(donation.amount * 2.5).toFixed(2)}`, 14, y2)
-    doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
+    if (charityIsIpc) {
+      doc.text(`Tax Deductible (250%): SGD $${(donation.amount * 2.5).toFixed(2)}`, 14, y2)
+      doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
+    } else {
+      doc.setFontSize(11)
+      doc.text('This charity is registered but not an IPC.', 14, y2)
+      doc.setFontSize(9)
+    }
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    let noteY = y2 + 22
-    if (!donation.donor_nric) {
+    let noteY = charityIsIpc ? y2 + 22 : y2 + 14
+    if (charityIsIpc && !donation.donor_nric) {
       doc.setTextColor(160, 113, 16)
       doc.text('⚠ NRIC/FIN not on file. Donor must provide this so it can be submitted for tax deduction.', 14, noteY)
       doc.setTextColor(0, 0, 0)
       noteY += 7
     }
-    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', 14, noteY)
-    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY + 10)
+    if (charityIsIpc) {
+      doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', 14, noteY)
+      noteY += 10
+    } else {
+      doc.text('This donation is not eligible for a tax deduction under Singapore tax law.', 14, noteY)
+      noteY += 10
+    }
+    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY)
     doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}.pdf`)
   }
 
@@ -1447,7 +1474,7 @@ export default function App() {
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
                               const val = quickNricInput.trim().toUpperCase()
                               if (!val) return
-                              if (!/^[STFG]\d{7}[A-Z]$/.test(val)) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
+                              if (!/^[A-Z]\d{7}[A-Z]$/.test(val)) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
                               supabase.from('donations').update({ donor_nric: val }).eq('id', selectedDonation.id)
                                 .then(async () => {
                                   await supabase.from('audit_log').insert({
@@ -1551,7 +1578,7 @@ export default function App() {
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
                             // Step 1 — Confirmation dialog
                             const confirmed = window.confirm(
-                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt\n• Send a thank you email`
+                              `Confirm payment received from ${selectedDonation.donor_name} for $${selectedDonation.amount}?\n\nThis will:\n• Mark payment as confirmed\n• Issue a receipt${selectedDonation.donor_email ? '\n• Send a thank you email' : ''}`
                             )
                             if (!confirmed) return
 
@@ -1627,7 +1654,7 @@ export default function App() {
                               if (!updates.donor_name?.trim()) { showToast('Donor name cannot be empty', 'error'); return }
                               if (!updates.amount || updates.amount <= 0) { showToast('Amount must be greater than zero', 'error'); return }
                               if (new Date(updates.created_at) > new Date()) { showToast('Date cannot be in the future', 'error'); return }
-                              if (updates.donor_nric && !/^[STFG]\d{7}[A-Z]$/.test(updates.donor_nric.trim().toUpperCase())) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
+                              if (updates.donor_nric && !/^[A-Z]\d{7}[A-Z]$/.test(updates.donor_nric.trim().toUpperCase())) { showToast('Invalid NRIC format. Should be like S1234567A', 'error'); return }
                               if (updates.donor_nric) updates.donor_nric = updates.donor_nric.trim().toUpperCase()
                               const { error } = await supabase.from('donations').update(updates).eq('id', selectedDonation.id)
                               if (error) { showToast('Error saving', 'error'); return }
