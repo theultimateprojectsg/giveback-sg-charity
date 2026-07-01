@@ -662,7 +662,6 @@ export default function App() {
     } else {
       doc.setFontSize(11)
       doc.text('This charity is registered but not an IPC.', 14, y2)
-      doc.setFontSize(9)
     }
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
@@ -1583,13 +1582,18 @@ export default function App() {
                             if (!confirmed) return
 
                             // Check current status from DB to prevent race condition
-            const { data: freshData } = await supabase
+            const { data: freshData, error: freshError } = await supabase
             .from('donations')
             .select('payment_status, receipt_issued')
             .eq('id', selectedDonation.id)
             .single()
 
-          if (freshData?.payment_status === 'confirmed') {
+          if (freshError || !freshData) {
+            showToast('Could not verify this donation — it may have been deleted. Please refresh and try again.', 'error')
+            return
+          }
+
+          if (freshData.payment_status === 'confirmed') {
             showToast('This donation was already confirmed by someone else', 'error')
             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
