@@ -277,7 +277,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (session && activeTab === 'activity') loadAuditLog()
+    if (session && (activeTab === 'activity' || activeTab === 'dashboard')) loadAuditLog()
     setShowMobileMenu(false)
   }, [session, activeTab])
 
@@ -503,6 +503,22 @@ export default function App() {
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
+  const failedNotifications = auditLog.filter(e => e.action === 'charity_notification_failed').length
+  const actionItems = [
+    unconfirmedCount > 0 && { label: `${unconfirmedCount} payment${unconfirmedCount > 1 ? 's' : ''} to confirm`, tab: 'donations' },
+    pendingCount > 0 && { label: `${pendingCount} receipt${pendingCount > 1 ? 's' : ''} pending`, tab: 'iras' },
+    failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
+  ].filter(Boolean)
+  const thankYouThreshold = 200
+  const donorFirstDonationId = {}
+  ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+    if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
+  })
+  const noteworthyDonations = donations
+    .filter(d => d.amount >= thankYouThreshold || donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5)
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
   const avgDonation  = donations.length ? (totalAllTime / donations.length) : 0
@@ -927,16 +943,16 @@ export default function App() {
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
           <div style={s.content}>
-            {unconfirmedCount > 0 && (
+            {actionItems.length > 0 && (
               <div style={{ ...s.deadlineBanner, background: C.gold, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 24 }}>💳</div>
+                  <div style={{ fontSize: 24 }}>⚡</div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>{unconfirmedCount} donation{unconfirmedCount > 1 ? 's' : ''} awaiting payment confirmation</div>
-                    <div style={{ fontSize: 12, color: C.teal, marginTop: 2 }}>Confirm receipt of payment to issue receipts and notify donors</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>Needs your attention</div>
+                    <div style={{ fontSize: 12, color: C.teal, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
                   </div>
                 </div>
-                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab('donations')}>Review Now</button>
+                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab(actionItems[0].tab)}>Review Now</button>
               </div>
             )}
             
@@ -996,74 +1012,53 @@ export default function App() {
               </div>
             </div>
 
-            {(pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0) && (
-              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.white, borderRadius: 16, padding: '14px 20px', border: `1.5px solid ${C.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 20 }}>🏛️</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>
-                    IRAS action needed: {pendingCount > 0 && `${pendingCount} receipt${pendingCount !== 1 ? 's' : ''} pending`}
-                    {pendingCount > 0 && donations.filter(d => !d.donor_nric).length > 0 && ' · '}
-                    {donations.filter(d => !d.donor_nric).length > 0 && `${donations.filter(d => !d.donor_nric).length} missing NRIC`}
-                    {' · '}{daysToDeadline} days to deadline
+            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + donations.filter(d => !d.donor_nric).length > 0 && (
+              <div style={{ marginBottom: 24, background: C.white, borderRadius: 16, padding: '16px 20px', border: `1.5px solid ${daysToDeadline <= 14 ? C.red : C.border}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ fontSize: 20 }}>🏛️</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: daysToDeadline <= 14 ? C.red : C.forest }}>IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''}</div>
                   </div>
+                  <button style={s.viewBtn} onClick={() => setActiveTab('iras')}>View →</button>
                 </div>
-                <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setActiveTab('iras')}>View →</button>
+                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.max(0, 100 - (daysToDeadline / 60) * 100)}%`, height: '100%', background: daysToDeadline <= 14 ? C.red : C.gold, borderRadius: 6 }} />
+                </div>
               </div>
             )}
 
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
-                <div style={s.tableTitle}>Recent Donations{donations.length > 0 && <span style={{ fontWeight: 400, color: C.muted, fontSize: 12 }}> · showing {Math.min(20, donations.length)} of {donations.length}</span>}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {pendingCount > 0 && <div style={s.pendingBadge}>⚡ {pendingCount} pending</div>}
-                  {donations.length > 20 && <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View All →</div>}
-                </div>
+                <div style={s.tableTitle}>Worth a personal thank you</div>
+                <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : isMobile ? (
-                <div>
-                  {donations.slice(0, 20).map(d => (
-                    <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
-                      <div style={s.donationCardTop}>
-                        <div style={s.donationCardDonor}>
-                          <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
-                          <div>
-                            <div style={s.donationCardName}>{d.donor_name}</div>
-                            <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                          </div>
-                        </div>
-                        <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
-                      </div>
-                      <div style={s.donationCardBadges}>
-                        {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
-                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>✕ Receipt</span>}
-                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
-                        <span style={d.thank_you_sent ? s.badgeIssued : s.badgePending}>{d.thank_you_sent ? '✓' : '✕'} Thank You</span>
-                      </div>  
-                    </div>
-                  ))}
-                </div>
+              {loading ? <div style={s.empty}>Loading...</div> : noteworthyDonations.length === 0 ? (
+                <div style={s.empty}>No first-time or ${thankYouThreshold}+ donations recently.</div>
               ) : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Payment', 'Receipt', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'Ref', 'NRIC', 'Email', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {donations.slice(0, 20).map(d => (
-                      <tr key={d.id} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div style={s.donorName}>{d.donor_name}</div></div></td>
-                        <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
-                        <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                        {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                        <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>
-                        <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                        {!isTablet && <td style={s.td}><span style={{ fontSize: 11, color: C.muted, fontFamily: 'monospace' }}>{d.payment_ref || '—'}</span></td>}
-                        {!isTablet && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
-                        {!isTablet && <td style={s.td}><span style={{ fontSize: 12, color: d.donor_email ? C.forest : C.muted }}>{d.donor_email || '—'}</span></td>}
-                        <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div>
+                  {noteworthyDonations.map(d => {
+                    const isFirstTime = donorFirstDonationId[d.donor_email?.trim() || d.donor_nric || d.donor_name] === d.id
+                    return (
+                      <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
+                        <div style={s.donationCardTop}>
+                          <div style={s.donationCardDonor}>
+                            <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                            <div>
+                              <div style={s.donationCardName}>{d.donor_name}</div>
+                              <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                            </div>
+                          </div>
+                          <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
+                        </div>
+                        <div style={s.donationCardBadges}>
+                          {isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
+                          {d.amount >= thankYouThreshold && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
+                          {!d.donor_email?.trim() && <span style={s.badgePending}>No email on file</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
           </div>
