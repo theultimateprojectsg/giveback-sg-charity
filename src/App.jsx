@@ -1009,12 +1009,15 @@ export default function App() {
 
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
-                <div style={s.tableTitle}>Recent Donations</div>
-                {pendingCount > 0 && <div style={s.pendingBadge}>⚡ {pendingCount} pending</div>}
+                <div style={s.tableTitle}>Recent Donations{donations.length > 0 && <span style={{ fontWeight: 400, color: C.muted, fontSize: 12 }}> · showing {Math.min(20, donations.length)} of {donations.length}</span>}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {pendingCount > 0 && <div style={s.pendingBadge}>⚡ {pendingCount} pending</div>}
+                  {donations.length > 20 && <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View All →</div>}
+                </div>
               </div>
               {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? <div style={s.empty}>No donations yet.</div> : isMobile ? (
                 <div>
-                  {donations.slice(0, 10).map(d => (
+                  {donations.slice(0, 20).map(d => (
                     <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
@@ -1041,7 +1044,7 @@ export default function App() {
                     <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Payment', 'Receipt', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'Ref', 'NRIC', 'Email', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {donations.slice(0, 10).map(d => (
+                    {donations.slice(0, 20).map(d => (
                       <tr key={d.id} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
                         <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div style={s.donorName}>{d.donor_name}</div></div></td>
                         <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
