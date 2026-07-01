@@ -93,6 +93,7 @@ export default function App() {
   const [quickEmailInput, setQuickEmailInput] = useState('')
   const [quickNricInput, setQuickNricInput] = useState('')
   const [charityIsIpc, setCharityIsIpc] = useState(true)
+  const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const selectedRowRef = useRef(null)
   
 
@@ -124,8 +125,9 @@ export default function App() {
       .select('ipc')
       .eq('charity_uen', uen)
       .single()
-    if (error) { console.error('Could not load charity IPC status:', error); return }
+    if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
+    setCharityIpcLoaded(true)
   }
 
   async function loadMyCauses() {
@@ -414,6 +416,7 @@ export default function App() {
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
   if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
+  if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
     setSavingManual(true)
     setManualError('')
     const { data, error } = await supabase.from('donations').insert([{
@@ -510,7 +513,7 @@ export default function App() {
 
   const donorMap = {}
   donations.forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_name
+    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!donorMap[key]) {
       donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
     }
@@ -527,15 +530,18 @@ export default function App() {
   const filteredDonations = donations.filter(d => {
     const matchSearch = d.donor_name?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchYear = filterYear === 'All' || new Date(d.created_at).getFullYear().toString() === filterYear
-    const matchType = filterType === 'All' || (filterType === 'Pending' && !d.receipt_issued) || (filterType === 'Issued' && d.receipt_issued)
+    const matchType = filterType === 'All'
+      || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
+      || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
+      || (filterType === 'Issued' && d.receipt_issued)
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric)
     return matchSearch && matchYear && matchType && matchNric
   })
 
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap = {}
-  donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear)).forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_name
+  donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').forEach(d => {
+    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!irasYearDonorMap[key]) irasYearDonorMap[key] = { name: d.donor_name, total: 0, count: 0, donations: [] }
     irasYearDonorMap[key].total += d.amount
     irasYearDonorMap[key].count += 1
@@ -618,8 +624,8 @@ export default function App() {
 
   function exportPDF() {
     const yearDonationsForExport = filterYear === 'All'
-      ? donations
-      : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
+      ? donations.filter(d => d.payment_status === 'confirmed')
+      : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear && d.payment_status === 'confirmed')
     const doc = new jsPDF()
     doc.setFontSize(18); doc.setFont('helvetica', 'bold')
     doc.text(`Giving Tree — Donation Report ${filterYear}`, 14, 22)
@@ -680,7 +686,7 @@ export default function App() {
       noteY += 10
     }
     doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY)
-    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}.pdf`)
+    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}-${donation.id.slice(0,6)}.pdf`)
   }
 
   function exportYearEndSummary() {
@@ -933,30 +939,8 @@ export default function App() {
                 <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab('donations')}>Review Now</button>
               </div>
             )}
-            {pendingCount > 0 && (
-              <div style={s.deadlineBanner}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 24 }}>⚠️</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Deadline: 31 January {currentYear + 1} — {daysToDeadline} days remaining</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending across all years{filterYear !== 'All' ? ` · ${pendingCountForYear} pending in ${filterYear}` : ''} · Action required before deadline</div>
-                  </div>
-                </div>
-                <button style={s.bannerBtn} onClick={() => { if (filterYear !== 'All' && pendingCountForYear === 0) { showToast(`No receipts pending in ${filterYear} — switch to "All" or another year to issue the ${pendingCount} pending elsewhere`, 'error'); return } issueAllReceipts() }} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
-              </div>
-            )}
-            {donations.filter(d => !d.donor_nric).length > 0 && (
-              <div style={{ ...s.deadlineBanner, background: C.teal, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 24 }}>🪪</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{donations.filter(d => !d.donor_nric).length} donation{donations.filter(d => !d.donor_nric).length > 1 ? 's' : ''} missing NRIC</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed to submit these donations to IRAS for the 250% tax deduction</div>
-                  </div>
-                </div>
-                <button style={s.bannerBtn} onClick={() => setActiveTab('donations')}>Review →</button>
-              </div>
-            )}
+            
+            
             {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
@@ -1012,35 +996,15 @@ export default function App() {
               </div>
             </div>
 
-            <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              <div style={s.card}>
-                <div style={s.cardTitle}>🏛️ IRAS Submission Status</div>
-                <div style={s.statusStep}>
-                  <div style={{ ...s.stepDot, background: C.sage }}>✓</div>
-                  <div><div style={s.stepTitle}>Donations Recorded</div><div style={s.stepSub}>{donations.length} transactions captured</div></div>
-                </div>
-                <div style={s.stepLine} />
-                <div style={s.statusStep}>
-                  <div style={{ ...s.stepDot, background: pendingCount > 0 ? C.warningBg : C.sage, color: pendingCount > 0 ? C.warning : 'white', border: pendingCount > 0 ? `2px solid ${C.warningBorder}` : 'none' }}>{pendingCount > 0 ? '!' : '✓'}</div>
-                  <div><div style={{ ...s.stepTitle, color: pendingCount > 0 ? C.warning : C.forest }}>Receipts {pendingCount > 0 ? 'Pending' : 'Complete'}</div><div style={s.stepSub}>{pendingCount > 0 ? `${pendingCount} donations need receipts` : 'All receipts issued'}</div></div>
-                </div>
-                <div style={s.stepLine} />
-                <div style={s.statusStep}>
-                  <div style={{ ...s.stepDot, background: C.ivoryDark, color: C.muted, border: `2px solid ${C.border}` }}>→</div>
-                  <div><div style={{ ...s.stepTitle, color: C.muted }}>Submit to IRAS</div><div style={s.stepSub}>Due 31 January {currentYear + 1}</div></div>
+            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.white, borderRadius: 16, padding: '14px 20px', border: `1.5px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 20 }}>🏛️</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>
+                  IRAS: {daysToDeadline} days left · {pendingCount} receipt{pendingCount !== 1 ? 's' : ''} pending
+                  {donations.filter(d => !d.donor_nric).length > 0 && ` · ${donations.filter(d => !d.donor_nric).length} missing NRIC`}
                 </div>
               </div>
-
-              <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                  <div style={{ fontSize: 24 }}>🏛️</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>IRAS submission ready for {filterYear}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Export your file, check missing NRICs, or generate a board summary</div>
-                  </div>
-                </div>
-                <button style={{ ...s.btnForest, marginTop: 'auto' }} onClick={() => setActiveTab('iras')}>Go to IRAS Export →</button>
-              </div>
+              <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setActiveTab('iras')}>View →</button>
             </div>
 
             <div style={s.tableCard}>
@@ -1074,7 +1038,7 @@ export default function App() {
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Payment', 'Receipt', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'NRIC', 'Email', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Payment', 'Receipt', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Payment', 'Ref', 'NRIC', 'Email', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {donations.slice(0, 10).map(d => (
@@ -1085,6 +1049,7 @@ export default function App() {
                         {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                         <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>
                         <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                        {!isTablet && <td style={s.td}><span style={{ fontSize: 11, color: C.muted, fontFamily: 'monospace' }}>{d.payment_ref || '—'}</span></td>}
                         {!isTablet && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
                         {!isTablet && <td style={s.td}><span style={{ fontSize: 12, color: d.donor_email ? C.forest : C.muted }}>{d.donor_email || '—'}</span></td>}
                         <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>
@@ -1305,7 +1270,7 @@ export default function App() {
               <input style={s.searchBox} placeholder="🔍 Search by donor name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <div style={isMobile ? { display: 'flex', gap: 10, flexWrap: 'wrap' } : { display: 'flex', gap: 12 }}>
                 <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                  <option>All</option><option>Pending</option><option>Issued</option>
+                  <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
                 </select>
                 <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
                   <option value="All">All NRICs</option>
@@ -1536,7 +1501,7 @@ export default function App() {
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {selectedDonation.receipt_issued && (
-                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
+                          <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
                         )}
                         {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
@@ -1608,7 +1573,7 @@ export default function App() {
                               actor_email: session.user.email,
                               action: 'payment_confirmed',
                               donation_id: selectedDonation.id,
-                              details: { donor_name: selectedDonation.donor_name, amount: selectedDonation.amount },
+                              details: { donor_name: selectedDonation.donor_name, amount: selectedDonation.amount, payment_ref: selectedDonation.payment_ref },
                             })
                             setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
                             setSelectedDonation(prev => ({ ...prev, payment_status: 'confirmed', receipt_issued: true }))
@@ -1885,13 +1850,38 @@ export default function App() {
                 <div style={s.pageTitle}>IRAS Export</div>
                 <div style={s.pageSub}>{filterYear === 'All' ? 'Select a year to see submission deadline' : `Year of Assessment ${parseInt(filterYear) + 1} · Due 31 January ${parseInt(filterYear) + 1}`}</div>
               </div>
-              <div style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: C.forest, color: 'white', border: 'none', cursor: 'pointer' }}>
-                <select style={{ background: 'transparent', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', outline: 'none' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                  {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y} style={{ background: C.forest }}>{y}</option>)}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: 20, background: C.forest, border: 'none' }}>
+                <select style={{ background: 'transparent', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', outline: 'none', appearance: 'none', WebkitAppearance: 'none', paddingRight: 18 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y} style={{ background: C.forest, color: 'white' }}>{y}</option>)}
                 </select>
+                <span style={{ position: 'absolute', right: 14, color: 'white', fontSize: 10, pointerEvents: 'none' }}>▼</span>
               </div>
             </div>
 
+            {pendingCount > 0 && (
+              <div style={s.deadlineBanner}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: 24 }}>⚠️</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>IRAS Deadline: 31 January {currentYear + 1} — {daysToDeadline} days remaining</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>{pendingCount} receipt{pendingCount > 1 ? 's' : ''} still pending across all years{filterYear !== 'All' ? ` · ${pendingCountForYear} pending in ${filterYear}` : ''} · Action required before deadline</div>
+                  </div>
+                </div>
+                <button style={s.bannerBtn} onClick={() => { if (filterYear !== 'All' && pendingCountForYear === 0) { showToast(`No receipts pending in ${filterYear} — switch to "All" or another year to issue the ${pendingCount} pending elsewhere`, 'error'); return } issueAllReceipts() }} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
+              </div>
+            )}
+            {donations.filter(d => !d.donor_nric).length > 0 && (
+              <div style={{ ...s.deadlineBanner, background: C.teal, marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: 24 }}>🪪</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{donations.filter(d => !d.donor_nric).length} donation{donations.filter(d => !d.donor_nric).length > 1 ? 's' : ''} missing NRIC</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Needed to submit these donations to IRAS for the 250% tax deduction</div>
+                  </div>
+                </div>
+                <button style={s.bannerBtn} onClick={() => { setFilterYear('All'); setActiveTab('donations') }}>Review →</button>
+              </div>
+            )}
             <div style={{ ...s.deadlineBanner, marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ fontSize: 24 }}>🏛️</div>
@@ -2117,7 +2107,7 @@ export default function App() {
                                 ? `${entry.details.donation_count} donation${entry.details.donation_count > 1 ? 's' : ''} updated`
                                 : entry.action === 'bulk_receipts_issued'
                                 ? `${entry.details.donation_count} receipt${entry.details.donation_count > 1 ? 's' : ''}${entry.details.year ? ` · ${entry.details.year}` : entry.details.donor_name ? ` · ${entry.details.donor_name}` : ''}`
-                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
+                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.payment_ref ? `Ref: ${entry.details.payment_ref}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
                             </div>
                           )}
                         </div>
