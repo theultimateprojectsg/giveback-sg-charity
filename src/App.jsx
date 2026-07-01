@@ -1045,76 +1045,7 @@ export default function App() {
               </div>
             </div>
 
-            {donations.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <div style={{ ...s.card, position: 'relative' }}>
-                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>This month so far</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
-                    <span style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${thisMonthTotal.toLocaleString()}</span>
-                    {monthChangePct !== null && (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: monthChangePct >= 0 ? C.sage : C.red }}>
-                        {monthChangePct >= 0 ? '↗' : '↘'} {Math.abs(monthChangePct)}% vs last month
-                      </span>
-                    )}
-                  </div>
-                  <svg viewBox="0 0 260 64" style={{ width: '100%', height: 64, overflow: 'visible' }}>
-                    <polyline
-                      points={sixMonthTrend.map((v, i) => `${i * 52},${44 - (v / trendMax) * 38}`).join(' ')}
-                      fill="none" stroke={C.sage} strokeWidth="2"
-                    />
-                    {sixMonthTrend.map((v, i) => {
-                      const cx = i * 52
-                      const cy = 44 - (v / trendMax) * 38
-                      const monthLabel = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1).toLocaleDateString('en-SG', { month: 'short' })
-                      return (
-                        <g key={i}>
-                          <circle
-                            cx={cx}
-                            cy={cy}
-                            r={hoveredMonth === i ? 5 : (i === 5 ? 4 : 2.5)}
-                            fill={C.sage}
-                            style={{ cursor: 'pointer' }}
-                            onMouseEnter={() => setHoveredMonth(i)}
-                            onMouseLeave={() => setHoveredMonth(null)}
-                          />
-                          <text
-                            x={cx}
-                            y={58}
-                            textAnchor="middle"
-                            fontSize="10"
-                            fill={hoveredMonth === i ? C.forest : C.muted}
-                            fontWeight={hoveredMonth === i ? 700 : 400}
-                          >
-                            {monthLabel}
-                          </text>
-                        </g>
-                      )
-                    })}
-                  </svg>
-                  {hoveredMonth !== null && (
-                    <div style={{ position: 'absolute', top: 8, right: 12, background: C.forest, color: 'white', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8 }}>
-                      {new Date(now.getFullYear(), now.getMonth() - (5 - hoveredMonth), 1).toLocaleDateString('en-SG', { month: 'short' })}: ${sixMonthTrend[hoveredMonth].toLocaleString()}
-                    </div>
-                  )}
-                </div>
-                <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 2 }}>Worth knowing</div>
-                  {repeatDonorsThisMonth > 0 && (
-                    <div style={{ fontSize: 13, color: C.text, display: 'flex', gap: 8 }}>
-                      <span>🔁</span> {repeatDonorsThisMonth} donor{repeatDonorsThisMonth > 1 ? 's' : ''} gave again this month
-                    </div>
-                  )}
-                  {longestSupporter && longestSupporter.monthsSupporting >= 2 && (
-                    <div style={{ fontSize: 13, color: C.text, display: 'flex', gap: 8 }}>
-                      <span>❤️</span> {longestSupporter.name} has supported you for {longestSupporter.monthsSupporting} months
-                    </div>
-                  )}
-                  {repeatDonorsThisMonth === 0 && (!longestSupporter || longestSupporter.monthsSupporting < 2) && (
-                    <div style={{ fontSize: 13, color: C.muted }}>Nothing new to flag — check back after your next donation.</div>
-                  )}
-                </div>
-              </div>
-            )}
+            
 
             {myCauses.filter(c => c.status === 'approved' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={{ marginBottom: 24 }}>
