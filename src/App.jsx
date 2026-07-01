@@ -95,6 +95,7 @@ export default function App() {
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const selectedRowRef = useRef(null)
+  const [hoveredMonth, setHoveredMonth] = useState(null)
   
 
   useEffect(() => {
@@ -1046,7 +1047,7 @@ export default function App() {
 
             {donations.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <div style={s.card}>
+                <div style={{ ...s.card, position: 'relative' }}>
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>This month so far</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12 }}>
                     <span style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${thisMonthTotal.toLocaleString()}</span>
@@ -1062,9 +1063,29 @@ export default function App() {
                       fill="none" stroke={C.sage} strokeWidth="2"
                     />
                     {sixMonthTrend.map((v, i) => (
-                      <circle key={i} cx={i * 52} cy={44 - (v / trendMax) * 38} r={i === 5 ? 4 : 2.5} fill={C.sage} />
+                      <circle
+                        key={i}
+                        cx={i * 52}
+                        cy={44 - (v / trendMax) * 38}
+                        r={hoveredMonth === i ? 5 : (i === 5 ? 4 : 2.5)}
+                        fill={C.sage}
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={() => setHoveredMonth(i)}
+                        onMouseLeave={() => setHoveredMonth(null)}
+                      />
                     ))}
                   </svg>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                    {Array.from({ length: 6 }, (_, i) => {
+                      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+                      return <span key={i} style={{ fontSize: 10, color: hoveredMonth === i ? C.forest : C.muted, fontWeight: hoveredMonth === i ? 700 : 400 }}>{d.toLocaleDateString('en-SG', { month: 'short' })}</span>
+                    })}
+                  </div>
+                  {hoveredMonth !== null && (
+                    <div style={{ position: 'absolute', top: 8, right: 12, background: C.forest, color: 'white', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 8 }}>
+                      {new Date(now.getFullYear(), now.getMonth() - (5 - hoveredMonth), 1).toLocaleDateString('en-SG', { month: 'short' })}: ${sixMonthTrend[hoveredMonth].toLocaleString()}
+                    </div>
+                  )}
                 </div>
                 <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10 }}>
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 2 }}>Worth knowing</div>
