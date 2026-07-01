@@ -428,7 +428,7 @@ export default function App() {
       amount: parseFloat(manualForm.amount),
       status: 'confirmed',
       payment_status: 'confirmed',
-      receipt_issued: false,
+      receipt_issued: true,
       source: 'manual',
       payment_method: manualForm.payment_method,
       notes: manualForm.notes,
@@ -504,10 +504,13 @@ export default function App() {
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
+  const missingNricThisYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear)))
+    .filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
   const failedNotifications = auditLog.filter(e => e.action === 'charity_notification_failed').length
   const actionItems = [
     unconfirmedCount > 0 && { label: `${unconfirmedCount} payment${unconfirmedCount > 1 ? 's' : ''} to confirm`, tab: 'donations' },
     pendingCount > 0 && { label: `${pendingCount} receipt${pendingCount > 1 ? 's' : ''} pending`, tab: 'iras' },
+    missingNricThisYear > 0 && { label: `${missingNricThisYear} NRIC${missingNricThisYear > 1 ? 's' : ''} missing`, tab: 'donations' },
     failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
   ].filter(Boolean)
   const thankYouThreshold = 200
@@ -558,6 +561,10 @@ export default function App() {
     : null
   const issuedCount  = donations.filter(d => d.receipt_issued).length
   const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
+  const uniqueDonorsThisYear = [...new Set(
+    (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear)))
+      .map(d => d.donor_name)
+  )]
   const avgDonation  = donations.length ? (totalAllTime / donations.length) : 0
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
@@ -1037,18 +1044,13 @@ export default function App() {
               </div>
               <div style={s.statCard}>
                 <div style={s.statLabel}>Unique Donors</div>
-                <div style={s.statValue}>{uniqueDonors.length}</div>
-                <div style={s.statNote}>All time</div>
+                <div style={s.statValue}>{uniqueDonorsThisYear.length}</div>
+                <div style={s.statNote}>{filterYear}</div>
               </div>
-              <div style={{ ...s.statCard, background: pendingCount > 0 ? C.warningBg : s.statCard.background, borderColor: pendingCount > 0 ? C.warningBorder : C.border }}>
-                <div style={{ ...s.statLabel, color: pendingCount > 0 ? C.warning : C.muted }}>Receipts Pending</div>
-                <div style={{ ...s.statValue, color: pendingCount > 0 ? C.warning : C.forest }}>{pendingCount}</div>
-                <div style={{ ...s.statNote, color: pendingCount > 0 ? C.warning : C.muted }}>{pendingCount > 0 ? 'Action needed' : 'All caught up ✓'}</div>
-              </div>
-              <div style={{ ...s.statCard, background: donations.filter(d => !d.donor_nric).length > 0 ? C.warningBg : s.statCard.background, borderColor: donations.filter(d => !d.donor_nric).length > 0 ? C.warningBorder : C.border }}>
-                <div style={{ ...s.statLabel, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.muted }}>Missing NRIC</div>
-                <div style={{ ...s.statValue, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.forest }}>{donations.filter(d => !d.donor_nric).length}</div>
-                <div style={{ ...s.statNote, color: donations.filter(d => !d.donor_nric).length > 0 ? C.warning : C.muted }}>{donations.filter(d => !d.donor_nric).length > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
+              <div style={{ ...s.statCard, background: missingNricThisYear > 0 ? C.warningBg : s.statCard.background, borderColor: missingNricThisYear > 0 ? C.warningBorder : C.border }}>
+                <div style={{ ...s.statLabel, color: missingNricThisYear > 0 ? C.warning : C.muted }}>Missing NRIC</div>
+                <div style={{ ...s.statValue, color: missingNricThisYear > 0 ? C.warning : C.forest }}>{missingNricThisYear}</div>
+                <div style={{ ...s.statNote, color: missingNricThisYear > 0 ? C.warning : C.muted }}>{missingNricThisYear > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
               </div>
             </div>
 
@@ -1786,8 +1788,8 @@ export default function App() {
               </div>
               <div style={s.statCard}>
                 <div style={s.statLabel}>Unique Donors</div>
-                <div style={s.statValue}>{uniqueDonors.length}</div>
-                <div style={s.statNote}>All time</div>
+                <div style={s.statValue}>{uniqueDonorsThisYear.length}</div>
+                <div style={s.statNote}>{filterYear}</div>
               </div>
               <div style={s.statCard}>
                 <div style={s.statLabel}>Avg. Donation</div>
