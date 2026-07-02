@@ -389,6 +389,26 @@ export default function App() {
     }
   }
 
+  async function sendThankYouEmail(donation) {
+    const { error } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        donor_name: donation.donor_name,
+        donor_email: donation.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: donation.amount,
+        date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        payment_ref: donation.payment_ref,
+        notes: donation.notes,
+      }
+    })
+    if (error) { showToast('Failed to send email', 'error'); return }
+    await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
+    setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
+    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
+    showToast(`Email sent to ${donation.donor_email}`)
+  }
+
   async function issueReceipt(donation, skipLog = false) {
     setIssuing(donation.id)
     const { error } = await supabase
@@ -1884,27 +1904,17 @@ export default function App() {
                           </div>
                         )}
                         {selectedDonation.donor_email?.trim() && (
-                          <button style={{ ...s.btnGold, justifyContent: 'center', opacity: selectedDonation.thank_you_sent ? 0.7 : 1 }} onClick={async () => {
+                          <button style={{ ...s.btnGold, justifyContent: 'center', opacity: selectedDonation.thank_you_sent ? 0.7 : 1 }} onClick={() => {
                             if (selectedDonation.thank_you_sent) {
-                              if (!window.confirm('A thank you email was already sent for this donation. Send again?')) return
+                              setConfirmModal({
+                                title: 'Send this email again?',
+                                description: 'A thank you email was already sent for this donation.',
+                                confirmLabel: 'Send again',
+                                onConfirm: () => sendThankYouEmail(selectedDonation),
+                              })
+                            } else {
+                              sendThankYouEmail(selectedDonation)
                             }
-                            const { error } = await supabase.functions.invoke('send-thank-you', {
-                              body: {
-                                donor_name: selectedDonation.donor_name,
-                                donor_email: selectedDonation.donor_email,
-                                charity_name: charityName,
-                                charity_uen: charityUen,
-                                amount: selectedDonation.amount,
-                                date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-                                payment_ref: selectedDonation.payment_ref,
-                                notes: selectedDonation.notes,
-                              }
-                            })
-                            if (error) { showToast('Failed to send email', 'error'); return }
-                            await supabase.from('donations').update({ thank_you_sent: true }).eq('id', selectedDonation.id)
-                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, thank_you_sent: true } : x))
-                            setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                            showToast(`Email sent to ${selectedDonation.donor_email}`)
                           }}>💌 Send Thank You Email</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
