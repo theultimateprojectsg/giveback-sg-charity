@@ -806,6 +806,8 @@ export default function App() {
     let cmp = 0
     if (donationSortBy === 'amount') cmp = a.amount - b.amount
     if (donationSortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
+    if (donationSortBy === 'donor') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
+    if (donationSortBy === 'cause') cmp = (causeNameForDonation(a) || '').localeCompare(causeNameForDonation(b) || '')
     return donationSortDir === 'asc' ? cmp : -cmp
   })
 
@@ -1931,9 +1933,9 @@ export default function App() {
                           </th>
                           {(isTablet
                             ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt']
-                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You', '']
+                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
                           ).map(h => {
-                            const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : null
+                            const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
                             return (
                               <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none' }} onClick={() => {
                                 if (!sortKey) return
@@ -1951,8 +1953,8 @@ export default function App() {
                           const needsAttention = d.payment_status !== 'confirmed' || !d.donor_nric
                           const rowBg = selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                           return (
-                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent' }}>
-                            <td style={s.td}>
+                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                            <td style={s.td} onClick={e => e.stopPropagation()}>
                               <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
                             </td>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
@@ -1973,9 +1975,6 @@ export default function App() {
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
-                            <td style={s.td}>
-                              <button style={s.viewBtn} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>View</button>
-                            </td>
                           </tr>
                           )
                         })}
@@ -2008,8 +2007,9 @@ export default function App() {
               </div>
 
               {selectedDonation && (
-                <div style={isMobile ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, background: C.ivory, overflowY: 'auto' } : { width: 320, flexShrink: 0 }}>
-                  <div style={isMobile ? { background: C.white, minHeight: '100%' } : { background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, overflow: 'hidden', position: 'sticky', top: 24 }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
+                <div style={isMobile ? { background: C.ivory, width: '100%', height: '100%', overflowY: 'auto' } : { width: 420, maxWidth: '100%' }} onClick={e => e.stopPropagation()}>
+                  <div style={isMobile ? { background: C.white, minHeight: '100%' } : { background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ background: C.teal, padding: '20px 20px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Donation Details</div>
@@ -2018,7 +2018,7 @@ export default function App() {
                       <div style={{ fontSize: 28, fontWeight: 800, color: 'white', marginTop: 10 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                     </div>
-                    <div style={{ padding: 16, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+                    <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
                       {[
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
                         { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
@@ -2276,6 +2276,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                </div>
                 </div>
               )}
             </div>
