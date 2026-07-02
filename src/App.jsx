@@ -55,19 +55,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showMoreFilters, setShowMoreFilters] = useState(false)
-  const [filterAmount, setFilterAmount] = useState('All')
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('All')
-  const [filterThankYou, setFilterThankYou] = useState('All')
-  const [sortBy, setSortBy] = useState('newest')
-  const [showMoreFilters, setShowMoreFilters] = useState(false)
-  const [filterAmount, setFilterAmount] = useState('All')
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('All')
-  const [filterThankYou, setFilterThankYou] = useState('All')
-  const [sortBy, setSortBy] = useState('newest')
   const [filterType, setFilterType] = useState('All')
   const [filterNric, setFilterNric] = useState('All')
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
+  const [filterSource, setFilterSource] = useState('All')
+  const [filterThankYou, setFilterThankYou] = useState('All')
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortDir, setSortDir] = useState('desc')
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
   const [manualError, setManualError] = useState('')
@@ -525,13 +521,23 @@ export default function App() {
     showToast(`NRIC request sent to ${sent} of ${donorList.length} donors${missingNoEmail > 0 ? ` — ${missingNoEmail} more missing NRIC have no email and need direct follow-up` : ''}`)
   }
 
-  function goToDonation(donation) {
-    if (bulkActionInProgress) { showToast('Please wait for the current bulk action to finish', 'error'); return }
-    const hadActiveFilters = filterYear !== 'All' || filterType !== 'All' || filterNric !== 'All' || searchTerm !== ''
-    setFilterYear('All')
+  function clearDonationFilters() {
+    setSearchTerm('')
     setFilterType('All')
     setFilterNric('All')
-    setSearchTerm('')
+    setFilterYear('All')
+    setFilterSource('All')
+    setFilterThankYou('All')
+    setAmountMin('')
+    setAmountMax('')
+    setSortBy('date')
+    setSortDir('desc')
+  }
+
+  function goToDonation(donation) {
+    if (bulkActionInProgress) { showToast('Please wait for the current bulk action to finish', 'error'); return }
+    const hadActiveFilters = activeDonationFilterCount > 0
+    clearDonationFilters()
     setSelectedDonation(donation)
     setQuickEmailInput('')
     setQuickNricInput('')
@@ -756,6 +762,17 @@ export default function App() {
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
 
+  const activeDonationFilterCount = [
+    searchTerm !== '',
+    filterType !== 'All',
+    filterNric !== 'All',
+    filterYear !== 'All',
+    filterSource !== 'All',
+    filterThankYou !== 'All',
+    amountMin !== '',
+    amountMax !== '',
+  ].filter(Boolean).length
+
   const filteredDonations = donations.filter(d => {
     const matchSearch = d.donor_name?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchYear = filterYear === 'All' || new Date(d.created_at).getFullYear().toString() === filterYear
@@ -764,7 +781,17 @@ export default function App() {
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric)
-    return matchSearch && matchYear && matchType && matchNric
+    const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
+    const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
+    const matchMin = amountMin === '' || d.amount >= parseFloat(amountMin)
+    const matchMax = amountMax === '' || d.amount <= parseFloat(amountMax)
+    return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou && matchMin && matchMax
+  }).sort((a, b) => {
+    let cmp = 0
+    if (sortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
+    else if (sortBy === 'amount') cmp = a.amount - b.amount
+    else if (sortBy === 'name') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
+    return sortDir === 'asc' ? cmp : -cmp
   })
 
   // Year-filtered donor map for IRAS tab
@@ -1666,6 +1693,16 @@ export default function App() {
                   <option value="All">All NRICs</option>
                   <option value="Missing NRIC">⚠️ Missing NRIC</option>
                 </select>
+                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+                  <option value="All">All Sources</option>
+                  <option value="App">📱 App</option>
+                  <option value="Manual">✏️ Manual</option>
+                </select>
+                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterThankYou} onChange={e => setFilterThankYou(e.target.value)}>
+                  <option value="All">Thank You: All</option>
+                  <option value="Sent">💌 Sent</option>
+                  <option value="Not Sent">Not Sent</option>
+                </select>
                 <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                   <option>All</option>
                   {donations.length === 0
@@ -1676,6 +1713,23 @@ export default function App() {
               </div>
             </div>
 
+            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+              <input style={{ ...s.formInput, width: isMobile ? '100%' : 110 }} type="number" placeholder="Min $" value={amountMin} onChange={e => setAmountMin(e.target.value)} />
+              <input style={{ ...s.formInput, width: isMobile ? '100%' : 110 }} type="number" placeholder="Max $" value={amountMax} onChange={e => setAmountMax(e.target.value)} />
+              <select style={isMobile ? { ...s.filterSelect, width: '100%' } : s.filterSelect} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                <option value="date">Sort: Date</option>
+                <option value="amount">Sort: Amount</option>
+                <option value="name">Sort: Donor Name</option>
+              </select>
+              <select style={isMobile ? { ...s.filterSelect, width: '100%' } : s.filterSelect} value={sortDir} onChange={e => setSortDir(e.target.value)}>
+                <option value="desc">↓ Descending</option>
+                <option value="asc">↑ Ascending</option>
+              </select>
+              {activeDonationFilterCount > 0 && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: 24 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={s.tableCard}>
@@ -1683,7 +1737,16 @@ export default function App() {
                     <div style={s.tableTitle}>All Donations</div>
                     <div style={s.tableCount}>{filteredDonations.length} records</div>
                   </div>
-                  {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? <div style={s.empty}>No donations found.</div> : isMobile ? (
+                  {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? (
+                    <div style={s.empty}>
+                      No donations found{activeDonationFilterCount > 0 ? ' matching your filters.' : '.'}
+                      {activeDonationFilterCount > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <button style={s.viewBtn} onClick={clearDonationFilters}>✕ Clear Filters</button>
+                        </div>
+                      )}
+                    </div>
+                  ) : isMobile ? (
                     <div>
                       {filteredDonations.map(d => (
                         <div key={d.id} style={s.donationCard} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
@@ -1714,7 +1777,18 @@ export default function App() {
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => {
+                          const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'name' : null
+                          return (
+                            <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none' }} onClick={() => {
+                              if (!sortKey) return
+                              if (sortBy === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+                              else { setSortBy(sortKey); setSortDir('desc') }
+                            }}>
+                              {h}{sortKey && sortBy === sortKey ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                            </th>
+                          )
+                        })}</tr>
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
@@ -1723,10 +1797,10 @@ export default function App() {
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
+                            <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
+                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
                           </tr>
                         ))}
