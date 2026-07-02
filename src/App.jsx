@@ -2188,12 +2188,14 @@ export default function App() {
                             )}
                           </div>
                         )}
-                        {causeNameForDonation(selectedDonation) && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                            <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
+                          {causeNameForDonation(selectedDonation) ? (
                             <span style={{ fontSize: 12, fontWeight: 700, color: C.warning, background: C.warningBg, padding: '3px 10px', borderRadius: 20 }}>{causeNameForDonation(selectedDonation)}</span>
-                          </div>
-                        )}
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>General Donation</span>
+                          )}
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
                           <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
                           {editingManual && selectedDonation.source === 'manual' ? (
