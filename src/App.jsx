@@ -644,6 +644,11 @@ export default function App() {
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
   const missingNricThisYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear)))
     .filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
+  const dashboardCurrentYear = new Date().getFullYear()
+  const dashboardDonationsThisYear = donations.filter(d => new Date(d.created_at).getFullYear() === dashboardCurrentYear)
+  const dashboardConfirmedTotal = dashboardDonationsThisYear.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+  const dashboardUniqueDonors = [...new Set(dashboardDonationsThisYear.map(d => d.donor_name))].length
+  const dashboardMissingNric = dashboardDonationsThisYear.filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
   const failedNotifications = auditLog.filter(e => e.action === 'charity_notification_failed').length
   const actionItems = [
     unconfirmedCount > 0 && { label: `${unconfirmedCount} payment${unconfirmedCount > 1 ? 's' : ''} to confirm`, tab: 'donations' },
@@ -1242,21 +1247,15 @@ export default function App() {
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>{greeting}, {charityName} 👋</div>
-                <div style={s.pageSub}>Here's your donation overview for {filterYear}</div>
+                <div style={s.pageSub}>Here's what's happening right now</div>
               </div>
-              <select style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                {donations.length === 0
-  ? <option>{new Date().getFullYear()}</option>
-  : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
-}
-              </select>
             </div>
 
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
-                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Confirmed, {filterYear}</div>
-                <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
-                <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{donations.length} donations</div>
+                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Confirmed, {dashboardCurrentYear}</div>
+                <div style={{ ...s.statValue, color: 'white' }}>${dashboardConfirmedTotal.toLocaleString()}</div>
+                <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{dashboardDonationsThisYear.length} donations</div>
               </div>
               <div style={s.statCard}>
                 <div style={s.statLabel}>This Month</div>
@@ -1267,13 +1266,13 @@ export default function App() {
               </div>
               <div style={s.statCard}>
                 <div style={s.statLabel}>Unique Donors</div>
-                <div style={s.statValue}>{uniqueDonorsThisYear.length}</div>
-                <div style={s.statNote}>{filterYear}</div>
+                <div style={s.statValue}>{dashboardUniqueDonors}</div>
+                <div style={s.statNote}>{dashboardCurrentYear}</div>
               </div>
-              <div style={{ ...s.statCard, background: missingNricThisYear > 0 ? C.warningBg : s.statCard.background, borderColor: missingNricThisYear > 0 ? C.warningBorder : C.border }}>
-                <div style={{ ...s.statLabel, color: missingNricThisYear > 0 ? C.warning : C.muted }}>Missing NRIC</div>
-                <div style={{ ...s.statValue, color: missingNricThisYear > 0 ? C.warning : C.forest }}>{missingNricThisYear}</div>
-                <div style={{ ...s.statNote, color: missingNricThisYear > 0 ? C.warning : C.muted }}>{missingNricThisYear > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
+              <div style={{ ...s.statCard, background: dashboardMissingNric > 0 ? C.warningBg : s.statCard.background, borderColor: dashboardMissingNric > 0 ? C.warningBorder : C.border }}>
+                <div style={{ ...s.statLabel, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>Missing NRIC</div>
+                <div style={{ ...s.statValue, color: dashboardMissingNric > 0 ? C.warning : C.forest }}>{dashboardMissingNric}</div>
+                <div style={{ ...s.statNote, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>{dashboardMissingNric > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
               </div>
             </div>
 
