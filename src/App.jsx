@@ -97,6 +97,7 @@ export default function App() {
   const selectedRowRef = useRef(null)
   const [hoveredMonth, setHoveredMonth] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
   
 
   useEffect(() => {
@@ -116,6 +117,7 @@ export default function App() {
       loadDonations(session)
       loadMyCauses()
       loadCharityIpcStatus(session)
+      loadDonorBadgeAcks(session)
     }
   }, [session])
 
@@ -130,6 +132,17 @@ export default function App() {
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
     setCharityIpcLoaded(true)
+  }
+
+  async function loadDonorBadgeAcks(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('donor_badge_acks')
+      .select('*')
+      .eq('charity_uen', uen)
+    if (error) { console.error('Could not load donor badge acks:', error); return }
+    setDonorBadgeAcks(data || [])
   }
 
   async function loadMyCauses() {
