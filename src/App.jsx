@@ -389,6 +389,7 @@ export default function App() {
         date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
         payment_ref: donation.payment_ref,
         notes: donation.notes,
+        cause_title: causeNameForDonation(donation),
       }
     })
     if (!emailError) {
@@ -412,6 +413,7 @@ export default function App() {
         date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
         payment_ref: donation.payment_ref,
         notes: donation.notes,
+        cause_title: causeNameForDonation(donation),
       }
     })
     if (error) { showToast('Failed to send email', 'error'); return }
@@ -2263,6 +2265,7 @@ export default function App() {
                                 date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
                                 payment_ref: donationSnapshot.payment_ref,
                                 notes: donationSnapshot.notes,
+                                cause_title: causeNameForDonation(donationSnapshot),
                               }
                             })
                             if (!emailError) {
