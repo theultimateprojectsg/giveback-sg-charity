@@ -63,6 +63,8 @@ export default function App() {
   const [selectedDonationIds, setSelectedDonationIds] = useState([])
   const [donationsPage, setDonationsPage] = useState(0)
   const [donationsPerPage, setDonationsPerPage] = useState(25)
+  const [donationSortBy, setDonationSortBy] = useState(null)
+  const [donationSortDir, setDonationSortDir] = useState('desc')
   
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
@@ -531,6 +533,8 @@ export default function App() {
     setFilterSource('All')
     setFilterThankYou('All')
     setSelectedDonationIds([])
+    setDonationSortBy(null)
+    setDonationSortDir('desc')
   }
 
   function goToDonation(donation) {
@@ -797,6 +801,12 @@ export default function App() {
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
+  }).sort((a, b) => {
+    if (!donationSortBy) return new Date(b.created_at) - new Date(a.created_at)
+    let cmp = 0
+    if (donationSortBy === 'amount') cmp = a.amount - b.amount
+    if (donationSortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
+    return donationSortDir === 'asc' ? cmp : -cmp
   })
 
   const donationsTotalPages = Math.max(1, Math.ceil(filteredDonations.length / donationsPerPage))
@@ -1805,6 +1815,26 @@ export default function App() {
               </div>
             )}
 
+            {(unconfirmedCount > 0 || pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0) && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {unconfirmedCount > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterType('Awaiting Payment') }}>
+                    ⚠️ {unconfirmedCount} awaiting confirmation
+                  </button>
+                )}
+                {pendingCount > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterType('Receipt Pending') }}>
+                    🧾 {pendingCount} receipt{pendingCount > 1 ? 's' : ''} pending
+                  </button>
+                )}
+                {donations.filter(d => !d.donor_nric).length > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterNric('Missing NRIC') }}>
+                    🪪 {donations.filter(d => !d.donor_nric).length} missing NRIC
+                  </button>
+                )}
+              </div>
+            )}
+
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search by name, email, NRIC, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
@@ -1901,14 +1931,28 @@ export default function App() {
                           </th>
                           {(isTablet
                             ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt']
-                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
-                          ).map(h => <th key={h} style={s.th}>{h}</th>)}
+                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You', '']
+                          ).map(h => {
+                            const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : null
+                            return (
+                              <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none' }} onClick={() => {
+                                if (!sortKey) return
+                                if (donationSortBy === sortKey) setDonationSortDir(d => d === 'asc' ? 'desc' : 'asc')
+                                else { setDonationSortBy(sortKey); setDonationSortDir('desc') }
+                              }}>
+                                {h}{sortKey && donationSortBy === sortKey ? (donationSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                              </th>
+                            )
+                          })}
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedDonations.map(d => (
-                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
-                            <td style={s.td} onClick={e => e.stopPropagation()}>
+                        {paginatedDonations.map(d => {
+                          const needsAttention = d.payment_status !== 'confirmed' || !d.donor_nric
+                          const rowBg = selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
+                          return (
+                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent' }}>
+                            <td style={s.td}>
                               <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
                             </td>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
@@ -1929,8 +1973,12 @@ export default function App() {
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                            <td style={s.td}>
+                              <button style={s.viewBtn} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>View</button>
+                            </td>
                           </tr>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                   )}
