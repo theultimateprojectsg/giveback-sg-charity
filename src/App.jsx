@@ -2020,69 +2020,70 @@ export default function App() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
                 <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
                   <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.ivory, borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 28 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexShrink: 0 }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>💳 Donation Details</div>
-                        <div style={{ fontSize: 34, fontWeight: 800, color: C.forest, lineHeight: 1 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 6 }}>{selectedDonation.donor_name}</div>
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 52, height: 52, borderRadius: 12, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'white', flexShrink: 0 }}>{selectedDonation.donor_name?.charAt(0)}</div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Donation Details</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{selectedDonation.donor_name}</div>
+                        </div>
                       </div>
-                      <button style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
+                      <button style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
+                    </div>
+
+                    <div style={{ background: C.forest, borderRadius: 14, padding: '20px 22px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                      <div>
+                        <div style={{ fontSize: 34, fontWeight: 800, color: 'white', lineHeight: 1 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>
+                          {new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {selectedDonation.source === 'manual' ? `${selectedDonation.payment_method || 'Manual'} entry` : 'PayNow via Giving Tree App'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.payment_status === 'confirmed' ? C.sage : C.gold, background: 'rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 20 }}>
+                          {selectedDonation.payment_status === 'confirmed' ? '✓ Paid' : '⚠ Unverified'}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.receipt_issued ? C.sage : C.gold, background: 'rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 20 }}>
+                          {selectedDonation.receipt_issued ? '✓ Receipt issued' : 'Receipt pending'}
+                        </span>
+                      </div>
                     </div>
                     <div style={{ overflowY: 'auto', flex: 1, display: isMobile ? 'block' : 'grid', gridTemplateColumns: isMobile ? 'none' : '1fr 1fr', gap: isMobile ? 0 : 20 }}>
                       <div>
-                      <div style={{ marginBottom: 4 }}>
-                      {[
-                        { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
-                        { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
-                        { label: 'Source', key: null, value: selectedDonation.source === 'manual' ? `Manual (${selectedDonation.payment_method})` : 'Giving Tree App', editable: false },
-                        ...(causeNameForDonation(selectedDonation) ? [{ label: 'Cause', key: null, value: `🎯 ${causeNameForDonation(selectedDonation)}`, editable: false }] : []),
-                        { label: 'Amount (SGD)', key: 'amount', value: `$${Number(selectedDonation.amount).toLocaleString()}`, editable: true, type: 'number' },
-                        { label: 'Date', key: 'created_at', value: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), editable: true, type: 'date' },
-                        ...(selectedDonation.source === 'manual' ? [{ label: 'Payment Method', key: 'payment_method', value: selectedDonation.payment_method || '—', editable: true, type: 'select' }] : []),
-                        ...(selectedDonation.source === 'manual'
-                          ? [{ label: 'Receipt No.', key: 'receipt_number', value: selectedDonation.receipt_number || '—', editable: true }]
-                          : [{ label: 'Receipt No.', key: null, value: selectedDonation.payment_ref || '—', editable: false }]),
-                        { label: 'Receipt', key: null, value: selectedDonation.receipt_issued ? '✓ Issued' : 'Pending', editable: false },
-                        { label: '250% Deductible', key: null, value: `$${(selectedDonation.amount * 2.5).toLocaleString()}`, editable: false },
-                        { label: 'Est. Tax Savings', key: null, value: `$${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, editable: false },
-                      ].map((item, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: C.white, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 8 }}>
-                          <span style={{ fontSize: 11, color: C.muted, flexShrink: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</span>
-                          {editingManual && item.editable && selectedDonation.source === 'manual' ? (
-                            item.key === 'created_at' ? (
-                              <input type="date" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
-                                value={editForm.created_at || selectedDonation.created_at?.split('T')[0]}
-                                onChange={e => setEditForm(f => ({ ...f, created_at: e.target.value }))} />
-                            ) : item.key === 'payment_method' ? (
-                              <select style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
-                                value={editForm.payment_method ?? selectedDonation.payment_method}
-                                onChange={e => setEditForm(f => ({ ...f, payment_method: e.target.value }))}>
-                                <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
-                              </select>
-                            ) : item.key === 'amount' ? (
-                              <input type="number" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 100, textAlign: 'right' }}
-                                value={editForm.amount ?? selectedDonation.amount}
-                                onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
-                            ) : (
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Donor</div>
+                      <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                        {[
+                          { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
+                        ].map((item, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>{item.label}</span>
+                            {editingManual && item.editable && selectedDonation.source === 'manual' ? (
                               <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 160, textAlign: 'right' }}
                                 value={editForm[item.key] ?? (selectedDonation[item.key] || '')}
                                 onChange={e => setEditForm(f => ({ ...f, [item.key]: e.target.value }))} />
-                            )
+                            ) : (
+                              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.value}</span>
+                            )}
+                          </div>
+                        ))}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>NRIC / FIN</span>
+                          {editingManual && selectedDonation.source === 'manual' ? (
+                            <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
+                              placeholder="e.g. S1234567A" maxLength={9}
+                              value={editForm.donor_nric ?? (selectedDonation.donor_nric || '')}
+                              onChange={e => setEditForm(f => ({ ...f, donor_nric: e.target.value.toUpperCase() }))} />
+                          ) : selectedDonation.donor_nric ? (
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.sage }}>✓ {selectedDonation.donor_nric}</span>
                           ) : (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{item.value}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>⚠️ Missing</span>
                           )}
                         </div>
-                      ))}
-                      </div>
                       </div>
 
-                      <div>
                       {!selectedDonation.donor_email?.trim() && !editingManual && selectedDonation.source === 'manual' && (
-                        <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <span style={{ fontSize: 12, color: C.muted }}>Add donor email to send a thank you</span>
-                          </div>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Add donor email to send a thank you</div>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <input style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="donor@email.com" type="email" value={quickEmailInput} onChange={e => setQuickEmailInput(e.target.value)} />
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
@@ -2099,22 +2100,8 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* NRIC */}
-                      <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (!selectedDonation.donor_nric && !editingManual) ? 8 : 0 }}>
-                          <span style={{ fontSize: 12, color: C.muted }}>NRIC / FIN</span>
-                          {editingManual && selectedDonation.source === 'manual' ? (
-                            <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
-                              placeholder="e.g. S1234567A" maxLength={9}
-                              value={editForm.donor_nric ?? (selectedDonation.donor_nric || '')}
-                              onChange={e => setEditForm(f => ({ ...f, donor_nric: e.target.value.toUpperCase() }))} />
-                          ) : selectedDonation.donor_nric ? (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.sage }}>✓ {selectedDonation.donor_nric}</span>
-                          ) : (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: C.warning }}>⚠️ Missing</span>
-                          )}
-                        </div>
-                        {!selectedDonation.donor_nric && !editingManual && (
+                      {!selectedDonation.donor_nric && !editingManual && (
+                        <div style={{ marginBottom: 16 }}>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <input style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="e.g. S1234567A" maxLength={9} value={quickNricInput} onChange={e => setQuickNricInput(e.target.value)} />
                             <button style={{ ...s.issueBtn, padding: '7px 12px', fontSize: 12, flexShrink: 0 }} onClick={() => {
@@ -2136,49 +2123,115 @@ export default function App() {
                                 })
                             }}>Save</button>
                           </div>
-                        )}
-                        {!selectedDonation.donor_nric && !editingManual && selectedDonation.donor_email?.trim() && (
-                          <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
-                            if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
-                            const { error } = await supabase.functions.invoke('send-thank-you', {
-                              body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
-                            })
-                            if (error) { showToast('Failed to send email', 'error'); return }
-                            setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
-                            showToast(`NRIC request sent to ${selectedDonation.donor_email}`)
-                          }}>📧 {nricRequestSent[selectedDonation.id] ? 'Email Sent ✓' : 'Request NRIC via Email'}</button>
-                        )}
+                          {selectedDonation.donor_email?.trim() && (
+                            <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
+                              if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
+                              const { error } = await supabase.functions.invoke('send-thank-you', {
+                                body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
+                              })
+                              if (error) { showToast('Failed to send email', 'error'); return }
+                              setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
+                              showToast(`NRIC request sent to ${selectedDonation.donor_email}`)
+                            }}>📧 {nricRequestSent[selectedDonation.id] ? 'Email Sent ✓' : 'Request NRIC via Email'}</button>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tax Deduction</div>
+                      <div style={{ background: C.successBg, borderRadius: 12, border: `1px solid #C8E3D3`, padding: '4px 16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #D7EBE0' }}>
+                          <span style={{ fontSize: 13, color: '#3B6D11' }}>250% Deductible</span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                          <span style={{ fontSize: 13, color: '#3B6D11' }}>Est. Tax Savings</span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      </div>
                       </div>
 
-                      {/* NOTES */}
-                      <div style={{ marginTop: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Notes</div>
-                        {editingNoteId === selectedDonation.id ? (
-                          <div>
-                            <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.ivory, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
-                              value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
-                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                              <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
-                                supabase.from('donations').update({ notes: noteText }).eq('id', selectedDonation.id)
-                                  .then(() => {
-                                    setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, notes: noteText } : x))
-                                    setSelectedDonation(prev => ({ ...prev, notes: noteText }))
-                                    setEditingNoteId(null)
-                                  })
-                              }}>Save</button>
-                              <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNoteId(null)}>Cancel</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ background: C.ivory, borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, cursor: 'pointer', minHeight: 60 }}
-                            onClick={() => { setEditingNoteId(selectedDonation.id); setNoteText(selectedDonation.notes || '') }}>
-                            {selectedDonation.notes
-                              ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{selectedDonation.notes}</div>
-                              : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to add a note...</div>
-                            }
+                      <div>
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Record</div>
+                      <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Amount (SGD)</span>
+                          {editingManual && selectedDonation.source === 'manual' ? (
+                            <input type="number" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 100, textAlign: 'right' }}
+                              value={editForm.amount ?? selectedDonation.amount}
+                              onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} />
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>${Number(selectedDonation.amount).toLocaleString()}</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Date</span>
+                          {editingManual && selectedDonation.source === 'manual' ? (
+                            <input type="date" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
+                              value={editForm.created_at || selectedDonation.created_at?.split('T')[0]}
+                              onChange={e => setEditForm(f => ({ ...f, created_at: e.target.value }))} />
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                          )}
+                        </div>
+                        {selectedDonation.source === 'manual' && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Payment Method</span>
+                            {editingManual ? (
+                              <select style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
+                                value={editForm.payment_method ?? selectedDonation.payment_method}
+                                onChange={e => setEditForm(f => ({ ...f, payment_method: e.target.value }))}>
+                                <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
+                              </select>
+                            ) : (
+                              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{selectedDonation.payment_method || '—'}</span>
+                            )}
                           </div>
                         )}
+                        {causeNameForDonation(selectedDonation) && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.warning, background: C.warningBg, padding: '3px 10px', borderRadius: 20 }}>{causeNameForDonation(selectedDonation)}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
+                          {editingManual && selectedDonation.source === 'manual' ? (
+                            <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 160, textAlign: 'right' }}
+                              value={editForm.receipt_number ?? (selectedDonation.receipt_number || '')}
+                              onChange={e => setEditForm(f => ({ ...f, receipt_number: e.target.value }))} />
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: 'monospace' }}>{selectedDonation.source === 'manual' ? (selectedDonation.receipt_number || '—') : (selectedDonation.payment_ref || '—')}</span>
+                          )}
+                        </div>
                       </div>
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
+                      {editingNoteId === selectedDonation.id ? (
+                        <div style={{ marginBottom: 20 }}>
+                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
+                            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
+                              supabase.from('donations').update({ notes: noteText }).eq('id', selectedDonation.id)
+                                .then(() => {
+                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, notes: noteText } : x))
+                                  setSelectedDonation(prev => ({ ...prev, notes: noteText }))
+                                  setEditingNoteId(null)
+                                })
+                            }}>Save</button>
+                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNoteId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 }}
+                          onClick={() => { setEditingNoteId(selectedDonation.id); setNoteText(selectedDonation.notes || '') }}>
+                          {selectedDonation.notes
+                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{selectedDonation.notes}</div>
+                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to add a note...</div>
+                          }
+                        </div>
+                      )}
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2290,6 +2343,7 @@ export default function App() {
                           <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
                         )}
                       </div>
+
                       </div>
                     </div>
                   </div>
