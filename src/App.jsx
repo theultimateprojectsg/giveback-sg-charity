@@ -1900,8 +1900,8 @@ export default function App() {
                             <input type="checkbox" checked={paginatedDonations.length > 0 && paginatedDonations.every(d => selectedDonationIds.includes(d.id))} onChange={toggleSelectAllVisible} />
                           </th>
                           {(isTablet
-                            ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC']
-                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']
+                            ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt']
+                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
                           ).map(h => <th key={h} style={s.th}>{h}</th>)}
                         </tr>
                       </thead>
@@ -1924,10 +1924,10 @@ export default function App() {
                               </td>
                             )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
                             {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                            <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
                           </tr>
                         ))}
