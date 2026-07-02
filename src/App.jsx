@@ -1276,63 +1276,13 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.tableCard}>
-              <div style={s.tableHeader}>
-                <div style={s.tableTitle}>Recent Donations</div>
-                <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
-              </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? (
-                <div style={s.empty}>No donations yet.</div>
-              ) : isMobile ? (
-                <div>
-                  {donations.slice(0, 5).map(d => (
-                    <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
-                      <div style={s.donationCardTop}>
-                        <div style={s.donationCardDonor}>
-                          <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
-                          <div>
-                            <div style={s.donationCardName}>{d.donor_name}</div>
-                            <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                          </div>
-                        </div>
-                        <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
-                      </div>
-                      <div style={s.donationCardBadges}>
-                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <table style={s.table}>
-                  <thead>
-                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {donations.slice(0, 5).map(d => (
-                      <tr key={d.id} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div style={s.donorName}>{d.donor_name}</div></div></td>
-                        <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
-                        <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                        {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                        <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                        <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                        {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
             {myCauses.filter(c => c.status === 'approved' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>Active campaigns</div>
+              <div style={s.tableCard}>
+                <div style={s.tableHeader}>
+                  <div style={s.tableTitle}>Active Campaigns</div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
+                <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
                   {[
                     { title: 'Winter Meal Drive', endDate: '2026-07-11', raised: 7850, goal: 10000, donors: 34 },
                     { title: 'Wheelchair Fund', endDate: '2026-08-12', raised: 2100, goal: 15000, donors: 6 },
@@ -1341,7 +1291,7 @@ export default function App() {
                     const daysLeft = Math.max(0, Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24)))
                     const behindPace = pct < 40
                     return (
-                      <div key={i} style={s.card}>
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
@@ -1379,7 +1329,58 @@ export default function App() {
               </div>
             )}
 
-            
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>Recent Donations</div>
+                <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
+              </div>
+              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? (
+                <div style={s.empty}>No donations yet.</div>
+              ) : isMobile ? (
+                <div>
+                  {donations.slice(0, 5).map(d => (
+                    <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
+                      <div style={s.donationCardTop}>
+                        <div style={s.donationCardDonor}>
+                          <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                          <div>
+                            <div style={s.donationCardName}>{d.donor_name}</div>
+                            <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </div>
+                        </div>
+                        <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
+                      </div>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginBottom: 6 }}>{d.payment_ref || d.receipt_number || '—'}</div>
+                      <div style={s.donationCardBadges}>
+                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
+                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <table style={s.table}>
+                  <thead>
+                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {donations.slice(0, 5).map(d => (
+                      <tr key={d.id} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
+                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                        <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
+                        <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
+                        {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
+                        <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                        {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
+                        <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
+                        {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                        {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
 
             </div>
         )}
