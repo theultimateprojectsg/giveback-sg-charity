@@ -162,9 +162,17 @@ export default function App() {
     return session?.user?.user_metadata?.charity_uen || ''
   }
 
-  async function deleteCause(id) {
+  function deleteCause(id) {
     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
-    if (!window.confirm('Delete this submission? It will be moved to Past Campaigns and removed from the donor app.')) return
+    setConfirmModal({
+      title: 'Delete this submission?',
+      description: 'It will be moved to Past Campaigns and removed from the donor app.',
+      confirmLabel: 'Delete',
+      onConfirm: () => deleteCauseConfirmed(id),
+    })
+  }
+
+  async function deleteCauseConfirmed(id) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'deleted', active: false }).eq('id', id)
     setBulkActionInProgress(false)
@@ -178,12 +186,20 @@ export default function App() {
     setShowCauseForm(true)
   }
 
-  async function requestRevision(c) {
+  function requestRevision(c) {
     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
-    const warningText = c.type === 'campaign'
-      ? `This will immediately remove "${c.title}" from the donor app, including for anyone currently viewing it, until it's re-approved. Continue?`
-      : `This will immediately remove this sponsored banner from the donor app until it's re-approved. Continue?`
-    if (!window.confirm(warningText)) return
+    const description = c.type === 'campaign'
+      ? `This will immediately remove "${c.title}" from the donor app, including for anyone currently viewing it, until it's re-approved.`
+      : `This will immediately remove this sponsored banner from the donor app until it's re-approved.`
+    setConfirmModal({
+      title: 'Request a revision?',
+      description,
+      confirmLabel: 'Request revision',
+      onConfirm: () => requestRevisionConfirmed(c),
+    })
+  }
+
+  async function requestRevisionConfirmed(c) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'pending' }).eq('id', c.id)
     setBulkActionInProgress(false)
@@ -438,10 +454,17 @@ export default function App() {
       byDonor[d.donor_email].total += d.amount
       byDonor[d.donor_email].count += 1
     })
-    const donorList = Object.values(byDonor)
+    const missingDonorList = Object.values(byDonor)
 
-    if (!window.confirm(`Send a consolidated NRIC request to ${donorList.length} donor${donorList.length > 1 ? 's' : ''} missing NRIC?`)) return
+    setConfirmModal({
+      title: 'Send bulk NRIC request?',
+      description: `This will email ${missingDonorList.length} donor${missingDonorList.length > 1 ? 's' : ''} missing NRIC.`,
+      confirmLabel: 'Send request',
+      onConfirm: () => sendBulkNricRequest(missingDonorList, missingNoEmail),
+    })
+  }
 
+  async function sendBulkNricRequest(donorList, missingNoEmail) {
     setBulkActionInProgress(true)
     let sent = 0
     for (const donor of donorList) {
@@ -538,13 +561,22 @@ export default function App() {
     setSavingManual(false)
   }
 
-  async function deleteDonation(id) {
+  function deleteDonation(id) {
+    const donationToDelete = donations.find(d => d.id === id)
+    const description = donationToDelete?.receipt_issued
+      ? 'This entry already has a receipt issued. The record will be kept for audit purposes but removed from your active lists.'
+      : 'The record will be kept for audit purposes but removed from your active lists.'
+    setConfirmModal({
+      title: donationToDelete?.receipt_issued ? 'Delete this entry anyway?' : 'Delete this manual entry?',
+      description,
+      confirmLabel: 'Delete',
+      onConfirm: () => deleteDonationConfirmed(id),
+    })
+  }
+
+  async function deleteDonationConfirmed(id) {
     const donationToDelete = donations.find(d => d.id === id)
     const originalStatus = donationToDelete?.status || 'confirmed'
-    const warningText = donationToDelete?.receipt_issued
-      ? 'This entry already has a receipt issued. Delete anyway? The record will be kept for audit purposes but removed from your active lists.'
-      : 'Delete this manual entry? The record will be kept for audit purposes but removed from your active lists.'
-    if (!window.confirm(warningText)) return
     setDeletingId(id)
     const { error } = await supabase.from('donations').update({ status: 'deleted_by_charity' }).eq('id', id)
     if (error) { console.error(error); setDeletingId(null); return }
