@@ -1787,6 +1787,14 @@ export default function App() {
                       </select>
                     </div>
                     <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={manualForm.donor_email || ''} onChange={e => setManualForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
+                    <div><div style={s.formLabel}>Cause (Optional)</div>
+                      <select style={s.formInput} value={manualForm.cause_id} onChange={e => setManualForm(f => ({ ...f, cause_id: e.target.value }))}>
+                        <option value="">General Donation</option>
+                        {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                          <option key={c.id} value={c.id}>{c.title}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
