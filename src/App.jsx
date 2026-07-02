@@ -528,7 +528,7 @@ export default function App() {
 
   function clearDonationFilters() {
     setSearchTerm('')
-    setFilterType('All')
+    setFilterType('All')  
     setFilterNric('All')
     setFilterYear('All')
     setFilterSource('All')
@@ -2018,17 +2018,16 @@ export default function App() {
 
               {selectedDonation && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
-                <div style={isMobile ? { background: C.ivory, width: '100%', height: '100%', overflowY: 'auto' } : { width: 420, maxWidth: '100%' }} onClick={e => e.stopPropagation()}>
-                  <div style={isMobile ? { background: C.white, minHeight: '100%' } : { background: C.white, borderRadius: 16, border: `1.5px solid ${C.border}`, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ background: C.teal, padding: '20px 20px 16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Donation Details</div>
-                        <button style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
-                      </div>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: 'white', marginTop: 10 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 420, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
+                  <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.ivory, borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 28 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexShrink: 0 }}>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>💳 Donation Details</div>
+                      <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                     </div>
-                    <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 18, flexShrink: 0 }}>
+                      ${Number(selectedDonation.amount).toLocaleString()} from {selectedDonation.donor_name} · {new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1 }}>
                       {[
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
                         { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
