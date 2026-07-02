@@ -1276,7 +1276,55 @@ export default function App() {
               </div>
             </div>
 
-            
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>Recent Donations</div>
+                <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
+              </div>
+              {loading ? <div style={s.empty}>Loading...</div> : donations.length === 0 ? (
+                <div style={s.empty}>No donations yet.</div>
+              ) : isMobile ? (
+                <div>
+                  {donations.slice(0, 5).map(d => (
+                    <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
+                      <div style={s.donationCardTop}>
+                        <div style={s.donationCardDonor}>
+                          <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                          <div>
+                            <div style={s.donationCardName}>{d.donor_name}</div>
+                            <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </div>
+                        </div>
+                        <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
+                      </div>
+                      <div style={s.donationCardBadges}>
+                        {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
+                        {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <table style={s.table}>
+                  <thead>
+                    <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'NRIC', 'Payment']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {donations.slice(0, 5).map(d => (
+                      <tr key={d.id} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
+                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div style={s.donorName}>{d.donor_name}</div></div></td>
+                        <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
+                        <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
+                        {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
+                        <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                        <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
+                        {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
 
             {myCauses.filter(c => c.status === 'approved' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={{ marginBottom: 24 }}>
