@@ -1491,6 +1491,7 @@ export default function App() {
                           </div>
                           <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginBottom: 6 }}>{d.payment_ref || d.receipt_number || '—'}</div>
                           <div style={s.donationCardBadges}>
+                            {causeNameForDonation(d) && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block' }}>🎯 {causeNameForDonation(d)}</span>}
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
                             {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                           </div>
@@ -1500,7 +1501,7 @@ export default function App() {
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {pageDonations.map(d => (
@@ -1508,6 +1509,15 @@ export default function App() {
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
+                            {!isTablet && (
+                              <td style={s.td}>
+                                {causeNameForDonation(d) ? (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
+                                ) : (
+                                  <span style={{ fontSize: 11, color: C.muted }}>General</span>
+                                )}
+                              </td>
+                            )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
                             {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
