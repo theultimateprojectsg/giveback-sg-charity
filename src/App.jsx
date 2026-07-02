@@ -63,8 +63,7 @@ export default function App() {
   const [selectedDonationIds, setSelectedDonationIds] = useState([])
   const [donationsPage, setDonationsPage] = useState(0)
   const [donationsPerPage, setDonationsPerPage] = useState(25)
-  const [showColumnMenu, setShowColumnMenu] = useState(false)
-  const [visibleColumns, setVisibleColumns] = useState({ source: true, receiptNo: true, payment: true, thankYou: true })
+  
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
   const [manualError, setManualError] = useState('')
@@ -1807,7 +1806,7 @@ export default function App() {
             )}
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 180 }} placeholder="🔍 Name, email, NRIC, notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search by name, email, NRIC, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
               </select>
@@ -1833,26 +1832,6 @@ export default function App() {
   }
               </select>
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
-              {!isMobile && (
-                <div style={{ position: 'relative' }}>
-                  <button style={s.viewBtn} onClick={() => setShowColumnMenu(v => !v)}>⚙️ Columns</button>
-                  {showColumnMenu && (
-                    <div style={{ position: 'absolute', top: 40, right: 0, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 10, zIndex: 20, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 160 }}>
-                      {[
-                        { key: 'source', label: 'Source' },
-                        { key: 'receiptNo', label: 'Receipt No.' },
-                        { key: 'payment', label: 'Payment Status' },
-                        { key: 'thankYou', label: 'Thank You' },
-                      ].map(col => (
-                        <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 13, color: C.text, cursor: 'pointer' }}>
-                          <input type="checkbox" checked={visibleColumns[col.key]} onChange={() => setVisibleColumns(v => ({ ...v, [col.key]: !v[col.key] }))} />
-                          {col.label}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
@@ -1922,7 +1901,7 @@ export default function App() {
                           </th>
                           {(isTablet
                             ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC']
-                            : ['Donor', 'Amount', 'Date', 'Cause', ...(visibleColumns.source ? ['Source'] : []), 'Receipt', ...(visibleColumns.receiptNo ? ['Receipt No.'] : []), 'NRIC', ...(visibleColumns.payment ? ['Payment'] : []), ...(visibleColumns.thankYou ? ['Thank You'] : [])]
+                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']
                           ).map(h => <th key={h} style={s.th}>{h}</th>)}
                         </tr>
                       </thead>
@@ -1944,12 +1923,12 @@ export default function App() {
                                 )}
                               </td>
                             )}
-                            {!isTablet && visibleColumns.source && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
+                            {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                            {!isTablet && visibleColumns.receiptNo && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
+                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                            {!isTablet && visibleColumns.payment && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
-                            {!isTablet && visibleColumns.thankYou && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                            {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
                           </tr>
                         ))}
                       </tbody>
