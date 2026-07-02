@@ -1687,37 +1687,32 @@ export default function App() {
               </div>
             )}
 
-            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
-              <input style={s.searchBox} placeholder="🔍 Search by donor name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <div style={isMobile ? { display: 'flex', gap: 10, flexWrap: 'wrap' } : { display: 'flex', gap: 12 }}>
-                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                  <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
-                </select>
-                <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
-                  <option value="All">All NRICs</option>
-                  <option value="Missing NRIC">⚠️ Missing NRIC</option>
-                </select>
-                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
-                  <option value="All">All Sources</option>
-                  <option value="App">📱 App</option>
-                  <option value="Manual">✏️ Manual</option>
-                </select>
-                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterThankYou} onChange={e => setFilterThankYou(e.target.value)}>
-                  <option value="All">Thank You: All</option>
-                  <option value="Sent">💌 Sent</option>
-                  <option value="Not Sent">Not Sent</option>
-                </select>
-                <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                  <option>All</option>
-                  {donations.length === 0
+            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 180 }} placeholder="🔍 Donor name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
+              </select>
+              <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
+                <option value="All">All NRICs</option>
+                <option value="Missing NRIC">⚠️ Missing NRIC</option>
+              </select>
+              <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+                <option value="All">All Sources</option>
+                <option value="App">📱 App</option>
+                <option value="Manual">✏️ Manual</option>
+              </select>
+              <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterThankYou} onChange={e => setFilterThankYou(e.target.value)}>
+                <option value="All">Thank You: All</option>
+                <option value="Sent">💌 Sent</option>
+                <option value="Not Sent">Not Sent</option>
+              </select>
+              <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                <option>All</option>
+                {donations.length === 0
     ? <option>{new Date().getFullYear()}</option>
     : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
   }
-                </select>
-              </div>
-            </div>
-
-            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+              </select>
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
