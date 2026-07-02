@@ -614,18 +614,6 @@ export default function App() {
     if (b.isBiggestYet) donorBadgeMap[key].isBiggestYet = true
     if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
   })
-  const noteworthyDonors = donorList
-    .filter(d => {
-      const key = d.email?.trim() || d.name
-      const b = donorBadgeMap[key]
-      return b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)
-    })
-    .sort((a, b) => {
-      const keyA = a.email?.trim() || a.name
-      const keyB = b.email?.trim() || b.name
-      return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
-    })
-    .slice(0, 5)
   const donorMap = {}
   donations.forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
@@ -641,6 +629,18 @@ export default function App() {
     }
   })
   const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
+  const noteworthyDonors = donorList
+    .filter(d => {
+      const key = d.email?.trim() || d.name
+      const b = donorBadgeMap[key]
+      return b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)
+    })
+    .sort((a, b) => {
+      const keyA = a.email?.trim() || a.name
+      const keyB = b.email?.trim() || b.name
+      return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
+    })
+    .slice(0, 5)
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
