@@ -52,7 +52,7 @@ export default function App() {
   const [issuing, setIssuing] = useState(null)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('giveback_charity_tab') || 'dashboard')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('All')
@@ -319,6 +319,7 @@ export default function App() {
   useEffect(() => {
     if (session && (activeTab === 'activity' || activeTab === 'dashboard')) loadAuditLog()
     setShowMobileMenu(false)
+    localStorage.setItem('giveback_charity_tab', activeTab)
   }, [session, activeTab])
 
   useEffect(() => {
