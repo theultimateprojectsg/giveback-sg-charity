@@ -648,6 +648,12 @@ export default function App() {
     }, 10000)
   }
 
+  function causeNameForDonation(donation) {
+    if (!donation?.cause_id) return null
+    const c = myCauses.find(c => c.id === donation.cause_id)
+    return c ? c.title : null
+  }
+
   const charityName  = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const charityUen   = session?.user?.user_metadata?.charity_uen  || ''
   const totalAllTime = donations.reduce((s, d) => s + d.amount, 0)
@@ -728,6 +734,14 @@ export default function App() {
       return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
     })
     .slice(0, 5)
+  const causeRaisedMap = {}
+  donations.forEach(d => {
+    if (!d.cause_id) return
+    causeRaisedMap[d.cause_id] = (causeRaisedMap[d.cause_id] || { total: 0, donors: new Set() })
+    causeRaisedMap[d.cause_id].total += d.amount
+    causeRaisedMap[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
+  })
+
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -861,6 +875,7 @@ export default function App() {
       'Amount (SGD)': d.amount,
       'Date': new Date(d.created_at).toLocaleDateString('en-SG'),
       'Source': d.source === 'manual' ? `Manual (${d.payment_method || ''})` : 'Giving Tree App',
+      'Cause': causeNameForDonation(d) || 'General Donation',
       'Payment Status': d.payment_status === 'confirmed' ? 'Confirmed' : 'Unverified',
       'Receipt Issued': d.receipt_issued ? 'Yes' : 'No',
       'Receipt No.': d.payment_ref || d.receipt_number || '',
@@ -869,7 +884,7 @@ export default function App() {
     }))
     if (rows.length === 0) { showToast('No donations to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donations')
     XLSX.writeFile(wb, `GivingTree-Donations-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -1394,39 +1409,40 @@ export default function App() {
               </div>
             </div>
 
-            {myCauses.filter(c => c.status === 'approved' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
+            {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={s.tableCard}>
                 <div style={s.tableHeader}>
                   <div style={s.tableTitle}>Active Campaigns</div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
                 </div>
                 <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
-                  {[
-                    { title: 'Winter Meal Drive', endDate: '2026-07-11', raised: 7850, goal: 10000, donors: 34 },
-                    { title: 'Wheelchair Fund', endDate: '2026-08-12', raised: 2100, goal: 15000, donors: 6 },
-                  ].map((c, i) => {
-                    const pct = Math.min(100, Math.round((c.raised / c.goal) * 100))
-                    const daysLeft = Math.max(0, Math.ceil((new Date(c.endDate) - new Date()) / (1000 * 60 * 60 * 24)))
-                    const behindPace = pct < 40
+                  {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map((c) => {
+                    const stats = causeRaisedMap[c.id] || { total: 0, donors: new Set() }
+                    const goal = c.target_amount || 0
+                    const pct = goal > 0 ? Math.min(100, Math.round((stats.total / goal) * 100)) : 0
+                    const daysLeft = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24))) : null
+                    const behindPace = goal > 0 && pct < 40
                     return (
-                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                      <div key={c.id} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Ends in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{daysLeft !== null ? `Ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}` : 'No end date'}</div>
                           </div>
                           <span style={s.badgeIssued}>✓ Approved</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${c.raised.toLocaleString()}</span>
-                          <span style={{ fontSize: 12, color: C.muted }}>of ${c.goal.toLocaleString()} goal</span>
+                          <span style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${stats.total.toLocaleString()}</span>
+                          {goal > 0 && <span style={{ fontSize: 12, color: C.muted }}>of ${goal.toLocaleString()} goal</span>}
                         </div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 6 }} />
-                        </div>
+                        {goal > 0 && (
+                          <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 6 }} />
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                          <span style={{ fontSize: 12, color: behindPace ? C.warning : C.muted }}>{pct}% funded{behindPace ? ' · behind pace' : ''}</span>
-                          <span style={{ fontSize: 12, color: C.muted }}>{c.donors} donors</span>
+                          <span style={{ fontSize: 12, color: behindPace ? C.warning : C.muted }}>{goal > 0 ? `${pct}% funded${behindPace ? ' · behind pace' : ''}` : 'No goal set'}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{stats.donors.size} donor{stats.donors.size !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
                     )
@@ -1944,6 +1960,7 @@ export default function App() {
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
                         { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
                         { label: 'Source', key: null, value: selectedDonation.source === 'manual' ? `Manual (${selectedDonation.payment_method})` : 'Giving Tree App', editable: false },
+                        ...(causeNameForDonation(selectedDonation) ? [{ label: 'Cause', key: null, value: `🎯 ${causeNameForDonation(selectedDonation)}`, editable: false }] : []),
                         { label: 'Amount (SGD)', key: 'amount', value: `$${Number(selectedDonation.amount).toLocaleString()}`, editable: true, type: 'number' },
                         { label: 'Date', key: 'created_at', value: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), editable: true, type: 'date' },
                         ...(selectedDonation.source === 'manual' ? [{ label: 'Payment Method', key: 'payment_method', value: selectedDonation.payment_method || '—', editable: true, type: 'select' }] : []),
