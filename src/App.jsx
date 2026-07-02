@@ -1783,7 +1783,7 @@ export default function App() {
 
             {showManualForm && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setShowManualForm(false); setManualError('') }}>
-                <div style={{ background: C.ivory, borderRadius: 16, padding: isMobile ? 20 : 28, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.ivory, borderRadius: 16, padding: isMobile ? 20 : 28, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📝 New Manual Entry</div>
                     <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
@@ -2018,7 +2018,7 @@ export default function App() {
 
               {selectedDonation && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
-                <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 420, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
+                <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
                   <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.ivory, borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 28 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexShrink: 0 }}>
                       <div>
@@ -2029,7 +2029,8 @@ export default function App() {
                       </div>
                       <button style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                     </div>
-                    <div style={{ overflowY: 'auto', flex: 1 }}>
+                    <div style={{ overflowY: 'auto', flex: 1, display: isMobile ? 'block' : 'grid', gridTemplateColumns: isMobile ? 'none' : '1fr 1fr', gap: isMobile ? 0 : 20 }}>
+                      <div>
                       <div style={{ marginBottom: 4 }}>
                       {[
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
@@ -2074,7 +2075,9 @@ export default function App() {
                         </div>
                       ))}
                       </div>
+                      </div>
 
+                      <div>
                       {!selectedDonation.donor_email?.trim() && !editingManual && selectedDonation.source === 'manual' && (
                         <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -2286,6 +2289,7 @@ export default function App() {
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
                         )}
+                      </div>
                       </div>
                     </div>
                   </div>
