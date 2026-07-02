@@ -60,10 +60,6 @@ export default function App() {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
   const [filterSource, setFilterSource] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
-  const [amountMin, setAmountMin] = useState('')
-  const [amountMax, setAmountMax] = useState('')
-  const [sortBy, setSortBy] = useState('date')
-  const [sortDir, setSortDir] = useState('desc')
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
   const [manualError, setManualError] = useState('')
@@ -528,10 +524,6 @@ export default function App() {
     setFilterYear('All')
     setFilterSource('All')
     setFilterThankYou('All')
-    setAmountMin('')
-    setAmountMax('')
-    setSortBy('date')
-    setSortDir('desc')
   }
 
   function goToDonation(donation) {
@@ -769,8 +761,6 @@ export default function App() {
     filterYear !== 'All',
     filterSource !== 'All',
     filterThankYou !== 'All',
-    amountMin !== '',
-    amountMax !== '',
   ].filter(Boolean).length
 
   const filteredDonations = donations.filter(d => {
@@ -783,16 +773,30 @@ export default function App() {
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric)
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
-    const matchMin = amountMin === '' || d.amount >= parseFloat(amountMin)
-    const matchMax = amountMax === '' || d.amount <= parseFloat(amountMax)
-    return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou && matchMin && matchMax
-  }).sort((a, b) => {
-    let cmp = 0
-    if (sortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
-    else if (sortBy === 'amount') cmp = a.amount - b.amount
-    else if (sortBy === 'name') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
-    return sortDir === 'asc' ? cmp : -cmp
+    return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
   })
+
+  function exportDonationsExcel() {
+    const rows = filteredDonations.map(d => ({
+      'Donor Name': d.donor_name,
+      'Email': d.donor_email || '',
+      'NRIC/FIN': d.donor_nric || '',
+      'Amount (SGD)': d.amount,
+      'Date': new Date(d.created_at).toLocaleDateString('en-SG'),
+      'Source': d.source === 'manual' ? `Manual (${d.payment_method || ''})` : 'Giving Tree App',
+      'Payment Status': d.payment_status === 'confirmed' ? 'Confirmed' : 'Unverified',
+      'Receipt Issued': d.receipt_issued ? 'Yes' : 'No',
+      'Receipt No.': d.payment_ref || d.receipt_number || '',
+      'Thank You Sent': d.thank_you_sent ? 'Yes' : 'No',
+      'Notes': d.notes || '',
+    }))
+    if (rows.length === 0) { showToast('No donations to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Donations')
+    XLSX.writeFile(wb, `GivingTree-Donations-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
 
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap = {}
@@ -1714,17 +1718,7 @@ export default function App() {
             </div>
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
-              <input style={{ ...s.formInput, width: isMobile ? '100%' : 110 }} type="number" placeholder="Min $" value={amountMin} onChange={e => setAmountMin(e.target.value)} />
-              <input style={{ ...s.formInput, width: isMobile ? '100%' : 110 }} type="number" placeholder="Max $" value={amountMax} onChange={e => setAmountMax(e.target.value)} />
-              <select style={isMobile ? { ...s.filterSelect, width: '100%' } : s.filterSelect} value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                <option value="date">Sort: Date</option>
-                <option value="amount">Sort: Amount</option>
-                <option value="name">Sort: Donor Name</option>
-              </select>
-              <select style={isMobile ? { ...s.filterSelect, width: '100%' } : s.filterSelect} value={sortDir} onChange={e => setSortDir(e.target.value)}>
-                <option value="desc">↓ Descending</option>
-                <option value="asc">↑ Ascending</option>
-              </select>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
@@ -1777,18 +1771,7 @@ export default function App() {
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => {
-                          const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'name' : null
-                          return (
-                            <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none' }} onClick={() => {
-                              if (!sortKey) return
-                              if (sortBy === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-                              else { setSortBy(sortKey); setSortDir('desc') }
-                            }}>
-                              {h}{sortKey && sortBy === sortKey ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
-                            </th>
-                          )
-                        })}</tr>
+                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {filteredDonations.map(d => (
