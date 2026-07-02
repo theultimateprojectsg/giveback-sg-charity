@@ -98,6 +98,7 @@ export default function App() {
   const [hoveredMonth, setHoveredMonth] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
   const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
+  const [thankYouDraft, setThankYouDraft] = useState(null)
   
 
   useEffect(() => {
@@ -767,6 +768,56 @@ export default function App() {
     toastTimerRef.current = setTimeout(() => setToast(null), 4000)
   }
 
+  function generateThankYouNote(donor, badgeState) {
+    setThankYouDraft({
+      donor,
+      badgeState,
+      text: buildThankYouNote(donor, badgeState),
+    })
+  }
+
+  function buildThankYouNote(donor, badgeState) {
+    const firstName = donor.name?.split(' ')[0] || donor.name
+    const lines = []
+    lines.push(`Dear ${donor.name},`)
+    lines.push('')
+
+    if (badgeState.unackedFirstTime) {
+      lines.push(`Thank you so much for your first gift to ${charityName}. Supporters like you make it possible for us to keep doing this work, and we're so glad you're part of our community now.`)
+    } else if (badgeState.unackedBiggestYet && badgeState.unackedLoyal) {
+      lines.push(`We wanted to take a moment to recognise just how much your support has meant to us. Over ${donor.count} donations totalling $${donor.total.toLocaleString()}, you've become one of our most loyal supporters — and your most recent gift was your largest yet.`)
+    } else if (badgeState.unackedLoyal) {
+      lines.push(`With ${donor.count} donations to ${charityName} so far, you've become one of our most loyal supporters, and we wanted to say a heartfelt thank you for your continued generosity.`)
+    } else if (badgeState.unackedBiggestYet) {
+      lines.push(`We noticed your most recent gift was your largest yet, and we wanted to personally thank you for this incredible act of generosity.`)
+    } else if (badgeState.unackedBigGift) {
+      lines.push(`Thank you for your generous gift. Contributions like yours make a real difference in the work we're able to do.`)
+    } else {
+      lines.push(`Thank you so much for your continued support of ${charityName}.`)
+    }
+
+    lines.push('')
+    lines.push(`Your total giving of $${donor.total.toLocaleString()} across ${donor.count} donation${donor.count > 1 ? 's' : ''} genuinely makes a difference, and we're deeply grateful to have you in our corner.`)
+    lines.push('')
+    lines.push(`With gratitude,`)
+    lines.push(charityName)
+    return lines.join('\n')
+  }
+
+  async function ackDonorBadges(donor, badgeState) {
+    const donorKey = donor.email?.trim() || donor.name
+    const badgesToAck = []
+    if (badgeState.unackedFirstTime) badgesToAck.push('first_time')
+    if (badgeState.unackedBigGift) badgesToAck.push('big_gift')
+    if (badgeState.unackedLoyal) badgesToAck.push('loyal')
+    if (badgeState.unackedBiggestYet) badgesToAck.push('biggest_yet')
+    if (badgesToAck.length === 0) return
+    const rows = badgesToAck.map(badge_type => ({ charity_uen: charityUen, donor_key: donorKey, badge_type }))
+    const { error } = await supabase.from('donor_badge_acks').insert(rows)
+    if (error) { console.error('Could not save badge acks:', error); return }
+    loadDonorBadgeAcks()
+  }
+
   function exportDonorContactsCSV() {
     const rows = donorList.map(d => ({
       'Donor Name': d.name,
@@ -1230,44 +1281,7 @@ export default function App() {
 
             
 
-            <div style={s.tableCard}>
-              <div style={s.tableHeader}>
-                <div style={s.tableTitle}>Worth a personal thank you</div>
-                <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
-              </div>
-              {loading ? <div style={s.empty}>Loading...</div> : noteworthyDonors.length === 0 ? (
-                <div style={s.empty}>No first-time, ${thankYouThreshold}+, loyal, or milestone donors recently.</div>
-              ) : (
-                <div>
-                  {noteworthyDonors.map((d, i) => {
-                    const key = d.email?.trim() || d.name
-                    const b = donorBadgeMap[key]
-                    return (
-                      <div key={i} style={s.donationCard} onClick={() => { setSelectedDonor(d); setActiveTab('donors') }}>
-                        <div style={s.donationCardTop}>
-                          <div style={s.donationCardDonor}>
-                            <div style={{ ...s.donorAvatar, background: C.sage }}>{d.name?.charAt(0)}</div>
-                            <div>
-                              <div style={s.donationCardName}>{d.name}</div>
-                              <div style={s.donationCardDate}>{d.count} donation{d.count > 1 ? 's' : ''} · Last {new Date(b.mostRecent).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                            </div>
-                          </div>
-                          <div style={s.donationCardAmount}>${d.total.toLocaleString()}</div>
-                        </div>
-                        <div style={s.donationCardBadges}>
-                          {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
-                          {b.isBigGift && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
-                          {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.teal, background: '#E8F0EE' }}>🔁 Loyal donor</span>}
-                          {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: '#993C1D', background: '#FAECE7' }}>📈 Biggest gift yet</span>}
-                          {!d.email?.trim() && <span style={s.badgePending}>No email on file</span>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
             </div>
-          </div>
         )}
 
         {/* ── DONORS ── */}
@@ -1331,19 +1345,32 @@ export default function App() {
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Receipts', ''] : ['Donor', 'Total Given', 'Donations', 'Last Donation', 'Receipts', '']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Receipts', ''] : ['Donor', 'Total Given', 'Donations', 'Last Donation', 'Milestones', 'Receipts', '']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
-                      <tr key={i} style={s.tr}>
-                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
-                        <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
-                        {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count > 1 ? 's' : ''}</span></td>}
-                        {!isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
-                        <td style={s.td}><span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} issued</span></td>
-                        <td style={s.td}><button style={s.viewBtn} onClick={() => setSelectedDonor(d)}>View</button></td>
-                      </tr>
-                    ))}
+                    {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => {
+                      const key = d.email?.trim() || d.name
+                      const b = donorBadgeMap[key]
+                      const milestoneCount = b ? [b.isFirstTime, b.isBigGift, b.isLoyal, b.isBiggestYet].filter(Boolean).length : 0
+                      const hasUnacked = b?.hasUnackedBadge
+                      return (
+                        <tr key={i} style={s.tr}>
+                          <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
+                          <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
+                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count > 1 ? 's' : ''}</span></td>}
+                          {!isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
+                          {!isTablet && <td style={s.td}>
+                            {milestoneCount > 0 ? (
+                              <span style={{ ...(hasUnacked ? { color: C.gold, background: '#FDF8EC' } : s.badgeIssued) }}>
+                                <span style={hasUnacked ? { fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, display: 'inline-block', color: C.gold, background: '#FDF8EC' } : s.badgeIssued}>⭐ {milestoneCount}</span>
+                              </span>
+                            ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
+                          </td>}
+                          <td style={s.td}><span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} issued</span></td>
+                          <td style={s.td}><button style={s.viewBtn} onClick={() => setSelectedDonor(d)}>View</button></td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
@@ -1395,6 +1422,28 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                {(() => {
+                  const key = selectedDonor.email?.trim() || selectedDonor.name
+                  const b = donorBadgeMap[key]
+                  if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
+                  return (
+                    <div style={{ ...s.card, marginTop: 16 }}>
+                      <div style={s.cardTitle}>Milestones</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: b.hasUnackedBadge ? 16 : 0 }}>
+                        {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
+                        {b.isBigGift && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
+                        {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.teal, background: '#E8F0EE' }}>🔁 Loyal donor</span>}
+                        {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: '#993C1D', background: '#FAECE7' }}>📈 Biggest gift yet</span>}
+                      </div>
+                      {b.hasUnackedBadge && (
+                        <button
+                          style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }}
+                          onClick={() => generateThankYouNote(selectedDonor, b)}
+                        >✍️ Generate thank-you note</button>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Donation History</div>
@@ -2442,6 +2491,45 @@ export default function App() {
         )}
 
       </div>
+
+      {thankYouDraft && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 520, width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Review and edit before sending. This won't be sent as-is.</div>
+            <textarea
+              style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
+              value={thankYouDraft.text}
+              onChange={e => setThankYouDraft(prev => ({ ...prev, text: e.target.value }))}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setThankYouDraft(null)}>Cancel</button>
+              <button
+                style={{ flex: 1, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: thankYouDraft.donor.email?.trim() ? 1 : 0.5 }}
+                disabled={!thankYouDraft.donor.email?.trim()}
+                onClick={async () => {
+                  const { donor, badgeState, text } = thankYouDraft
+                  const { error } = await supabase.functions.invoke('send-thank-you', {
+                    body: {
+                      type: 'milestone_thank_you',
+                      donor_name: donor.name,
+                      donor_email: donor.email,
+                      charity_name: charityName,
+                      charity_uen: charityUen,
+                      custom_message: text,
+                    }
+                  })
+                  if (error) { showToast('Failed to send email', 'error'); return }
+                  await ackDonorBadges(donor, badgeState)
+                  setThankYouDraft(null)
+                  showToast(`Thank-you note sent to ${donor.email}`)
+                }}
+              >💌 {thankYouDraft.donor.email?.trim() ? 'Send' : 'No email on file'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
           <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 400, width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
