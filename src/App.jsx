@@ -65,6 +65,7 @@ export default function App() {
   const [donationsPerPage, setDonationsPerPage] = useState(25)
   const [donationSortBy, setDonationSortBy] = useState(null)
   const [donationSortDir, setDonationSortDir] = useState('desc')
+  const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
@@ -535,6 +536,7 @@ export default function App() {
     setSelectedDonationIds([])
     setDonationSortBy(null)
     setDonationSortDir('desc')
+    setBulkEditMode(false)
   }
 
   function goToDonation(donation) {
@@ -1864,6 +1866,10 @@ export default function App() {
   }
               </select>
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
+              <button
+                style={bulkEditMode ? { ...s.viewBtn, background: C.teal, color: 'white', borderColor: C.teal } : s.viewBtn}
+                onClick={() => { setBulkEditMode(v => !v); if (bulkEditMode) setSelectedDonationIds([]) }}
+              >{bulkEditMode ? '✕ Exit Bulk Edit' : '☑️ Bulk Edit'}</button>
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
@@ -1928,9 +1934,11 @@ export default function App() {
                     <table style={s.table}>
                       <thead>
                         <tr>
-                          <th style={{ ...s.th, width: 36 }}>
-                            <input type="checkbox" checked={paginatedDonations.length > 0 && paginatedDonations.every(d => selectedDonationIds.includes(d.id))} onChange={toggleSelectAllVisible} />
-                          </th>
+                          {bulkEditMode && (
+                            <th style={{ ...s.th, width: 36 }}>
+                              <input type="checkbox" checked={paginatedDonations.length > 0 && paginatedDonations.every(d => selectedDonationIds.includes(d.id))} onChange={toggleSelectAllVisible} />
+                            </th>
+                          )}
                           {(isTablet
                             ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt']
                             : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
@@ -1953,10 +1961,12 @@ export default function App() {
                           const needsAttention = d.payment_status !== 'confirmed' || !d.donor_nric
                           const rowBg = selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                           return (
-                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
-                            <td style={s.td} onClick={e => e.stopPropagation()}>
-                              <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
-                            </td>
+                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent', cursor: 'pointer' }} onClick={() => { if (bulkEditMode) { toggleDonationSelected(d.id) } else { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') } }}>
+                            {bulkEditMode && (
+                              <td style={s.td} onClick={e => e.stopPropagation()}>
+                                <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
+                              </td>
+                            )}
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
