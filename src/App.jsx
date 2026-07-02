@@ -60,6 +60,11 @@ export default function App() {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
   const [filterSource, setFilterSource] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
+  const [selectedDonationIds, setSelectedDonationIds] = useState([])
+  const [donationsPage, setDonationsPage] = useState(0)
+  const [donationsPerPage, setDonationsPerPage] = useState(25)
+  const [showColumnMenu, setShowColumnMenu] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState({ source: true, receiptNo: true, payment: true, thankYou: true })
   const [showManualForm, setShowManualForm] = useState(false)
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0] })
   const [manualError, setManualError] = useState('')
@@ -331,6 +336,7 @@ export default function App() {
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
     setDonations(data)
+    setSelectedDonationIds(prev => prev.filter(id => data.some(d => d.id === id)))
     setLoading(false)
   }
 
@@ -524,6 +530,7 @@ export default function App() {
     setFilterYear('All')
     setFilterSource('All')
     setFilterThankYou('All')
+    setSelectedDonationIds([])
   }
 
   function goToDonation(donation) {
@@ -764,7 +771,8 @@ export default function App() {
   ].filter(Boolean).length
 
   const filteredDonations = donations.filter(d => {
-    const matchSearch = d.donor_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const q = searchTerm.toLowerCase().trim()
+    const matchSearch = q === '' || [d.donor_name, d.donor_email, d.donor_nric, d.notes].some(field => field?.toLowerCase().includes(q))
     const matchYear = filterYear === 'All' || new Date(d.created_at).getFullYear().toString() === filterYear
     const matchType = filterType === 'All'
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
@@ -775,6 +783,75 @@ export default function App() {
     const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
   })
+
+  const donationsTotalPages = Math.max(1, Math.ceil(filteredDonations.length / donationsPerPage))
+  const paginatedDonations = filteredDonations.slice(donationsPage * donationsPerPage, donationsPage * donationsPerPage + donationsPerPage)
+
+  useEffect(() => {
+    setDonationsPage(0)
+  }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou])
+
+  function toggleDonationSelected(id) {
+    setSelectedDonationIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  function toggleSelectAllVisible() {
+    const visibleIds = paginatedDonations.map(d => d.id)
+    const allSelected = visibleIds.every(id => selectedDonationIds.includes(id))
+    if (allSelected) {
+      setSelectedDonationIds(prev => prev.filter(id => !visibleIds.includes(id)))
+    } else {
+      setSelectedDonationIds(prev => [...new Set([...prev, ...visibleIds])])
+    }
+  }
+
+  async function bulkIssueSelectedReceipts() {
+    const selected = donations.filter(d => selectedDonationIds.includes(d.id) && !d.receipt_issued && d.payment_status === 'confirmed')
+    if (selected.length === 0) { showToast('No selected donations are eligible (must be payment-confirmed and receipt-pending)', 'error'); return }
+    setBulkActionInProgress(true)
+    for (const d of selected) await issueReceipt(d, true)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'bulk_receipts_issued',
+      details: { donation_count: selected.length, year: filterYear },
+    })
+    setBulkActionInProgress(false)
+    setSelectedDonationIds([])
+    showToast(`${selected.length} receipt${selected.length > 1 ? 's' : ''} issued`)
+  }
+
+  function bulkRequestSelectedNric() {
+    const selected = donations.filter(d => selectedDonationIds.includes(d.id) && !d.donor_nric && d.donor_email?.trim())
+    if (selected.length === 0) { showToast('No selected donations are eligible (must be missing NRIC and have an email on file)', 'error'); return }
+    const byDonor = {}
+    selected.forEach(d => {
+      if (!byDonor[d.donor_email]) byDonor[d.donor_email] = { donor_name: d.donor_name, donor_email: d.donor_email, total: 0, count: 0 }
+      byDonor[d.donor_email].total += d.amount
+      byDonor[d.donor_email].count += 1
+    })
+    const donorList = Object.values(byDonor)
+    setConfirmModal({
+      title: 'Send NRIC request to selected donors?',
+      description: `This will email ${donorList.length} donor${donorList.length > 1 ? 's' : ''}.`,
+      confirmLabel: 'Send request',
+      onConfirm: () => { sendBulkNricRequest(donorList, 0); setSelectedDonationIds([]) },
+    })
+  }
+
+  function bulkDeleteSelectedManual() {
+    const selected = donations.filter(d => selectedDonationIds.includes(d.id) && d.source === 'manual')
+    if (selected.length === 0) { showToast('No selected donations are manual entries', 'error'); return }
+    setConfirmModal({
+      title: `Delete ${selected.length} manual entr${selected.length > 1 ? 'ies' : 'y'}?`,
+      description: 'Records will be kept for audit purposes but removed from your active lists.',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        for (const d of selected) await deleteDonationConfirmed(d.id)
+        setSelectedDonationIds([])
+      },
+    })
+  }
 
   function exportDonationsExcel() {
     const rows = filteredDonations.map(d => ({
@@ -1688,7 +1765,7 @@ export default function App() {
             )}
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 180 }} placeholder="🔍 Donor name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 180 }} placeholder="🔍 Name, email, NRIC, notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
               </select>
@@ -1714,17 +1791,47 @@ export default function App() {
   }
               </select>
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
+              {!isMobile && (
+                <div style={{ position: 'relative' }}>
+                  <button style={s.viewBtn} onClick={() => setShowColumnMenu(v => !v)}>⚙️ Columns</button>
+                  {showColumnMenu && (
+                    <div style={{ position: 'absolute', top: 40, right: 0, background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: 10, zIndex: 20, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 160 }}>
+                      {[
+                        { key: 'source', label: 'Source' },
+                        { key: 'receiptNo', label: 'Receipt No.' },
+                        { key: 'payment', label: 'Payment Status' },
+                        { key: 'thankYou', label: 'Thank You' },
+                      ].map(col => (
+                        <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', fontSize: 13, color: C.text, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={visibleColumns[col.key]} onChange={() => setVisibleColumns(v => ({ ...v, [col.key]: !v[col.key] }))} />
+                          {col.label}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
             </div>
+
+            {selectedDonationIds.length > 0 && (
+              <div style={{ background: C.teal, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedDonationIds.length} selected</span>
+                <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkIssueSelectedReceipts} disabled={bulkActionInProgress}>🧾 Issue Receipts</button>
+                <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
+                <button style={{ ...s.bannerBtn, background: 'white', color: C.red }} onClick={bulkDeleteSelectedManual} disabled={bulkActionInProgress}>🗑️ Delete Manual</button>
+                <button style={{ ...s.bannerBtn, background: 'rgba(255,255,255,0.15)', color: 'white' }} onClick={() => setSelectedDonationIds([])}>✕ Clear Selection</button>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 24 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={s.tableCard}>
                   <div style={s.tableHeader}>
                     <div style={s.tableTitle}>All Donations</div>
-                    <div style={s.tableCount}>{filteredDonations.length} records</div>
+                    <div style={s.tableCount}>{filteredDonations.length > donationsPerPage ? `${paginatedDonations.length} of ${filteredDonations.length} records` : `${filteredDonations.length} records`}</div>
                   </div>
                   {loading ? <div style={s.empty}>Loading...</div> : filteredDonations.length === 0 ? (
                     <div style={s.empty}>
@@ -1737,7 +1844,7 @@ export default function App() {
                     </div>
                   ) : isMobile ? (
                     <div>
-                      {filteredDonations.map(d => (
+                      {paginatedDonations.map(d => (
                         <div key={d.id} style={s.donationCard} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={s.donationCardTop}>
                             <div style={s.donationCardDonor}>
@@ -1766,24 +1873,57 @@ export default function App() {
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC'] : ['Donor', 'Amount', 'Date', 'Source', 'Receipt', 'Receipt No.', 'NRIC', 'Payment', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>
+                          <th style={{ ...s.th, width: 36 }}>
+                            <input type="checkbox" checked={paginatedDonations.length > 0 && paginatedDonations.every(d => selectedDonationIds.includes(d.id))} onChange={toggleSelectAllVisible} />
+                          </th>
+                          {(isTablet
+                            ? ['Donor', 'Amount', 'Date', 'Receipt', 'NRIC']
+                            : ['Donor', 'Amount', 'Date', ...(visibleColumns.source ? ['Source'] : []), 'Receipt', ...(visibleColumns.receiptNo ? ['Receipt No.'] : []), 'NRIC', ...(visibleColumns.payment ? ['Payment'] : []), ...(visibleColumns.thankYou ? ['Thank You'] : [])]
+                          ).map(h => <th key={h} style={s.th}>{h}</th>)}
+                        </tr>
                       </thead>
                       <tbody>
-                        {filteredDonations.map(d => (
-                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                        {paginatedDonations.map(d => (
+                          <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : 'transparent', cursor: 'pointer' }} onClick={() => { setSelectedDonation(selectedDonation?.id === d.id ? null : d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                            <td style={s.td} onClick={e => e.stopPropagation()}>
+                              <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
+                            </td>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
                             <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                            {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
+                            {!isTablet && visibleColumns.source && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
+                            {!isTablet && visibleColumns.receiptNo && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
-                            {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                            {!isTablet && visibleColumns.payment && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                            {!isTablet && visibleColumns.thankYou && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  )}
+                  {filteredDonations.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 10 }}>
+                      <select style={{ ...s.filterSelect, padding: '6px 10px', fontSize: 12 }} value={donationsPerPage} onChange={e => { setDonationsPerPage(parseInt(e.target.value)); setDonationsPage(0) }}>
+                        <option value={25}>25 / page</option>
+                        <option value={50}>50 / page</option>
+                        <option value={100}>100 / page</option>
+                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <button
+                          style={{ ...s.viewBtn, opacity: donationsPage === 0 ? 0.4 : 1, cursor: donationsPage === 0 ? 'not-allowed' : 'pointer' }}
+                          disabled={donationsPage === 0}
+                          onClick={() => setDonationsPage(p => Math.max(0, p - 1))}
+                        >← Previous</button>
+                        <span style={{ fontSize: 12, color: C.muted }}>Page {donationsPage + 1} of {donationsTotalPages}</span>
+                        <button
+                          style={{ ...s.viewBtn, opacity: donationsPage >= donationsTotalPages - 1 ? 0.4 : 1, cursor: donationsPage >= donationsTotalPages - 1 ? 'not-allowed' : 'pointer' }}
+                          disabled={donationsPage >= donationsTotalPages - 1}
+                          onClick={() => setDonationsPage(p => Math.min(donationsTotalPages - 1, p + 1))}
+                        >Next →</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
