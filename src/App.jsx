@@ -2030,6 +2030,7 @@ export default function App() {
                       <button style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                     </div>
                     <div style={{ overflowY: 'auto', flex: 1 }}>
+                      <div style={{ marginBottom: 4 }}>
                       {[
                         { label: 'Donor', key: 'donor_name', value: selectedDonation.donor_name, editable: true },
                         { label: 'Email', key: 'donor_email', value: selectedDonation.donor_email || '—', editable: true },
@@ -2045,8 +2046,8 @@ export default function App() {
                         { label: '250% Deductible', key: null, value: `$${(selectedDonation.amount * 2.5).toLocaleString()}`, editable: false },
                         { label: 'Est. Tax Savings', key: null, value: `$${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, editable: false },
                       ].map((item, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                          <span style={{ fontSize: 12, color: C.muted, flexShrink: 0 }}>{item.label}</span>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: C.white, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, color: C.muted, flexShrink: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</span>
                           {editingManual && item.editable && selectedDonation.source === 'manual' ? (
                             item.key === 'created_at' ? (
                               <input type="date" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
@@ -2072,6 +2073,7 @@ export default function App() {
                           )}
                         </div>
                       ))}
+                      </div>
 
                       {!selectedDonation.donor_email?.trim() && !editingManual && selectedDonation.source === 'manual' && (
                         <div style={{ padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
