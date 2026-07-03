@@ -2390,10 +2390,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.payment_status === 'confirmed' ? C.sage : C.gold, background: 'rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 20 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.payment_status === 'confirmed' ? C.forest : '#7A4E00', background: selectedDonation.payment_status === 'confirmed' ? '#D9F0E3' : '#FCE9BE', padding: '4px 10px', borderRadius: 20 }}>
                           {selectedDonation.payment_status === 'confirmed' ? '✓ Paid' : '⚠ Unverified'}
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.receipt_issued ? C.sage : C.gold, background: 'rgba(255,255,255,0.12)', padding: '4px 10px', borderRadius: 20 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.receipt_issued ? C.forest : '#7A4E00', background: selectedDonation.receipt_issued ? '#D9F0E3' : '#FCE9BE', padding: '4px 10px', borderRadius: 20 }}>
                           {selectedDonation.receipt_issued ? '✓ Receipt issued' : 'Receipt pending'}
                         </span>
                       </div>
