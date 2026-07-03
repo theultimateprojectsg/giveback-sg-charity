@@ -828,7 +828,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     .slice(0, 5)
   const causeRaisedMap = {}
   donations.forEach(d => {
-    if (!d.cause_id) return
+    if (!d.cause_id || d.payment_status !== 'confirmed') return
     causeRaisedMap[d.cause_id] = (causeRaisedMap[d.cause_id] || { total: 0, donors: new Set() })
     causeRaisedMap[d.cause_id].total += d.amount
     causeRaisedMap[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
