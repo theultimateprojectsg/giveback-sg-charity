@@ -1966,16 +1966,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={s.infoValue}>{selectedDonor.receipts}/{selectedDonor.count}</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 16, padding: 14, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, color: C.muted }}>250% Tax Deductible</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.forest }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
+                  {charityIsIpc && (
+                    <div style={{ marginTop: 16, padding: 14, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, color: C.muted }}>250% Tax Deductible</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.forest }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 12, color: C.muted }}>Est. Tax Savings (22%)</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.sage }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 12, color: C.muted }}>Est. Tax Savings (22%)</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.sage }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
                 {(() => {
                   const key = selectedDonor.email?.trim() || selectedDonor.name
@@ -2490,17 +2492,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tax Deduction</div>
-                      <div style={{ background: C.successBg, borderRadius: 12, border: `1px solid #C8E3D3`, padding: '4px 16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #D7EBE0' }}>
-                          <span style={{ fontSize: 13, color: '#3B6D11' }}>250% Deductible</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5).toLocaleString()}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                          <span style={{ fontSize: 13, color: '#3B6D11' }}>Est. Tax Savings</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                        </div>
-                      </div>
+                      {charityIsIpc ? (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tax Deduction</div>
+                          <div style={{ background: C.successBg, borderRadius: 12, border: `1px solid #C8E3D3`, padding: '4px 16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #D7EBE0' }}>
+                              <span style={{ fontSize: 13, color: '#3B6D11' }}>250% Deductible</span>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5).toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                              <span style={{ fontSize: 13, color: '#3B6D11' }}>Est. Tax Savings</span>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Donation Summary</div>
+                          <div style={{ background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 16px' }}>
+                            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>This charity is registered but not an IPC, so this donation is not eligible for a tax deduction under Singapore tax law.</div>
+                          </div>
+                        </>
+                      )}
                       </div>
 
                       <div>
