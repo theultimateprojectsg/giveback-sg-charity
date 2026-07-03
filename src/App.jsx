@@ -94,6 +94,8 @@ export default function App() {
   const [sponsoredError, setSponsoredError] = useState('')
   const [savingSponsored, setSavingSponsored] = useState(false)
   const [bulkActionInProgress, setBulkActionInProgress] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState(null) // { done, total }
+  const bulkCancelRef = useRef(false)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -461,15 +463,30 @@ export default function App() {
       return
     }
     setBulkActionInProgress(true)
-    for (const d of pending) await issueReceipt(d, true)
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'bulk_receipts_issued',
-      details: { donation_count: pending.length, year: filterYear },
-    })
+    bulkCancelRef.current = false
+    setBulkProgress({ done: 0, total: pending.length })
+    let issuedCount = 0
+    for (const d of pending) {
+      if (bulkCancelRef.current) break
+      await issueReceipt(d, true)
+      issuedCount++
+      setBulkProgress({ done: issuedCount, total: pending.length })
+    }
+    if (issuedCount > 0) {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'bulk_receipts_issued',
+        details: { donation_count: issuedCount, year: filterYear },
+      })
+    }
     setBulkActionInProgress(false)
-    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${filterYear}`)
+    setBulkProgress(null)
+    if (bulkCancelRef.current) {
+      showToast(`Cancelled — ${issuedCount} of ${pending.length} receipts issued before stopping`)
+    } else {
+      showToast(`${issuedCount} receipt${issuedCount > 1 ? 's' : ''} issued for ${filterYear}`)
+    }
   }
 
   async function requestAllMissingNric() {
@@ -504,8 +521,12 @@ export default function App() {
 
   async function sendBulkNricRequest(donorList, missingNoEmail) {
     setBulkActionInProgress(true)
+    bulkCancelRef.current = false
+    setBulkProgress({ done: 0, total: donorList.length })
     let sent = 0
+    let processed = 0
     for (const donor of donorList) {
+      if (bulkCancelRef.current) break
       try {
         const { error } = await supabase.functions.invoke('send-thank-you', {
           body: {
@@ -521,15 +542,24 @@ export default function App() {
       } catch (invokeErr) {
         console.error('NRIC request failed for', donor.donor_email, invokeErr)
       }
+      processed++
+      setBulkProgress({ done: processed, total: donorList.length })
     }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'bulk_nric_requested',
-      details: { donor_count: sent },
-    })
+    if (sent > 0) {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'bulk_nric_requested',
+        details: { donor_count: sent },
+      })
+    }
     setBulkActionInProgress(false)
-    showToast(`NRIC request sent to ${sent} of ${donorList.length} donors${missingNoEmail > 0 ? ` — ${missingNoEmail} more missing NRIC have no email and need direct follow-up` : ''}`)
+    setBulkProgress(null)
+    if (bulkCancelRef.current) {
+      showToast(`Cancelled — sent to ${sent} of ${donorList.length} donors before stopping`)
+    } else {
+      showToast(`NRIC request sent to ${sent} of ${donorList.length} donors${missingNoEmail > 0 ? ` — ${missingNoEmail} more missing NRIC have no email and need direct follow-up` : ''}`)
+    }
   }
 
   function clearDonationFilters(opts = {}) {
@@ -560,6 +590,7 @@ export default function App() {
   if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
+  if (new Date(manualForm.date) < new Date('2020-01-01')) { setManualError('Donation date seems too far in the past — please check it'); return }
   if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
   if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
     setSavingManual(true)
@@ -623,7 +654,16 @@ export default function App() {
       data = retryResult.data
       error = retryResult.error
     }
-    if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
+    if (error) {
+      console.error('Manual entry insert error:', error)
+      if (error.code === '23505') {
+        setManualError('Receipt number conflict happened twice in a row — please try saving again.')
+      } else {
+        setManualError(`Error saving: ${error.message}`)
+      }
+      setSavingManual(false)
+      return
+    }
     try {
       await supabase.from('audit_log').insert({
         actor_type: 'charity',
@@ -724,34 +764,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   ].filter(Boolean)
   const thankYouThreshold = 200
   const loyalDonorThreshold = 3
-  const donorFirstDonationId = {}
-  const donationBadgeInfo = {}
-  const donorRunningTotals = {}
-  ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-    if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
-    if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0 }
-    donorRunningTotals[key].count += 1
-    const isBiggestYet = d.amount > donorRunningTotals[key].maxAmount
-    if (d.amount > donorRunningTotals[key].maxAmount) donorRunningTotals[key].maxAmount = d.amount
-    donationBadgeInfo[d.id] = {
-      isFirstTime: donorFirstDonationId[key] === d.id,
-      isBigGift: d.amount >= thankYouThreshold,
-      isLoyal: donorRunningTotals[key].count >= loyalDonorThreshold,
-      isBiggestYet: isBiggestYet && donorRunningTotals[key].count > 1,
-    }
-  })
-  const donorBadgeMap = {}
-  donations.forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-    const b = donationBadgeInfo[d.id]
-    if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, mostRecent: d.created_at }
-    if (b.isFirstTime) donorBadgeMap[key].isFirstTime = true
-    if (b.isBigGift) donorBadgeMap[key].isBigGift = true
-    if (b.isLoyal) donorBadgeMap[key].isLoyal = true
-    if (b.isBiggestYet) donorBadgeMap[key].isBiggestYet = true
-    if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
-  })
+  const { donationBadgeInfo, donorBadgeMap } = React.useMemo(() => {
+    const donorFirstDonationId = {}
+    const donationBadgeInfo = {}
+    const donorRunningTotals = {}
+    ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
+      if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0 }
+      donorRunningTotals[key].count += 1
+      const isBiggestYet = d.amount > donorRunningTotals[key].maxAmount
+      if (d.amount > donorRunningTotals[key].maxAmount) donorRunningTotals[key].maxAmount = d.amount
+      donationBadgeInfo[d.id] = {
+        isFirstTime: donorFirstDonationId[key] === d.id,
+        isBigGift: d.amount >= thankYouThreshold,
+        isLoyal: donorRunningTotals[key].count >= loyalDonorThreshold,
+        isBiggestYet: isBiggestYet && donorRunningTotals[key].count > 1,
+      }
+    })
+    const donorBadgeMap = {}
+    donations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      const b = donationBadgeInfo[d.id]
+      if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, mostRecent: d.created_at }
+      if (b.isFirstTime) donorBadgeMap[key].isFirstTime = true
+      if (b.isBigGift) donorBadgeMap[key].isBigGift = true
+      if (b.isLoyal) donorBadgeMap[key].isLoyal = true
+      if (b.isBiggestYet) donorBadgeMap[key].isBiggestYet = true
+      if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
+    })
+    return { donationBadgeInfo, donorBadgeMap }
+  }, [donations])
   const donorMap = {}
   donations.forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
@@ -839,7 +882,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterType === 'Issued' && d.receipt_issued)
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
-    const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
+    const matchThankYou = filterThankYou === 'All'
+      || (filterThankYou === 'Sent' && d.thank_you_sent)
+      || (filterThankYou === 'Not Sent' && !d.thank_you_sent && d.donor_email?.trim())
+      || (filterThankYou === 'No Email' && !d.donor_email?.trim())
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
   }).sort((a, b) => {
     if (!donationSortBy) return new Date(b.created_at) - new Date(a.created_at)
@@ -881,16 +927,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const skipped = selectedDonationIds.length - selected.length
     if (selected.length === 0) { showToast('No selected donations are eligible (must be payment-confirmed and receipt-pending)', 'error'); return }
     setBulkActionInProgress(true)
-    for (const d of selected) await issueReceipt(d, true)
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'bulk_receipts_issued',
-      details: { donation_count: selected.length, year: filterYear },
-    })
+    bulkCancelRef.current = false
+    setBulkProgress({ done: 0, total: selected.length })
+    let issuedCount = 0
+    for (const d of selected) {
+      if (bulkCancelRef.current) break
+      await issueReceipt(d, true)
+      issuedCount++
+      setBulkProgress({ done: issuedCount, total: selected.length })
+    }
+    if (issuedCount > 0) {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'bulk_receipts_issued',
+        details: { donation_count: issuedCount, year: filterYear },
+      })
+    }
     setBulkActionInProgress(false)
+    setBulkProgress(null)
     setSelectedDonationIds([])
-    showToast(`${selected.length} receipt${selected.length > 1 ? 's' : ''} issued${skipped > 0 ? ` — ${skipped} skipped (not payment-confirmed or already issued)` : ''}`)
+    if (bulkCancelRef.current) {
+      showToast(`Cancelled — ${issuedCount} of ${selected.length} receipts issued before stopping`)
+    } else {
+      showToast(`${issuedCount} receipt${issuedCount > 1 ? 's' : ''} issued${skipped > 0 ? ` — ${skipped} skipped (not payment-confirmed or already issued)` : ''}`)
+    }
   }
 
   function bulkRequestSelectedNric() {
@@ -921,8 +982,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       description: `Records will be kept for audit purposes but removed from your active lists.${skipped > 0 ? ` ${skipped} selected donation${skipped > 1 ? 's are' : ' is'} app-sourced (not manual) and will be skipped.` : ''}`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
-        for (const d of selected) await deleteDonationConfirmed(d.id)
+        setBulkActionInProgress(true)
+        bulkCancelRef.current = false
+        setBulkProgress({ done: 0, total: selected.length })
+        let deletedCount = 0
+        for (const d of selected) {
+          if (bulkCancelRef.current) break
+          await deleteDonationConfirmed(d.id)
+          deletedCount++
+          setBulkProgress({ done: deletedCount, total: selected.length })
+        }
+        setBulkActionInProgress(false)
+        setBulkProgress(null)
         setSelectedDonationIds([])
+        if (bulkCancelRef.current) {
+          showToast(`Cancelled — ${deletedCount} of ${selected.length} entries deleted before stopping`)
+        } else {
+          showToast(`${deletedCount} entr${deletedCount > 1 ? 'ies' : 'y'} deleted`)
+        }
       },
     })
   }
@@ -1861,7 +1938,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
                     <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
                     <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} /></div>
-                    <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></div>
+                    <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></div>
                     <div><div style={s.formLabel}>Payment Method</div>
                       <select style={s.formInput} value={manualForm.payment_method} onChange={e => setManualForm(f => ({ ...f, payment_method: e.target.value }))}>
                         <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
@@ -1923,7 +2000,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterThankYou} onChange={e => setFilterThankYou(e.target.value)}>
                 <option value="All">Thank You: All</option>
                 <option value="Sent">💌 Sent</option>
-                <option value="Not Sent">Not Sent</option>
+                <option value="Not Sent">Not Sent (has email)</option>
+                <option value="No Email">No Email on File</option>
               </select>
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                 <option>All</option>
@@ -1942,11 +2020,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )}
             </div>
 
+            {bulkProgress && (
+              <div style={{ background: C.forest, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                  Issuing {bulkProgress.done} of {bulkProgress.total}...
+                </span>
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 6, height: 8, overflow: 'hidden' }}>
+                  <div style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%`, height: '100%', background: C.gold, borderRadius: 6, transition: 'width 0.2s' }} />
+                </div>
+                <button
+                  style={{ ...s.bannerBtn, background: 'white', color: C.red, flexShrink: 0 }}
+                  onClick={() => { bulkCancelRef.current = true }}
+                >✕ Cancel</button>
+              </div>
+            )}
+
             {selectedDonationIds.length > 0 && (
               <div style={{ background: C.teal, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedDonationIds.length} selected</span>
                 {selectedDonationIds.length < filteredDonations.length && (
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', textDecoration: 'underline', cursor: 'pointer' }} onClick={selectAllMatchingFilters}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => {
+                    if (filteredDonations.length > 200) {
+                      setConfirmModal({
+                        title: `Select all ${filteredDonations.length} donations?`,
+                        description: 'Bulk actions run one at a time, so this could take a while and cannot be cancelled partway through.',
+                        confirmLabel: 'Select all',
+                        onConfirm: selectAllMatchingFilters,
+                      })
+                    } else {
+                      selectAllMatchingFilters()
+                    }
+                  }}>
                     Select all {filteredDonations.length} matching filters
                   </span>
                 )}
