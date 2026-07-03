@@ -837,7 +837,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
-    const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric)
+    const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All' || (filterThankYou === 'Sent' && d.thank_you_sent) || (filterThankYou === 'Not Sent' && !d.thank_you_sent)
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
@@ -856,7 +856,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   useEffect(() => {
     setDonationsPage(0)
-  }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou])
+  }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou, donationSortBy, donationSortDir])
 
   function toggleDonationSelected(id) {
     setSelectedDonationIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -1913,7 +1913,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </select>
               <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
                 <option value="All">All NRICs</option>
-                <option value="Missing NRIC">⚠️ Missing NRIC</option>
+                <option value="Missing NRIC">⚠️ Missing NRIC (confirmed)</option>
               </select>
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
                 <option value="All">All Sources</option>
