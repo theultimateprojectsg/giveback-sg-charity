@@ -1046,7 +1046,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const rows = filteredDonations.map(d => ({
       'Donor Name': d.donor_name,
       'Email': d.donor_email || '',
-      'NRIC/FIN': d.donor_nric || '',
+      ...(charityIsIpc ? { 'NRIC/FIN': d.donor_nric || '' } : {}),
       'Amount (SGD)': d.amount,
       'Date': new Date(d.created_at).toLocaleDateString('en-SG'),
       'Source': d.source === 'manual' ? `Manual (${d.payment_method || ''})` : 'Giving Tree App',
@@ -1059,7 +1059,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }))
     if (rows.length === 0) { showToast('No donations to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
+    ws['!cols'] = charityIsIpc
+      ? [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
+      : [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donations')
     XLSX.writeFile(wb, `GivingTree-Donations-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -1861,7 +1863,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
               <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
+              {charityIsIpc && (
+                <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
+              )}
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
@@ -3070,7 +3074,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </select>
                 </div>
               )}
-              <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+              {charityIsIpc && (
+                <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
+              )}
               <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
               <button style={{ ...s.btnForest, background: C.teal }} onClick={() => { if (filterYear === 'All') { showToast('Select a specific year first'); return }; exportYearEndSummary() }}>🎉 Year-End Summary for Board</button>
               {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Receipts First'}</button>}
