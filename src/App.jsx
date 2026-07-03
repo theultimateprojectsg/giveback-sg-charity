@@ -912,7 +912,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const filteredDonations = donations.filter(d => {
     const q = searchTerm.toLowerCase().trim()
-    const matchSearch = q === '' || [d.donor_name, d.donor_email, d.donor_nric, d.notes, d.payment_ref, d.receipt_number].some(field => field?.toLowerCase().includes(q))
+    const searchFields = charityIsIpc ? [d.donor_name, d.donor_email, d.donor_nric, d.notes, d.payment_ref, d.receipt_number] : [d.donor_name, d.donor_email, d.notes, d.payment_ref, d.receipt_number]
+    const matchSearch = q === '' || searchFields.some(field => field?.toLowerCase().includes(q))
     const matchYear = filterYear === 'All' || new Date(d.created_at).getFullYear().toString() === filterYear
     const matchType = filterType === 'All'
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
@@ -3181,9 +3182,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="manual_entry_created">Manual entries added</option>
                 <option value="manual_entry_deleted">Manual entries deleted</option>
                 <option value="donation_edited">Edits</option>
-                <option value="nric_added">NRIC added by charity</option>
-                <option value="nric_synced_by_donor">NRIC updated by donor</option>
-                <option value="bulk_nric_requested">Bulk NRIC requests</option>
+                {charityIsIpc && <option value="nric_added">NRIC added by charity</option>}
+                {charityIsIpc && <option value="nric_synced_by_donor">NRIC updated by donor</option>}
+                {charityIsIpc && <option value="bulk_nric_requested">Bulk NRIC requests</option>}
                 <option value="bulk_receipts_issued">Bulk receipts issued</option>
               </select>
             </div>
