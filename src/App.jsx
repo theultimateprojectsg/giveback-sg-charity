@@ -763,7 +763,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const actionItems = [
     unconfirmedCount > 0 && { label: `${unconfirmedCount} payment${unconfirmedCount > 1 ? 's' : ''} to confirm`, tab: 'donations' },
     pendingCount > 0 && { label: `${pendingCount} receipt${pendingCount > 1 ? 's' : ''} pending`, tab: 'iras' },
-    missingNricThisYear > 0 && { label: `${missingNricThisYear} NRIC${missingNricThisYear > 1 ? 's' : ''} missing`, tab: 'donations' },
+    charityIsIpc && missingNricThisYear > 0 && { label: `${missingNricThisYear} NRIC${missingNricThisYear > 1 ? 's' : ''} missing`, tab: 'donations' },
     failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
   ].filter(Boolean)
   const thankYouThreshold = 200
@@ -1497,7 +1497,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
           ))}
           <div style={s.navLabel}>Compliance</div>
-          {[{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }, { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
+          {[...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []), { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
             <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>{item.label}
             </div>
@@ -1532,7 +1532,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             { id: 'donations', icon: '💳', label: 'Donations' },
             { id: 'analytics', icon: '📈', label: 'Analytics' },
             { id: 'donors',    icon: '👥', label: 'Donors' },
-            { id: 'iras',      icon: '🏛️', label: 'IRAS Export' },
+            ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []),
             { id: 'activity',  icon: '📋', label: 'Activity Log' },
             { id: 'promotions', icon: '📣', label: 'Promotions' },
           ].map(item => (
@@ -1557,7 +1557,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
-            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
+            {charityIsIpc && (
+              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
+            )}
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
@@ -1602,12 +1604,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + donations.filter(d => !d.donor_nric).length > 0 && (
+            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + (charityIsIpc ? donations.filter(d => !d.donor_nric).length : 0) > 0 && (
               <div style={{ background: '#FBE9E7', border: `1.5px solid ${C.red}`, borderRadius: 12, padding: '12px 18px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ fontSize: 18 }}>🏛️</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>
-                    IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''} — {pendingCount} receipt{pendingCount !== 1 ? 's' : ''} and {donations.filter(d => !d.donor_nric).length} NRIC{donations.filter(d => !d.donor_nric).length !== 1 ? 's' : ''} still outstanding
+                    IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''} — {pendingCount} receipt{pendingCount !== 1 ? 's' : ''}{charityIsIpc ? ` and ${donations.filter(d => !d.donor_nric).length} NRIC${donations.filter(d => !d.donor_nric).length !== 1 ? 's' : ''}` : ''} still outstanding
                   </div>
                 </div>
                 <span style={{ fontSize: 12, color: C.red, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }} onClick={() => setActiveTab('iras')}>31 Jan {currentYear + 1} →</span>
@@ -1623,7 +1625,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {[
                     { label: 'Confirm your charity details are correct', action: () => setActiveTab('settings') },
                     { label: 'Try logging a donation manually (cash, cheque, or wire)', action: () => { setActiveTab('donations'); setShowManualForm(true) } },
-                    { label: 'Check your IRAS export once you have a donation', action: () => setActiveTab('iras') },
+                    charityIsIpc
+                      ? { label: 'Check your IRAS export once you have a donation', action: () => setActiveTab('iras') }
+                      : { label: 'Check your donation report once you have a donation', action: () => setActiveTab('analytics') },
                   ].map((step, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={step.action}>
                       <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${C.sage}`, flexShrink: 0 }} />
@@ -1752,7 +1756,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={s.donationCardBadges}>
                             {causeNameForDonation(d) && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block' }}>🎯 {causeNameForDonation(d)}</span>}
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                            {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                            {charityIsIpc && !d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                           </div>
                         </div>
                       ))}
@@ -1760,7 +1764,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : (
                     <table style={s.table}>
                       <thead>
-                        <tr>{(isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                        <tr>{(charityIsIpc ? (isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']) : (isTablet ? ['Donor', 'Amount', 'Date', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Payment', 'Receipt', 'Receipt No.', 'Thank You'])).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
                         {pageDonations.map(d => (
@@ -2969,7 +2973,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── IRAS ── */}
-        {activeTab === 'iras' && (
+        {activeTab === 'iras' && charityIsIpc && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
