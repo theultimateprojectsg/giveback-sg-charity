@@ -1774,7 +1774,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </td>
                             )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
+                            {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
                             <td style={s.td}>
                               {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2054,7 +2054,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
                     <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
-                    <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
+                    {charityIsIpc && (
+                      <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
+                    )}
                     <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} /></div>
                     <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></div>
                     <div><div style={s.formLabel}>Payment Method</div>
@@ -2081,7 +2083,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            {(unconfirmedCountForYear > 0 || pendingCountForYear > 0 || missingNricThisYear > 0) && (
+            {(unconfirmedCountForYear > 0 || pendingCountForYear > 0 || (charityIsIpc && missingNricThisYear > 0)) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                 {unconfirmedCountForYear > 0 && (
                   <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters({ keepYear: true }); setFilterType('Awaiting Payment') }}>
@@ -2093,7 +2095,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     🧾 {pendingCountForYear} receipt{pendingCountForYear > 1 ? 's' : ''} pending{filterYear !== 'All' ? ` in ${filterYear}` : ''}
                   </button>
                 )}
-                {missingNricThisYear > 0 && (
+                {charityIsIpc && missingNricThisYear > 0 && (
                   <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters({ keepYear: true }); setFilterNric('Missing NRIC') }}>
                     🪪 {missingNricThisYear} missing NRIC{filterYear !== 'All' ? ` in ${filterYear}` : ''}
                   </button>
@@ -2102,14 +2104,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search name, email, NRIC, ref, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder={charityIsIpc ? "🔍 Search name, email, NRIC, ref, or notes..." : "🔍 Search name, email, ref, or notes..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
               </select>
-              <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
-                <option value="All">All NRICs</option>
-                <option value="Missing NRIC">⚠️ Missing NRIC (confirmed)</option>
-              </select>
+              {charityIsIpc && (
+                <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
+                  <option value="All">All NRICs</option>
+                  <option value="Missing NRIC">⚠️ Missing NRIC (confirmed)</option>
+                </select>
+              )}
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterSource} onChange={e => setFilterSource(e.target.value)}>
                 <option value="All">All Sources</option>
                 <option value="App">📱 App</option>
@@ -2173,7 +2177,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </span>
                 )}
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkIssueSelectedReceipts} disabled={bulkActionInProgress}>🧾 Issue Receipts</button>
-                <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
+                {charityIsIpc && (
+                  <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
+                )}
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.red }} onClick={bulkDeleteSelectedManual} disabled={bulkActionInProgress}>🗑️ Delete Manual</button>
                 <button style={{ ...s.bannerBtn, background: 'rgba(255,255,255,0.15)', color: 'white' }} onClick={() => setSelectedDonationIds([])}>✕ Clear Selection</button>
               </div>
@@ -2231,7 +2237,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               >✓ Confirm Payment</button>
                             )}
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                            {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
+                            {charityIsIpc && !d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                             {d.source === 'manual' && (
                               <span
                                 style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBE9E7', padding: '3px 10px', borderRadius: 20, marginLeft: 'auto' }}
@@ -2252,8 +2258,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </th>
                           )}
                           {(isTablet
-                            ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt']
-                            : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
+                            ? charityIsIpc ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Payment', 'Receipt']
+                            : charityIsIpc ? ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
                           ).map(h => {
                             const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
                             return (
@@ -2270,7 +2276,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </thead>
                       <tbody>
                         {paginatedDonations.map(d => {
-                          const needsAttention = d.payment_status !== 'confirmed' || !d.donor_nric
+                          const needsAttention = d.payment_status !== 'confirmed' || (charityIsIpc && !d.donor_nric)
                           const rowBg = selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                           return (
                           <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: needsAttention ? `3px solid ${C.warning}` : '3px solid transparent', cursor: 'pointer' }} onClick={() => { if (bulkEditMode) { toggleDonationSelected(d.id) } else { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') } }}>
@@ -2292,7 +2298,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </td>
                             )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
+                            {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
                             <td style={s.td}>
                               {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
