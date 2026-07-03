@@ -101,6 +101,7 @@ export default function App() {
   const [resetLoading, setResetLoading] = useState(false)
   const [quickEmailInput, setQuickEmailInput] = useState('')
   const [quickNricInput, setQuickNricInput] = useState('')
+  const [sendingThankYouId, setSendingThankYouId] = useState(null)
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const selectedRowRef = useRef(null)
@@ -403,6 +404,8 @@ export default function App() {
   }
 
   async function sendThankYouEmail(donation) {
+    if (sendingThankYouId === donation.id) return
+    setSendingThankYouId(donation.id)
     const { error } = await supabase.functions.invoke('send-thank-you', {
       body: {
         donor_name: donation.donor_name,
@@ -416,10 +419,11 @@ export default function App() {
         cause_title: causeNameForDonation(donation),
       }
     })
-    if (error) { showToast('Failed to send email', 'error'); return }
+    if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
     setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
+    setSendingThankYouId(null)
     showToast(`Email sent to ${donation.donor_email}`)
   }
 
@@ -528,11 +532,11 @@ export default function App() {
     showToast(`NRIC request sent to ${sent} of ${donorList.length} donors${missingNoEmail > 0 ? ` — ${missingNoEmail} more missing NRIC have no email and need direct follow-up` : ''}`)
   }
 
-  function clearDonationFilters() {
+  function clearDonationFilters(opts = {}) {
     setSearchTerm('')
     setFilterType('All')  
     setFilterNric('All')
-    setFilterYear('All')
+    if (!opts.keepYear) setFilterYear('All')
     setFilterSource('All')
     setFilterThankYou('All')
     setSelectedDonationIds([])
@@ -571,7 +575,7 @@ export default function App() {
     if (countError) { console.error('Could not generate receipt number:', countError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
     const nextSeq = (existingManualCount || 0) + 1
     const receiptNumber = `MR-${entryYear}-${String(nextSeq).padStart(6, '0')}`
-    const { data, error } = await supabase.from('donations').insert([{
+    let { data, error } = await supabase.from('donations').insert([{
       donor_name: manualForm.donor_name,
       donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
       charity_name: charityName,
@@ -588,6 +592,37 @@ export default function App() {
       created_at: manualForm.date,
       receipt_number: receiptNumber,
     }]).select()
+    if (error && error.code === '23505') {
+      // Receipt number collision (concurrent entry) — retry once with next sequence number
+      const { count: retryCount, error: retryCountError } = await supabase
+        .from('donations')
+        .select('id', { count: 'exact', head: true })
+        .eq('charity_uen', charityUen)
+        .eq('source', 'manual')
+        .gte('created_at', `${entryYear}-01-01`)
+        .lt('created_at', `${entryYear + 1}-01-01`)
+      if (retryCountError) { console.error('Retry count failed:', retryCountError); setManualError('Error saving: receipt number conflict, please try again'); setSavingManual(false); return }
+      const retryReceiptNumber = `MR-${entryYear}-${String((retryCount || 0) + 1).padStart(6, '0')}`
+      const retryResult = await supabase.from('donations').insert([{
+        donor_name: manualForm.donor_name,
+        donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        cause_id: manualForm.cause_id || null,
+        amount: parseFloat(manualForm.amount),
+        status: 'confirmed',
+        payment_status: 'confirmed',
+        receipt_issued: true,
+        source: 'manual',
+        payment_method: manualForm.payment_method,
+        notes: manualForm.notes,
+        donor_email: manualForm.donor_email,
+        created_at: manualForm.date,
+        receipt_number: retryReceiptNumber,
+      }]).select()
+      data = retryResult.data
+      error = retryResult.error
+    }
     if (error) { console.error('Manual entry insert error:', error); setManualError(`Error saving: ${error.message}`); setSavingManual(false); return }
     try {
       await supabase.from('audit_log').insert({
@@ -672,6 +707,7 @@ export default function App() {
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
+const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)).filter(d => d.payment_status !== 'confirmed').length
   const missingNricThisYear = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear)))
     .filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
   const dashboardCurrentYear = new Date().getFullYear()
@@ -795,7 +831,7 @@ export default function App() {
 
   const filteredDonations = donations.filter(d => {
     const q = searchTerm.toLowerCase().trim()
-    const matchSearch = q === '' || [d.donor_name, d.donor_email, d.donor_nric, d.notes].some(field => field?.toLowerCase().includes(q))
+    const matchSearch = q === '' || [d.donor_name, d.donor_email, d.donor_nric, d.notes, d.payment_ref, d.receipt_number].some(field => field?.toLowerCase().includes(q))
     const matchYear = filterYear === 'All' || new Date(d.created_at).getFullYear().toString() === filterYear
     const matchType = filterType === 'All'
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
@@ -836,8 +872,13 @@ export default function App() {
     }
   }
 
+  function selectAllMatchingFilters() {
+    setSelectedDonationIds(filteredDonations.map(d => d.id))
+  }
+
   async function bulkIssueSelectedReceipts() {
     const selected = donations.filter(d => selectedDonationIds.includes(d.id) && !d.receipt_issued && d.payment_status === 'confirmed')
+    const skipped = selectedDonationIds.length - selected.length
     if (selected.length === 0) { showToast('No selected donations are eligible (must be payment-confirmed and receipt-pending)', 'error'); return }
     setBulkActionInProgress(true)
     for (const d of selected) await issueReceipt(d, true)
@@ -849,11 +890,12 @@ export default function App() {
     })
     setBulkActionInProgress(false)
     setSelectedDonationIds([])
-    showToast(`${selected.length} receipt${selected.length > 1 ? 's' : ''} issued`)
+    showToast(`${selected.length} receipt${selected.length > 1 ? 's' : ''} issued${skipped > 0 ? ` — ${skipped} skipped (not payment-confirmed or already issued)` : ''}`)
   }
 
   function bulkRequestSelectedNric() {
     const selected = donations.filter(d => selectedDonationIds.includes(d.id) && !d.donor_nric && d.donor_email?.trim())
+    const skipped = selectedDonationIds.length - selected.length
     if (selected.length === 0) { showToast('No selected donations are eligible (must be missing NRIC and have an email on file)', 'error'); return }
     const byDonor = {}
     selected.forEach(d => {
@@ -864,18 +906,19 @@ export default function App() {
     const donorList = Object.values(byDonor)
     setConfirmModal({
       title: 'Send NRIC request to selected donors?',
-      description: `This will email ${donorList.length} donor${donorList.length > 1 ? 's' : ''}.`,
+      description: `This will email ${donorList.length} donor${donorList.length > 1 ? 's' : ''}.${skipped > 0 ? ` ${skipped} selected donation${skipped > 1 ? 's are' : ' is'} not eligible (already has NRIC or no email on file) and will be skipped.` : ''}`,
       confirmLabel: 'Send request',
-      onConfirm: () => { sendBulkNricRequest(donorList, 0); setSelectedDonationIds([]) },
+      onConfirm: () => { sendBulkNricRequest(donorList, skipped); setSelectedDonationIds([]) },
     })
   }
 
   function bulkDeleteSelectedManual() {
     const selected = donations.filter(d => selectedDonationIds.includes(d.id) && d.source === 'manual')
+    const skipped = selectedDonationIds.length - selected.length
     if (selected.length === 0) { showToast('No selected donations are manual entries', 'error'); return }
     setConfirmModal({
       title: `Delete ${selected.length} manual entr${selected.length > 1 ? 'ies' : 'y'}?`,
-      description: 'Records will be kept for audit purposes but removed from your active lists.',
+      description: `Records will be kept for audit purposes but removed from your active lists.${skipped > 0 ? ` ${skipped} selected donation${skipped > 1 ? 's are' : ' is'} app-sourced (not manual) and will be skipped.` : ''}`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
         for (const d of selected) await deleteDonationConfirmed(d.id)
@@ -1537,7 +1580,29 @@ export default function App() {
                             )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                            <td style={s.td}>
+                              {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={s.badgePending}>⚠️ Unverified</span>
+                                  <button
+                                    style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setConfirmModal({
+                                        title: 'Confirm this payment?',
+                                        subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                        donorName: d.donor_name,
+                                        amount: d.amount,
+                                        reference: d.payment_ref || d.receipt_number,
+                                        steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                        confirmLabel: 'Confirm payment',
+                                        onConfirm: () => confirmPaymentFlow(d),
+                                      })
+                                    }}
+                                  >✓ Confirm</button>
+                                </div>
+                              )}
+                            </td>
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
@@ -1778,7 +1843,7 @@ export default function App() {
                 <div style={s.pageSub}>{donations.length} total · {donations.filter(d => d.source === 'manual').length} manual entries</div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCount})`}</button>}
+                {pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCountForYear})`}</button>}
                 <button style={s.btnGold} onClick={() => setShowManualForm(true)}>+ Manual Entry</button>
               </div>
             </div>
@@ -1821,28 +1886,28 @@ export default function App() {
               </div>
             )}
 
-            {(unconfirmedCount > 0 || pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0) && (
+            {(unconfirmedCountForYear > 0 || pendingCountForYear > 0 || missingNricThisYear > 0) && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                {unconfirmedCount > 0 && (
-                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterType('Awaiting Payment') }}>
-                    ⚠️ {unconfirmedCount} awaiting confirmation
+                {unconfirmedCountForYear > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters({ keepYear: true }); setFilterType('Awaiting Payment') }}>
+                    ⚠️ {unconfirmedCountForYear} awaiting confirmation{filterYear !== 'All' ? ` in ${filterYear}` : ''}
                   </button>
                 )}
-                {pendingCount > 0 && (
-                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterType('Receipt Pending') }}>
-                    🧾 {pendingCount} receipt{pendingCount > 1 ? 's' : ''} pending
+                {pendingCountForYear > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters({ keepYear: true }); setFilterType('Receipt Pending') }}>
+                    🧾 {pendingCountForYear} receipt{pendingCountForYear > 1 ? 's' : ''} pending{filterYear !== 'All' ? ` in ${filterYear}` : ''}
                   </button>
                 )}
-                {donations.filter(d => !d.donor_nric).length > 0 && (
-                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters(); setFilterNric('Missing NRIC') }}>
-                    🪪 {donations.filter(d => !d.donor_nric).length} missing NRIC
+                {missingNricThisYear > 0 && (
+                  <button style={{ ...s.badgePending, border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 14px' }} onClick={() => { clearDonationFilters({ keepYear: true }); setFilterNric('Missing NRIC') }}>
+                    🪪 {missingNricThisYear} missing NRIC{filterYear !== 'All' ? ` in ${filterYear}` : ''}
                   </button>
                 )}
               </div>
             )}
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search by name, email, NRIC, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search name, email, NRIC, ref, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
               </select>
@@ -1880,6 +1945,11 @@ export default function App() {
             {selectedDonationIds.length > 0 && (
               <div style={{ background: C.teal, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedDonationIds.length} selected</span>
+                {selectedDonationIds.length < filteredDonations.length && (
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', textDecoration: 'underline', cursor: 'pointer' }} onClick={selectAllMatchingFilters}>
+                    Select all {filteredDonations.length} matching filters
+                  </span>
+                )}
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkIssueSelectedReceipts} disabled={bulkActionInProgress}>🧾 Issue Receipts</button>
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.red }} onClick={bulkDeleteSelectedManual} disabled={bulkActionInProgress}>🗑️ Delete Manual</button>
@@ -1920,6 +1990,24 @@ export default function App() {
                           <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginBottom: 6 }}>{d.payment_ref || d.receipt_number || '—'}</div>
                           <div style={s.donationCardBadges}>
                             {causeNameForDonation(d) && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block' }}>🎯 {causeNameForDonation(d)}</span>}
+                            {d.payment_status !== 'confirmed' && (
+                              <button
+                                style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setConfirmModal({
+                                    title: 'Confirm this payment?',
+                                    subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                    donorName: d.donor_name,
+                                    amount: d.amount,
+                                    reference: d.payment_ref || d.receipt_number,
+                                    steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                    confirmLabel: 'Confirm payment',
+                                    onConfirm: () => confirmPaymentFlow(d),
+                                  })
+                                }}
+                              >✓ Confirm Payment</button>
+                            )}
                             {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
                             {!d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
                             {d.source === 'manual' && (
@@ -1942,7 +2030,7 @@ export default function App() {
                             </th>
                           )}
                           {(isTablet
-                            ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt']
+                            ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt']
                             : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
                           ).map(h => {
                             const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
@@ -1983,7 +2071,29 @@ export default function App() {
                             )}
                             {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
                             <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>
-                            {!isTablet && <td style={s.td}>{d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}</td>}
+                            <td style={s.td}>
+                              {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={s.badgePending}>⚠️ Unverified</span>
+                                  <button
+                                    style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setConfirmModal({
+                                        title: 'Confirm this payment?',
+                                        subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                        donorName: d.donor_name,
+                                        amount: d.amount,
+                                        reference: d.payment_ref || d.receipt_number,
+                                        steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                        confirmLabel: 'Confirm payment',
+                                        onConfirm: () => confirmPaymentFlow(d),
+                                      })
+                                    }}
+                                  >✓ Confirm</button>
+                                </div>
+                              )}
+                            </td>
                             <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                             {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
                             {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
@@ -2331,18 +2441,22 @@ export default function App() {
                           </div>
                         )}
                         {selectedDonation.donor_email?.trim() && (
-                          <button style={{ ...s.btnGold, justifyContent: 'center', opacity: selectedDonation.thank_you_sent ? 0.7 : 1 }} onClick={() => {
-                            if (selectedDonation.thank_you_sent) {
-                              setConfirmModal({
-                                title: 'Send this email again?',
-                                description: 'A thank you email was already sent for this donation.',
-                                confirmLabel: 'Send again',
-                                onConfirm: () => sendThankYouEmail(selectedDonation),
-                              })
-                            } else {
-                              sendThankYouEmail(selectedDonation)
-                            }
-                          }}>💌 Send Thank You Email</button>
+                          <button
+                            style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
+                            disabled={sendingThankYouId === selectedDonation.id}
+                            onClick={() => {
+                              if (selectedDonation.thank_you_sent) {
+                                setConfirmModal({
+                                  title: 'Send this email again?',
+                                  description: 'A thank you email was already sent for this donation.',
+                                  confirmLabel: 'Send again',
+                                  onConfirm: () => sendThankYouEmail(selectedDonation),
+                                })
+                              } else {
+                                sendThankYouEmail(selectedDonation)
+                              }
+                            }}
+                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You Email'}</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
