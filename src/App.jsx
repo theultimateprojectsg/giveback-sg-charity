@@ -106,8 +106,11 @@ export default function App() {
   const [sendingThankYouId, setSendingThankYouId] = useState(null)
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
+  const [annualGoal, setAnnualGoal] = useState(null)
+  const [editingGoal, setEditingGoal] = useState(false)
+  const [goalInput, setGoalInput] = useState('')
   const selectedRowRef = useRef(null)
-  const [hoveredMonth, setHoveredMonth] = useState(null)
+  
   const [confirmModal, setConfirmModal] = useState(null)
   const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
   const [thankYouDraft, setThankYouDraft] = useState(null)
@@ -140,11 +143,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc')
+      .select('ipc, annual_goal')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
+    setAnnualGoal(data?.annual_goal || null)
     setCharityIpcLoaded(true)
   }
 
@@ -829,6 +833,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     causeRaisedMap[d.cause_id].total += d.amount
     causeRaisedMap[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
   })
+  const causePerformanceThisYear = (() => {
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+    const map = {}
+    let generalTotal = 0
+    let generalCount = 0
+    yearScoped.forEach(d => {
+      if (!d.cause_id) { generalTotal += d.amount; generalCount += 1; return }
+      if (!map[d.cause_id]) map[d.cause_id] = { total: 0, count: 0, donors: new Set() }
+      map[d.cause_id].total += d.amount
+      map[d.cause_id].count += 1
+      map[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
+    })
+    const rows = Object.entries(map).map(([causeId, stats]) => {
+      const cause = myCauses.find(c => c.id === causeId)
+      return {
+        title: cause?.title || 'Unknown Campaign',
+        total: stats.total,
+        count: stats.count,
+        avg: stats.total / stats.count,
+        donors: stats.donors.size,
+      }
+    }).sort((a, b) => b.total - a.total)
+    if (generalCount > 0) {
+      rows.push({ title: 'General Donation', total: generalTotal, count: generalCount, avg: generalTotal / generalCount, donors: null, isGeneral: true })
+    }
+    return rows
+  })()
 
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -858,6 +889,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       .map(d => d.donor_name)
   )]
   const avgDonation  = donations.length ? (totalAllTime / donations.length) : 0
+  const medianDonation = (() => {
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+    const amounts = yearScoped.map(d => d.amount).sort((a, b) => a - b)
+    if (amounts.length === 0) return 0
+    const mid = Math.floor(amounts.length / 2)
+    return amounts.length % 2 === 0 ? (amounts[mid - 1] + amounts[mid]) / 2 : amounts[mid]
+  })()
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
@@ -1090,6 +1128,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
   }
 
+  async function saveAnnualGoal() {
+    const val = parseFloat(goalInput)
+    if (!goalInput || isNaN(val) || val <= 0) { showToast('Enter a valid goal amount', 'error'); return }
+    const { error } = await supabase.from('charity_contacts').update({ annual_goal: val }).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save goal', 'error'); return }
+    setAnnualGoal(val)
+    setEditingGoal(false)
+    showToast('Annual goal updated ✓')
+  }
+
   function showToast(msg, type = 'success') {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast({ msg, type })
@@ -1159,6 +1207,71 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donor Contacts')
     XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.xlsx`)
+  }
+
+  function exportAnalyticsPDF() {
+    const doc = new jsPDF()
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Analytics Snapshot', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`${charityName} · ${filterYear === 'All' ? 'All Time' : filterYear}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${new Date().toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Key Metrics', 14, 56)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    const stats = [
+      ['Total Raised', `SGD $${totalThisYear.toLocaleString()}`],
+      ['Unique Donors', `${uniqueDonorsThisYear.length}`],
+      ['Average Donation', `SGD $${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`],
+      ['Median Donation', `SGD $${medianDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}`],
+      ['Total Transactions', `${donations.length}`],
+      ['Repeat Donors (current month)', `${repeatDonorsThisMonth}`],
+      ['Longest Supporter', longestSupporter ? `${longestSupporter.name} (${longestSupporter.monthsSupporting} mo)` : '—'],
+    ]
+    let y = 66
+    stats.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'normal'); doc.text(label, 14, y)
+      doc.setFont('helvetica', 'bold'); doc.text(value, 120, y)
+      y += 8
+    })
+
+    y += 6
+    if (causePerformanceThisYear.length > 0) {
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+      doc.text('Campaign Performance', 14, y)
+      y += 4
+      autoTable(doc, {
+        startY: y,
+        head: [['Campaign', 'Total (SGD)', 'Donations', 'Donors', 'Avg (SGD)']],
+        body: causePerformanceThisYear.map(row => [row.title, `$${row.total.toLocaleString()}`, row.count, row.donors ?? '—', `$${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
+      })
+      y = doc.lastAutoTable.finalY + 14
+    }
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Top Donors', 14, y)
+    y += 4
+    autoTable(doc, {
+      startY: y,
+      head: [['Donor', 'Total Given (SGD)', 'Donations']],
+      body: donorList.slice(0, 10).length ? donorList.slice(0, 10).map(d => [d.name, `$${d.total.toLocaleString()}`, d.count]) : [['No donors yet', '', '']],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+    })
+
+    const finalY = doc.lastAutoTable.finalY + 14
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
+
+    doc.save(`GivingTree-Analytics-${charityName}-${filterYear}.pdf`)
   }
 
   function exportPDF() {
@@ -1311,6 +1424,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return months.map((month, i) => ({
       month,
       amount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
+      lastYearAmount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) - 1 && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
       count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
     }))
   }, [donations, filterYear])
@@ -2585,12 +2699,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Analytics</div>
                 <div style={s.pageSub}>Donation trends and donor insights for {charityName}</div>
               </div>
-              <select style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                {donations.length === 0
-  ? <option>{new Date().getFullYear()}</option>
-  : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
-}
-              </select>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button style={s.exportSmallBtn} onClick={exportAnalyticsPDF}>📄 Export Snapshot</button>
+                <select style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  {donations.length === 0
+    ? <option>{new Date().getFullYear()}</option>
+    : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
+  }
+                </select>
+              </div>
             </div>
 
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
@@ -2610,20 +2727,77 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.statNote}>Per transaction</div>
               </div>
               <div style={s.statCard}>
+                <div style={s.statLabel}>Median Donation</div>
+                <div style={s.statValue}>${medianDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                <div style={s.statNote}>Typical single gift, {filterYear}</div>
+              </div>
+              <div style={s.statCard}>
                 <div style={s.statLabel}>Total Transactions</div>
                 <div style={s.statValue}>{donations.length}</div>
                 <div style={s.statNote}>All time</div>
               </div>
+              <div style={s.statCard}>
+                <div style={s.statLabel}>Repeat Donors, Current Month</div>
+                <div style={s.statValue}>{repeatDonorsThisMonth}</div>
+                <div style={s.statNote}>Live — not affected by year filter above</div>
+              </div>
+              <div style={s.statCard}>
+                <div style={s.statLabel}>Longest Supporter</div>
+                <div style={s.statValue}>{longestSupporter ? `${longestSupporter.monthsSupporting} mo${longestSupporter.monthsSupporting > 1 ? 's' : ''}` : '—'}</div>
+                <div style={s.statNote}>{longestSupporter ? longestSupporter.name : 'No donors yet'}</div>
+              </div>
             </div>
 
+            {filterYear !== 'All' && (
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 0 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🎯 Annual Fundraising Goal — {filterYear}</div>
+                  {!editingGoal && (
+                    <span style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
+                      {annualGoal ? 'Edit' : '+ Set Goal'}
+                    </span>
+                  )}
+                </div>
+                {editingGoal ? (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
+                    <button style={{ ...s.issueBtn, flexShrink: 0 }} onClick={saveAnnualGoal}>Save</button>
+                    <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setEditingGoal(false)}>Cancel</button>
+                  </div>
+                ) : annualGoal ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 22, fontWeight: 800, color: C.forest }}>${totalThisYear.toLocaleString()}</span>
+                      <span style={{ fontSize: 13, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
+                    </div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, Math.round((totalThisYear / annualGoal) * 100))}%`, height: '100%', background: totalThisYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{Math.round((totalThisYear / annualGoal) * 100)}% of goal reached</div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: C.muted }}>No goal set for this year yet.</div>
+                )}
+              </div>
+            )}
+
             <div style={{ ...s.card, marginBottom: 24 }}>
-              <div style={s.cardTitle}>📊 Monthly Donations — {filterYear}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ ...s.cardTitle, marginBottom: 0 }}>📊 Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`}</div>
+                {filterYear !== 'All' && (
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
+                    <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
+                    <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
+                  </div>
+                )}
+              </div>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                  <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Donations']} />
+                  <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(filterYear) - 1}` : 'Previous year')]} />
+                  {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} />}
                   <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -2643,7 +2817,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </ResponsiveContainer>
               </div>
               <div style={s.card}>
-                <div style={s.cardTitle}>🏆 Top Donors</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {donorList.slice(0, 5).map((d, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -2659,6 +2836,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
             </div>
+
+            {causePerformanceThisYear.length > 0 && (
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {causePerformanceThisYear.map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.isGeneral ? '💚 ' : '🎯 '}{row.title}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''}{row.donors !== null ? ` · ${row.donors} donor${row.donors > 1 ? 's' : ''}` : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      </div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
@@ -2718,12 +2912,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     })()}
                   </div>
                 </div>
-                {pendingCount > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Pending Receipts'}</button>}
+                {pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending Receipts (${filterYear === 'All' ? 'all years' : filterYear})`}</button>}
               </div>
               <div style={s.card}>
-                <div style={s.cardTitle}>📅 Recent Activity</div>
+                <div style={s.cardTitle}>📅 Recent Activity{filterYear !== 'All' ? ` — ${filterYear}` : ''}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {donations.slice(0, 5).map((d, i) => (
+                  {(filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).slice(0, 5).map((d, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < 4 ? `1px solid ${C.ivoryDark}` : 'none', cursor: 'pointer' }}
                       onClick={() => goToDonation(d)}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.receipt_issued ? C.sage : C.gold, flexShrink: 0 }} />
@@ -2734,7 +2928,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
                     </div>
                   ))}
-                  {donations.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donations yet</div>}
+                  {(filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donations in {filterYear === 'All' ? 'this range' : filterYear}</div>}
                 </div>
               </div>
             </div>
