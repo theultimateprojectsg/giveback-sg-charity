@@ -1657,11 +1657,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.statValue}>{dashboardUniqueDonors}</div>
                 <div style={s.statNote}>{dashboardCurrentYear}</div>
               </div>
-              <div style={{ ...s.statCard, background: dashboardMissingNric > 0 ? C.warningBg : s.statCard.background, borderColor: dashboardMissingNric > 0 ? C.warningBorder : C.border }}>
-                <div style={{ ...s.statLabel, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>Missing NRIC</div>
-                <div style={{ ...s.statValue, color: dashboardMissingNric > 0 ? C.warning : C.forest }}>{dashboardMissingNric}</div>
-                <div style={{ ...s.statNote, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>{dashboardMissingNric > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
-              </div>
+              {charityIsIpc && (
+                <div style={{ ...s.statCard, background: dashboardMissingNric > 0 ? C.warningBg : s.statCard.background, borderColor: dashboardMissingNric > 0 ? C.warningBorder : C.border }}>
+                  <div style={{ ...s.statLabel, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>Missing NRIC</div>
+                  <div style={{ ...s.statValue, color: dashboardMissingNric > 0 ? C.warning : C.forest }}>{dashboardMissingNric}</div>
+                  <div style={{ ...s.statNote, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>{dashboardMissingNric > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
+                </div>
+              )}
             </div>
 
             {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
@@ -2406,19 +2408,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             )}
                           </div>
                         ))}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                          <span style={{ fontSize: 13, color: C.muted }}>NRIC / FIN</span>
-                          {editingManual && selectedDonation.source === 'manual' ? (
-                            <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
-                              placeholder="e.g. S1234567A" maxLength={9}
-                              value={editForm.donor_nric ?? (selectedDonation.donor_nric || '')}
-                              onChange={e => setEditForm(f => ({ ...f, donor_nric: e.target.value.toUpperCase() }))} />
-                          ) : selectedDonation.donor_nric ? (
-                            <span style={{ fontSize: 13, fontWeight: 700, color: C.sage }}>✓ {selectedDonation.donor_nric}</span>
-                          ) : (
-                            <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>⚠️ Missing</span>
-                          )}
-                        </div>
+                        {charityIsIpc && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>NRIC / FIN</span>
+                            {editingManual && selectedDonation.source === 'manual' ? (
+                              <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 140, textAlign: 'right' }}
+                                placeholder="e.g. S1234567A" maxLength={9}
+                                value={editForm.donor_nric ?? (selectedDonation.donor_nric || '')}
+                                onChange={e => setEditForm(f => ({ ...f, donor_nric: e.target.value.toUpperCase() }))} />
+                            ) : selectedDonation.donor_nric ? (
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.sage }}>✓ {selectedDonation.donor_nric}</span>
+                            ) : (
+                              <span style={{ fontSize: 12, fontWeight: 700, color: C.warning }}>⚠️ Missing</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {!selectedDonation.donor_email?.trim() && !editingManual && selectedDonation.source === 'manual' && (
@@ -2440,7 +2444,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      {!selectedDonation.donor_nric && !editingManual && (
+                      {charityIsIpc && !selectedDonation.donor_nric && !editingManual && (
                         <div style={{ marginBottom: 16 }}>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <input style={{ ...s.formInput, padding: '7px 10px', fontSize: 12 }} placeholder="e.g. S1234567A" maxLength={9} value={quickNricInput} onChange={e => setQuickNricInput(e.target.value)} />
@@ -2988,7 +2992,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <button style={s.bannerBtn} onClick={() => { if (filterYear !== 'All' && pendingCountForYear === 0) { showToast(`No receipts pending in ${filterYear} — switch to "All" or another year to issue the ${pendingCount} pending elsewhere`, 'error'); return } issueAllReceipts() }} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Issuing...' : `Issue All Receipts${filterYear !== 'All' ? ` (${filterYear})` : ''}`}</button>
               </div>
             )}
-            {donations.filter(d => !d.donor_nric).length > 0 && (
+            {charityIsIpc && donations.filter(d => !d.donor_nric).length > 0 && (
               <div style={{ ...s.deadlineBanner, background: C.teal, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ fontSize: 24 }}>🪪</div>
@@ -3008,8 +3012,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Auto-generated from Giving Tree donor records · Ready to export</div>
                 </div>
               </div>
-              <div style={{ ...s.irasStatus, ...(pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0 ? { background: C.warning, color: 'white' } : {}) }}>
-                {pendingCount > 0 || donations.filter(d => !d.donor_nric).length > 0 ? '⚠️ Action Needed' : '✓ Ready'}
+              <div style={{ ...s.irasStatus, ...(pendingCount > 0 || (charityIsIpc && donations.filter(d => !d.donor_nric).length > 0) ? { background: C.warning, color: 'white' } : {}) }}>
+                {pendingCount > 0 || (charityIsIpc && donations.filter(d => !d.donor_nric).length > 0) ? '⚠️ Action Needed' : '✓ Ready'}
               </div>
             </div>
 
@@ -3020,7 +3024,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const cards = [
                   { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: filterYear === 'All' ? 'Select a year for details' : `${yearDons.length} transactions`, warn: false },
                   { label: '250% Deductible', value: `$${(totalThisYear * 2.5).toLocaleString()}`, note: 'Total tax deductible amount', warn: false },
-                  { label: 'Missing NRIC', value: filterYear === 'All' ? '—' : missingNric, note: filterYear === 'All' ? 'Select a year to check' : missingNric > 0 ? 'Click to see affected donors' : 'All donors have NRIC ✓', warn: filterYear !== 'All' && missingNric > 0, action: filterYear !== 'All' && missingNric > 0 },
+                  ...(charityIsIpc ? [{ label: 'Missing NRIC', value: filterYear === 'All' ? '—' : missingNric, note: filterYear === 'All' ? 'Select a year to check' : missingNric > 0 ? 'Click to see affected donors' : 'All donors have NRIC ✓', warn: filterYear !== 'All' && missingNric > 0, action: filterYear !== 'All' && missingNric > 0 }] : []),
                   { label: 'Receipts Pending', value: pendingCount, note: pendingCount > 0 ? 'Action needed' : 'All issued ✓', warn: pendingCount > 0 },
                 ]
                 return cards.map((item, i) => (
@@ -3041,13 +3045,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 ⚠️ {pendingCount} donation{pendingCount > 1 ? 's' : ''} still pending receipt. Issue all receipts before submitting to IRAS.
               </div>
             )}
-            {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length > 0 && (
+            {charityIsIpc && donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length > 0 && (
               <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <span>🪪 {donations.filter(d => !d.donor_nric && d.donor_email?.trim()).length} donations missing NRIC have a donor email on file.</span>
                 <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={requestAllMissingNric} disabled={bulkActionInProgress}>{bulkActionInProgress ? 'Sending...' : 'Request All NRICs'}</button>
               </div>
             )}
-            {donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length > 0 && (
+            {charityIsIpc && donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length > 0 && (
               <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: C.warning, lineHeight: 1.5 }}>
                 ⚠️ {donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length} donation{donations.filter(d => !d.donor_nric && !d.donor_email?.trim()).length > 1 ? 's' : ''} missing NRIC also have no email on file — these can't be reached by the bulk request and will need direct follow-up (phone, mail, or in person).
               </div>
@@ -3088,7 +3092,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
                             <div style={s.donorName}>{d.name}</div>
                           </div>
-                          {nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>}
+                          {charityIsIpc && (nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>)}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                           <div>
@@ -3115,7 +3119,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Total Donated', '250% Deductible', 'NRIC'] : ['Donor', 'Total Donated', 'Transactions', '250% Deductible', 'Est. Tax Savings', 'NRIC']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{(charityIsIpc ? (isTablet ? ['Donor', 'Total Donated', '250% Deductible', 'NRIC'] : ['Donor', 'Total Donated', 'Transactions', '250% Deductible', 'Est. Tax Savings', 'NRIC']) : (isTablet ? ['Donor', 'Total Donated', '250% Deductible'] : ['Donor', 'Total Donated', 'Transactions', '250% Deductible', 'Est. Tax Savings'])).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {irasYearDonorList.map((d, i) => (
@@ -3125,12 +3129,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count}</span></td>}
                         <td style={s.td}><span style={{ ...s.amountText, color: C.forest }}>${(d.total * 2.5).toLocaleString()}</span></td>
                         {!isTablet && <td style={s.td}><span style={{ ...s.amountText, color: C.sage }}>${(d.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></td>}
-                        <td style={s.td}>
-                          {(() => {
-                            const nric = d.donations.find(x => x.donor_nric)?.donor_nric
-                            return nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>
-                          })()}
-                        </td>
+                        {charityIsIpc && (
+                          <td style={s.td}>
+                            {(() => {
+                              const nric = d.donations.find(x => x.donor_nric)?.donor_nric
+                              return nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>
+                            })()}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
