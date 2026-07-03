@@ -1246,12 +1246,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       doc.setFontSize(13); doc.setFont('helvetica', 'bold')
       doc.text('Campaign Performance', 14, y)
       y += 4
+      const campaignRows = causePerformanceThisYear.filter(r => !r.isGeneral)
+      const generalRow = causePerformanceThisYear.find(r => r.isGeneral)
       autoTable(doc, {
         startY: y,
         head: [['Campaign', 'Total (SGD)', 'Donations', 'Donors', 'Avg (SGD)']],
-        body: causePerformanceThisYear.map(row => [row.title, `$${row.total.toLocaleString()}`, row.count, row.donors ?? '—', `$${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`]),
+        body: campaignRows.length ? campaignRows.map(row => [row.title, `$${row.total.toLocaleString()}`, row.count, row.donors, `$${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`]) : [['No campaign-tagged donations', '', '', '', '']],
+        foot: generalRow ? [['General / Untagged Giving', `$${generalRow.total.toLocaleString()}`, generalRow.count, '—', `$${generalRow.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`]] : [],
         styles: { fontSize: 9 },
         headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
+        footStyles: { fontStyle: 'italic', textColor: [122, 110, 98] },
       })
       y = doc.lastAutoTable.finalY + 14
     }
@@ -2840,17 +2844,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {causePerformanceThisYear.length > 0 && (
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {causePerformanceThisYear.map((row, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.isGeneral ? '💚 ' : '🎯 '}{row.title}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''}{row.donors !== null ? ` · ${row.donors} donor${row.donors > 1 ? 's' : ''}` : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
+                  <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {row.title}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
                       </div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
+                    ))}
+                  </div>
+                )}
+                {causePerformanceThisYear.find(r => r.isGeneral) && (() => {
+                  const g = causePerformanceThisYear.find(r => r.isGeneral)
+                  return (
+                    <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: C.muted }}>💚 Untagged / General Giving — {g.count} donation{g.count > 1 ? 's' : ''}, avg ${g.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, flexShrink: 0 }}>${g.total.toLocaleString()}</div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </div>
             )}
 
