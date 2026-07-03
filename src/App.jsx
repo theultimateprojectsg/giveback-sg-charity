@@ -1318,7 +1318,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`Payment Method: ${donation.payment_method || (donation.source === 'manual' ? 'Manual Entry' : 'PayNow')}`, 14, 90)
     const receiptRef = donation.payment_ref || donation.receipt_number
     let nextY = 90
-    if (donation.donor_nric) { doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100); nextY = 100 }
+    if (charityIsIpc && donation.donor_nric) { doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100); nextY = 100 }
     if (receiptRef) { doc.text(`Receipt No: ${receiptRef}`, 14, nextY + 10); nextY += 10 }
     doc.line(14, nextY + 8, 196, nextY + 8)
     doc.setFont('helvetica', 'bold')
