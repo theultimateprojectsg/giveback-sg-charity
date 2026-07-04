@@ -2524,12 +2524,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 {charityIsIpc && !d.donor_nric && isPaid && (
                                   <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>NRIC missing</span>
                                 )}
-                                {d.source === 'manual' && (
-                                  <span
-                                    style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBE9E7', padding: '3px 9px', borderRadius: 20, marginLeft: 'auto' }}
-                                    onClick={(e) => { e.stopPropagation(); deleteDonation(d.id) }}
-                                  >Delete</span>
-                                )}
                               </div>
                             </div>
                           </div>
