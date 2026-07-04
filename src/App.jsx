@@ -2464,7 +2464,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {paginatedDonations.map(d => {
                         const isPaid = d.payment_status === 'confirmed'
                         const isReceipted = d.receipt_issued
-                        const railColor = !isPaid ? C.red : !isReceipted ? C.gold : C.sage
+                        const needsThanking = isPaid && isReceipted && d.donor_email?.trim() && !d.thank_you_sent
+                        const railColor = !isPaid ? C.red : (!isReceipted || needsThanking) ? C.gold : C.sage
                         return (
                         <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={{ width: 4, borderRadius: 4, background: railColor, alignSelf: 'stretch', flexShrink: 0 }} />
@@ -2479,53 +2480,57 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                               <div style={{ ...s.donationCardAmount, flexShrink: 0 }}>${Number(d.amount).toLocaleString()}</div>
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, marginLeft: 42 }}>
-                              {causeNameForDonation(d) ? (
-                                <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FDF8EC', padding: '3px 9px', borderRadius: 20 }}>{causeNameForDonation(d)}</span>
-                              ) : (
-                                <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>General</span>
-                              )}
-                              {isPaid ? (
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Paid</span>
-                              ) : (
-                                <span
-                                  style={{ fontSize: 10, fontWeight: 600, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20, cursor: 'pointer' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setConfirmModal({
-                                      title: 'Confirm this payment?',
-                                      subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
-                                      donorName: d.donor_name,
-                                      amount: d.amount,
-                                      reference: d.payment_ref || d.receipt_number,
-                                      steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
-                                      confirmLabel: 'Confirm payment',
-                                      onConfirm: () => confirmPaymentFlow(d),
-                                    })
-                                  }}
-                                >Unpaid · tap to confirm</span>
-                              )}
-                              {isPaid && (isReceipted ? (
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Receipted</span>
-                              ) : (
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Receipt pending</span>
-                              ))}
-                              {isPaid && isReceipted && d.donor_email?.trim() && (
-                                d.thank_you_sent ? (
-                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Thanked</span>
+                            <div style={{ marginTop: 8, marginLeft: 42 }}>
+                              <div style={{ marginBottom: 6 }}>
+                                {causeNameForDonation(d) ? (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FDF8EC', padding: '3px 9px', borderRadius: 20 }}>{causeNameForDonation(d)}</span>
                                 ) : (
-                                  <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>Not thanked</span>
-                                )
-                              )}
-                              {charityIsIpc && !d.donor_nric && isPaid && (
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>NRIC missing</span>
-                              )}
-                              {d.source === 'manual' && (
-                                <span
-                                  style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBE9E7', padding: '3px 9px', borderRadius: 20, marginLeft: 'auto' }}
-                                  onClick={(e) => { e.stopPropagation(); deleteDonation(d.id) }}
-                                >Delete</span>
-                              )}
+                                  <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>General</span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                                {isPaid ? (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Paid</span>
+                                ) : (
+                                  <span
+                                    style={{ fontSize: 10, fontWeight: 600, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20, cursor: 'pointer' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setConfirmModal({
+                                        title: 'Confirm this payment?',
+                                        subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                        donorName: d.donor_name,
+                                        amount: d.amount,
+                                        reference: d.payment_ref || d.receipt_number,
+                                        steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                        confirmLabel: 'Confirm payment',
+                                        onConfirm: () => confirmPaymentFlow(d),
+                                      })
+                                    }}
+                                  >Unpaid · tap to confirm</span>
+                                )}
+                                {isPaid && (isReceipted ? (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Receipted</span>
+                                ) : (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Receipt pending</span>
+                                ))}
+                                {isPaid && isReceipted && d.donor_email?.trim() && (
+                                  d.thank_you_sent ? (
+                                    <span style={{ fontSize: 10, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Thanked</span>
+                                  ) : (
+                                    <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Not thanked</span>
+                                  )
+                                )}
+                                {charityIsIpc && !d.donor_nric && isPaid && (
+                                  <span style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>NRIC missing</span>
+                                )}
+                                {d.source === 'manual' && (
+                                  <span
+                                    style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBE9E7', padding: '3px 9px', borderRadius: 20, marginLeft: 'auto' }}
+                                    onClick={(e) => { e.stopPropagation(); deleteDonation(d.id) }}
+                                  >Delete</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
