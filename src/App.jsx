@@ -2664,12 +2664,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.payment_status === 'confirmed' ? C.forest : '#7A4E00', background: selectedDonation.payment_status === 'confirmed' ? '#D9F0E3' : '#FCE9BE', padding: '4px 10px', borderRadius: 20 }}>
-                          {selectedDonation.payment_status === 'confirmed' ? '✓ Paid' : '⚠ Unverified'}
-                        </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: selectedDonation.receipt_issued ? C.forest : '#7A4E00', background: selectedDonation.receipt_issued ? '#D9F0E3' : '#FCE9BE', padding: '4px 10px', borderRadius: 20 }}>
-                          {selectedDonation.receipt_issued ? '✓ Receipt issued' : 'Receipt pending'}
-                        </span>
+                        {selectedDonation.payment_status === 'confirmed' ? (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Paid</span>
+                        ) : (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#A32D2D', background: '#FCEBEB', padding: '4px 10px', borderRadius: 20 }}>Unpaid</span>
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && (
+                          selectedDonation.receipt_issued ? (
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Receipted</span>
+                          ) : (
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '4px 10px', borderRadius: 20 }}>Receipt pending</span>
+                          )
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && selectedDonation.receipt_issued && selectedDonation.donor_email?.trim() && (
+                          selectedDonation.thank_you_sent ? (
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Thanked</span>
+                          ) : (
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#854F0B', background: '#FAEEDA', padding: '4px 10px', borderRadius: 20 }}>Not thanked</span>
+                          )
+                        )}
                       </div>
                     </div>
                     <div style={{ overflowY: 'auto', flex: 1, display: isMobile ? 'block' : 'grid', gridTemplateColumns: isMobile ? 'none' : '1fr 1fr', gap: isMobile ? 0 : 20 }}>
