@@ -1981,7 +1981,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                   {loading ? <div style={s.empty}>Loading...</div> : dashboardDonationsPool.length === 0 ? (
                     <div style={s.empty}>No donations yet.</div>
-                  ) : isMobile ? (
+                  ) : (isMobile || isTablet) ? (
                     <div>
                       {pageDonations.map(d => (
                         <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
@@ -2122,7 +2122,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.tableTitle}>All Donors</div>
                 <div style={s.tableCount}>{donorList.length} donors</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : isMobile ? (
+              {loading ? <div style={s.empty}>Loading...</div> : donorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (isMobile || isTablet) ? (
                 <div>
                   {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
@@ -2459,7 +2459,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
                     </div>
-                  ) : isMobile ? (
+                  ) : (isMobile || isTablet) ? (
                     <div>
                       {paginatedDonations.map(d => {
                         const isPaid = d.payment_status === 'confirmed'
@@ -3378,7 +3378,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.tableTitle}>Donor Submission Data</div>
                 <div style={s.tableCount}>{filterYear === 'All' ? 'Select a year above' : `${irasYearDonorList.length} donors in ${filterYear}`}</div>
               </div>
-              {isMobile ? (
+              {(isMobile || isTablet) ? (
                 <div>
                   {irasYearDonorList.map((d, i) => {
                     const nric = d.donations.find(x => x.donor_nric)?.donor_nric
