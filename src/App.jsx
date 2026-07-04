@@ -112,6 +112,10 @@ export default function App() {
   const [annualGoal, setAnnualGoal] = useState(null)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState('')
+  const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend']
+  const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
+  const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
+  const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
   const [fyEndMonth, setFyEndMonth] = useState(12)
   const [fyEndDay, setFyEndDay] = useState(31)
   const [editingFyEnd, setEditingFyEnd] = useState(false)
@@ -151,12 +155,13 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
     setAnnualGoal(data?.annual_goal || null)
+    if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
     const month = data?.fy_end_month || 12
     const day = data?.fy_end_day || 31
     setFyEndMonth(month)
@@ -1214,6 +1219,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       XLSX.utils.book_append_sheet(wb, wsMissing, 'Missing NRIC ⚠️')
     }
     XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
+  }
+
+  async function saveVisibleMetrics(metrics) {
+    const { error } = await supabase.from('charity_contacts').update({ visible_metrics: metrics }).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save your preferences', 'error'); return }
+    setVisibleMetrics(metrics)
+    setShowCustomizeAnalytics(false)
+    showToast('Analytics view updated ✓')
   }
 
   async function saveAnnualGoal() {
@@ -3122,6 +3135,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageSub}>Donation trends and donor insights for {charityName}</div>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button style={s.viewBtn} onClick={() => { setCustomizeMetricsDraft(visibleMetrics); setShowCustomizeAnalytics(true) }}>⚙️ Customize</button>
                 <button style={s.exportSmallBtn} onClick={exportAnalyticsPDF}>📄 Export Snapshot</button>
                 <button style={{ ...s.exportSmallBtn, background: C.gold, color: C.forest }} onClick={exportBoardPacket}>📦 Board Packet</button>
                 <select style={{ ...s.filterSelect, padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
@@ -3134,26 +3148,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
-                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Raised</div>
-                <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
-                <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>Year to date</div>
-              </div>
+              {visibleMetrics.includes('total_raised') && (
+                <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
+                  <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Raised</div>
+                  <div style={{ ...s.statValue, color: 'white' }}>${totalThisYear.toLocaleString()}</div>
+                  <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>Year to date</div>
+                </div>
+              )}
               <div style={s.statCard}>
                 <div style={s.statLabel}>Unique Donors</div>
                 <div style={s.statValue}>{uniqueDonorsThisYear.length}</div>
                 <div style={s.statNote}>{filterYear}</div>
               </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Avg. Donation</div>
-                <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                <div style={s.statNote}>Per transaction</div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Median Donation</div>
-                <div style={s.statValue}>${medianDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                <div style={s.statNote}>Typical single gift, {filterYear}</div>
-              </div>
+              {visibleMetrics.includes('avg_gift') && (
+                <div style={s.statCard}>
+                  <div style={s.statLabel}>Avg. Donation</div>
+                  <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                  <div style={s.statNote}>Per transaction</div>
+                </div>
+              )}
+              {visibleMetrics.includes('median_donation') && (
+                <div style={s.statCard}>
+                  <div style={s.statLabel}>Median Donation</div>
+                  <div style={s.statValue}>${medianDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                  <div style={s.statNote}>Typical single gift, {filterYear}</div>
+                </div>
+              )}
               <div style={s.statCard}>
                 <div style={s.statLabel}>Total Transactions</div>
                 <div style={s.statValue}>{donations.length}</div>
@@ -3169,6 +3189,44 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.statValue}>{longestSupporter ? `${longestSupporter.monthsSupporting} mo${longestSupporter.monthsSupporting > 1 ? 's' : ''}` : '—'}</div>
                 <div style={s.statNote}>{longestSupporter ? longestSupporter.name : 'No donors yet'}</div>
               </div>
+              {visibleMetrics.includes('donor_retention') && (() => {
+                const now2 = new Date()
+                const thisYearNum = now2.getFullYear()
+                const lastYearNum = thisYearNum - 1
+                const donorsLastYear = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === lastYearNum).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                const donorsThisYear = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === thisYearNum).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                const retained = [...donorsLastYear].filter(k => donorsThisYear.has(k)).length
+                const retentionRate = donorsLastYear.size > 0 ? Math.round((retained / donorsLastYear.size) * 100) : null
+                return (
+                  <div style={s.statCard}>
+                    <div style={s.statLabel}>Donor Retention</div>
+                    <div style={s.statValue}>{retentionRate === null ? '—' : `${retentionRate}%`}</div>
+                    <div style={s.statNote}>{donorsLastYear.size > 0 ? `${retained} of ${donorsLastYear.size} from ${lastYearNum} gave again` : `No donors in ${lastYearNum} to compare`}</div>
+                  </div>
+                )
+              })()}
+              {visibleMetrics.includes('new_vs_returning') && (() => {
+                const yearScoped2 = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+                const donorFirstSeen = {}
+                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorFirstSeen[key]) donorFirstSeen[key] = new Date(d.created_at).getFullYear()
+                })
+                const donorKeysThisPeriod = new Set(yearScoped2.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                const periodYear = filterYear === 'All' ? null : parseInt(filterYear)
+                let newCount = 0, returningCount = 0
+                donorKeysThisPeriod.forEach(key => {
+                  if (periodYear === null || donorFirstSeen[key] === periodYear) newCount++
+                  else returningCount++
+                })
+                return (
+                  <div style={s.statCard}>
+                    <div style={s.statLabel}>New vs Returning</div>
+                    <div style={s.statValue}>{newCount} / {returningCount}</div>
+                    <div style={s.statNote}>New donors / returning donors, {filterYear}</div>
+                  </div>
+                )
+              })()}
             </div>
 
             {filterYear !== 'All' && (
@@ -3204,6 +3262,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            {visibleMetrics.includes('monthly_trend') && (
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ ...s.cardTitle, marginBottom: 0 }}>📊 Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`}</div>
@@ -3225,6 +3284,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            )}
 
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div style={s.card}>
@@ -3260,7 +3320,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            {causePerformanceThisYear.length > 0 && (
+            {visibleMetrics.includes('campaign_performance') && causePerformanceThisYear.length > 0 && (
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
                 {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
@@ -3292,6 +3352,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            {visibleMetrics.includes('donation_breakdown') && (
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
@@ -3320,6 +3381,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
               </div>
             </div>
+            )}
 
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div style={s.card}>
@@ -3881,6 +3943,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   showToast(`Thank-you note sent to ${donor.email}`)
                 }}
               >💌 {thankYouDraft.donor.email?.trim() ? 'Send' : 'No email on file'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCustomizeAnalytics && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>Customize Analytics</div>
+              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Choose which metrics appear on this page.</div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {[
+                { key: 'total_raised', label: 'Total Raised', note: 'Year-to-date total' },
+                { key: 'donor_retention', label: 'Donor Retention Rate', note: "% of last year's donors who gave again" },
+                { key: 'new_vs_returning', label: 'New vs Returning Donors', note: 'Split of first-time and repeat givers' },
+                { key: 'avg_gift', label: 'Average Gift', note: 'Mean donation amount' },
+                { key: 'median_donation', label: 'Median Donation', note: 'Typical single gift' },
+                { key: 'campaign_performance', label: 'Campaign Performance', note: 'Raised per active campaign' },
+                { key: 'donation_breakdown', label: 'Donation Size Breakdown', note: 'Gifts grouped by amount range' },
+                { key: 'monthly_trend', label: 'Monthly Trend Chart', note: 'Donations by month, year over year' },
+              ].map(item => (
+                <label key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{item.note}</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={customizeMetricsDraft.includes(item.key)}
+                    onChange={() => setCustomizeMetricsDraft(prev => prev.includes(item.key) ? prev.filter(k => k !== item.key) : [...prev, item.key])}
+                  />
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowCustomizeAnalytics(false)}>Cancel</button>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => saveVisibleMetrics(customizeMetricsDraft)}>✓ Save</button>
             </div>
           </div>
         </div>
