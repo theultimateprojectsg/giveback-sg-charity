@@ -116,6 +116,7 @@ export default function App() {
   const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
+  const [explainerOpen, setExplainerOpen] = useState(null)
   const [fyEndMonth, setFyEndMonth] = useState(12)
   const [fyEndDay, setFyEndDay] = useState(31)
   const [editingFyEnd, setEditingFyEnd] = useState(false)
@@ -3184,6 +3185,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {visibleMetrics.includes('health_check') && (() => {
+              const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+              if (scoped.length === 0) return null
+              const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+              const byDonor = {}
+              scoped.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; byDonor[key] = (byDonor[key] || 0) + d.amount })
+              const sortedDonors = Object.values(byDonor).sort((a, b) => b - a)
+              const top3Pct = totalAmt > 0 ? Math.round((sortedDonors.slice(0, 3).reduce((s, v) => s + v, 0) / totalAmt) * 100) : 0
+              const diversityStatus = top3Pct >= 60 ? 'red' : top3Pct >= 40 ? 'amber' : 'green'
+
+              const periodYear = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+              const donorsLastYr = new Set(donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === periodYear - 1).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const donorsThisYr = new Set(scoped.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const retained = [...donorsLastYr].filter(k => donorsThisYr.has(k)).length
+              const retentionPct = donorsLastYr.size > 0 ? Math.round((retained / donorsLastYr.size) * 100) : null
+              const retentionStatus = retentionPct === null ? 'gray' : retentionPct >= 45 ? 'green' : retentionPct >= 25 ? 'amber' : 'red'
+
+              const owedCount = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent).length
+              const totalThankable = donations.filter(d => d.payment_status === 'confirmed' && d.donor_email?.trim()).length
+              const owedPct = totalThankable > 0 ? Math.round((owedCount / totalThankable) * 100) : 0
+              const thankStatus = owedPct >= 40 ? 'red' : owedPct >= 15 ? 'amber' : 'green'
+
+              const colorMap = { green: { bg: C.successBg, text: C.forest, dot: C.sage, label: 'Good' }, amber: { bg: C.warningBg, text: C.warning, dot: C.warning, label: 'Watch' }, red: { bg: '#FBE9E7', text: C.red, dot: C.red, label: 'Needs attention' }, gray: { bg: C.ivory, text: C.muted, dot: C.border, label: 'Not enough data' } }
+              const lights = [
+                { label: 'Funding diversity', status: diversityStatus, jump: () => setVisibleMetrics(prev => prev.includes('concentration_risk') ? prev : [...prev, 'concentration_risk']) },
+                { label: 'Donor retention', status: retentionStatus, jump: () => setVisibleMetrics(prev => prev.includes('donor_retention') ? prev : [...prev, 'donor_retention']) },
+                { label: 'Thank-you timeliness', status: thankStatus, jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } },
+              ]
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>🩺 Health Check</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
+                    {lights.map((l, i) => {
+                      const c = colorMap[l.status]
+                      return (
+                        <div key={i} onClick={l.jump} style={{ background: c.bg, borderRadius: 10, padding: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 12, height: 12, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: c.text }}>{l.label}</div>
+                            <div style={{ fontSize: 11, color: c.text, opacity: 0.85 }}>{c.label}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               {visibleMetrics.includes('total_raised') && (
                 <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
@@ -3234,11 +3284,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const donorsThisYear = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === thisYearNum).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
                 const retained = [...donorsLastYear].filter(k => donorsThisYear.has(k)).length
                 const retentionRate = donorsLastYear.size > 0 ? Math.round((retained / donorsLastYear.size) * 100) : null
+                const isOpen = explainerOpen === 'donor_retention'
                 return (
                   <div style={s.statCard}>
-                    <div style={s.statLabel}>Donor Retention</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={s.statLabel}>Donor Retention</div>
+                      <span style={{ fontSize: 11, color: C.sage, fontWeight: 700, cursor: 'pointer', border: `1px solid ${C.sage}`, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExplainerOpen(isOpen ? null : 'donor_retention')}>?</span>
+                    </div>
                     <div style={s.statValue}>{retentionRate === null ? '—' : `${retentionRate}%`}</div>
                     <div style={s.statNote}>{donorsLastYear.size > 0 ? `${retained} of ${donorsLastYear.size} from ${lastYearNum} gave again` : `No donors in ${lastYearNum} to compare`}</div>
+                    {isOpen && retentionRate !== null && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.ivoryDark}`, lineHeight: 1.5 }}>
+                        This means {retentionRate}% of people who gave in {lastYearNum} came back and gave again in {thisYearNum}. The sector average for nonprofits is roughly 40–45%, so {retentionRate >= 45 ? "you're doing better than typical" : retentionRate >= 25 ? "you're around the lower end of typical — worth a stewardship push" : "this is below typical, and improving how you thank and follow up with donors usually helps most here"}.
+                      </div>
+                    )}
                   </div>
                 )
               })()}
@@ -3602,10 +3661,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const highRisk = top3Pct >= 50
               return (
                 <div style={{ ...s.card, marginBottom: 24, background: highRisk ? C.warningBg : C.white, border: `1px solid ${highRisk ? C.warningBorder : C.border}` }}>
-                  <div style={s.cardTitle}>⚖️ Funding Concentration</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: highRisk ? C.warning : C.forest, marginBottom: 6 }}>{top3Pct}%</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ ...s.cardTitle, marginBottom: 0 }}>⚖️ Funding Concentration</div>
+                    <span style={{ fontSize: 11, color: C.sage, fontWeight: 700, cursor: 'pointer', border: `1px solid ${C.sage}`, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExplainerOpen(explainerOpen === 'concentration' ? null : 'concentration')}>?</span>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: highRisk ? C.warning : C.forest, marginTop: 6, marginBottom: 6 }}>{top3Pct}%</div>
                   <div style={{ fontSize: 13, color: highRisk ? C.warning : C.text }}>Your top 3 donors ({sorted.slice(0, 3).map(d => d.name).join(', ')}) account for {top3Pct}% of total giving{filterYear !== 'All' ? ` in ${filterYear}` : ''}.</div>
                   {highRisk && <div style={{ fontSize: 12, color: C.warning, marginTop: 8, fontWeight: 600 }}>⚠️ High concentration — if one of these donors stops giving, it could significantly impact your funding. Consider building a broader base of smaller regular donors.</div>}
+                  {explainerOpen === 'concentration' && (
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.ivoryDark}`, lineHeight: 1.5 }}>
+                      This measures how dependent you are on a small number of donors. Under 40% is considered healthy diversification — if it's much higher, losing even one major donor could meaningfully hurt your funding. It doesn't mean anything is wrong today, just something worth keeping an eye on as you grow.
+                    </div>
+                  )}
                 </div>
               )
             })()}
