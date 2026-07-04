@@ -5,6 +5,7 @@ import Auth from './CharityAuth'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+import { QRCodeSVG } from 'qrcode.react'
 import logo from './assets/logo.png'
 import './App.css'
 
@@ -71,6 +72,8 @@ export default function App() {
   const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
+  const [payNowQrDonation, setPayNowQrDonation] = useState(null)
+  const [confirmingPayNow, setConfirmingPayNow] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [selectedDonation, setSelectedDonation] = useState(null)
   const [editingNoteId, setEditingNoteId] = useState(null)
@@ -694,6 +697,55 @@ export default function App() {
     setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
     setShowManualForm(false)
     setSavingManual(false)
+  }
+
+  async function generatePayNowEntry() {
+    if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
+    if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
+    if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
+    if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
+    if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
+    setSavingManual(true)
+    setManualError('')
+    const ref = 'GT' + Math.random().toString(36).substring(2, 10).toUpperCase()
+    const { data, error } = await supabase.from('donations').insert([{
+      donor_name: manualForm.donor_name,
+      donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      cause_id: manualForm.cause_id || null,
+      amount: parseFloat(manualForm.amount),
+      status: 'confirmed',
+      payment_status: 'pending',
+      receipt_issued: false,
+      source: 'manual',
+      payment_method: 'PayNow',
+      notes: manualForm.notes,
+      donor_email: manualForm.donor_email,
+      created_at: manualForm.date,
+      payment_ref: ref,
+    }]).select()
+    setSavingManual(false)
+    if (error) { setManualError(`Error saving: ${error.message}`); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'manual_entry_created',
+      donation_id: data[0].id,
+      details: { donor_name: manualForm.donor_name, amount: parseFloat(manualForm.amount), payment_method: 'PayNow' },
+    })
+    setDonations(prev => [{ ...data[0] }, ...prev])
+    setPayNowQrDonation(data[0])
+    setShowManualForm(false)
+  }
+
+  async function confirmManualPayNow() {
+    if (!payNowQrDonation || confirmingPayNow) return
+    setConfirmingPayNow(true)
+    await confirmPaymentFlow(payNowQrDonation)
+    setConfirmingPayNow(false)
+    setPayNowQrDonation(null)
+    setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
   }
 
   function deleteDonation(id) {
@@ -2321,6 +2373,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <select style={s.formInput} value={manualForm.payment_method} onChange={e => setManualForm(f => ({ ...f, payment_method: e.target.value }))}>
                         <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                       </select>
+                      {manualForm.payment_method === 'PayNow Direct' && (
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Generates a scannable QR — payment confirms in a second step</div>
+                      )}
                     </div>
                     <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={manualForm.donor_email || ''} onChange={e => setManualForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
                     <div><div style={s.formLabel}>Cause (Optional)</div>
@@ -2334,9 +2389,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveManualEntry} disabled={savingManual}>{savingManual ? 'Saving...' : '✓ Save Entry'}</button>
+                    {manualForm.payment_method === 'PayNow Direct' ? (
+                      <button style={{ ...s.btnGold, flex: 1, justifyContent: 'center' }} onClick={generatePayNowEntry} disabled={savingManual}>{savingManual ? 'Generating...' : '📱 Generate PayNow Code'}</button>
+                    ) : (
+                      <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveManualEntry} disabled={savingManual}>{savingManual ? 'Saving...' : '✓ Save Entry'}</button>
+                    )}
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowManualForm(false); setManualError('') }}>Cancel</button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {payNowQrDonation && (
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: C.forest, marginBottom: 16 }}>SGD ${Number(payNowQrDonation.amount).toFixed(2)}</div>
+                  <div style={{ background: 'white', borderRadius: 16, padding: 16, border: `1.5px solid ${C.border}`, display: 'inline-block', marginBottom: 14 }}>
+                    <QRCodeSVG value={`https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${payNowQrDonation.amount}&ref=${payNowQrDonation.payment_ref}`} size={180} level="H" />
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Ask the donor to scan with their banking app</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 18 }}>Ref: <span style={{ fontFamily: 'monospace' }}>{payNowQrDonation.payment_ref}</span></div>
+                  <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center', marginBottom: 10 }} onClick={confirmManualPayNow} disabled={confirmingPayNow}>{confirmingPayNow ? 'Confirming...' : '✓ Payment Received — Confirm'}</button>
+                  <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>Close — I'll confirm later</button>
                 </div>
               </div>
             )}
