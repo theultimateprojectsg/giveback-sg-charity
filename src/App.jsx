@@ -1831,26 +1831,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const behindPace = goal > 0 && pct < 40
                     return (
                       <div key={c.id} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                          <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{daysLeft !== null ? `Ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}` : 'No end date'}</div>
-                          </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
                           <span style={s.badgeIssued}>✓ Approved</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${stats.total.toLocaleString()}</span>
-                          {goal > 0 && <span style={{ fontSize: 12, color: C.muted }}>of ${goal.toLocaleString()} goal</span>}
-                        </div>
+
                         {goal > 0 && (
-                          <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                            <div style={{ width: `${pct}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 6 }} />
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 3 }} />
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                          <span style={{ fontSize: 12, color: behindPace ? C.warning : C.muted }}>{goal > 0 ? `${pct}% funded${behindPace ? ' · behind pace' : ''}` : 'No goal set'}</span>
-                          <span style={{ fontSize: 12, color: C.muted }}>{stats.donors.size} donor{stats.donors.size !== 1 ? 's' : ''}</span>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Raised</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${stats.total.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Goal</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{goal > 0 ? `$${goal.toLocaleString()}` : '—'}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Donors</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{stats.donors.size}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Ends</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{daysLeft !== null ? `${daysLeft}d` : '—'}</div>
+                          </div>
                         </div>
+
+                        {goal > 0 && (
+                          <div style={{ marginTop: 10, fontSize: 11, color: behindPace ? C.warning : C.muted, fontWeight: behindPace ? 600 : 400 }}>
+                            {behindPace ? `⚠ Behind pace · ${pct}% funded` : `${pct}% funded`}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
