@@ -112,7 +112,7 @@ export default function App() {
   const [annualGoal, setAnnualGoal] = useState(null)
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState('')
-  const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend']
+  const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
   const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
@@ -3352,6 +3352,202 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            {visibleMetrics.includes('donors_to_reengage') && (() => {
+              const currentYearNum = new Date().getFullYear()
+              const donorLastGift = {}
+              donations.filter(d => d.payment_status === 'confirmed').forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                const year = new Date(d.created_at).getFullYear()
+                if (!donorLastGift[key] || year > donorLastGift[key].year) {
+                  donorLastGift[key] = { name: d.donor_name, email: d.donor_email, year, amount: d.amount, date: d.created_at }
+                }
+                if (donorLastGift[key].year === year) {
+                  donorLastGift[key].totalThatYear = (donorLastGift[key].totalThatYear || 0) + d.amount
+                }
+              })
+              const lapsed = Object.values(donorLastGift)
+                .filter(d => d.year < currentYearNum)
+                .sort((a, b) => (b.totalThatYear || b.amount) - (a.totalThatYear || a.amount))
+                .slice(0, 10)
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>📞 Donors to Re-engage</div>
+                  {lapsed.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No lapsed donors — everyone who gave before has given again this year.</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave in a previous year but haven't given in {currentYearNum} yet — sorted by their last year's total.</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {lapsed.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Last gave in {d.year}{d.email ? ` · ${d.email}` : ''}</div>
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${(d.totalThatYear || d.amount).toLocaleString()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('donor_highlights') && (() => {
+              const yearScopedConfirmed = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+              if (yearScopedConfirmed.length === 0) return null
+
+              const byDonorTotal = {}
+              yearScopedConfirmed.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!byDonorTotal[key]) byDonorTotal[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, firstYear: null }
+                byDonorTotal[key].total += d.amount
+                byDonorTotal[key].count += 1
+              })
+              const topDonor = Object.values(byDonorTotal).sort((a, b) => b.total - a.total)[0]
+              const mostFrequent = Object.values(byDonorTotal).sort((a, b) => b.count - a.count)[0]
+              const largestGift = [...yearScopedConfirmed].sort((a, b) => b.amount - a.amount)[0]
+
+              const donorFirstEverYear = {}
+              ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstEverYear[key]) donorFirstEverYear[key] = new Date(d.created_at).getFullYear()
+              })
+              const firstTimeGiftsThisPeriod = yearScopedConfirmed.filter(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                return donorFirstEverYear[key] === new Date(d.created_at).getFullYear()
+              })
+              const standoutNewDonor = [...firstTimeGiftsThisPeriod].sort((a, b) => b.amount - a.amount)[0]
+
+              const cards = [
+                topDonor && { icon: '🏆', label: 'Top donor', name: topDonor.name, sub: `$${topDonor.total.toLocaleString()} across ${topDonor.count} gift${topDonor.count > 1 ? 's' : ''}`, donor: { name: topDonor.name, email: topDonor.email, total: topDonor.total, count: topDonor.count } },
+                largestGift && { icon: '💎', label: 'Largest single gift', name: largestGift.donor_name, sub: `$${Number(largestGift.amount).toLocaleString()} on ${new Date(largestGift.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}`, donor: { name: largestGift.donor_name, email: largestGift.donor_email, total: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.total || largestGift.amount, count: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.count || 1 } },
+                mostFrequent && { icon: '🔁', label: 'Most frequent giver', name: mostFrequent.name, sub: `${mostFrequent.count} donations, $${mostFrequent.total.toLocaleString()} total`, donor: { name: mostFrequent.name, email: mostFrequent.email, total: mostFrequent.total, count: mostFrequent.count } },
+                standoutNewDonor && { icon: '✨', label: 'Standout new supporter', name: standoutNewDonor.donor_name, sub: `First gift: $${Number(standoutNewDonor.amount).toLocaleString()}`, donor: { name: standoutNewDonor.donor_name, email: standoutNewDonor.donor_email, total: standoutNewDonor.amount, count: 1 } },
+              ].filter(Boolean)
+
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>🌟 Donor Highlights — {filterYear}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
+                    {cards.map((c, i) => (
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 18 }}>{c.icon}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</span>
+                        </div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{c.name}</div>
+                        <div style={{ fontSize: 12, color: C.muted }}>{c.sub}</div>
+                        {c.donor.email?.trim() && (
+                          <button
+                            style={{ ...s.btnGold, justifyContent: 'center', fontSize: 12, padding: '8px 14px', marginTop: 4 }}
+                            onClick={() => generateThankYouNote(c.donor, { unackedBigGift: true })}
+                          >✍️ Draft thank-you</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('giving_streaks') && (() => {
+              const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
+              const byDonorMonths = {}
+              confirmedAll.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                const dt = new Date(d.created_at)
+                const monthKey = `${dt.getFullYear()}-${dt.getMonth()}`
+                if (!byDonorMonths[key]) byDonorMonths[key] = { name: d.donor_name, email: d.donor_email, months: new Set() }
+                byDonorMonths[key].months.add(monthKey)
+              })
+              const now3 = new Date()
+              const streaks = Object.values(byDonorMonths).map(donor => {
+                const sortedMonths = [...donor.months].map(m => { const [y, mo] = m.split('-').map(Number); return y * 12 + mo }).sort((a, b) => b - a)
+                const currentMonthIdx = now3.getFullYear() * 12 + now3.getMonth()
+                if (sortedMonths[0] < currentMonthIdx - 1) return { ...donor, streak: 0 }
+                let streak = 1
+                for (let i = 0; i < sortedMonths.length - 1; i++) {
+                  if (sortedMonths[i] - sortedMonths[i + 1] === 1) streak++
+                  else break
+                }
+                return { ...donor, streak }
+              }).filter(d => d.streak >= 3).sort((a, b) => b.streak - a.streak).slice(0, 8)
+
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>🔥 Giving Streaks</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors who've given in 3 or more consecutive months — your most dependable supporters, regardless of gift size.</div>
+                  {streaks.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {streaks.map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gold, color: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{d.email || 'No email on file'}</div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, flexShrink: 0 }}>🔥 {d.streak} mo</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('quiet_donors') && (() => {
+              const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
+              const byDonor = {}
+              confirmedAll.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!byDonor[key]) byDonor[key] = { name: d.donor_name, email: d.donor_email, dates: [] }
+                byDonor[key].dates.push(new Date(d.created_at))
+              })
+              const now4 = new Date()
+              const quiet = Object.values(byDonor).map(donor => {
+                const sorted = donor.dates.sort((a, b) => a - b)
+                if (sorted.length < 3) return null
+                const gaps = []
+                for (let i = 1; i < sorted.length; i++) {
+                  gaps.push((sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24))
+                }
+                const avgGapDays = gaps.reduce((s, g) => s + g, 0) / gaps.length
+                const daysSinceLast = (now4 - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
+                if (avgGapDays > 0 && avgGapDays < 60 && daysSinceLast > avgGapDays * 2 && daysSinceLast < 365) {
+                  return { name: donor.name, email: donor.email, avgGapDays: Math.round(avgGapDays), daysSinceLast: Math.round(daysSinceLast), lastGift: sorted[sorted.length - 1] }
+                }
+                return null
+              }).filter(Boolean).sort((a, b) => b.daysSinceLast - a.daysSinceLast).slice(0, 8)
+
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>🤫 Quiet Donors</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
+                  {quiet.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {quiet.map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.warningBg, borderRadius: 10, border: `1px solid ${C.warningBorder}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 11, color: C.warning, marginTop: 1 }}>Usually gives every ~{d.avgGapDays}d · it's been {d.daysSinceLast}d</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             {visibleMetrics.includes('donation_breakdown') && (
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
@@ -3965,6 +4161,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { key: 'median_donation', label: 'Median Donation', note: 'Typical single gift' },
                 { key: 'campaign_performance', label: 'Campaign Performance', note: 'Raised per active campaign' },
                 { key: 'donation_breakdown', label: 'Donation Size Breakdown', note: 'Gifts grouped by amount range' },
+                { key: 'donors_to_reengage', label: 'Donors to Re-engage', note: "Past donors who haven't given this year" },
+                { key: 'donor_highlights', label: 'Donor Highlights', note: 'Top donor, largest gift, most frequent giver, standout new supporter' },
+                { key: 'giving_streaks', label: 'Giving Streaks', note: 'Donors giving 3+ consecutive months — your most dependable supporters' },
+                { key: 'quiet_donors', label: 'Quiet Donors', note: 'Regular givers whose rhythm has slowed — catch them before they lapse' },
                 { key: 'monthly_trend', label: 'Monthly Trend Chart', note: 'Donations by month, year over year' },
               ].map(item => (
                 <label key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }}>
