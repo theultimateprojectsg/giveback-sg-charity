@@ -1925,32 +1925,67 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
-                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Confirmed, {dashboardCurrentYear}</div>
-                <div style={{ ...s.statValue, color: 'white' }}>${dashboardConfirmedTotal.toLocaleString()}</div>
-                <div style={{ ...s.statNote, color: 'rgba(255,255,255,0.6)' }}>{dashboardDonationsThisYear.length} donations</div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>This Month</div>
-                <div style={s.statValue}>${thisMonthTotal.toLocaleString()}</div>
-                <div style={{ ...s.statNote, color: monthChangePct === null ? C.muted : (monthChangePct >= 0 ? C.sage : C.red) }}>
-                  {monthChangePct === null ? 'No data last month' : `${monthChangePct >= 0 ? '↗' : '↘'} ${Math.abs(monthChangePct)}% vs last month`}
-                </div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Unique Donors</div>
-                <div style={s.statValue}>{dashboardUniqueDonors}</div>
-                <div style={s.statNote}>{dashboardCurrentYear}</div>
-              </div>
-              {charityIsIpc && (
-                <div style={{ ...s.statCard, background: dashboardMissingNric > 0 ? C.warningBg : s.statCard.background, borderColor: dashboardMissingNric > 0 ? C.warningBorder : C.border }}>
-                  <div style={{ ...s.statLabel, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>Missing NRIC</div>
-                  <div style={{ ...s.statValue, color: dashboardMissingNric > 0 ? C.warning : C.forest }}>{dashboardMissingNric}</div>
-                  <div style={{ ...s.statNote, color: dashboardMissingNric > 0 ? C.warning : C.muted }}>{dashboardMissingNric > 0 ? 'Blocks tax deduction' : 'All set ✓'}</div>
-                </div>
-              )}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 20, padding: '14px 18px', background: C.white, borderRadius: 12, border: `1px solid ${C.border}` }}>
+              <span style={{ fontSize: 13, color: C.muted }}>💰 Total raised</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: C.forest, marginLeft: 4 }}>${totalAllTime.toLocaleString()}</span>
+              <span style={{ fontSize: 13, color: C.muted, marginLeft: 'auto' }}>All time</span>
             </div>
+
+            {(() => {
+              const needsConfirming = unconfirmedCount + donations.filter(d => d.payment_status === 'confirmed' && !d.receipt_issued).length
+              const needsNric = charityIsIpc ? donations.filter(d => !d.donor_nric && d.payment_status === 'confirmed').length : 0
+              const needsThanking = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent).length
+              const allCaughtUp = needsConfirming === 0 && needsNric === 0 && needsThanking === 0
+              if (allCaughtUp) {
+                return (
+                  <div style={{ background: C.successBg, border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>✓</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>All caught up — nothing needs your attention right now.</span>
+                  </div>
+                )
+              }
+              return (
+                <div style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginBottom: 24 } : { display: 'grid', gridTemplateColumns: charityIsIpc ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+                  <div
+                    style={{ background: needsConfirming > 0 ? '#FBE9E7' : C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${needsConfirming > 0 ? C.red : C.border}` }}
+                    onClick={() => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 18 }}>⚠️</span>
+                      <span style={{ fontSize: 24, fontWeight: 800, color: needsConfirming > 0 ? C.red : C.muted }}>{needsConfirming}</span>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: needsConfirming > 0 ? C.red : C.text }}>Needs confirming</div>
+                    <div style={{ fontSize: 12, color: needsConfirming > 0 ? C.red : C.muted, marginTop: 2 }}>Payments awaiting review</div>
+                  </div>
+
+                  {charityIsIpc && (
+                    <div
+                      style={{ background: needsNric > 0 ? C.warningBg : C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${needsNric > 0 ? C.warningBorder : C.border}` }}
+                      onClick={() => { clearDonationFilters({ keepYear: false }); setFilterNric('Missing NRIC'); setActiveTab('donations') }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 18 }}>🪪</span>
+                        <span style={{ fontSize: 24, fontWeight: 800, color: needsNric > 0 ? C.warning : C.muted }}>{needsNric}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: needsNric > 0 ? C.warning : C.text }}>NRIC missing</div>
+                      <div style={{ fontSize: 12, color: needsNric > 0 ? C.warning : C.muted, marginTop: 2 }}>Blocks tax deduction</div>
+                    </div>
+                  )}
+
+                  <div
+                    style={{ background: C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${C.border}` }}
+                    onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 18 }}>💌</span>
+                      <span style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{needsThanking}</span>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Thank-yous pending</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Donors with email on file</div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={s.tableCard}>
@@ -2022,17 +2057,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {(() => {
-              const dashboardDonationsPool = donations.slice(0, 30)
-              const totalPages = Math.ceil(dashboardDonationsPool.length / 10)
-              const pageDonations = dashboardDonationsPool.slice(dashboardDonationsPage * 10, dashboardDonationsPage * 10 + 10)
+              const needsActionPool = donations.filter(d =>
+                d.payment_status !== 'confirmed' ||
+                !d.receipt_issued ||
+                (charityIsIpc && !d.donor_nric) ||
+                (d.donor_email?.trim() && !d.thank_you_sent)
+              ).slice(0, 5)
+              const dashboardDonationsPool = needsActionPool
+              const totalPages = 1
+              const pageDonations = dashboardDonationsPool
               return (
                 <div style={s.tableCard}>
                   <div style={s.tableHeader}>
-                    <div style={s.tableTitle}>Recent Donations</div>
+                    <div style={s.tableTitle}>Needs your attention</div>
                     <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
                   </div>
                   {loading ? <div style={s.empty}>Loading...</div> : dashboardDonationsPool.length === 0 ? (
-                    <div style={s.empty}>No donations yet.</div>
+                    <div style={s.empty}>Nothing needs action right now.</div>
                   ) : (isMobile || isTablet) ? (
                     <div>
                       {pageDonations.map(d => (
@@ -2112,22 +2153,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </tbody>
                     </table>
                   )}
-                  {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: `1px solid ${C.border}` }}>
-                      <button
-                        style={{ ...s.viewBtn, opacity: dashboardDonationsPage === 0 ? 0.4 : 1, cursor: dashboardDonationsPage === 0 ? 'not-allowed' : 'pointer' }}
-                        disabled={dashboardDonationsPage === 0}
-                        onClick={() => setDashboardDonationsPage(p => Math.max(0, p - 1))}
-                      >← Previous</button>
-                      <span style={{ fontSize: 12, color: C.muted }}>Page {dashboardDonationsPage + 1} of {totalPages}</span>
-                      <button
-                        style={{ ...s.viewBtn, opacity: dashboardDonationsPage >= totalPages - 1 ? 0.4 : 1, cursor: dashboardDonationsPage >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
-                        disabled={dashboardDonationsPage >= totalPages - 1}
-                        onClick={() => setDashboardDonationsPage(p => Math.min(totalPages - 1, p + 1))}
-                      >Next →</button>
-                    </div>
-                  )}
-                </div>
+                  </div>
               )
             })()}
 
