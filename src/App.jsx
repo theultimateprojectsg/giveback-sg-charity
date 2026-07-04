@@ -3368,7 +3368,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {charityIsIpc && (
                 <button style={{ ...s.btnGold, opacity: filterYear === 'All' ? 0.5 : 1, cursor: filterYear === 'All' ? 'not-allowed' : 'pointer' }} onClick={() => { if (filterYear === 'All') return; exportIRASExcel() }}>⬇️ Download IRAS File (.xlsx)</button>
               )}
-              <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Report</button>
+              <button style={s.btnForest} onClick={exportPDF}>📄 Download PDF Reports</button>
               <button style={{ ...s.btnForest, background: C.teal }} onClick={() => { if (filterYear === 'All') { showToast('Select a specific year first'); return }; exportYearEndSummary() }}>🎉 Year-End Summary for Board</button>
               {pendingCount > 0 && <button style={{ ...s.btnForest, background: C.sage }} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : '🧾 Issue All Receipts First'}</button>}
             </div>
