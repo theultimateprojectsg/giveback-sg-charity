@@ -3234,6 +3234,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10, paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>💰 Financial Health</div>
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               {visibleMetrics.includes('total_raised') && (
                 <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
@@ -3379,6 +3380,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>📊 Trends & Story</div>
+
             {visibleMetrics.includes('monthly_trend') && (
             <div style={{ ...s.card, marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -3436,6 +3439,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
             </div>
+
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>📣 Campaign Insights</div>
 
             {visibleMetrics.includes('campaign_performance') && causePerformanceThisYear.length > 0 && (
               <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3574,6 +3579,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>👥 Donor Insights</div>
 
             {visibleMetrics.includes('donors_to_reengage') && (() => {
               const currentYearNum = new Date().getFullYear()
