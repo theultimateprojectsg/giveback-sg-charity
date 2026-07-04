@@ -1436,50 +1436,134 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   function exportSingleReceiptPDF(donation) {
     const doc = new jsPDF()
-    doc.setFontSize(20)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Official Donation Receipt', 14, 25)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    doc.text(charityName, 14, 35)
-    doc.text(`UEN: ${charityUen}`, 14, 42)
-    doc.line(14, 48, 196, 48)
-    doc.text(`Donor: ${donation.donor_name}`, 14, 60)
-    doc.text(`Amount: SGD $${Number(donation.amount).toFixed(2)}`, 14, 70)
-    doc.text(`Date: ${new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}`, 14, 80)
-    doc.text(`Payment Method: ${donation.payment_method || (donation.source === 'manual' ? 'Manual Entry' : 'PayNow')}`, 14, 90)
-    const receiptRef = donation.payment_ref || donation.receipt_number
-    let nextY = 90
-    if (charityIsIpc && donation.donor_nric) { doc.text(`NRIC/FIN: ${donation.donor_nric}`, 14, 100); nextY = 100 }
-    if (receiptRef) { doc.text(`Receipt No: ${receiptRef}`, 14, nextY + 10); nextY += 10 }
-    doc.line(14, nextY + 8, 196, nextY + 8)
-    doc.setFont('helvetica', 'bold')
-    const y2 = nextY + 20
-    if (charityIsIpc) {
-      doc.text(`Tax Deductible (250%): SGD $${(donation.amount * 2.5).toFixed(2)}`, 14, y2)
-      doc.text(`Est. Tax Savings: SGD $${(donation.amount * 2.5 * 0.22).toFixed(2)}`, 14, y2 + 10)
-    } else {
-      doc.setFontSize(11)
-      doc.text('This charity is registered but not an IPC.', 14, y2)
-    }
+    const isIpc = charityIsIpc
+    const pageWidth = 210
+    const margin = 20
+    const contentWidth = pageWidth - margin * 2
+    const forest = [27, 67, 50]
+    const ivory = [250, 247, 242]
+    const successBg = [238, 246, 241]
+    const mutedText = [122, 110, 98]
+    const darkText = [28, 28, 28]
+    const borderColor = [226, 217, 204]
+
+    doc.setFillColor(...forest)
+    doc.rect(0, 0, pageWidth, 42, 'F')
     doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    let noteY = charityIsIpc ? y2 + 22 : y2 + 14
-    if (charityIsIpc && !donation.donor_nric) {
-      doc.setTextColor(160, 113, 16)
-      doc.text('⚠ NRIC/FIN not on file. Donor must provide this so it can be submitted for tax deduction.', 14, noteY)
-      doc.setTextColor(0, 0, 0)
-      noteY += 7
-    }
-    if (charityIsIpc) {
-      doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', 14, noteY)
-      noteY += 10
+    doc.setTextColor(255, 255, 255)
+    doc.text('OFFICIAL DONATION RECEIPT', margin, 16)
+    doc.setFontSize(16)
+    doc.text(charityName || 'Charity', margin, 26)
+    doc.setFontSize(10)
+    doc.text(`UEN ${charityUen || ''}`, margin, 34)
+
+    let y = 56
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    doc.text('ISSUED TO', margin, y)
+    doc.setFontSize(9)
+    doc.text('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
+    y += 7
+    doc.setFontSize(13)
+    doc.setTextColor(...darkText)
+    doc.text(donation.donor_name || '', margin, y)
+    doc.setFontSize(10)
+    doc.text(donation.payment_ref || donation.receipt_number || 'N/A', pageWidth - margin, y, { align: 'right' })
+    y += 6
+    doc.setDrawColor(...borderColor)
+    doc.line(margin, y, pageWidth - margin, y)
+
+    y += 14
+    doc.setFillColor(...ivory)
+    doc.roundedRect(margin, y, contentWidth, 32, 4, 4, 'F')
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    doc.text('AMOUNT DONATED', pageWidth / 2, y + 12, { align: 'center' })
+    doc.setFontSize(22)
+    doc.setTextColor(...forest)
+    doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y + 24, { align: 'center' })
+
+    y += 44
+    const facts = [
+      ['Date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
+      ['Payment method', donation.source === 'manual' ? (donation.payment_method || 'Manual') : 'PayNow'],
+    ]
+    const causeTitle = causeNameForDonation(donation)
+    if (causeTitle) facts.push(['Cause', causeTitle])
+    if (donation.donor_nric) facts.push(['NRIC / FIN on file', donation.donor_nric])
+
+    facts.forEach(([label, value], i) => {
+      doc.setFontSize(10)
+      doc.setTextColor(...mutedText)
+      doc.text(label, margin, y)
+      doc.setTextColor(...darkText)
+      doc.text(String(value), pageWidth - margin, y, { align: 'right' })
+      if (i < facts.length - 1) {
+        doc.setDrawColor(240, 235, 225)
+        doc.line(margin, y + 3, pageWidth - margin, y + 3)
+      }
+      y += 9
+    })
+
+    if (donation.notes) {
+      y += 4
+      const noteLines = doc.splitTextToSize(donation.notes, contentWidth - 12)
+      const noteBoxHeight = 14 + noteLines.length * 5
+      doc.setFillColor(...ivory)
+      doc.roundedRect(margin, y, contentWidth, noteBoxHeight, 4, 4, 'F')
+      doc.setFontSize(8)
+      doc.setTextColor(...mutedText)
+      doc.text('NOTE FROM DONOR', margin + 6, y + 8)
+      doc.setFontSize(10)
+      doc.setTextColor(...darkText)
+      doc.text(noteLines, margin + 6, y + 15)
+      y += noteBoxHeight + 10
     } else {
-      doc.text('This donation is not eligible for a tax deduction under Singapore tax law.', 14, noteY)
-      noteY += 10
+      y += 6
     }
-    doc.text(`Issued via Giving Tree on behalf of ${charityName}.`, 14, noteY)
-    doc.save(`Receipt-${donation.donor_name}-${new Date(donation.created_at).toISOString().split('T')[0]}-${String(donation.id).slice(0,6)}.pdf`)
+
+    if (isIpc) {
+      doc.setFillColor(...successBg)
+      doc.roundedRect(margin, y, contentWidth, 26, 4, 4, 'F')
+      doc.setFontSize(10)
+      doc.setTextColor(59, 109, 17)
+      doc.text('250% tax deductible', margin + 8, y + 11)
+      doc.text('Est. tax savings (22%)', margin + 8, y + 20)
+      doc.setFontSize(12)
+      doc.setTextColor(...forest)
+      doc.text(`SGD $${(donation.amount * 2.5).toLocaleString()}.00`, pageWidth - margin - 8, y + 11, { align: 'right' })
+      doc.text(`SGD $${(donation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}.00`, pageWidth - margin - 8, y + 20, { align: 'right' })
+      y += 36
+    } else {
+      doc.setFillColor(...ivory)
+      doc.roundedRect(margin, y, contentWidth, 16, 4, 4, 'F')
+      doc.setFontSize(9)
+      doc.setTextColor(...mutedText)
+      doc.text('This charity is registered but not an IPC. Not tax deductible.', pageWidth / 2, y + 10, { align: 'center' })
+      y += 26
+    }
+
+    if (isIpc && !donation.donor_nric) {
+      doc.setFillColor(253, 243, 220)
+      doc.roundedRect(margin, y, contentWidth, 14, 4, 4, 'F')
+      doc.setFontSize(8)
+      doc.setTextColor(160, 113, 16)
+      doc.text('NRIC/FIN not on file — donor must provide this before submission for tax deduction.', pageWidth / 2, y + 9, { align: 'center', maxWidth: contentWidth - 12 })
+      y += 22
+    }
+
+    doc.setDrawColor(...borderColor)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 8
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, y, { align: 'center' })
+    y += 8
+    doc.setFontSize(8)
+    doc.setTextColor(180, 178, 167)
+    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, y, { align: 'center', maxWidth: contentWidth })
+
+    doc.save(`Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`)
   }
 
   function exportYearEndSummary() {
