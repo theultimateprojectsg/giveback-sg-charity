@@ -3234,7 +3234,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10, paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>💰 Financial Health</div>
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               {visibleMetrics.includes('total_raised') && (
                 <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
@@ -3380,7 +3381,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>📊 Trends & Story</div>
+            </div>
+
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Trends & Story</div>
 
             {visibleMetrics.includes('monthly_trend') && (
             <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3440,7 +3444,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>📣 Campaign Insights</div>
+            </div>
+
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📣 Campaign Insights</div>
 
             {visibleMetrics.includes('campaign_performance') && causePerformanceThisYear.length > 0 && (
               <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3580,7 +3587,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, margin: '28px 0 10px', paddingBottom: 6, borderBottom: `2px solid ${C.border}` }}>👥 Donor Insights</div>
+            </div>
+
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>👥 Donor Insights</div>
 
             {visibleMetrics.includes('donors_to_reengage') && (() => {
               const currentYearNum = new Date().getFullYear()
@@ -3955,7 +3965,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             })()}
 
             {visibleMetrics.includes('donation_breakdown') && (
-            <div style={{ ...s.card, marginBottom: 24 }}>
+            <div style={{ ...s.card, marginBottom: 0 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
                 {(() => {
@@ -3985,6 +3995,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
             )}
 
+            </div>
             </div>
         )}
 
