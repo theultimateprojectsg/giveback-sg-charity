@@ -90,6 +90,7 @@ export default function App() {
   const [volunteerInput, setVolunteerInput] = useState('')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
@@ -2506,72 +2507,104 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   return (
     <div style={s.page}>
 
-      {/* ── SIDEBAR (desktop, full) ── */}
+      {/* ── SIDEBAR (desktop, collapsible) ── */}
       {screenSize === 'desktop' && (
-      <div style={s.sidebar}>
+      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflow: 'hidden' }}>
+        {/* Toggle button */}
+        <button
+          onClick={() => setSidebarCollapsed(v => !v)}
+          style={{ position: 'absolute', top: 16, right: -12, width: 24, height: 24, borderRadius: '50%', background: C.forest, border: '2px solid rgba(255,255,255,0.2)', color: 'white', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, lineHeight: 1 }}
+        >{sidebarCollapsed ? '›' : '‹'}</button>
+
         <div style={s.sidebarLogo}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <img src={logo} style={{ width: 32, height: 32, objectFit: 'contain' }} />
-            <div style={s.logoText}>Giving Tree</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: sidebarCollapsed ? 0 : 4 }}>
+            <img src={logo} style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
+            {!sidebarCollapsed && <div style={s.logoText}>Giving Tree</div>}
           </div>
-          <div style={s.logoSub}>Charity Portal</div>
+          {!sidebarCollapsed && <div style={s.logoSub}>Charity Portal</div>}
         </div>
-        <div style={s.charityBadge}>
-          <div style={s.charityIcon}>🏥</div>
-          <div>
-            <div style={s.charityName}>{charityName}</div>
-            <div style={s.charityUen}>UEN: {charityUen}</div>
+
+        {!sidebarCollapsed && (
+          <div style={s.charityBadge}>
+            <div style={s.charityIcon}>🏥</div>
+            <div>
+              <div style={s.charityName}>{charityName}</div>
+              <div style={s.charityUen}>UEN: {charityUen}</div>
+            </div>
           </div>
-        </div>
-        <div style={s.navSection}>
-          <div style={s.navLabel}>Main</div>
+        )}
+
+        <div style={{ ...s.navSection, padding: sidebarCollapsed ? '8px 4px' : '8px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
+          {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard', staffOnly: false },
             { id: 'donations', icon: '💳', label: 'Donations', staffOnly: false },
             { id: 'donors',    icon: '👥', label: 'Donors',    staffOnly: true },
             { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
           ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
-            <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
-              <span style={s.navIcon}>{item.icon}</span>{item.label}
+            <div key={item.id}
+              title={sidebarCollapsed ? item.label : ''}
+              style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+              onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+              <span style={s.navIcon}>{item.icon}</span>
+              {!sidebarCollapsed && item.label}
             </div>
           ))}
           {userRole === 'staff' && (
             <>
-              <div style={s.navLabel}>Campaigns</div>
+              {!sidebarCollapsed && <div style={s.navLabel}>Campaigns</div>}
+              {sidebarCollapsed && <div style={{ height: 8 }} />}
               {[
-                { id: 'promotions', icon: '📣', label: 'Promotions' },
+                { id: 'promotions', icon: '📣', label: 'Campaigns' },
                 { id: 'pledges',    icon: '🤝', label: 'Pledges' },
                 { id: 'recurring',  icon: '🔁', label: 'Recurring' },
                 { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
               ].map(item => (
-                <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
-                  <span style={s.navIcon}>{item.icon}</span>{item.label}
+                <div key={item.id}
+                  title={sidebarCollapsed ? item.label : ''}
+                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+                  onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  <span style={s.navIcon}>{item.icon}</span>
+                  {!sidebarCollapsed && item.label}
                 </div>
               ))}
-              <div style={s.navLabel}>Compliance</div>
+              {!sidebarCollapsed && <div style={s.navLabel}>Compliance</div>}
+              {sidebarCollapsed && <div style={{ height: 8 }} />}
               {[
                 { id: 'reports',  icon: '📋', label: 'Reports' },
                 { id: 'activity', icon: '🗒️', label: 'Audit Log' },
                 ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []),
               ].map(item => (
-                <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
-                  <span style={s.navIcon}>{item.icon}</span>{item.label}
+                <div key={item.id}
+                  title={sidebarCollapsed ? item.label : ''}
+                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+                  onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  <span style={s.navIcon}>{item.icon}</span>
+                  {!sidebarCollapsed && item.label}
                 </div>
               ))}
             </>
           )}
-          <div style={s.navLabel}>Account</div>
-          <div style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
-            <span style={s.navIcon}>⚙️</span>Settings
+          {!sidebarCollapsed && <div style={s.navLabel}>Account</div>}
+          {sidebarCollapsed && <div style={{ height: 8 }} />}
+          <div
+            title={sidebarCollapsed ? 'Settings' : ''}
+            style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+            onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
+            <span style={s.navIcon}>⚙️</span>
+            {!sidebarCollapsed && 'Settings'}
           </div>
         </div>
-        <div style={s.sidebarFooter}>
-          <div style={s.footerAvatar}>{charityName.charAt(0)}</div>
-          <div>
-            <div style={s.footerName}>{charityName}</div>
-            <div style={s.footerEmail}>{session?.user?.email}</div>
+
+        {!sidebarCollapsed && (
+          <div style={s.sidebarFooter}>
+            <div style={s.footerAvatar}>{charityName.charAt(0)}</div>
+            <div>
+              <div style={s.footerName}>{charityName}</div>
+              <div style={s.footerEmail}>{session?.user?.email}</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       )}
 
@@ -2624,7 +2657,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {/* ── MAIN ── */}
-      <div style={isMobile ? s.mainMobile : s.main}>
+      <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 240, width: `calc(100vw - ${sidebarCollapsed ? 64 : 240}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
