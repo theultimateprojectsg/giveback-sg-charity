@@ -2667,6 +2667,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
           <div style={s.content}>
+            <div style={{ ...s.pageHeader, marginBottom: 20 }}>
+              <div>
+                <div style={s.pageTitle}>{greeting}, {charityName} 👋</div>
+                <div style={s.pageSub}>Here's what's happening right now</div>
+              </div>
+            </div>
+
             {actionItems.length > 0 && (
               <div style={{ ...s.deadlineBanner, background: '#F5C9C4', border: `1.5px solid ${C.red}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -2815,13 +2822,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
-
-            <div style={s.pageHeader}>
-              <div>
-                <div style={s.pageTitle}>{greeting}, {charityName} 👋</div>
-                <div style={s.pageSub}>Here's what's happening right now</div>
-              </div>
-            </div>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 20, padding: '14px 18px', background: C.white, borderRadius: 12, border: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13, color: C.muted }}>💰 Total raised</span>
