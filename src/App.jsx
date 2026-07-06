@@ -5135,7 +5135,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>IRAS Export</div>
+                <div style={s.pageTitle}>🏛️ IRAS Export</div>
                 <div style={s.pageSub}>{filterYear === 'All' ? 'Select a year to see submission deadline' : `Year of Assessment ${parseInt(filterYear) + 1} · Due 31 January ${parseInt(filterYear) + 1}`}</div>
               </div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: 20, background: C.forest, border: 'none' }}>
@@ -5333,35 +5333,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )}
 {/* ── ACTIVITY LOG ── */}
+
 {activeTab === 'activity' && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Activity Log</div>
-                <div style={s.pageSub}>All actions taken by your team, most recent first</div>
+                <div style={s.pageTitle}>🗒️ Audit Log</div>
+                <div style={s.pageSub}>Live activity feed — all actions by your team, most recent first. Export from Reports.</div>
               </div>
-              <button style={s.exportSmallBtn} onClick={() => {
-                const rows = auditLog.map(entry => {
-                  const details = entry.details ? Object.entries(entry.details).map(([k, v]) => `${k}: ${v}`).join(' | ') : ''
-                  return [
-                    new Date(entry.created_at).toLocaleString('en-SG'),
-                    entry.actor_email || '',
-                    entry.actor_type || '',
-                    entry.action || '',
-                    details,
-                  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
-                })
-                const csv = ['Timestamp,Actor Email,Actor Type,Action,Details', ...rows].join('\n')
-                const blob = new Blob([csv], { type: 'text/csv' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `${charityName}-audit-log-${new Date().toISOString().split('T')[0]}.csv`
-                a.click()
-                URL.revokeObjectURL(url)
-                showToast('Audit log exported ✓')
-              }}>⬇️ Export CSV</button>
             </div>
+
+
             <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
               <select style={s.filterSelect} value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)}>
                 <option value="7">Last 7 days</option>
@@ -5463,8 +5445,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Promotions</div> 
-                <div style={s.pageSub}>Submit campaigns and sponsored banner requests for Giving Tree's review</div>
+                <div style={s.pageTitle}>📣 Campaigns</div>
+                <div style={s.pageSub}>Submit fundraising campaigns and sponsored banner requests for Giving Tree's review</div>
               </div>
               
             </div>
