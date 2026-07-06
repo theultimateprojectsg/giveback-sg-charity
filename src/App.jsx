@@ -2511,6 +2511,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <span style={s.navIcon}>{item.icon}</span>{item.label}
                 </div>
               ))}
+              <div style={s.navLabel}>Donors</div>
+              <div style={{ ...s.navItem, ...(activeTab === 'pledges' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null) }}>
+                <span style={s.navIcon}>🤝</span>Pledges
+              </div>
+              <div style={{ ...s.navItem, ...(activeTab === 'recurring' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null) }}>
+                <span style={s.navIcon}>🔁</span>Recurring
+              </div>
               <div style={s.navLabel}>Account</div>
               <div style={{ ...s.navItem, ...(activeTab === 'promotions' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null) }}>
                 <span style={s.navIcon}>📣</span>Promotions
