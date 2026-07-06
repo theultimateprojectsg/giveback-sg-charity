@@ -2509,11 +2509,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {/* ── SIDEBAR (desktop, collapsible) ── */}
       {screenSize === 'desktop' && (
-      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflow: 'hidden' }}>
+      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflow: 'hidden', position: 'fixed' }}>
         {/* Toggle button */}
         <button
           onClick={() => setSidebarCollapsed(v => !v)}
-          style={{ position: 'absolute', top: 16, right: -12, width: 24, height: 24, borderRadius: '50%', background: C.forest, border: '2px solid rgba(255,255,255,0.2)', color: 'white', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, lineHeight: 1 }}
+          style={{ position: 'fixed', top: 16, left: sidebarCollapsed ? 40 : 216, width: 24, height: 24, borderRadius: '50%', background: C.gold, border: 'none', color: C.forest, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, lineHeight: 1, transition: 'left 0.2s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
         >{sidebarCollapsed ? '›' : '‹'}</button>
 
         <div style={s.sidebarLogo}>
