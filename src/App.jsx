@@ -2746,90 +2746,108 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {actionItems.length > 0 && (
-              <div style={{ ...s.deadlineBanner, background: '#F5C9C4', border: `1.5px solid ${C.red}`, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ fontSize: 24 }}>⚡</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.red }}>{actionItems.length} thing{actionItems.length > 1 ? 's' : ''} need{actionItems.length > 1 ? '' : 's'} your attention</div>
-                    <div style={{ fontSize: 12, color: C.red, marginTop: 2 }}>{actionItems.map(a => a.label).join(' · ')}</div>
-                  </div>
-                </div>
-                <button style={{ ...s.bannerBtn, background: C.forest, color: 'white' }} onClick={() => setActiveTab(actionItems[0].tab)}>Review now</button>
-              </div>
-            )}
-
-            {daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount + (charityIsIpc ? donations.filter(d => !d.donor_nric).length : 0) > 0 && (
-              <div style={{ background: '#FBE9E7', border: `1.5px solid ${C.red}`, borderRadius: 12, padding: '12px 18px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 18 }}>🏛️</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>
-                    IRAS deadline in {daysToDeadline} day{daysToDeadline !== 1 ? 's' : ''} — {pendingCount} receipt{pendingCount !== 1 ? 's' : ''}{charityIsIpc ? ` and ${donations.filter(d => !d.donor_nric).length} NRIC${donations.filter(d => !d.donor_nric).length !== 1 ? 's' : ''}` : ''} still outstanding
-                  </div>
-                </div>
-                <span style={{ fontSize: 12, color: C.red, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }} onClick={() => setActiveTab('iras')}>31 Jan {currentYear + 1} →</span>
-              </div>
-            )}
-
-            
-            
-            
             {(() => {
               const today = new Date()
               today.setHours(0, 0, 0, 0)
+
+              const items = []
+
+              // Unconfirmed payments
+              const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', tab: 'donations' })
+
+              // Pending receipts
+              const pendingReceipts = donations.filter(d => d.payment_status === 'confirmed' && !d.receipt_issued).length
+              if (pendingReceipts > 0) items.push({ icon: '🧾', label: `${pendingReceipts} receipt${pendingReceipts > 1 ? 's' : ''} not yet issued`, priority: 'high', tab: 'donations' })
+
+              // IRAS deadline
+              if (charityIsIpc && daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount > 0) {
+                items.push({ icon: '🏛️', label: `IRAS deadline in ${daysToDeadline} days — ${pendingCount} receipt${pendingCount > 1 ? 's' : ''} outstanding`, priority: 'high', tab: 'iras' })
+              }
+
+              // Overdue pledges
               const overduePledges = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today)
               const dueSoonPledges = pledges.filter(p => {
                 if (p.status !== 'pending') return false
                 const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24))
                 return days >= 0 && days <= 7
               })
-              if (overduePledges.length === 0 && dueSoonPledges.length === 0) return null
-              return (
-                <div style={{ background: '#FBE9E7', border: `1.5px solid ${C.red}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ fontSize: 18 }}>🤝</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
-                        {overduePledges.length > 0 && `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue`}
-                        {overduePledges.length > 0 && dueSoonPledges.length > 0 && ' · '}
-                        {dueSoonPledges.length > 0 && `${dueSoonPledges.length} due within 7 days`}
-                      </div>
-                      <div style={{ fontSize: 12, color: C.red, marginTop: 2 }}>
-                        {overduePledges.slice(0, 2).map(p => `${p.donor_name} ($${Number(p.amount).toLocaleString()})`).join(' · ')}
-                        {overduePledges.length > 2 && ` · +${overduePledges.length - 2} more`}
-                      </div>
-                    </div>
-                  </div>
-                  <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={() => setActiveTab('pledges')}>Review →</button>
-                </div>
-              )
-            })()}
+              if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', tab: 'pledges' })
+              if (dueSoonPledges.length > 0) items.push({ icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', tab: 'pledges' })
 
-            {(() => {
-              const today = new Date()
-              today.setHours(0, 0, 0, 0)
+              // Overdue recurring
               const overdueRecurring = recurringGifts.filter(g => {
                 if (g.status !== 'active') return false
-                const expected = new Date(g.next_expected_date)
-                const daysLate = Math.floor((today - expected) / (1000 * 60 * 60 * 24))
+                const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24))
                 return daysLate > 7
               })
-              if (overdueRecurring.length === 0) return null
+              if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'medium', tab: 'recurring' })
+
+              // Lapsed donors (60+ days, gave 2+ times)
+              const lapsedCount = Object.values((() => {
+                const map = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }
+                  map[key].count++
+                  if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at
+                })
+                return map
+              })()).filter(d => d.count >= 2 && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= 60).length
+              if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in 60+ days`, priority: 'medium', tab: 'donors' })
+
+              // Upcoming obligations (within 30 days)
+              const obligationsDue = (() => {
+                const builtIn = [
+                  ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
+                  ...(daysToCocDeadline > 0 && daysToCocDeadline <= 30 ? [{ title: 'COC annual submission', days: daysToCocDeadline }] : []),
+                ]
+                const custom = (customObligations || []).map(o => {
+                  let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                  if (d < today) d.setFullYear(today.getFullYear() + 1)
+                  const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 30 ? { title: o.title, days } : null
+                }).filter(Boolean)
+                return [...builtIn, ...custom]
+              })()
+              obligationsDue.forEach(o => {
+                items.push({ icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', tab: 'reports' })
+              })
+
+              if (items.length === 0) return (
+                <div style={{ background: '#F0FDF4', border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>✓</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>All caught up — nothing needs your attention right now.</span>
+                </div>
+              )
+
+              const highItems = items.filter(i => i.priority === 'high')
+              const medItems = items.filter(i => i.priority === 'medium')
+
               return (
-                <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ fontSize: 18 }}>🔁</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.warning }}>
-                        {overdueRecurring.length} recurring gift{overdueRecurring.length > 1 ? 's' : ''} overdue by more than 7 days
-                      </div>
-                      <div style={{ fontSize: 12, color: C.warning, marginTop: 2 }}>
-                        {overdueRecurring.slice(0, 2).map(g => `${g.donor_name} ($${Number(g.amount).toLocaleString()}/${g.frequency})`).join(' · ')}
-                        {overdueRecurring.length > 2 && ` · +${overdueRecurring.length - 2} more`}
-                      </div>
+                <div style={{ background: C.white, border: `1.5px solid ${highItems.length > 0 ? C.red : C.warningBorder}`, borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+                  <div style={{ background: highItems.length > 0 ? '#FEF2F2' : '#FDF3DC', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 18 }}>{highItems.length > 0 ? '⚡' : '📋'}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: highItems.length > 0 ? C.red : C.warning }}>
+                        {items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention
+                      </span>
                     </div>
                   </div>
-                  <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={() => setActiveTab('recurring')}>Review →</button>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {items.map((item, i) => (
+                      <div key={i}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: i < items.length - 1 ? `1px solid ${C.ivoryDark}` : 'none', cursor: 'pointer', background: C.white }}
+                        onClick={() => setActiveTab(item.tab)}
+                        onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                        onMouseLeave={e => e.currentTarget.style.background = C.white}
+                      >
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+                        <span style={{ fontSize: 13, color: item.priority === 'high' ? C.red : C.text, flex: 1 }}>{item.label}</span>
+                        <span style={{ fontSize: 11, color: C.sage, fontWeight: 600, flexShrink: 0 }}>→</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })()}
