@@ -69,9 +69,30 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
+  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '' })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
+  const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
+  const [showVoidModal, setShowVoidModal] = useState(false)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidingReceipt, setVoidingReceipt] = useState(false)
+  const [donorNotes, setDonorNotes] = useState([])
+  const [donorNotesLoading, setDonorNotesLoading] = useState(false)
+  const [newNoteText, setNewNoteText] = useState('')
+  const [newNoteType, setNewNoteType] = useState('note')
+  const [savingNote, setSavingNote] = useState(false)
+  const [donorTagsMap, setDonorTagsMap] = useState({})
+  const [newTagInput, setNewTagInput] = useState('')
+  const [savingTag, setSavingTag] = useState(false)
+  const [filterDonorTag, setFilterDonorTag] = useState('All')
+  const [userRole, setUserRole] = useState('staff')
+  const [roleLoaded, setRoleLoaded] = useState(false)
+  const [pledges, setPledges] = useState([])
+  const [showPledgeForm, setShowPledgeForm] = useState(false)
+  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
+  const [pledgeError, setPledgeError] = useState('')
+  const [savingPledge, setSavingPledge] = useState(false)
+  const [activePledgeTab, setActivePledgeTab] = useState('pending')
   const [payNowQrDonation, setPayNowQrDonation] = useState(null)
   const [confirmingPayNow, setConfirmingPayNow] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
@@ -148,6 +169,8 @@ export default function App() {
       loadMyCauses()
       loadCharityIpcStatus(session)
       loadDonorBadgeAcks(session)
+      loadAllDonorTags(session)
+      loadPledges(session)
     }
   }, [session])
 
@@ -156,10 +179,10 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails')
       .eq('charity_uen', uen)
       .single()
-    if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); return }
+    if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
     setAnnualGoal(data?.annual_goal || null)
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
@@ -170,6 +193,15 @@ export default function App() {
     setFyEndMonthInput(month.toString())
     setFyEndDayInput(day.toString())
     setCharityIpcLoaded(true)
+    // Determine role — volunteer_emails takes precedence, then staff_emails, default to staff
+    const email = activeSession?.user?.email || ''
+    const volunteerEmails = data?.volunteer_emails || []
+    if (volunteerEmails.includes(email)) {
+      setUserRole('volunteer')
+    } else {
+      setUserRole('staff')
+    }
+    setRoleLoaded(true)
   }
 
   async function loadDonorBadgeAcks(activeSession = session) {
@@ -181,6 +213,88 @@ export default function App() {
       .eq('charity_uen', uen)
     if (error) { console.error('Could not load donor badge acks:', error); return }
     setDonorBadgeAcks(data || [])
+  }
+
+  async function loadAllDonorTags(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('donor_tags')
+      .select('*')
+      .eq('charity_uen', uen)
+    if (error) { console.error('Could not load donor tags:', error); return }
+    const map = {}
+    ;(data || []).forEach(t => {
+      if (!map[t.donor_key]) map[t.donor_key] = []
+      map[t.donor_key].push(t)
+    })
+    setDonorTagsMap(map)
+  }
+
+  async function loadPledges(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('pledges')
+      .select('*')
+      .eq('charity_uen', uen)
+      .order('expected_date', { ascending: true })
+    if (error) { console.error('Could not load pledges:', error); return }
+    setPledges(data || [])
+  }
+
+  async function savePledge() {
+    if (!pledgeForm.donor_name.trim()) { setPledgeError('Donor name is required'); return }
+    if (!pledgeForm.amount || parseFloat(pledgeForm.amount) <= 0) { setPledgeError('Please enter a valid amount'); return }
+    if (!pledgeForm.expected_date) { setPledgeError('Expected date is required'); return }
+    if (new Date(pledgeForm.expected_date) < new Date(new Date().setHours(0,0,0,0))) { setPledgeError('Expected date cannot be in the past'); return }
+    setSavingPledge(true)
+    setPledgeError('')
+    const donorKey = pledgeForm.donor_email?.trim() || pledgeForm.donor_name.trim()
+    const { data, error } = await supabase.from('pledges').insert([{
+      charity_uen: charityUen,
+      donor_name: pledgeForm.donor_name.trim(),
+      donor_email: pledgeForm.donor_email?.trim() || null,
+      donor_key: donorKey,
+      amount: parseFloat(pledgeForm.amount),
+      expected_date: pledgeForm.expected_date,
+      notes: pledgeForm.notes?.trim() || null,
+      status: 'pending',
+      created_by: session.user.email,
+    }]).select()
+    setSavingPledge(false)
+    if (error) { setPledgeError(`Error: ${error.message}`); return }
+    setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
+    setPledgeForm({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
+    setShowPledgeForm(false)
+    showToast('Pledge recorded ✓')
+  }
+
+  async function fulfillPledge(pledge) {
+    const { error } = await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', pledge.id)
+    if (error) { showToast('Error updating pledge', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_fulfilled',
+      details: { donor_name: pledge.donor_name, amount: pledge.amount },
+    })
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+    showToast(`Pledge from ${pledge.donor_name} marked as fulfilled ✓`)
+  }
+
+  async function cancelPledge(pledge) {
+    setConfirmModal({
+      title: 'Cancel this pledge?',
+      description: `The pledge of $${pledge.amount.toLocaleString()} from ${pledge.donor_name} will be marked as cancelled. The record is kept for reference.`,
+      confirmLabel: 'Cancel Pledge',
+      onConfirm: async () => {
+        const { error } = await supabase.from('pledges').update({ status: 'cancelled' }).eq('id', pledge.id)
+        if (error) { showToast('Error cancelling pledge', 'error'); return }
+        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'cancelled' } : p))
+        showToast('Pledge cancelled')
+      },
+    })
   }
 
   async function loadMyCauses() {
@@ -357,6 +471,92 @@ export default function App() {
     }
   }, [selectedDonation])
 
+  useEffect(() => {
+    if (selectedDonor) {
+      loadDonorNotes(selectedDonor)
+    } else {
+      setDonorNotes([])
+    }
+  }, [selectedDonor])
+
+  async function loadDonorNotes(donor) {
+    setDonorNotesLoading(true)
+    const donorKey = donor.email?.trim() || donor.name
+    const { data, error } = await supabase
+      .from('donor_notes')
+      .select('*')
+      .eq('charity_uen', charityUen)
+      .eq('donor_key', donorKey)
+      .order('created_at', { ascending: false })
+    if (error) { console.error(error); setDonorNotesLoading(false); return }
+    setDonorNotes(data || [])
+    setDonorNotesLoading(false)
+  }
+
+  async function saveNewDonorNote() {
+    if (!newNoteText.trim()) return
+    if (!selectedDonor) return
+    setSavingNote(true)
+    const donorKey = selectedDonor.email?.trim() || selectedDonor.name
+    const { data, error } = await supabase.from('donor_notes').insert([{
+      charity_uen: charityUen,
+      donor_key: donorKey,
+      note: newNoteText.trim(),
+      note_type: newNoteType,
+      created_by: session.user.email,
+    }]).select()
+    if (error) { showToast('Error saving note', 'error'); setSavingNote(false); return }
+    setDonorNotes(prev => [data[0], ...prev])
+    setNewNoteText('')
+    setNewNoteType('note')
+    setSavingNote(false)
+    showToast('Note saved ✓')
+  }
+
+  async function deleteDonorNote(noteId) {
+    const { error } = await supabase.from('donor_notes').delete().eq('id', noteId)
+    if (error) { showToast('Error deleting note', 'error'); return }
+    setDonorNotes(prev => prev.filter(n => n.id !== noteId))
+    showToast('Note deleted')
+  }
+
+  async function saveDonorTag(donor) {
+    if (!newTagInput.trim()) return
+    setSavingTag(true)
+    const donorKey = donor.email?.trim() || donor.name
+    const tag = newTagInput.trim()
+    const { data, error } = await supabase.from('donor_tags').insert([{
+      charity_uen: charityUen,
+      donor_key: donorKey,
+      tag,
+      created_by: session.user.email,
+    }]).select()
+    if (error) {
+      if (error.code === '23505') { showToast('This tag already exists for this donor', 'error') }
+      else { showToast('Error saving tag', 'error') }
+      setSavingTag(false)
+      return
+    }
+    setDonorTagsMap(prev => ({
+      ...prev,
+      [donorKey]: [...(prev[donorKey] || []), data[0]],
+    }))
+    setNewTagInput('')
+    setSavingTag(false)
+    showToast('Tag added ✓')
+  }
+
+  async function deleteDonorTag(donor, tagId) {
+    const donorKey = donor.email?.trim() || donor.name
+    const { error } = await supabase.from('donor_tags').delete().eq('id', tagId)
+    if (error) { showToast('Error removing tag', 'error'); return }
+    setDonorTagsMap(prev => ({
+      ...prev,
+      [donorKey]: (prev[donorKey] || []).filter(t => t.id !== tagId),
+    }))
+    showToast('Tag removed')
+  }
+
   async function loadDonations(activeSession = session) {
     const { data, error } = await supabase
       .from('donations')
@@ -471,6 +671,74 @@ export default function App() {
     }
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, receipt_issued: true } : d))
     setIssuing(null)
+  }
+
+  async function voidAndReissueReceipt(donation) {
+    if (!voidReason.trim()) { showToast('Please enter a reason for voiding', 'error'); return }
+    setVoidingReceipt(true)
+
+    // Step 1 — mark original as voided
+    const { error: voidError } = await supabase.from('donations').update({
+      receipt_voided: true,
+      voided_at: new Date().toISOString(),
+      voided_by: session.user.email,
+      void_reason: voidReason.trim(),
+      receipt_issued: false,
+    }).eq('id', donation.id)
+    if (voidError) { showToast('Error voiding receipt', 'error'); setVoidingReceipt(false); return }
+
+    // Step 2 — generate new sequential receipt number
+    const entryYear = new Date(donation.created_at).getFullYear()
+    const { count, error: countError } = await supabase
+      .from('donations')
+      .select('id', { count: 'exact', head: true })
+      .eq('charity_uen', charityUen)
+      .eq('source', 'manual')
+      .gte('created_at', `${entryYear}-01-01`)
+      .lt('created_at', `${entryYear + 1}-01-01`)
+    if (countError) { showToast('Error generating new receipt number', 'error'); setVoidingReceipt(false); return }
+    const newReceiptNumber = `MR-${entryYear}-${String((count || 0) + 1).padStart(6, '0')}`
+
+    // Step 3 — issue new receipt with corrected number
+    const { error: reissueError } = await supabase.from('donations').update({
+      receipt_issued: true,
+      receipt_number: newReceiptNumber,
+      reissued_from: donation.receipt_number || donation.payment_ref,
+    }).eq('id', donation.id)
+    if (reissueError) { showToast('Error reissuing receipt', 'error'); setVoidingReceipt(false); return }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'receipt_voided_and_reissued',
+      donation_id: donation.id,
+      details: {
+        donor_name: donation.donor_name,
+        old_receipt_number: donation.receipt_number || donation.payment_ref,
+        new_receipt_number: newReceiptNumber,
+        void_reason: voidReason.trim(),
+      },
+    })
+
+    setDonations(prev => prev.map(x => x.id === donation.id ? {
+      ...x,
+      receipt_voided: true,
+      receipt_issued: true,
+      receipt_number: newReceiptNumber,
+      reissued_from: donation.receipt_number || donation.payment_ref,
+    } : x))
+    setSelectedDonation(prev => prev && prev.id === donation.id ? {
+      ...prev,
+      receipt_voided: true,
+      receipt_issued: true,
+      receipt_number: newReceiptNumber,
+      reissued_from: donation.receipt_number || donation.payment_ref,
+    } : prev)
+
+    setVoidingReceipt(false)
+    setShowVoidModal(false)
+    setVoidReason('')
+    showToast(`Receipt voided ✓ — new receipt issued as ${newReceiptNumber}`)
   }
 
   async function issueAllReceipts() {
@@ -617,8 +885,33 @@ export default function App() {
   if (new Date(manualForm.date) < new Date('2020-01-01')) { setManualError('Donation date seems too far in the past — please check it'); return }
   if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
   if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
-    setSavingManual(true)
-    setManualError('')
+
+  // Duplicate detection — fuzzy name match against existing donors
+  if (!manualForm.duplicateConfirmed) {
+    const enteredName = manualForm.donor_name.trim().toLowerCase()
+    const similarDonors = donorList.filter(d => {
+      const existing = d.name.trim().toLowerCase()
+      if (existing === enteredName) return true
+      // Check if one name contains the other (catches "John Tan" vs "John Tan Jr")
+      if (existing.includes(enteredName) || enteredName.includes(existing)) return true
+      // Simple character similarity — flag if 80%+ of characters match
+      const longer = existing.length > enteredName.length ? existing : enteredName
+      const shorter = existing.length > enteredName.length ? enteredName : existing
+      let matches = 0
+      for (const char of shorter) { if (longer.includes(char)) matches++ }
+      const similarity = matches / longer.length
+      return similarity >= 0.8 && Math.abs(existing.length - enteredName.length) <= 4
+    })
+    if (similarDonors.length > 0) {
+      setManualError('')
+      setManualDuplicateWarning(similarDonors)
+      return
+    }
+  }
+
+  setSavingManual(true)
+  setManualError('')
+  setManualDuplicateWarning(null)
     const entryYear = new Date(manualForm.date).getFullYear()
     const { count: existingManualCount, error: countError } = await supabase
       .from('donations')
@@ -646,6 +939,7 @@ export default function App() {
       donor_email: manualForm.donor_email,
       created_at: manualForm.date,
       receipt_number: receiptNumber,
+      receipt_name: manualForm.receipt_name?.trim() || null,
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
@@ -700,7 +994,7 @@ export default function App() {
       console.error('Audit log insert failed (non-blocking):', auditErr)
     }
     setDonations(prev => [{ ...data[0] }, ...prev])
-    setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
+    setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', duplicateConfirmed: false })
     setShowManualForm(false)
     setSavingManual(false)
   }
@@ -872,17 +1166,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   donations.forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!donorMap[key]) {
-      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0 }
+      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false }
     }
     if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
     donorMap[key].total += d.amount
     donorMap[key].count += 1
     if (d.receipt_issued) donorMap[key].receipts += 1
+    if (d.donor_deactivated) donorMap[key].deactivated = true
     if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
       donorMap[key].lastDate = d.created_at
     }
   })
   const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
+  const activeDonorList = donorList.filter(d => !d.deactivated)
+  const deactivatedDonorList = donorList.filter(d => d.deactivated)
   const noteworthyDonors = donorList
     .filter(d => {
       const key = d.email?.trim() || d.name
@@ -1532,7 +1829,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     y += 7
     doc.setFontSize(13)
     doc.setTextColor(...darkText)
-    doc.text(donation.donor_name || '', margin, y)
+    doc.text(donation.receipt_name || donation.donor_name || '', margin, y)
     doc.setFontSize(10)
     doc.text(donation.payment_ref || donation.receipt_number || 'N/A', pageWidth - margin, y, { align: 'right' })
     y += 6
@@ -1769,25 +2066,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.navSection}>
           <div style={s.navLabel}>Main</div>
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-            { id: 'donations', icon: '💳', label: 'Donations' },
-            { id: 'analytics', icon: '📈', label: 'Analytics' },
-            { id: 'donors',    icon: '👥', label: 'Donors' },
-          ].map(item => (
+            { id: 'dashboard', icon: '📊', label: 'Dashboard', staffOnly: false },
+            { id: 'donations', icon: '💳', label: 'Donations', staffOnly: false },
+            { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
+            { id: 'donors',    icon: '👥', label: 'Donors',    staffOnly: true },
+          ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
             <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>{item.label}
             </div>
           ))}
-          <div style={s.navLabel}>Compliance</div>
-          {[...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []), { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
-            <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
-              <span style={s.navIcon}>{item.icon}</span>{item.label}
-            </div>
-          ))}
+          {userRole === 'staff' && (
+            <>
+              <div style={s.navLabel}>Compliance</div>
+              {[...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []), { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
+                <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  <span style={s.navIcon}>{item.icon}</span>{item.label}
+                </div>
+              ))}
+              <div style={s.navLabel}>Account</div>
+              <div style={{ ...s.navItem, ...(activeTab === 'promotions' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null) }}>
+                <span style={s.navIcon}>📣</span>Promotions
+              </div>
+            </>
+          )}
           <div style={s.navLabel}>Account</div>
-          <div style={{ ...s.navItem, ...(activeTab === 'promotions' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null) }}>
-            <span style={s.navIcon}>📣</span>Promotions
-          </div>
           <div style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
             <span style={s.navIcon}>⚙️</span>Settings
           </div>
@@ -1810,14 +2112,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
         <div style={s.sidebarTabletNav}>
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-            { id: 'donations', icon: '💳', label: 'Donations' },
-            { id: 'analytics', icon: '📈', label: 'Analytics' },
-            { id: 'donors',    icon: '👥', label: 'Donors' },
-            ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []),
-            { id: 'activity',  icon: '📋', label: 'Activity Log' },
-            { id: 'promotions', icon: '📣', label: 'Promotions' },
-          ].map(item => (
+            { id: 'dashboard',  icon: '📊', label: 'Dashboard',    staffOnly: false },
+            { id: 'donations',  icon: '💳', label: 'Donations',    staffOnly: false },
+            { id: 'analytics',  icon: '📈', label: 'Analytics',    staffOnly: true },
+            { id: 'donors',     icon: '👥', label: 'Donors',       staffOnly: true },
+            ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export', staffOnly: true }] : []),
+            { id: 'activity',   icon: '📋', label: 'Activity Log', staffOnly: true },
+            { id: 'promotions', icon: '📣', label: 'Promotions',   staffOnly: true },
+          { id: 'pledges',    icon: '🤝', label: 'Pledges',      staffOnly: true },
+          ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
             <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
             </div>
@@ -1839,11 +2142,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
-            {charityIsIpc && (
+            {userRole === 'staff' && charityIsIpc && (
               <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
             )}
-            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
-            <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
+            {userRole === 'staff' && (
+              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
+            )}
+            {userRole === 'staff' && (
+              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
+            )}
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
           </div>
         )}
@@ -1911,6 +2218,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
             
             
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const overduePledges = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today)
+              const dueSoonPledges = pledges.filter(p => {
+                if (p.status !== 'pending') return false
+                const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24))
+                return days >= 0 && days <= 7
+              })
+              if (overduePledges.length === 0 && dueSoonPledges.length === 0) return null
+              return (
+                <div style={{ background: '#FBE9E7', border: `1.5px solid ${C.red}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ fontSize: 18 }}>🤝</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
+                        {overduePledges.length > 0 && `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue`}
+                        {overduePledges.length > 0 && dueSoonPledges.length > 0 && ' · '}
+                        {dueSoonPledges.length > 0 && `${dueSoonPledges.length} due within 7 days`}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.red, marginTop: 2 }}>
+                        {overduePledges.slice(0, 2).map(p => `${p.donor_name} ($${Number(p.amount).toLocaleString()})`).join(' · ')}
+                        {overduePledges.length > 2 && ` · +${overduePledges.length - 2} more`}
+                      </div>
+                    </div>
+                  </div>
+                  <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={() => setActiveTab('pledges')}>Review →</button>
+                </div>
+              )
+            })()}
+
             {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
@@ -2202,21 +2540,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.statNote}>of {donations.length} donations</div>
               </div>
             </div>
-            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20 }}>
-              <input style={s.searchBox} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
-              {charityIsIpc && (
-                <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
-              )}
-            </div>
+            {(() => {
+              const allTags = [...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort()
+              return (
+                <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 240 }} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  <select style={s.filterSelect} value={filterDonorTag} onChange={e => setFilterDonorTag(e.target.value)}>
+                    <option value="All">All Tags</option>
+                    {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
+                  {charityIsIpc && (
+                    <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
+                  )}
+                </div>
+              )
+            })()}
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>All Donors</div>
-                <div style={s.tableCount}>{donorList.length} donors</div>
+                <div style={s.tableCount}>{activeDonorList.length} active · {deactivatedDonorList.length} deactivated</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : donorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (isMobile || isTablet) ? (
+              {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (isMobile || isTablet) ? (
                 <div>
-                  {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
+                  {activeDonorList.filter(d => {
+                    const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    const donorKey = d.email?.trim() || d.name
+                    const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
+                    return matchSearch && matchTag
+                  }).map((d, i) => (
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
@@ -2240,14 +2592,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <tr>{(isTablet ? ['Donor', 'Total Given', 'Receipts', ''] : ['Donor', 'Total Given', 'Donations', 'Last Donation', 'Milestones', 'Receipts', '']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {donorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => {
+                    {activeDonorList.filter(d => {
+                      const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                      const donorKey = d.email?.trim() || d.name
+                      const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
+                      return matchSearch && matchTag
+                    }).map((d, i) => {
                       const key = d.email?.trim() || d.name
                       const b = donorBadgeMap[key]
                       const milestoneCount = b ? [b.isFirstTime, b.isBigGift, b.isLoyal, b.isBiggestYet].filter(Boolean).length : 0
                       const hasUnacked = b?.hasUnackedBadge
                       return (
                         <tr key={i} style={s.tr}>
-                          <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
+                          <td style={s.td}>
+                            <div style={s.donorCell}>
+                              <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div>
+                                <div style={s.donorName}>{d.name}</div>
+                                {(() => {
+                                  const donorKey = d.email?.trim() || d.name
+                                  const tags = donorTagsMap[donorKey] || []
+                                  return tags.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                                      {tags.slice(0, 3).map(t => (
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 600, color: C.teal, background: '#E8F0EE', padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
+                                      ))}
+                                      {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
+                                    </div>
+                                  ) : null
+                                })()}
+                              </div>
+                            </div>
+                          </td>
                           <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
                           {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count > 1 ? 's' : ''}</span></td>}
                           {!isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
@@ -2339,6 +2715,121 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={s.cardTitle}>🏷️ Tags</div>
+                {(() => {
+                  const donorKey = selectedDonor.email?.trim() || selectedDonor.name
+                  const tags = donorTagsMap[donorKey] || []
+                  const presetTags = ['Major Donor', 'Monthly Giver', 'Event Donor', 'Corporate', 'Anonymous', 'In Memoriam', 'Board Member', 'Volunteer']
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, minHeight: 28 }}>
+                        {tags.length === 0 && <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No tags yet</span>}
+                        {tags.map(t => (
+                          <span key={t.id} style={{ fontSize: 11, fontWeight: 700, color: C.teal, background: '#E8F0EE', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {t.tag}
+                            <span style={{ cursor: 'pointer', color: C.muted, fontSize: 12 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                        {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
+                          <span
+                            key={p}
+                            style={{ fontSize: 11, color: C.muted, background: C.ivoryDark, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: `1px dashed ${C.border}` }}
+                            onClick={() => { setNewTagInput(p); }}
+                          >+ {p}</span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          style={{ ...s.formInput, fontSize: 12, padding: '7px 10px' }}
+                          placeholder="Custom tag..."
+                          value={newTagInput}
+                          onChange={e => setNewTagInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
+                        />
+                        <button
+                          style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
+                          disabled={!newTagInput.trim() || savingTag}
+                          onClick={() => saveDonorTag(selectedDonor)}
+                        >{savingTag ? '...' : 'Add'}</button>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={s.cardTitle}>📋 Communication Log</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                  <select
+                    style={{ ...s.filterSelect, fontSize: 12, padding: '8px 12px' }}
+                    value={newNoteType}
+                    onChange={e => setNewNoteType(e.target.value)}
+                  >
+                    <option value="note">📝 Note</option>
+                    <option value="call">📞 Call</option>
+                    <option value="email">📧 Email</option>
+                    <option value="meeting">🤝 Meeting</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                  </select>
+                  <textarea
+                    style={{ ...s.formInput, minHeight: 72, resize: 'vertical', fontSize: 13 }}
+                    placeholder="Log a call, email, meeting, or note..."
+                    value={newNoteText}
+                    onChange={e => setNewNoteText(e.target.value)}
+                  />
+                  <button
+                    style={{ ...s.btnForest, justifyContent: 'center', opacity: newNoteText.trim() ? 1 : 0.5 }}
+                    disabled={!newNoteText.trim() || savingNote}
+                    onClick={saveNewDonorNote}
+                  >{savingNote ? '⏳ Saving...' : '+ Add to Log'}</button>
+                </div>
+                {donorNotesLoading ? (
+                  <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
+                ) : donorNotes.length === 0 ? (
+                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {donorNotes.map((n, i) => {
+                      const typeConfig = {
+                        call:      { icon: '📞', label: 'Call',      color: C.teal },
+                        email:     { icon: '📧', label: 'Email',     color: C.sage },
+                        meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
+                        whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
+                        note:      { icon: '📝', label: 'Note',      color: C.muted },
+                      }
+                      const tc = typeConfig[n.note_type] || typeConfig.note
+                      return (
+                        <div key={n.id} style={{ background: C.ivory, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 14 }}>{tc.icon}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 11, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span
+                                style={{ fontSize: 11, color: C.red, cursor: 'pointer', fontWeight: 600 }}
+                                onClick={() => setConfirmModal({
+                                  title: 'Delete this note?',
+                                  description: 'This cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  onConfirm: () => deleteDonorNote(n.id),
+                                })}
+                              >✕</span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.note}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>by {n.created_by}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div style={s.card}>
                 <div style={s.cardTitle}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2357,6 +2848,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ))}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button
+                    style={{ ...s.viewBtn, color: selectedDonor.deactivated ? C.sage : C.warning, borderColor: selectedDonor.deactivated ? C.sage : C.warning }}
+                    onClick={() => {
+                      const isDeactivated = selectedDonor.deactivated
+                      setConfirmModal({
+                        title: isDeactivated ? 'Reactivate this donor?' : 'Deactivate this donor?',
+                        description: isDeactivated
+                          ? 'They will appear in active donor lists and appeals again. All their donation history is preserved.'
+                          : 'They will be hidden from active donor lists and appeals. All their donation history is preserved and they will still appear in reports.',
+                        confirmLabel: isDeactivated ? 'Reactivate' : 'Deactivate',
+                        onConfirm: async () => {
+                          const newVal = !isDeactivated
+                          const donorKey = selectedDonor.email?.trim() || selectedDonor.name
+                          const donorDonationIds = donations
+                            .filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey)
+                            .map(d => d.id)
+                          const { error } = await supabase
+                            .from('donations')
+                            .update({ donor_deactivated: newVal })
+                            .in('id', donorDonationIds)
+                          if (error) { showToast('Error updating donor status', 'error'); return }
+                          await supabase.from('audit_log').insert({
+                            actor_type: 'charity',
+                            actor_email: session.user.email,
+                            action: newVal ? 'donor_deactivated' : 'donor_reactivated',
+                            details: { donor_name: selectedDonor.name },
+                          })
+                          setDonations(prev => prev.map(d =>
+                            donorDonationIds.includes(d.id) ? { ...d, donor_deactivated: newVal } : d
+                          ))
+                          setSelectedDonor(prev => ({ ...prev, deactivated: newVal }))
+                          showToast(newVal ? `${selectedDonor.name} deactivated` : `${selectedDonor.name} reactivated ✓`)
+                        },
+                      })
+                    }}
+                  >{selectedDonor.deactivated ? '✓ Reactivate Donor' : '⊘ Deactivate Donor'}</button>
                   <button style={(issuing || bulkActionInProgress) ? s.issuingBtn : s.btnForest} disabled={!!issuing || bulkActionInProgress} onClick={async () => {
                     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
                     setBulkActionInProgress(true)
@@ -2376,19 +2903,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
             </div>
+          {deactivatedDonorList.length > 0 && (
+              <div style={{ ...s.tableCard, marginTop: 24, opacity: 0.7 }}>
+                <div style={s.tableHeader}>
+                  <div style={s.tableTitle}>Deactivated Donors</div>
+                  <div style={s.tableCount}>{deactivatedDonorList.length} donors · hidden from active lists</div>
+                </div>
+                <div>
+                  {deactivatedDonorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ ...s.donorAvatar, background: C.muted }}>{d.name?.charAt(0)}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''} · ${d.total.toLocaleString()} total</div>
+                      </div>
+                      <span style={{ ...s.badgePending, color: C.muted, background: C.ivoryDark }}>Deactivated</span>
+                      <button style={s.viewBtn} onClick={() => setSelectedDonor(d)}>View</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* ── DONATIONS ── */}
         {activeTab === 'donations' && (
           <div style={s.content}>
+            {userRole === 'volunteer' && (
+              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 18px', marginBottom: 20, fontSize: 13, color: C.warning, fontWeight: 600 }}>
+                👋 You're logged in as a volunteer. You can log new manual entries below. To view donor records or financials, please contact a staff member.
+              </div>
+            )}
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>Donations</div>
-                <div style={s.pageSub}>{donations.length} total · {donations.filter(d => d.source === 'manual').length} manual entries</div>
+                <div style={s.pageSub}>{userRole === 'volunteer' ? 'Log a new donation below' : `${donations.length} total · ${donations.filter(d => d.source === 'manual').length} manual entries`}</div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCountForYear})`}</button>}
+                {userRole === 'staff' && pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCountForYear})`}</button>}
                 <button style={s.btnGold} onClick={() => setShowManualForm(true)}>+ Manual Entry</button>
               </div>
             </div>
@@ -2402,6 +2955,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 18 }}>Log a cash, cheque, or wire donation received outside the app.</div>
                   {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
+                  {manualDuplicateWarning && (
+                    <div style={{ background: '#FDF3DC', border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.warning, marginBottom: 8 }}>⚠️ Possible duplicate donor</div>
+                      <div style={{ fontSize: 12, color: C.warning, marginBottom: 10 }}>We found {manualDuplicateWarning.length} existing donor{manualDuplicateWarning.length > 1 ? 's' : ''} with a similar name. Is this the same person?</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                        {manualDuplicateWarning.slice(0, 3).map((d, i) => (
+                          <div key={i} style={{ background: C.white, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.forest }}>
+                            <strong>{d.name}</strong> — {d.count} donation{d.count > 1 ? 's' : ''}, last gave ${d.total.toLocaleString()}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          style={{ ...s.btnForest, fontSize: 12, padding: '8px 14px' }}
+                          onClick={() => { setManualForm(f => ({ ...f, duplicateConfirmed: true })); setManualDuplicateWarning(null); saveManualEntry() }}
+                        >It's a different person — save anyway</button>
+                        <button
+                          style={{ ...s.viewBtn, fontSize: 12, padding: '8px 14px' }}
+                          onClick={() => { setManualDuplicateWarning(null); setManualForm(f => ({ ...f, donor_name: manualDuplicateWarning[0].name })) }}
+                        >Use existing name</button>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
                     <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
                     {charityIsIpc && (
@@ -2426,7 +3002,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         ))}
                       </select>
                     </div>
-                    <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                    <div><div style={s.formLabel}>Receipt Name</div><input style={s.formInput} placeholder="Leave blank to use donor name" value={manualForm.receipt_name} onChange={e => setManualForm(f => ({ ...f, receipt_name: e.target.value }))} /><div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Only fill this if the receipt should show a different name (e.g. a company name)</div></div>
+<div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     {manualForm.payment_method === 'PayNow Direct' ? (
@@ -2560,7 +3137,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 24 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={s.tableCard}>
+                {userRole === 'volunteer' ? (
+                  <div style={{ ...s.tableCard }}>
+                    <div style={s.empty}>Your manual entries have been saved. A staff member can review them in the full donations list.</div>
+                  </div>
+                ) : <div style={s.tableCard}>
                   <div style={s.tableHeader}>
                     <div style={s.tableTitle}>All Donations</div>
                     <div style={s.tableCount}>{filteredDonations.length > donationsPerPage ? `${paginatedDonations.length} of ${filteredDonations.length} records` : `${filteredDonations.length} records`}</div>
@@ -2753,10 +3334,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
 
-              {selectedDonation && (
+              {userRole === 'staff' && selectedDonation && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
                 <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
                   <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.ivory, borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 28 }}>
@@ -2962,7 +3543,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>General Donation</span>
                           )}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Receipt Name</span>
+                          {editingManual && selectedDonation.source === 'manual' ? (
+                            <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 160, textAlign: 'right' }}
+                              placeholder={selectedDonation.donor_name}
+                              value={editForm.receipt_name ?? (selectedDonation.receipt_name || '')}
+                              onChange={e => setEditForm(f => ({ ...f, receipt_name: e.target.value }))} />
+                          ) : (
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{selectedDonation.receipt_name || selectedDonation.donor_name}</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
                           <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
                           {editingManual && selectedDonation.source === 'manual' ? (
                             <input type="text" style={{ ...s.formInput, padding: '4px 8px', fontSize: 12, width: 160, textAlign: 'right' }}
@@ -2972,6 +3564,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <span style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: 'monospace' }}>{selectedDonation.source === 'manual' ? (selectedDonation.receipt_number || '—') : (selectedDonation.payment_ref || '—')}</span>
                           )}
                         </div>
+                        {selectedDonation.reissued_from && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Reissued From</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.warning, fontFamily: 'monospace' }}>{selectedDonation.reissued_from} (voided)</span>
+                          </div>
+                        )}
+                        {selectedDonation.void_reason && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Void Reason</span>
+                            <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', maxWidth: 200, textAlign: 'right' }}>{selectedDonation.void_reason}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
@@ -3006,40 +3610,59 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {selectedDonation.receipt_issued && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
                         )}
+                        {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && (
+                          <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
+                        )}
                         {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
-                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={async () => {
-                            const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
-                            if (error) { showToast('Error issuing receipt', 'error'); return }
-                            setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, receipt_issued: true } : x))
-                            setSelectedDonation(prev => ({ ...prev, receipt_issued: true }))
+                          <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => {
+                            setConfirmModal({
+                              title: 'Issue receipt for this donation?',
+                              subtitle: 'Review the details below before issuing. Once issued, the donor will receive a thank-you email if they have one on file.',
+                              donorName: selectedDonation.donor_name,
+                              amount: selectedDonation.amount,
+                              reference: selectedDonation.receipt_number || selectedDonation.payment_ref,
+                              steps: [
+                                `Receipt name: ${selectedDonation.receipt_name || selectedDonation.donor_name}`,
+                                `Amount: SGD $${Number(selectedDonation.amount).toLocaleString()}`,
+                                `Date: ${new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+                                ...(selectedDonation.donor_email ? [`Thank-you email will be sent to ${selectedDonation.donor_email}`] : ['No email on file — receipt only']),
+                              ],
+                              confirmLabel: 'Issue Receipt',
+                              onConfirm: async () => {
+                                const { error } = await supabase.from('donations').update({ receipt_issued: true }).eq('id', selectedDonation.id)
+                                if (error) { showToast('Error issuing receipt', 'error'); return }
+                                setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, receipt_issued: true } : x))
+                                setSelectedDonation(prev => ({ ...prev, receipt_issued: true }))
 
-                            if (!selectedDonation.donor_email) {
-                              showToast('Receipt issued ✓')
-                              return
-                            }
+                                if (!selectedDonation.donor_email) {
+                                  showToast('Receipt issued ✓')
+                                  return
+                                }
 
-                            const donationSnapshot = { ...selectedDonation, receipt_issued: true }
-                            const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-                              body: {
-                                donor_name: donationSnapshot.donor_name,
-                                donor_email: donationSnapshot.donor_email,
-                                charity_name: charityName,
-                                charity_uen: charityUen,
-                                amount: donationSnapshot.amount,
-                                date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-                                payment_ref: donationSnapshot.payment_ref,
-                                notes: donationSnapshot.notes,
-                                cause_title: causeNameForDonation(donationSnapshot),
-                              }
+                                const donationSnapshot = { ...selectedDonation, receipt_issued: true }
+                                const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+                                  body: {
+                                    donor_name: donationSnapshot.donor_name,
+                                    donor_email: donationSnapshot.donor_email,
+                                    charity_name: charityName,
+                                    charity_uen: charityUen,
+                                    amount: donationSnapshot.amount,
+                                    date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                    payment_ref: donationSnapshot.payment_ref,
+                                    notes: donationSnapshot.notes,
+                                    cause_title: causeNameForDonation(donationSnapshot),
+                                  }
+                                })
+                                if (!emailError) {
+                                  await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
+                                  setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
+                                  setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
+                                  showToast('Receipt issued ✓ — thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
+                                } else {
+                                  showToast('Receipt issued but thank you email failed — send manually', 'error')
+                                }
+                              },
                             })
-                            if (!emailError) {
-                              await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
-                              setDonations(prev => prev.map(x => x.id === donationSnapshot.id ? { ...x, thank_you_sent: true } : x))
-                              setSelectedDonation(prev => ({ ...prev, thank_you_sent: true }))
-                              showToast('Receipt issued ✓ — thank you email sent to ' + donationSnapshot.donor_email + ' 💌')
-                            } else {
-                              showToast('Receipt issued but thank you email failed — send manually', 'error')
-                            }
                           }}>🧾 Issue Receipt</button>
                         )}
                         {selectedDonation.payment_status !== 'confirmed' && (
@@ -4161,7 +4784,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <tbody>
                     {irasYearDonorList.map((d, i) => (
                       <tr key={i} style={s.tr}>
-                        <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div><div style={s.donorName}>{d.name}</div></div></td>
+                        <td style={s.td}>
+                            <div style={s.donorCell}>
+                              <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div>
+                                <div style={s.donorName}>{d.name}</div>
+                                {(() => {
+                                  const donorKey = d.email?.trim() || d.name
+                                  const tags = donorTagsMap[donorKey] || []
+                                  return tags.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                                      {tags.slice(0, 3).map(t => (
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 600, color: C.teal, background: '#E8F0EE', padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
+                                      ))}
+                                      {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
+                                    </div>
+                                  ) : null
+                                })()}
+                              </div>
+                            </div>
+                          </td>
                         <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
                         {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count}</span></td>}
                         <td style={s.td}><span style={{ ...s.amountText, color: C.forest }}>${(d.total * 2.5).toLocaleString()}</span></td>
@@ -4248,6 +4890,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       bulk_nric_requested: { label: 'Bulk NRIC request sent', icon: '📧', color: C.sage },
                       nric_synced_by_donor: { label: 'Donor updated their NRIC', icon: '🪪', color: C.sage },
                       bulk_receipts_issued: { label: 'Bulk receipts issued', icon: '🧾', color: C.sage },
+                      receipt_voided_and_reissued: { label: 'Receipt voided and reissued', icon: '🚫', color: C.red },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -4399,6 +5042,117 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )}
 
+        {/* ── PLEDGES ── */}
+        {activeTab === 'pledges' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>Pledges</div>
+                <div style={s.pageSub}>{pledges.filter(p => p.status === 'pending').length} pending · {pledges.filter(p => p.status === 'fulfilled').length} fulfilled</div>
+              </div>
+              <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
+            </div>
+
+            {showPledgeForm && (
+              <div style={{ ...s.card, marginBottom: 24, border: `1.5px solid ${C.sage}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 New Pledge</div>
+                  <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>✕</button>
+                </div>
+                {pledgeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{pledgeError}</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <div style={s.formLabel}>Donor Name *</div>
+                    <input style={s.formInput} placeholder="Full name" value={pledgeForm.donor_name} onChange={e => setPledgeForm(f => ({ ...f, donor_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Donor Email</div>
+                    <input style={s.formInput} placeholder="donor@email.com" value={pledgeForm.donor_email} onChange={e => setPledgeForm(f => ({ ...f, donor_email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Pledged Amount (SGD) *</div>
+                    <input style={s.formInput} type="number" placeholder="0.00" value={pledgeForm.amount} onChange={e => setPledgeForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Expected By *</div>
+                    <input style={s.formInput} type="date" min={new Date().toISOString().split('T')[0]} value={pledgeForm.expected_date} onChange={e => setPledgeForm(f => ({ ...f, expected_date: e.target.value }))} />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <div style={s.formLabel}>Notes</div>
+                    <input style={s.formInput} placeholder="e.g. Verbally committed at gala dinner" value={pledgeForm.notes} onChange={e => setPledgeForm(f => ({ ...f, notes: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={savePledge} disabled={savingPledge}>{savingPledge ? 'Saving...' : '✓ Save Pledge'}</button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {['pending', 'fulfilled', 'cancelled'].map(tab => (
+                <button
+                  key={tab}
+                  style={{ ...s.viewBtn, background: activePledgeTab === tab ? C.forest : C.ivory, color: activePledgeTab === tab ? 'white' : C.forest, borderColor: activePledgeTab === tab ? C.forest : C.border }}
+                  onClick={() => setActivePledgeTab(tab)}
+                >
+                  {tab === 'pending' ? '⏳' : tab === 'fulfilled' ? '✓' : '✕'} {tab.charAt(0).toUpperCase() + tab.slice(1)} ({pledges.filter(p => p.status === tab).length})
+                </button>
+              ))}
+            </div>
+
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>
+                  {activePledgeTab === 'pending' ? '⏳ Pending Pledges' : activePledgeTab === 'fulfilled' ? '✓ Fulfilled Pledges' : '✕ Cancelled Pledges'}
+                </div>
+                <div style={s.tableCount}>{pledges.filter(p => p.status === activePledgeTab).length} records</div>
+              </div>
+              {pledges.filter(p => p.status === activePledgeTab).length === 0 ? (
+                <div style={s.empty}>No {activePledgeTab} pledges.</div>
+              ) : (
+                <div>
+                  {pledges.filter(p => p.status === activePledgeTab).map(p => {
+                    const today = new Date(); today.setHours(0,0,0,0)
+                    const expectedDate = new Date(p.expected_date)
+                    const daysUntil = Math.ceil((expectedDate - today) / (1000 * 60 * 60 * 24))
+                    const isOverdue = daysUntil < 0 && p.status === 'pending'
+                    const isDueSoon = daysUntil >= 0 && daysUntil <= 7 && p.status === 'pending'
+                    return (
+                      <div key={p.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.ivoryDark}`, borderLeft: `3px solid ${isOverdue ? C.red : isDueSoon ? C.warning : C.sage}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{p.donor_name}</div>
+                              {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>⚠️ Overdue by {Math.abs(daysUntil)} day{Math.abs(daysUntil) !== 1 ? 's' : ''}</span>}
+                              {isDueSoon && <span style={s.badgePending}>⏰ Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
+                            </div>
+                            {p.donor_email && <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{p.donor_email}</div>}
+                            <div style={{ fontSize: 12, color: C.muted }}>
+                              Expected by {new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              {p.notes && ` · ${p.notes}`}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: C.forest, marginBottom: 8 }}>${Number(p.amount).toLocaleString()}</div>
+                            {p.status === 'pending' && (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
+                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── SETTINGS ── */}
         {activeTab === 'settings' && (
           <div style={s.content}>
@@ -4462,6 +5216,63 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </a>
               </div>
 
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>👥 Staff & Volunteer Access</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  Volunteer accounts can log manual entries but cannot see donor records, financials, analytics, or reports. Add their email addresses below.
+                </div>
+                {(() => {
+                  const [volunteerInput, setVolunteerInput] = React.useState('')
+                  const [savingVolunteer, setSavingVolunteer] = React.useState(false)
+                  const [localVolunteers, setLocalVolunteers] = React.useState([])
+
+                  React.useEffect(() => {
+                    supabase.from('charity_contacts').select('volunteer_emails').eq('charity_uen', charityUen).single()
+                      .then(({ data }) => setLocalVolunteers(data?.volunteer_emails || []))
+                  }, [])
+
+                  async function addVolunteer() {
+                    const email = volunteerInput.trim().toLowerCase()
+                    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
+                    if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
+                    setSavingVolunteer(true)
+                    const updated = [...localVolunteers, email]
+                    const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                    if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
+                    setLocalVolunteers(updated)
+                    setVolunteerInput('')
+                    setSavingVolunteer(false)
+                    showToast(`${email} added as volunteer ✓`)
+                  }
+
+                  async function removeVolunteer(email) {
+                    const updated = localVolunteers.filter(e => e !== email)
+                    const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                    if (error) { showToast('Error removing', 'error'); return }
+                    setLocalVolunteers(updated)
+                    showToast('Volunteer removed')
+                  }
+
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                        {localVolunteers.length === 0 && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No volunteers added yet.</div>}
+                        {localVolunteers.map(email => (
+                          <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 13, color: C.forest }}>👤 {email}</span>
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeVolunteer(email)}>Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input style={{ ...s.formInput, fontSize: 13 }} placeholder="volunteer@email.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addVolunteer() }} />
+                        <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={addVolunteer} disabled={savingVolunteer}>{savingVolunteer ? '...' : 'Add'}</button>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+
               <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
                 <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</a>
                 {' · '}
@@ -4473,6 +5284,50 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
       </div>
+
+      {showVoidModal && selectedDonation && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 420, width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.red, marginBottom: 4 }}>🚫 Void & Reissue Receipt</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+              The original receipt number <strong style={{ fontFamily: 'monospace' }}>{selectedDonation.receipt_number || selectedDonation.payment_ref}</strong> will be marked as voided and kept on record. A new corrected receipt will be issued with the next sequential number.
+            </div>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Donor</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{selectedDonation.donor_name}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Amount</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${Number(selectedDonation.amount).toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Current Receipt No.</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest, fontFamily: 'monospace' }}>{selectedDonation.receipt_number || selectedDonation.payment_ref}</span>
+              </div>
+            </div>
+            <div style={s.formLabel}>Reason for voiding *</div>
+            <input
+              style={{ ...s.formInput, marginBottom: 16 }}
+              placeholder="e.g. Wrong amount entered, donor name misspelled"
+              value={voidReason}
+              onChange={e => setVoidReason(e.target.value)}
+              autoFocus
+            />
+            <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: C.warning }}>
+              ⚠️ This action is logged and cannot be undone. The void reason will appear on the audit trail.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { setShowVoidModal(false); setVoidReason('') }}>Cancel</button>
+              <button
+                style={{ flex: 1, background: C.red, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: voidReason.trim() ? 1 : 0.5 }}
+                disabled={!voidReason.trim() || voidingReceipt}
+                onClick={() => voidAndReissueReceipt(selectedDonation)}
+              >{voidingReceipt ? '⏳ Processing...' : 'Void & Reissue'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {thankYouDraft && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
