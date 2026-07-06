@@ -83,13 +83,19 @@ export default function App() {
   const [savingNote, setSavingNote] = useState(false)
   const [donorTagsMap, setDonorTagsMap] = useState({})
   const [newTagInput, setNewTagInput] = useState('')
-  const [savingTag, setSavingTag] = useState(false)
+  const [savingTag, setSavingTag] = useState(false) 
   const [filterDonorTag, setFilterDonorTag] = useState('All')
   const [userRole, setUserRole] = useState('staff')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
+  const [monthlyExpenses, setMonthlyExpenses] = useState(0)
+  const [customObligations, setCustomObligations] = useState([])
+  const [showAddObligation, setShowAddObligation] = useState(false)
+  const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
+  const [editingExpenses, setEditingExpenses] = useState(false)
+  const [expensesInput, setExpensesInput] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
@@ -206,7 +212,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, monthly_expenses, custom_obligations')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -229,6 +235,8 @@ export default function App() {
       setUserRole('staff')
     }
     setLocalVolunteers(volunteerEmails)
+    setMonthlyExpenses(data?.monthly_expenses || 0)
+    setCustomObligations(data?.custom_obligations || [])
     setRoleLoaded(true)
   }
 
@@ -2674,6 +2682,70 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
+            {/* ── ROW 1: KEY METRICS ── */}
+            {(() => {
+              const now = new Date()
+              const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1)
+              const samePeriodLastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+              const samePeriodLastYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+              const mtd = confirmedDonations.filter(d => new Date(d.created_at) >= mtdStart).reduce((s, d) => s + d.amount, 0)
+              const lyMtd = confirmedDonations.filter(d => new Date(d.created_at) >= samePeriodLastYearStart && new Date(d.created_at) <= samePeriodLastYearEnd).reduce((s, d) => s + d.amount, 0)
+              const mtdDiff = lyMtd > 0 ? Math.round(((mtd - lyMtd) / lyMtd) * 100) : null
+              const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
+              const activeRecurring = recurringGifts.filter(g => g.status === 'active')
+              const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
+              const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
+              const totalMRR = giroMRR + habitualMRR
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                  {/* MTD vs LY */}
+                  <div style={{ background: C.forest, borderRadius: 12, padding: '16px 20px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>This Month</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>${mtd.toLocaleString()}</div>
+                    {mtdDiff !== null ? (
+                      <div style={{ fontSize: 12, color: mtdDiff >= 0 ? '#86EFAC' : '#FCA5A5', marginTop: 4 }}>
+                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs same period last year (${lyMtd.toLocaleString()})
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>No data from last year</div>
+                    )}
+                  </div>
+
+                  {/* Coverage Ratio */}
+                  <div style={{ background: coverageRatio === null ? C.white : coverageRatio >= 1 ? '#F0FDF4' : '#FEF2F2', borderRadius: 12, padding: '16px 20px', border: `1px solid ${coverageRatio === null ? C.border : coverageRatio >= 1 ? C.sage : C.red}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Coverage Ratio</div>
+                    {coverageRatio === null ? (
+                      <div>
+                        <div style={{ fontSize: 14, color: C.muted, marginBottom: 8 }}>Set your monthly expenses to see coverage</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set expenses →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: coverageRatio >= 1 ? C.forest : C.red }}>{coverageRatio.toFixed(1)}x</div>
+                        <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+                          ${thisMonthTotal.toLocaleString()} raised vs ${monthlyExpenses.toLocaleString()} expenses
+                        </div>
+                        <div style={{ fontSize: 11, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 2, fontWeight: 600 }}>
+                          {coverageRatio >= 1 ? '✓ Donations covering costs' : '⚠️ Shortfall this month'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* MRR */}
+                  <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Monthly Recurring</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4, display: 'flex', gap: 10 }}>
+                      <span>GIRO: <strong style={{ color: C.forest }}>${giroMRR.toLocaleString()}</strong></span>
+                      <span>PayNow: <strong style={{ color: C.forest }}>${habitualMRR.toLocaleString()}</strong></span>
+                    </div>
+                    {activeRecurring.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>No recurring gifts set up yet</div>}
+                  </div>
+                </div>
+              )
+            })()}
+
             {actionItems.length > 0 && (
               <div style={{ ...s.deadlineBanner, background: '#F5C9C4', border: `1.5px solid ${C.red}`, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -2768,6 +2840,287 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                   <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={() => setActiveTab('recurring')}>Review →</button>
+                </div>
+              )
+            })()}
+
+            {/* ── UPCOMING OBLIGATIONS ── */}
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const builtIn = [
+                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
+                ...(daysToCocDeadline > 0 ? [{ title: 'COC Annual Submission', date: cocDeadline, type: 'coc' }] : []),
+              ]
+              const custom = (customObligations || []).map(o => {
+                let d = new Date(o.date)
+                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
+                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
+              }).map(o => {
+                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                if (d < today) d.setFullYear(today.getFullYear() + 1)
+                return { ...o, dateObj: d }
+              })
+              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
+                .sort((a, b) => a.dateObj - b.dateObj)
+                .filter(o => {
+                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 180
+                })
+              return (
+                <div style={{ ...s.card, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={s.cardTitle}>📅 Upcoming Obligations</div>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                  </div>
+                  {showAddObligation && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <div>
+                          <div style={s.formLabel}>Title</div>
+                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div>
+                          <div style={s.formLabel}>Date</div>
+                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
+                        </div>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!obligationForm.title.trim() || !obligationForm.date) return
+                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
+                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomObligations(updated)
+                          setObligationForm({ title: '', date: '', repeat: 'annual' })
+                          setShowAddObligation(false)
+                          showToast('Obligation added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {all.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {all.map((o, i) => {
+                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                        const urgent = days <= 30
+                        const soon = days <= 60
+                        return (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: urgent ? '#FEF2F2' : soon ? '#FDF3DC' : C.ivory, borderRadius: 10, border: `1px solid ${urgent ? C.red : soon ? C.warningBorder : C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: urgent ? C.red : C.forest }}>{o.title}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: urgent ? C.red : soon ? C.warning : C.muted }}>{days}d</span>
+                              {o.type !== 'iras' && o.type !== 'coc' && (
+                                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                                  const updated = customObligations.filter((_, j) => j !== i - builtIn.length)
+                                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                                  if (!error) { setCustomObligations(updated); showToast('Removed') }
+                                }}>✕</span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* ── LAPSED DONORS (60+ days) ── */}
+            {(() => {
+              const today = new Date()
+              const lapsed = Object.values((() => {
+                const map = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
+                    map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
+                  }
+                  map[key].count++
+                  map[key].total += d.amount
+                })
+                return map
+              })()).filter(d => {
+                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                return daysSince >= 60 && d.count >= 2
+              }).sort((a, b) => b.total - a.total).slice(0, 5)
+              if (lapsed.length === 0) return null
+              return (
+                <div style={{ ...s.card, marginBottom: 20 }}>
+                  <div style={s.cardTitle}>⏰ Lapsed Donors</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave 2+ times but haven't donated in 60+ days</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {lapsed.map((d, i) => {
+                      const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>Last gave {daysSince} days ago · {d.count} donations · ${d.total.toLocaleString()} lifetime</div>
+                          </div>
+                          {d.email && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => { setActiveTab('massappeal') }}>Appeal →</button>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── CONCENTRATION RISK + UPGRADE/DOWNGRADE ── */}
+            {(() => {
+              const donorTotals = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, total: 0, gifts: [] }
+                donorTotals[key].total += d.amount
+                donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
+              })
+              const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
+              const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
+              const top10Total = sorted.slice(0, 10).reduce((s, d) => s + d.total, 0)
+              const concentrationPct = grandTotal > 0 ? Math.round((top10Total / grandTotal) * 100) : 0
+              const highRisk = concentrationPct >= 70
+              const medRisk = concentrationPct >= 50
+
+              // Upgrade/downgrade detection
+              const flags = sorted.filter(d => d.gifts.length >= 3).map(d => {
+                const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
+                const recent = byDate[byDate.length - 1].amount
+                const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
+                const changePct = Math.round(((recent - prevAvg) / prevAvg) * 100)
+                if (Math.abs(changePct) >= 30) return { name: d.name, changePct, recent, prevAvg: Math.round(prevAvg) }
+                return null
+              }).filter(Boolean).slice(0, 3)
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  {/* Concentration */}
+                  <div style={{ ...s.card, background: highRisk ? '#FEF2F2' : medRisk ? '#FDF3DC' : C.white, border: `1px solid ${highRisk ? C.red : medRisk ? C.warningBorder : C.border}` }}>
+                    <div style={s.cardTitle}>🎯 Donor Concentration</div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: highRisk ? C.red : medRisk ? C.warning : C.forest, marginBottom: 4 }}>{concentrationPct}%</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>of revenue from top {Math.min(10, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.warning : C.sage, borderRadius: 6 }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: highRisk ? C.red : medRisk ? C.warning : C.sage, marginTop: 6, fontWeight: 600 }}>
+                      {highRisk ? '⚠️ High risk — diversify donor base' : medRisk ? '⚠️ Moderate risk' : '✓ Healthy diversification'}
+                    </div>
+                  </div>
+
+                  {/* Upgrade/downgrade */}
+                  <div style={s.card}>
+                    <div style={s.cardTitle}>📊 Giving Changes</div>
+                    {flags.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {flags.map((f, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: f.changePct < 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{f.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: f.changePct < 0 ? C.red : C.sage }}>
+                              {f.changePct > 0 ? '↑' : '↓'} {Math.abs(f.changePct)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── SEASONALITY TREND ── */}
+            {confirmedDonations.length > 0 && (() => {
+              const years = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort()
+              const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+              const data = years.map(year => ({
+                year,
+                monthly: months.map((_, m) => confirmedDonations.filter(d => new Date(d.created_at).getFullYear() === year && new Date(d.created_at).getMonth() === m).reduce((s, d) => s + d.amount, 0))
+              }))
+              const maxVal = Math.max(...data.flatMap(y => y.monthly))
+              const colors = ['#1B4332', '#2D6A4F', '#40916C', '#74C69D']
+              return (
+                <div style={{ ...s.card, marginBottom: 20 }}>
+                  <div style={s.cardTitle}>📈 Seasonality Trends</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Monthly donations by year</div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <div style={{ minWidth: 500 }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 120, marginBottom: 8 }}>
+                        {months.map((month, m) => (
+                          <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                            {data.map((y, yi) => (
+                              <div key={yi} title={`${y.year} ${month}: $${y.monthly[m].toLocaleString()}`} style={{ width: '100%', height: maxVal > 0 ? `${Math.max(2, (y.monthly[m] / maxVal) * 80)}px` : '2px', background: colors[yi % colors.length], borderRadius: 3, opacity: 0.85 }} />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {months.map((m, i) => <div key={i} style={{ flex: 1, fontSize: 9, color: C.muted, textAlign: 'center' }}>{m}</div>)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                        {data.map((y, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.muted }}><div style={{ width: 10, height: 10, borderRadius: 2, background: colors[i % colors.length] }} />{y.year}</div>)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── DONOR LIFETIME VALUE ── */}
+            {confirmedDonations.length > 0 && (() => {
+              const sorted = Object.values((() => {
+                const map = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
+                  map[key].total += d.amount
+                  map[key].count++
+                  if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
+                })
+                return map
+              })()).sort((a, b) => b.total - a.total)
+              const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
+              const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+              return (
+                <div style={{ ...s.card, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div style={s.cardTitle}>💎 Donor Lifetime Value</div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 11, color: C.muted }}>Avg LTV</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: C.forest }}>${avgLTV.toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: '10px 14px' }}>
+                      <div style={{ fontSize: 11, color: C.muted }}>Avg gifts per donor</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>{avgGifts}</div>
+                    </div>
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: '10px 14px' }}>
+                      <div style={{ fontSize: 11, color: C.muted }}>Top donor LTV</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {sorted.slice(0, 5).map((d, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.ivory, borderRadius: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: [C.forest, C.sage, C.teal, C.gold, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })()}
@@ -6188,6 +6541,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
                   🗑️ Request Account Deletion
                 </a>
+              </div>
+
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={s.cardTitle}>💸 Monthly Expenses</div>
+                  {!editingExpenses && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(monthlyExpenses?.toString() || ''); setEditingExpenses(true) }}>Edit</button>}
+                </div>
+                {editingExpenses ? (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input style={s.formInput} type="number" placeholder="e.g. 15000" value={expensesInput} onChange={e => setExpensesInput(e.target.value)} />
+                    <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={async () => {
+                      const val = parseFloat(expensesInput) || 0
+                      const { error } = await supabase.from('charity_contacts').update({ monthly_expenses: val }).eq('charity_uen', charityUen)
+                      if (error) { showToast('Error saving', 'error'); return }
+                      setMonthlyExpenses(val)
+                      setEditingExpenses(false)
+                      showToast('Monthly expenses updated ✓')
+                    }}>Save</button>
+                    <button style={s.viewBtn} onClick={() => setEditingExpenses(false)}>Cancel</button>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
+                    {monthlyExpenses > 0 ? `SGD $${monthlyExpenses.toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Not set — used for coverage ratio on dashboard</span>}
+                  </div>
+                )}
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
