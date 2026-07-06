@@ -2509,21 +2509,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {/* ── SIDEBAR (desktop, collapsible) ── */}
       {screenSize === 'desktop' && (
-      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflow: 'hidden', position: 'fixed' }}>
-        {/* Toggle button */}
-        <button
-          onClick={() => setSidebarCollapsed(v => !v)}
-          style={{ position: 'fixed', top: 16, left: sidebarCollapsed ? 40 : 216, width: 24, height: 24, borderRadius: '50%', background: C.gold, border: 'none', color: C.forest, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, lineHeight: 1, transition: 'left 0.2s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-        >{sidebarCollapsed ? '›' : '‹'}</button>
+      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
 
-        <div style={s.sidebarLogo}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: sidebarCollapsed ? 0 : 4 }}>
+        {/* Logo */}
+        <div style={{ ...s.sidebarLogo, display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logo} style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
-            {!sidebarCollapsed && <div style={s.logoText}>Giving Tree</div>}
+            {!sidebarCollapsed && (
+              <div>
+                <div style={s.logoText}>Giving Tree</div>
+                <div style={s.logoSub}>Charity Portal</div>
+              </div>
+            )}
           </div>
-          {!sidebarCollapsed && <div style={s.logoSub}>Charity Portal</div>}
+          <button
+            onClick={() => setSidebarCollapsed(v => !v)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'rgba(255,255,255,0.6)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: sidebarCollapsed ? 0 : 8 }}
+          >{sidebarCollapsed ? '→' : '←'}</button>
         </div>
 
+        {/* Charity badge */}
         {!sidebarCollapsed && (
           <div style={s.charityBadge}>
             <div style={s.charityIcon}>🏥</div>
@@ -2534,7 +2540,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )}
 
-        <div style={{ ...s.navSection, padding: sidebarCollapsed ? '8px 4px' : '8px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
+        {/* Nav */}
+        <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard', staffOnly: false },
@@ -2543,8 +2550,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
           ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
             <div key={item.id}
-              title={sidebarCollapsed ? item.label : ''}
-              style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+              title={item.label}
+              style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
               onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>
               {!sidebarCollapsed && item.label}
@@ -2553,7 +2560,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           {userRole === 'staff' && (
             <>
               {!sidebarCollapsed && <div style={s.navLabel}>Campaigns</div>}
-              {sidebarCollapsed && <div style={{ height: 8 }} />}
               {[
                 { id: 'promotions', icon: '📣', label: 'Campaigns' },
                 { id: 'pledges',    icon: '🤝', label: 'Pledges' },
@@ -2561,23 +2567,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
               ].map(item => (
                 <div key={item.id}
-                  title={sidebarCollapsed ? item.label : ''}
-                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+                  title={item.label}
+                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
                   onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
                   <span style={s.navIcon}>{item.icon}</span>
                   {!sidebarCollapsed && item.label}
                 </div>
               ))}
               {!sidebarCollapsed && <div style={s.navLabel}>Compliance</div>}
-              {sidebarCollapsed && <div style={{ height: 8 }} />}
               {[
                 { id: 'reports',  icon: '📋', label: 'Reports' },
                 { id: 'activity', icon: '🗒️', label: 'Audit Log' },
                 ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []),
               ].map(item => (
                 <div key={item.id}
-                  title={sidebarCollapsed ? item.label : ''}
-                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+                  title={item.label}
+                  style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
                   onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
                   <span style={s.navIcon}>{item.icon}</span>
                   {!sidebarCollapsed && item.label}
@@ -2586,20 +2591,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </>
           )}
           {!sidebarCollapsed && <div style={s.navLabel}>Account</div>}
-          {sidebarCollapsed && <div style={{ height: 8 }} />}
           <div
-            title={sidebarCollapsed ? 'Settings' : ''}
-            style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '10px 0' : undefined }}
+            title="Settings"
+            style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
             onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
             <span style={s.navIcon}>⚙️</span>
             {!sidebarCollapsed && 'Settings'}
           </div>
         </div>
 
+        {/* Footer */}
         {!sidebarCollapsed && (
           <div style={s.sidebarFooter}>
             <div style={s.footerAvatar}>{charityName.charAt(0)}</div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={s.footerName}>{charityName}</div>
               <div style={s.footerEmail}>{session?.user?.email}</div>
             </div>
