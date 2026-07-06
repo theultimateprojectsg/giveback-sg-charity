@@ -3337,6 +3337,70 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {/* ── ACTIVE CAMPAIGNS ── */}
+            {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={s.cardTitle}>🎯 Active Campaigns</div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
+                  {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => {
+                    const stats = causeRaisedMap[c.id] || { total: 0, donors: new Set() }
+                    const goal = c.target_amount || 0
+                    const pct = goal > 0 ? Math.min(100, Math.round((stats.total / goal) * 100)) : 0
+                    const daysLeft = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24))) : null
+                    const behindPace = goal > 0 && pct < 40
+                    return (
+                      <div key={c.id} style={{ background: C.ivory, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{c.title}</div>
+                          <span style={s.badgeIssued}>✓ Live</span>
+                        </div>
+                        {goal > 0 && (
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 10 }}>
+                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 3 }} />
+                          </div>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Raised</div><div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>${stats.total.toLocaleString()}</div></div>
+                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Goal</div><div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{goal > 0 ? `$${goal.toLocaleString()}` : '—'}</div></div>
+                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors</div><div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{stats.donors.size}</div></div>
+                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Ends</div><div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{daysLeft !== null ? `${daysLeft}d` : '—'}</div></div>
+                        </div>
+                        {goal > 0 && <div style={{ marginTop: 8, fontSize: 11, color: behindPace ? C.warning : C.muted, fontWeight: behindPace ? 600 : 400 }}>{behindPace ? `⚠ Behind pace · ${pct}% funded` : `${pct}% funded`}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── RECENT DONATIONS ── */}
+            {confirmedDonations.length > 0 && (
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={s.cardTitle}>💳 Recent Donations</div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('donations')}>View all →</div>
+                </div>
+                <div>
+                  {confirmedDonations.slice(0, 5).map(d => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
+                      <div style={{ ...s.donorAvatar, background: C.sage, flexShrink: 0 }}>{d.donor_name?.charAt(0)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.donor_name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.source === 'manual' ? d.payment_method || 'Manual' : 'App'}{causeNameForDonation(d) ? ` · ${causeNameForDonation(d)}` : ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
+                        <div style={{ marginTop: 2 }}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>Pending</span>}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             </div>
         )}
 
