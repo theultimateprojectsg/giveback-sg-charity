@@ -1382,16 +1382,18 @@ export default function App() {
   setManualError('')
   setManualDuplicateWarning(null)
     const entryYear = new Date(manualForm.date).getFullYear()
-    const { count: existingManualCount, error: countError } = await supabase
+    const { data: existingReceipts, error: countError } = await supabase
       .from('donations')
-      .select('id', { count: 'exact', head: true })
+      .select('receipt_number')
       .eq('charity_uen', charityUen)
-      .eq('source', 'manual')
-      .gte('created_at', `${entryYear}-01-01`)
-      .lt('created_at', `${entryYear + 1}-01-01`)
+      .like('receipt_number', `MR-${entryYear}-%`)
     if (countError) { console.error('Could not generate receipt number:', countError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
-    const nextSeq = (existingManualCount || 0) + 1
-    const receiptNumber = `MR-${entryYear}-${String(nextSeq).padStart(6, '0')}`
+    const maxSeq = (existingReceipts || []).reduce((max, d) => {
+      const parts = d.receipt_number?.split('-')
+      const seq = parts?.length === 3 ? parseInt(parts[2]) : 0
+      return seq > max ? seq : max
+    }, 0)
+    const receiptNumber = `MR-${entryYear}-${String(maxSeq + 1).padStart(6, '0')}`
     let { data, error } = await supabase.from('donations').insert([{
       donor_name: manualForm.donor_name,
       donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
@@ -1412,15 +1414,18 @@ export default function App() {
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
-      const { count: retryCount, error: retryCountError } = await supabase
+      const { data: retryReceipts, error: retryCountError } = await supabase
         .from('donations')
-        .select('id', { count: 'exact', head: true })
+        .select('receipt_number')
         .eq('charity_uen', charityUen)
-        .eq('source', 'manual')
-        .gte('created_at', `${entryYear}-01-01`)
-        .lt('created_at', `${entryYear + 1}-01-01`)
+        .like('receipt_number', `MR-${entryYear}-%`)
       if (retryCountError) { console.error('Retry count failed:', retryCountError); setManualError('Error saving: receipt number conflict, please try again'); setSavingManual(false); return }
-      const retryReceiptNumber = `MR-${entryYear}-${String((retryCount || 0) + 1).padStart(6, '0')}`
+      const retryMaxSeq = (retryReceipts || []).reduce((max, d) => {
+        const parts = d.receipt_number?.split('-')
+        const seq = parts?.length === 3 ? parseInt(parts[2]) : 0
+        return seq > max ? seq : max
+      }, 0)
+      const retryReceiptNumber = `MR-${entryYear}-${String(retryMaxSeq + 1).padStart(6, '0')}`
       const retryResult = await supabase.from('donations').insert([{
         donor_name: manualForm.donor_name,
         donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
