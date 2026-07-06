@@ -2710,9 +2710,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
                   {/* MTD donations */}
-                  <div style={{ background: C.forest, borderRadius: 12, padding: '16px 20px', gridColumn: isMobile ? '1 / -1' : 'auto' }}>
+                  <div style={{ background: C.forest, borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>This Month</div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>${mtd.toLocaleString()}</div>
                     {mtdDiff !== null ? (
@@ -2721,19 +2721,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>No prior year data</div>
-                    )}
-                  </div>
-
-                  {/* New donors this month */}
-                  <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>New Donors</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
-                    {newDonorsDiff !== null ? (
-                      <div style={{ fontSize: 12, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 4 }}>
-                        {newDonorsDiff >= 0 ? '↑' : '↓'} {Math.abs(newDonorsDiff)}% vs last year
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>This month</div>
                     )}
                   </div>
 
@@ -2754,6 +2741,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </>
                     )}
                   </div>
+
+                  {/* New donors this month */}
+                  <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>New Donors</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
+                    {newDonorsDiff !== null ? (
+                      <div style={{ fontSize: 12, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 4 }}>
+                        {newDonorsDiff >= 0 ? '↑' : '↓'} {Math.abs(newDonorsDiff)}% vs last year
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>This month</div>
+                    )}
+                  </div>
+
+                  
 
                   {/* MRR */}
                   <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
