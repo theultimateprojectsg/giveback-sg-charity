@@ -88,6 +88,9 @@ export default function App() {
   const [filterDonorTag, setFilterDonorTag] = useState('All')
   const [userRole, setUserRole] = useState('staff')
   const [roleLoaded, setRoleLoaded] = useState(false)
+  const [volunteerInput, setVolunteerInput] = useState('')
+  const [savingVolunteer, setSavingVolunteer] = useState(false)
+  const [localVolunteers, setLocalVolunteers] = useState([])
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
@@ -222,6 +225,7 @@ export default function App() {
     } else {
       setUserRole('staff')
     }
+    setLocalVolunteers(volunteerEmails)
     setRoleLoaded(true)
   }
 
@@ -5866,56 +5870,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
                   Volunteer accounts can log manual entries but cannot see donor records, financials, analytics, or reports. Add their email addresses below.
                 </div>
-                {(() => {
-                  const [volunteerInput, setVolunteerInput] = React.useState('')
-                  const [savingVolunteer, setSavingVolunteer] = React.useState(false)
-                  const [localVolunteers, setLocalVolunteers] = React.useState([])
-
-                  React.useEffect(() => {
-                    supabase.from('charity_contacts').select('volunteer_emails').eq('charity_uen', charityUen).single()
-                      .then(({ data }) => setLocalVolunteers(data?.volunteer_emails || []))
-                  }, [])
-
-                  async function addVolunteer() {
-                    const email = volunteerInput.trim().toLowerCase()
-                    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
-                    if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
-                    setSavingVolunteer(true)
-                    const updated = [...localVolunteers, email]
-                    const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
-                    if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
-                    setLocalVolunteers(updated)
-                    setVolunteerInput('')
-                    setSavingVolunteer(false)
-                    showToast(`${email} added as volunteer ✓`)
-                  }
-
-                  async function removeVolunteer(email) {
-                    const updated = localVolunteers.filter(e => e !== email)
-                    const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
-                    if (error) { showToast('Error removing', 'error'); return }
-                    setLocalVolunteers(updated)
-                    showToast('Volunteer removed')
-                  }
-
-                  return (
-                    <div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                        {localVolunteers.length === 0 && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No volunteers added yet.</div>}
-                        {localVolunteers.map(email => (
-                          <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                            <span style={{ fontSize: 13, color: C.forest }}>👤 {email}</span>
-                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeVolunteer(email)}>Remove</button>
-                          </div>
-                        ))}
+                <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                    {localVolunteers.length === 0 && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No volunteers added yet.</div>}
+                    {localVolunteers.map(email => (
+                      <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest }}>👤 {email}</span>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                          const updated = localVolunteers.filter(e => e !== email)
+                          const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error removing', 'error'); return }
+                          setLocalVolunteers(updated)
+                          showToast('Volunteer removed')
+                        }}>Remove</button>
                       </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input style={{ ...s.formInput, fontSize: 13 }} placeholder="volunteer@email.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addVolunteer() }} />
-                        <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={addVolunteer} disabled={savingVolunteer}>{savingVolunteer ? '...' : 'Add'}</button>
-                      </div>
-                    </div>
-                  )
-                })()}
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input style={{ ...s.formInput, fontSize: 13 }} placeholder="volunteer@email.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const email = volunteerInput.trim().toLowerCase()
+                        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
+                        if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
+                        setSavingVolunteer(true)
+                        const updated = [...localVolunteers, email]
+                        supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                          .then(({ error }) => {
+                            if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
+                            setLocalVolunteers(updated)
+                            setVolunteerInput('')
+                            setSavingVolunteer(false)
+                            showToast(`${email} added as volunteer ✓`)
+                          })
+                      }
+                    }} />
+                    <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={async () => {
+                      const email = volunteerInput.trim().toLowerCase()
+                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
+                      if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
+                      setSavingVolunteer(true)
+                      const updated = [...localVolunteers, email]
+                      const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                      if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
+                      setLocalVolunteers(updated)
+                      setVolunteerInput('')
+                      setSavingVolunteer(false)
+                      showToast(`${email} added as volunteer ✓`)
+                    }} disabled={savingVolunteer}>{savingVolunteer ? '...' : 'Add'}</button>
+                  </div>
+                </div>
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
