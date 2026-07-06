@@ -6,6 +6,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import { QRCodeSVG } from 'qrcode.react'
+import JSZip from 'jszip'
 import logo from './assets/logo.png'
 import './App.css'
 
@@ -93,6 +94,25 @@ export default function App() {
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
+  const [recurringGifts, setRecurringGifts] = useState([])
+  const [showRecurringForm, setShowRecurringForm] = useState(false)
+  const [recurringForm, setRecurringForm] = useState({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
+  const [recurringError, setRecurringError] = useState('')
+  const [savingRecurring, setSavingRecurring] = useState(false)
+  const [activeRecurringTab, setActiveRecurringTab] = useState('active')
+  const [showMassAppealTool, setShowMassAppealTool] = useState(false)
+  const [massAppealForm, setMassAppealForm] = useState({ cause_id: '', amount: '', message: '' })
+  const [massAppealRefs, setMassAppealRefs] = useState([])
+  const [massAppealStep, setMassAppealStep] = useState('setup')
+  const [massAppealProgress, setMassAppealProgress] = useState(null)
+  const massAppealCancelRef = useRef(false)
+  const [showMigrationTool, setShowMigrationTool] = useState(false)
+  const [migrationFile, setMigrationFile] = useState(null)
+  const [migrationPreview, setMigrationPreview] = useState(null)
+  const [migrationErrors, setMigrationErrors] = useState([])
+  const [migrationProgress, setMigrationProgress] = useState(null)
+  const [migrationComplete, setMigrationComplete] = useState(null)
+  const migrationCancelRef = useRef(false)
   const [payNowQrDonation, setPayNowQrDonation] = useState(null)
   const [confirmingPayNow, setConfirmingPayNow] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
@@ -171,6 +191,7 @@ export default function App() {
       loadDonorBadgeAcks(session)
       loadAllDonorTags(session)
       loadPledges(session)
+      loadRecurringGifts(session)
     }
   }, [session])
 
@@ -293,6 +314,119 @@ export default function App() {
         if (error) { showToast('Error cancelling pledge', 'error'); return }
         setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'cancelled' } : p))
         showToast('Pledge cancelled')
+      },
+    })
+  }
+
+  async function loadRecurringGifts(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('recurring_gifts')
+      .select('*')
+      .eq('charity_uen', uen)
+      .order('next_expected_date', { ascending: true })
+    if (error) { console.error('Could not load recurring gifts:', error); return }
+    setRecurringGifts(data || [])
+  }
+
+  function computeNextExpectedDate(startDate, frequency, lastReceivedDate) {
+    const base = lastReceivedDate ? new Date(lastReceivedDate) : new Date(startDate)
+    const next = new Date(base)
+    if (frequency === 'weekly')      next.setDate(next.getDate() + 7)
+    else if (frequency === 'monthly') next.setMonth(next.getMonth() + 1)
+    else if (frequency === 'quarterly') next.setMonth(next.getMonth() + 3)
+    else if (frequency === 'annually') next.setFullYear(next.getFullYear() + 1)
+    return next.toISOString().split('T')[0]
+  }
+
+  async function saveRecurringGift() {
+    if (!recurringForm.donor_name.trim()) { setRecurringError('Donor name is required'); return }
+    if (!recurringForm.amount || parseFloat(recurringForm.amount) <= 0) { setRecurringError('Please enter a valid amount'); return }
+    if (!recurringForm.start_date) { setRecurringError('Start date is required'); return }
+    setSavingRecurring(true)
+    setRecurringError('')
+    const donorKey = recurringForm.donor_email?.trim() || recurringForm.donor_name.trim()
+    const nextExpected = computeNextExpectedDate(recurringForm.start_date, recurringForm.frequency, null)
+    const { data, error } = await supabase.from('recurring_gifts').insert([{
+      charity_uen: charityUen,
+      donor_name: recurringForm.donor_name.trim(),
+      donor_email: recurringForm.donor_email?.trim() || null,
+      donor_key: donorKey,
+      amount: parseFloat(recurringForm.amount),
+      frequency: recurringForm.frequency,
+      start_date: recurringForm.start_date,
+      next_expected_date: nextExpected,
+      giro_reference: recurringForm.giro_reference?.trim() || null,
+      type: recurringForm.type,
+      notes: recurringForm.notes?.trim() || null,
+      status: 'active',
+      created_by: session.user.email,
+    }]).select()
+    setSavingRecurring(false)
+    if (error) { setRecurringError(`Error: ${error.message}`); return }
+    setRecurringGifts(prev => [...prev, data[0]].sort((a, b) => new Date(a.next_expected_date) - new Date(b.next_expected_date)))
+    setRecurringForm({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
+    setShowRecurringForm(false)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_added',
+      details: { donor_name: recurringForm.donor_name, amount: parseFloat(recurringForm.amount), frequency: recurringForm.frequency, type: recurringForm.type },
+    })
+    showToast('Recurring gift recorded ✓')
+  }
+
+  async function markRecurringReceived(gift) {
+    const today = new Date().toISOString().split('T')[0]
+    const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, today)
+    const { error } = await supabase.from('recurring_gifts').update({
+      last_received_date: today,
+      next_expected_date: nextExpected,
+    }).eq('id', gift.id)
+    if (error) { showToast('Error updating recurring gift', 'error'); return }
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, last_received_date: today, next_expected_date: nextExpected } : g))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_received',
+      details: { donor_name: gift.donor_name, amount: gift.amount, frequency: gift.frequency },
+    })
+    showToast(`Payment from ${gift.donor_name} marked as received ✓ · Next expected ${new Date(nextExpected).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`)
+  }
+
+  async function pauseRecurringGift(gift) {
+    setConfirmModal({
+      title: 'Pause this recurring gift?',
+      description: `${gift.donor_name}'s ${gift.frequency} gift of $${gift.amount.toLocaleString()} will be paused. You can reactivate it at any time.`,
+      confirmLabel: 'Pause',
+      onConfirm: async () => {
+        const { error } = await supabase.from('recurring_gifts').update({ status: 'paused' }).eq('id', gift.id)
+        if (error) { showToast('Error pausing', 'error'); return }
+        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'paused' } : g))
+        showToast(`${gift.donor_name}'s recurring gift paused`)
+      },
+    })
+  }
+
+  async function reactivateRecurringGift(gift) {
+    const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
+    const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected }).eq('id', gift.id)
+    if (error) { showToast('Error reactivating', 'error'); return }
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected } : g))
+    showToast(`${gift.donor_name}'s recurring gift reactivated ✓`)
+  }
+
+  async function cancelRecurringGift(gift) {
+    setConfirmModal({
+      title: 'Cancel this recurring gift?',
+      description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked as cancelled. The record is kept for reference.`,
+      confirmLabel: 'Cancel Arrangement',
+      onConfirm: async () => {
+        const { error } = await supabase.from('recurring_gifts').update({ status: 'cancelled' }).eq('id', gift.id)
+        if (error) { showToast('Error cancelling', 'error'); return }
+        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'cancelled' } : g))
+        showToast('Recurring gift cancelled')
       },
     })
   }
@@ -555,6 +689,300 @@ export default function App() {
       [donorKey]: (prev[donorKey] || []).filter(t => t.id !== tagId),
     }))
     showToast('Tag removed')
+  }
+
+  function parseMigrationCSV(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length < 2) return { headers: [], rows: [] }
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
+    const rows = lines.slice(1).map(line => {
+      // Handle quoted fields with commas inside
+      const fields = []
+      let current = ''
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === '"') { inQuotes = !inQuotes; continue }
+        if (line[i] === ',' && !inQuotes) { fields.push(current.trim()); current = ''; continue }
+        current += line[i]
+      }
+      fields.push(current.trim())
+      const obj = {}
+      headers.forEach((h, i) => { obj[h] = fields[i] || '' })
+      return obj
+    })
+    return { headers, rows }
+  }
+
+  function detectMigrationColumn(headers, candidates) {
+    for (const candidate of candidates) {
+      const match = headers.find(h => h.includes(candidate.toLowerCase()))
+      if (match) return match
+    }
+    return null
+  }
+
+  function previewMigrationFile(file) {
+    if (!file) return
+    setMigrationFile(file)
+    setMigrationErrors([])
+    setMigrationPreview(null)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target.result
+      const { headers, rows } = parseMigrationCSV(text)
+      if (headers.length === 0) { setMigrationErrors(['Could not parse file — make sure it is a CSV exported from Google Sheets']); return }
+
+      // Auto-detect columns
+      const colDonorName  = detectMigrationColumn(headers, ['donor name', 'donor', 'name', 'full name'])
+      const colAmount     = detectMigrationColumn(headers, ['amount', 'donation', 'sum', 'total'])
+      const colDate       = detectMigrationColumn(headers, ['date', 'donation date', 'created'])
+      const colEmail      = detectMigrationColumn(headers, ['email', 'donor email', 'e-mail'])
+      const colNric       = detectMigrationColumn(headers, ['nric', 'fin', 'id number', 'nric/fin'])
+      const colMethod     = detectMigrationColumn(headers, ['method', 'payment method', 'payment type', 'type'])
+      const colNotes      = detectMigrationColumn(headers, ['notes', 'remarks', 'note', 'comment'])
+      const colReceiptNo  = detectMigrationColumn(headers, ['receipt', 'receipt no', 'receipt number', 'receipt #'])
+
+      const errors = []
+      if (!colDonorName) errors.push('Could not find a donor name column — expected a column named "Donor Name" or "Name"')
+      if (!colAmount) errors.push('Could not find an amount column — expected a column named "Amount" or "Donation"')
+      if (!colDate) errors.push('Could not find a date column — expected a column named "Date" or "Donation Date"')
+
+      // Validate rows
+      const validRows = []
+      const rowErrors = []
+      rows.forEach((row, i) => {
+        const rowNum = i + 2 // 1-indexed + header
+        const name = colDonorName ? row[colDonorName]?.trim() : ''
+        const amountRaw = colAmount ? row[colAmount]?.replace(/[$,\s]/g, '') : ''
+        const amount = parseFloat(amountRaw)
+        const dateRaw = colDate ? row[colDate]?.trim() : ''
+        const date = new Date(dateRaw)
+
+        if (!name) { rowErrors.push(`Row ${rowNum}: missing donor name`); return }
+        if (isNaN(amount) || amount <= 0) { rowErrors.push(`Row ${rowNum}: invalid amount "${row[colAmount]}"`); return }
+        if (isNaN(date.getTime())) { rowErrors.push(`Row ${rowNum}: invalid date "${dateRaw}"`); return }
+        if (date > new Date()) { rowErrors.push(`Row ${rowNum}: date is in the future`); return }
+
+        validRows.push({
+          donor_name: name,
+          amount,
+          date: date.toISOString().split('T')[0],
+          donor_email: colEmail ? row[colEmail]?.trim() || null : null,
+          donor_nric: colNric ? row[colNric]?.trim().toUpperCase() || null : null,
+          payment_method: colMethod ? row[colMethod]?.trim() || 'Cash' : 'Cash',
+          notes: colNotes ? row[colNotes]?.trim() || null : null,
+          receipt_number: colReceiptNo ? row[colReceiptNo]?.trim() || null : null,
+        })
+      })
+
+      if (errors.length > 0) { setMigrationErrors(errors); return }
+
+      setMigrationErrors(rowErrors.slice(0, 10))
+      setMigrationPreview({
+        totalRows: rows.length,
+        validRows,
+        skippedRows: rows.length - validRows.length,
+        detectedColumns: {
+          donorName: colDonorName,
+          amount: colAmount,
+          date: colDate,
+          email: colEmail,
+          nric: colNric,
+          method: colMethod,
+          notes: colNotes,
+          receiptNo: colReceiptNo,
+        },
+        rowErrors: rowErrors.slice(0, 10),
+        totalErrors: rowErrors.length,
+      })
+    }
+    reader.readAsText(file)
+  }
+
+  async function runMigration() {
+    if (!migrationPreview || migrationPreview.validRows.length === 0) return
+    migrationCancelRef.current = false
+    setMigrationProgress({ done: 0, total: migrationPreview.validRows.length, imported: 0, skipped: 0 })
+
+    let imported = 0
+    let skipped = 0
+    const batchSize = 50
+
+    const rows = migrationPreview.validRows
+    for (let i = 0; i < rows.length; i += batchSize) {
+      if (migrationCancelRef.current) break
+      const batch = rows.slice(i, i + batchSize)
+      const inserts = batch.map(row => ({
+        donor_name: row.donor_name,
+        donor_email: row.donor_email || null,
+        donor_nric: row.donor_nric || null,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: row.amount,
+        status: 'confirmed',
+        payment_status: 'confirmed',
+        receipt_issued: !!row.receipt_number,
+        receipt_number: row.receipt_number || null,
+        source: 'manual',
+        payment_method: row.payment_method || 'Cash',
+        notes: row.notes || null,
+        created_at: row.date,
+      }))
+      const { error } = await supabase.from('donations').insert(inserts)
+      if (error) {
+        console.error('Migration batch error:', error)
+        skipped += batch.length
+      } else {
+        imported += batch.length
+      }
+      setMigrationProgress({ done: i + batch.length, total: rows.length, imported, skipped })
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'csv_migration_imported',
+      details: { imported, skipped, total: rows.length },
+    })
+
+    await loadDonations()
+    setMigrationComplete({ imported, skipped })
+    setMigrationProgress(null)
+    showToast(`Migration complete — ${imported} records imported ✓`)
+  }
+
+  function generateAppealRef(donorName, causeId) {
+    const clean = donorName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()
+    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `GT-${clean}-${suffix}`
+  }
+
+  async function generateMassAppealRefs() {
+    if (!massAppealForm.amount || parseFloat(massAppealForm.amount) <= 0) {
+      showToast('Please enter a default amount', 'error'); return
+    }
+    const targetDonors = donorList.filter(d => !d.deactivated && d.email?.trim())
+    if (targetDonors.length === 0) {
+      showToast('No donors with email addresses found', 'error'); return
+    }
+    const refs = targetDonors.map(donor => ({
+      donor_name: donor.name,
+      donor_email: donor.email,
+      ref: generateAppealRef(donor.name, massAppealForm.cause_id),
+      amount: parseFloat(massAppealForm.amount),
+      qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${generateAppealRef(donor.name, massAppealForm.cause_id)}`,
+      selected: true,
+    }))
+    // Regenerate with consistent refs
+    const finalRefs = targetDonors.map(donor => {
+      const ref = generateAppealRef(donor.name, massAppealForm.cause_id)
+      return {
+        donor_name: donor.name,
+        donor_email: donor.email,
+        ref,
+        amount: parseFloat(massAppealForm.amount),
+        qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${ref}`,
+        selected: true,
+      }
+    })
+    setMassAppealRefs(finalRefs)
+    setMassAppealStep('preview')
+  }
+
+  async function sendMassAppealEmails() {
+    const selected = massAppealRefs.filter(r => r.selected)
+    if (selected.length === 0) { showToast('No donors selected', 'error'); return }
+    massAppealCancelRef.current = false
+    setMassAppealProgress({ done: 0, total: selected.length, sent: 0, failed: 0 })
+    let sent = 0
+    let failed = 0
+    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+
+    for (let i = 0; i < selected.length; i++) {
+      if (massAppealCancelRef.current) break
+      const donor = selected[i]
+      const { error } = await supabase.functions.invoke('send-thank-you', {
+        body: {
+          type: 'mass_appeal',
+          donor_name: donor.donor_name,
+          donor_email: donor.donor_email,
+          charity_name: charityName,
+          charity_uen: charityUen,
+          amount: donor.amount,
+          payment_ref: donor.ref,
+          cause_title: causeName,
+          custom_message: massAppealForm.message || null,
+          paynow_url: donor.qrValue,
+        }
+      })
+      if (error) { failed++; console.error('Failed to send to', donor.donor_email, error) }
+      else sent++
+      setMassAppealProgress({ done: i + 1, total: selected.length, sent, failed })
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'mass_appeal_sent',
+      details: { sent, failed, total: selected.length, cause_id: massAppealForm.cause_id },
+    })
+
+    setMassAppealStep('done')
+    setMassAppealProgress(null)
+    showToast(`Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
+  }
+
+  async function downloadMassAppealQRZip() {
+    const selected = massAppealRefs.filter(r => r.selected)
+    if (selected.length === 0) { showToast('No donors selected', 'error'); return }
+    showToast('Generating QR codes...')
+
+    const zip = new JSZip()
+    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'Appeal' : 'Appeal'
+
+    for (const donor of selected) {
+      // Render QR to canvas via a temporary DOM element
+      const canvas = document.createElement('canvas')
+      canvas.width = 300
+      canvas.height = 300
+      const ctx = canvas.getContext('2d')
+
+      // White background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, 300, 300)
+
+      // We'll use a data URL approach — create SVG string for QR
+      const svgEl = document.createElement('div')
+      svgEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260"></svg>`
+
+      // Simple approach: encode as text file with donor info + ref for manual QR generation
+      const content = [
+        `Donor: ${donor.donor_name}`,
+        `Email: ${donor.donor_email}`,
+        `Amount: SGD $${donor.amount}`,
+        `Reference: ${donor.ref}`,
+        `PayNow URL: ${donor.qrValue}`,
+        `Campaign: ${causeName}`,
+        `Charity: ${charityName} (UEN: ${charityUen})`,
+      ].join('\n')
+      zip.file(`${donor.donor_name.replace(/[^a-zA-Z0-9]/g, '_')}_${donor.ref}.txt`, content)
+    }
+
+    // Also add a summary CSV
+    const csvLines = [
+      'Donor Name,Email,Amount,Reference,PayNow URL',
+      ...selected.map(d => `"${d.donor_name}","${d.donor_email}",${d.amount},"${d.ref}","${d.qrValue}"`),
+    ]
+    zip.file('_summary.csv', csvLines.join('\n'))
+
+    const blob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `GivingTree-Appeal-${causeName}-${new Date().toISOString().split('T')[0]}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast(`Downloaded ${selected.length} QR packages ✓`)
   }
 
   async function loadDonations(activeSession = session) {
@@ -2120,6 +2548,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             { id: 'activity',   icon: '📋', label: 'Activity Log', staffOnly: true },
             { id: 'promotions', icon: '📣', label: 'Promotions',   staffOnly: true },
           { id: 'pledges',    icon: '🤝', label: 'Pledges',      staffOnly: true },
+          { id: 'recurring',  icon: '🔁', label: 'Recurring',    staffOnly: true },
           ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
             <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
@@ -2249,6 +2678,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const overdueRecurring = recurringGifts.filter(g => {
+                if (g.status !== 'active') return false
+                const expected = new Date(g.next_expected_date)
+                const daysLate = Math.floor((today - expected) / (1000 * 60 * 60 * 24))
+                return daysLate > 7
+              })
+              if (overdueRecurring.length === 0) return null
+              return (
+                <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ fontSize: 18 }}>🔁</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.warning }}>
+                        {overdueRecurring.length} recurring gift{overdueRecurring.length > 1 ? 's' : ''} overdue by more than 7 days
+                      </div>
+                      <div style={{ fontSize: 12, color: C.warning, marginTop: 2 }}>
+                        {overdueRecurring.slice(0, 2).map(g => `${g.donor_name} ($${Number(g.amount).toLocaleString()}/${g.frequency})`).join(' · ')}
+                        {overdueRecurring.length > 2 && ` · +${overdueRecurring.length - 2} more`}
+                      </div>
+                    </div>
+                  </div>
+                  <button style={{ ...s.bannerBtn, background: C.forest, color: 'white', flexShrink: 0 }} onClick={() => setActiveTab('recurring')}>Review →</button>
+                </div>
+              )
+            })()}
+
             {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
@@ -2270,6 +2728,36 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
             )}
+            {(() => {
+              const suggestions = donorList.filter(d => {
+                if (d.count < 3) return false
+                const donorKey = d.email?.trim() || d.name
+                const alreadyRecurring = recurringGifts.some(g => g.donor_key === donorKey && g.status === 'active')
+                if (alreadyRecurring) return false
+                const donorDonations = donations
+                  .filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === donorKey)
+                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                const amounts = donorDonations.map(don => don.amount)
+                const avgAmount = amounts.reduce((s, a) => s + a, 0) / amounts.length
+                const allSimilar = amounts.every(a => Math.abs(a - avgAmount) / avgAmount < 0.2)
+                return allSimilar
+              }).slice(0, 3)
+              if (suggestions.length === 0) return null
+              return (
+                <div style={{ background: C.successBg, border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 6 }}>💡 Recurring donor suggestion{suggestions.length > 1 ? 's' : ''}</div>
+                  <div style={{ fontSize: 12, color: C.sage, marginBottom: 10 }}>These donors have given {suggestions[0]?.count}+ times with similar amounts — consider tagging them as recurring:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {suggestions.map((d, i) => (
+                      <span key={i} style={{ fontSize: 12, fontWeight: 600, color: C.forest, background: C.white, padding: '4px 12px', borderRadius: 20, border: `1px solid ${C.sage}`, cursor: 'pointer' }}
+                        onClick={() => { setActiveTab('recurring'); setShowRecurringForm(true); setRecurringForm(f => ({ ...f, donor_name: d.name, donor_email: d.email || '', amount: (d.total / d.count).toFixed(0) })) }}
+                      >{d.name} · ${(d.total / d.count).toFixed(0)}/gift · {d.count} gifts → Tag as recurring</span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>{greeting}, {charityName} 👋</div>
@@ -4891,6 +5379,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       nric_synced_by_donor: { label: 'Donor updated their NRIC', icon: '🪪', color: C.sage },
                       bulk_receipts_issued: { label: 'Bulk receipts issued', icon: '🧾', color: C.sage },
                       receipt_voided_and_reissued: { label: 'Receipt voided and reissued', icon: '🚫', color: C.red },
+                      recurring_gift_added: { label: 'Recurring gift added', icon: '🔁', color: C.sage },
+                      recurring_gift_received: { label: 'Recurring payment marked received', icon: '🔁', color: C.sage },
+                      pledge_fulfilled: { label: 'Pledge marked as fulfilled', icon: '🤝', color: C.sage },
+                      csv_migration_imported: { label: 'Historical data imported via CSV', icon: '📥', color: C.sage },
+                      mass_appeal_sent: { label: 'Mass appeal sent to donors', icon: '📣', color: C.sage },
                     }
                     const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
                     return (
@@ -4932,6 +5425,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Promotions</div>
                 <div style={s.pageSub}>Submit campaigns and sponsored banner requests for Giving Tree's review</div>
               </div>
+              <button style={s.btnForest} onClick={() => { setShowMassAppealTool(true); setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]) }}>📣 Mass Appeal</button>
             </div>
 
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
@@ -5039,6 +5533,150 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </>
               )
             })()}
+          </div>
+        )}
+
+        {/* ── RECURRING ── */}
+        {activeTab === 'recurring' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>Recurring Giving</div>
+                <div style={s.pageSub}>{recurringGifts.filter(g => g.status === 'active').length} active · ${recurringGifts.filter(g => g.status === 'active').reduce((s, g) => s + g.amount, 0).toLocaleString()} expected/cycle</div>
+              </div>
+              <button style={s.btnGold} onClick={() => { setShowRecurringForm(true); setRecurringError('') }}>+ Add Recurring Gift</button>
+            </div>
+
+            {showRecurringForm && (
+              <div style={{ ...s.card, marginBottom: 24, border: `1.5px solid ${C.sage}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 New Recurring Gift</div>
+                  <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>✕</button>
+                </div>
+                {recurringError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{recurringError}</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <div style={s.formLabel}>Donor Name *</div>
+                    <input style={s.formInput} placeholder="Full name" value={recurringForm.donor_name} onChange={e => setRecurringForm(f => ({ ...f, donor_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Donor Email</div>
+                    <input style={s.formInput} placeholder="donor@email.com" value={recurringForm.donor_email} onChange={e => setRecurringForm(f => ({ ...f, donor_email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Amount per Cycle (SGD) *</div>
+                    <input style={s.formInput} type="number" placeholder="0.00" value={recurringForm.amount} onChange={e => setRecurringForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Frequency</div>
+                    <select style={s.formInput} value={recurringForm.frequency} onChange={e => setRecurringForm(f => ({ ...f, frequency: e.target.value }))}>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annually">Annually</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Start Date *</div>
+                    <input style={s.formInput} type="date" value={recurringForm.start_date} onChange={e => setRecurringForm(f => ({ ...f, start_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Type</div>
+                    <select style={s.formInput} value={recurringForm.type} onChange={e => setRecurringForm(f => ({ ...f, type: e.target.value }))}>
+                      <option value="giro">GIRO</option>
+                      <option value="habitual_paynow">Habitual PayNow</option>
+                      <option value="standing_order">Standing Order</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>GIRO Reference / Account</div>
+                    <input style={s.formInput} placeholder="Optional reference number" value={recurringForm.giro_reference} onChange={e => setRecurringForm(f => ({ ...f, giro_reference: e.target.value }))} />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <div style={s.formLabel}>Notes</div>
+                    <input style={s.formInput} placeholder="Optional notes" value={recurringForm.notes} onChange={e => setRecurringForm(f => ({ ...f, notes: e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveRecurringGift} disabled={savingRecurring}>{savingRecurring ? 'Saving...' : '✓ Save'}</button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {['active', 'paused', 'cancelled'].map(tab => (
+                <button
+                  key={tab}
+                  style={{ ...s.viewBtn, background: activeRecurringTab === tab ? C.forest : C.ivory, color: activeRecurringTab === tab ? 'white' : C.forest, borderColor: activeRecurringTab === tab ? C.forest : C.border }}
+                  onClick={() => setActiveRecurringTab(tab)}
+                >
+                  {tab === 'active' ? '🔁' : tab === 'paused' ? '⏸' : '✕'} {tab.charAt(0).toUpperCase() + tab.slice(1)} ({recurringGifts.filter(g => g.status === tab).length})
+                </button>
+              ))}
+            </div>
+
+            <div style={s.tableCard}>
+              <div style={s.tableHeader}>
+                <div style={s.tableTitle}>
+                  {activeRecurringTab === 'active' ? '🔁 Active Recurring Gifts' : activeRecurringTab === 'paused' ? '⏸ Paused' : '✕ Cancelled'}
+                </div>
+                <div style={s.tableCount}>{recurringGifts.filter(g => g.status === activeRecurringTab).length} records</div>
+              </div>
+              {recurringGifts.filter(g => g.status === activeRecurringTab).length === 0 ? (
+                <div style={s.empty}>No {activeRecurringTab} recurring gifts.</div>
+              ) : (
+                <div>
+                  {recurringGifts.filter(g => g.status === activeRecurringTab).map(g => {
+                    const today = new Date(); today.setHours(0,0,0,0)
+                    const nextDate = new Date(g.next_expected_date)
+                    const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24))
+                    const isLate = daysUntil < -7 && g.status === 'active'
+                    const isDueSoon = daysUntil >= -7 && daysUntil <= 7 && g.status === 'active'
+                    const frequencyLabel = { weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' }[g.frequency] || g.frequency
+                    return (
+                      <div key={g.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.ivoryDark}`, borderLeft: `3px solid ${isLate ? C.red : isDueSoon ? C.warning : C.sage}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{g.donor_name}</div>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: '#E8F0EE', padding: '2px 8px', borderRadius: 20 }}>{g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other'}</span>
+                              {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>⚠️ {Math.abs(daysUntil)} days late</span>}
+                              {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>Due today</span>}
+                              {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
+                            </div>
+                            {g.donor_email && <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{g.donor_email}</div>}
+                            <div style={{ fontSize: 12, color: C.muted }}>
+                              ${Number(g.amount).toLocaleString()} / {frequencyLabel}
+                              {g.giro_reference && ` · Ref: ${g.giro_reference}`}
+                            </div>
+                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                              Next expected: {new Date(g.next_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {g.last_received_date && ` · Last received: ${new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                            </div>
+                            {g.notes && <div style={{ fontSize: 11, color: C.muted, marginTop: 2, fontStyle: 'italic' }}>{g.notes}</div>}
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: C.forest, marginBottom: 8 }}>${Number(g.amount).toLocaleString()}</div>
+                            {g.status === 'active' && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
+                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
+                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
+                              </div>
+                            )}
+                            {g.status === 'paused' && (
+                              <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -5273,6 +5911,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
               </div>
 
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>📥 Import Historical Data</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  Import existing donor records and transactions from a Google Sheets or Excel CSV export. Use this once during onboarding to migrate your historical data.
+                </div>
+                <button style={s.btnForest} onClick={() => { setShowMigrationTool(true); setMigrationPreview(null); setMigrationErrors([]); setMigrationComplete(null); setMigrationProgress(null) }}>📥 Open Migration Tool</button>
+              </div>
+
               <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
                 <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</a>
                 {' · '}
@@ -5284,6 +5930,218 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
       </div>
+
+      {showMassAppealTool && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!massAppealProgress) setShowMassAppealTool(false) }}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📣 Mass Appeal</div>
+              {!massAppealProgress && <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowMassAppealTool(false)}>✕</button>}
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+              Generate a unique PayNow QR and personalised message for every donor. Send by email or download a ZIP of QR details for WhatsApp distribution.
+            </div>
+
+            {massAppealStep === 'setup' && (
+              <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                  <div>
+                    <div style={s.formLabel}>Campaign (Optional)</div>
+                    <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
+                      <option value="">General Appeal — no specific campaign</option>
+                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Default Amount (SGD) *</div>
+                    <input style={s.formInput} type="number" placeholder="e.g. 50" value={massAppealForm.amount} onChange={e => setMassAppealForm(f => ({ ...f, amount: e.target.value }))} />
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Each donor's QR will be pre-filled with this amount</div>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Personal Message (Optional)</div>
+                    <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="e.g. Dear [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>This will appear in the email above the QR code. Leave blank for a default message.</div>
+                  </div>
+                </div>
+                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 6 }}>Who will receive this appeal?</div>
+                  <div style={{ fontSize: 13, color: C.text }}><strong>{donorList.filter(d => !d.deactivated && d.email?.trim()).length}</strong> donors with email addresses on file</div>
+                  {donorList.filter(d => !d.deactivated && !d.email?.trim()).length > 0 && (
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+                      {donorList.filter(d => !d.deactivated && !d.email?.trim()).length} donors without email will be excluded — you can download their QR details for manual WhatsApp distribution.
+                    </div>
+                  )}
+                </div>
+                <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} onClick={generateMassAppealRefs}>
+                  Next — Preview Donor List →
+                </button>
+              </div>
+            )}
+
+            {massAppealStep === 'preview' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{massAppealRefs.filter(r => r.selected).length} donors selected</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: true })))}>Select All</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: false })))}>Deselect All</button>
+                  </div>
+                </div>
+                <div style={{ maxHeight: 280, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16 }}>
+                  {massAppealRefs.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: `1px solid ${C.ivoryDark}`, background: r.selected ? C.white : C.ivoryDark }}>
+                      <input type="checkbox" checked={r.selected} onChange={() => setMassAppealRefs(prev => prev.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{r.donor_name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email} · Ref: {r.ref}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${r.amount}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={sendMassAppealEmails}>
+                    📧 Send Email to {massAppealRefs.filter(r => r.selected).length} Donors
+                  </button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={downloadMassAppealQRZip}>
+                    ⬇️ Download QR ZIP
+                  </button>
+                </div>
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setMassAppealStep('setup')}>← Back to Setup</button>
+              </div>
+            )}
+
+            {massAppealProgress && (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 12 }}>Sending appeals...</div>
+                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ width: `${(massAppealProgress.done / massAppealProgress.total) * 100}%`, height: '100%', background: C.sage, borderRadius: 6, transition: 'width 0.2s' }} />
+                </div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                  {massAppealProgress.done} of {massAppealProgress.total} · {massAppealProgress.sent} sent · {massAppealProgress.failed} failed
+                </div>
+                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { massAppealCancelRef.current = true }}>✕ Cancel</button>
+              </div>
+            )}
+
+            {massAppealStep === 'done' && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, marginBottom: 8 }}>Appeal Sent</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Each donor received a personalised email with their unique PayNow QR code.</div>
+                <button style={{ ...s.btnForest, justifyContent: 'center', width: '100%' }} onClick={() => setShowMassAppealTool(false)}>Done</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showMigrationTool && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!migrationProgress) setShowMigrationTool(false) }}>
+          <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📥 Migration Tool</div>
+              {!migrationProgress && <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowMigrationTool(false)}>✕</button>}
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+              Upload a CSV exported from Google Sheets or Excel. Required columns: <strong>Donor Name</strong>, <strong>Amount</strong>, <strong>Date</strong>. Optional: Email, NRIC, Payment Method, Notes, Receipt Number.
+            </div>
+
+            {migrationComplete ? (
+              <div>
+                <div style={{ background: C.successBg, border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: 20, marginBottom: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, marginBottom: 4 }}>Migration Complete</div>
+                  <div style={{ fontSize: 13, color: C.sage }}>{migrationComplete.imported} records imported successfully</div>
+                  {migrationComplete.skipped > 0 && <div style={{ fontSize: 12, color: C.warning, marginTop: 4 }}>{migrationComplete.skipped} records skipped due to errors</div>}
+                </div>
+                <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} onClick={() => setShowMigrationTool(false)}>Done</button>
+              </div>
+            ) : migrationProgress ? (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 12 }}>Importing records...</div>
+                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ width: `${(migrationProgress.done / migrationProgress.total) * 100}%`, height: '100%', background: C.sage, borderRadius: 6, transition: 'width 0.2s' }} />
+                </div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>{migrationProgress.done} of {migrationProgress.total} · {migrationProgress.imported} imported · {migrationProgress.skipped} skipped</div>
+                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { migrationCancelRef.current = true }}>✕ Cancel</button>
+              </div>
+            ) : (
+              <div>
+                {!migrationPreview ? (
+                  <div>
+                    <div
+                      style={{ border: `2px dashed ${C.border}`, borderRadius: 12, padding: 32, textAlign: 'center', cursor: 'pointer', background: C.white, marginBottom: 16 }}
+                      onClick={() => document.getElementById('migration-file-input').click()}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) previewMigrationFile(f) }}
+                    >
+                      <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Drop your CSV here or click to browse</div>
+                      <div style={{ fontSize: 12, color: C.muted }}>Exported from Google Sheets or Excel · .csv files only</div>
+                      <input id="migration-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) previewMigrationFile(e.target.files[0]) }} />
+                    </div>
+                    {migrationErrors.length > 0 && (
+                      <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                        {migrationErrors.map((e, i) => <div key={i} style={{ fontSize: 12, color: C.warning, marginBottom: 4 }}>⚠️ {e}</div>)}
+                      </div>
+                    )}
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 8 }}>Expected CSV format</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: 11, color: C.muted, lineHeight: 1.8 }}>
+                        Donor Name, Amount, Date, Email, NRIC, Payment Method, Notes, Receipt Number<br />
+                        John Tan, 100, 2024-03-15, john@email.com, S1234567A, Cash, Annual gala, MR-2024-000001<br />
+                        Mary Lim, 250, 2024-04-01, mary@email.com, , PayNow, , MR-2024-000002
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 8 }}>✓ File parsed successfully</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div style={{ fontSize: 12, color: C.forest }}>Total rows: <strong>{migrationPreview.totalRows}</strong></div>
+                        <div style={{ fontSize: 12, color: C.forest }}>Ready to import: <strong>{migrationPreview.validRows.length}</strong></div>
+                        {migrationPreview.skippedRows > 0 && <div style={{ fontSize: 12, color: C.warning }}>Will skip: <strong>{migrationPreview.skippedRows}</strong></div>}
+                      </div>
+                    </div>
+
+                    <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 8 }}>Detected columns</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        {Object.entries(migrationPreview.detectedColumns).map(([key, val]) => (
+                          <div key={key} style={{ fontSize: 11, color: val ? C.sage : C.muted }}>
+                            {val ? '✓' : '—'} {key}: <span style={{ fontFamily: 'monospace' }}>{val || 'not found'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {migrationPreview.rowErrors.length > 0 && (
+                      <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 6 }}>⚠️ {migrationPreview.totalErrors} row{migrationPreview.totalErrors !== 1 ? 's' : ''} will be skipped</div>
+                        {migrationPreview.rowErrors.map((e, i) => <div key={i} style={{ fontSize: 11, color: C.warning, marginBottom: 2 }}>{e}</div>)}
+                        {migrationPreview.totalErrors > 10 && <div style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>...and {migrationPreview.totalErrors - 10} more</div>}
+                      </div>
+                    )}
+
+                    <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: C.warning }}>
+                      ⚠️ This will add {migrationPreview.validRows.length} donation records to your account. This cannot be bulk-undone. Make sure you haven't already imported this file.
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setMigrationPreview(null); setMigrationFile(null); setMigrationErrors([]) }}>← Choose different file</button>
+                      <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={runMigration}>📥 Import {migrationPreview.validRows.length} Records</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showVoidModal && selectedDonation && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
