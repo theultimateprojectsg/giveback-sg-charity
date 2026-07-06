@@ -2718,7 +2718,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const obligationsDue = (() => {
                 const builtIn = [
                   ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
-                  ...(daysToCocDeadline > 0 && daysToCocDeadline <= 30 ? [{ title: 'COC annual submission', days: daysToCocDeadline }] : []),
+                  
                 ]
                 const custom = (customObligations || []).map(o => {
                   let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
@@ -2857,7 +2857,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               today.setHours(0, 0, 0, 0)
               const builtIn = [
                 ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
-                ...(daysToCocDeadline > 0 ? [{ title: 'COC Annual Submission', date: cocDeadline, type: 'coc' }] : []),
               ]
               const custom = (customObligations || []).map(o => {
                 let d = new Date(o.date)
