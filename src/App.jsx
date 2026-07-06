@@ -2771,17 +2771,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            {daysToCocDeadline <= 60 && daysToCocDeadline > 0 && (
-              <div style={{ background: '#FDF3DC', border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 18px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 18 }}>📋</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.warning }}>
-                    COC Annual Submission due in {daysToCocDeadline} day{daysToCocDeadline !== 1 ? 's' : ''} — Annual Report, Financial Statements & GEC via the Charity Portal
-                  </div>
-                </div>
-                <span style={{ fontSize: 12, color: C.warning, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }} onClick={() => setActiveTab('settings')}>{cocDeadline.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} →</span>
-              </div>
-            )}
+            
             
             
             {(() => {
