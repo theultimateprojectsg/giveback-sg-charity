@@ -2856,7 +2856,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* MRR */}
                   <div style={{ background: C.ivory, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring/Mo <Tooltip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<Tooltip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
                       {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
