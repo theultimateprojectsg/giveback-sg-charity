@@ -6576,7 +6576,7 @@ const s = {
   footerAvatar: { width: 32, height: 32, background: C.sage, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'white', flexShrink: 0 },
   footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
   footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
-  main: { marginLeft: 240, flex: 1 },
+  main: { marginLeft: 240, flex: 1, minWidth: 0, overflowX: 'hidden', width: 'calc(100vw - 240px)', boxSizing: 'border-box' },
   mainTablet: { marginLeft: 72, flex: 1, minWidth: 0 },
   sidebarTablet: { width: 72, background: C.forest, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10, paddingTop: 16, paddingBottom: 16 },
   sidebarTabletLogo: { marginBottom: 20 },
