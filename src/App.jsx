@@ -2954,11 +2954,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
                 return daysSince >= 60 && d.count >= 2
               }).sort((a, b) => b.total - a.total).slice(0, 5)
-              if (lapsed.length === 0) return null
               return (
                 <div style={{ ...s.card, marginBottom: 20 }}>
                   <div style={s.cardTitle}>⏰ Lapsed Donors</div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave 2+ times but haven't donated in 60+ days</div>
+                  {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {lapsed.map((d, i) => {
                       const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
