@@ -2875,6 +2875,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {/* ── OBLIGATIONS + LAPSED ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
             {/* ── UPCOMING OBLIGATIONS ── */}
             {(() => {
               const today = new Date()
@@ -3002,6 +3004,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+            </div>
 
             {/* ── CONCENTRATION RISK + UPGRADE/DOWNGRADE ── */}
             {(() => {
@@ -3069,6 +3072,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {/* ── SEASONALITY + LTV ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20, alignItems: 'start' }}>
             {/* ── SEASONALITY TREND ── */}
             {confirmedDonations.length > 0 && (() => {
               const years = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort()
@@ -3155,6 +3160,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+            </div>
 
             {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
