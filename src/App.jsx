@@ -2696,37 +2696,60 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
               const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
               const totalMRR = giroMRR + habitualMRR
+
+              // New donors this month — first-ever donation falls within MTD
+              const donorFirstGift = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGift[key] || new Date(d.created_at) < new Date(donorFirstGift[key])) {
+                  donorFirstGift[key] = d.created_at
+                }
+              })
+              const newDonorsThisMonth = Object.values(donorFirstGift).filter(date => new Date(date) >= mtdStart).length
+              const newDonorsSameMonthLY = Object.values(donorFirstGift).filter(date => new Date(date) >= samePeriodLastYearStart && new Date(date) <= samePeriodLastYearEnd).length
+              const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
+
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
-                  {/* MTD vs LY */}
-                  <div style={{ background: C.forest, borderRadius: 12, padding: '16px 20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+                  {/* MTD donations */}
+                  <div style={{ background: C.forest, borderRadius: 12, padding: '16px 20px', gridColumn: isMobile ? '1 / -1' : 'auto' }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>This Month</div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>${mtd.toLocaleString()}</div>
                     {mtdDiff !== null ? (
                       <div style={{ fontSize: 12, color: mtdDiff >= 0 ? '#86EFAC' : '#FCA5A5', marginTop: 4 }}>
-                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs same period last year (${lyMtd.toLocaleString()})
+                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs last year
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>No data from last year</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>No prior year data</div>
                     )}
                   </div>
 
-                  {/* Coverage Ratio */}
+                  {/* New donors this month */}
+                  <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>New Donors</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
+                    {newDonorsDiff !== null ? (
+                      <div style={{ fontSize: 12, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 4 }}>
+                        {newDonorsDiff >= 0 ? '↑' : '↓'} {Math.abs(newDonorsDiff)}% vs last year
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>This month</div>
+                    )}
+                  </div>
+
+                  {/* Coverage ratio */}
                   <div style={{ background: coverageRatio === null ? C.white : coverageRatio >= 1 ? '#F0FDF4' : '#FEF2F2', borderRadius: 12, padding: '16px 20px', border: `1px solid ${coverageRatio === null ? C.border : coverageRatio >= 1 ? C.sage : C.red}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Coverage Ratio</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Coverage</div>
                     {coverageRatio === null ? (
                       <div>
-                        <div style={{ fontSize: 14, color: C.muted, marginBottom: 8 }}>Set your monthly expenses to see coverage</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set expenses →</button>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set →</button>
                       </div>
                     ) : (
                       <>
                         <div style={{ fontSize: 28, fontWeight: 800, color: coverageRatio >= 1 ? C.forest : C.red }}>{coverageRatio.toFixed(1)}x</div>
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                          ${thisMonthTotal.toLocaleString()} raised vs ${monthlyExpenses.toLocaleString()} expenses
-                        </div>
-                        <div style={{ fontSize: 11, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 2, fontWeight: 600 }}>
-                          {coverageRatio >= 1 ? '✓ Donations covering costs' : '⚠️ Shortfall this month'}
+                        <div style={{ fontSize: 11, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 4, fontWeight: 600 }}>
+                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠️ Shortfall'}
                         </div>
                       </>
                     )}
@@ -2734,13 +2757,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* MRR */}
                   <div style={{ background: C.white, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Monthly Recurring</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Recurring/Mo</div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4, display: 'flex', gap: 10 }}>
-                      <span>GIRO: <strong style={{ color: C.forest }}>${giroMRR.toLocaleString()}</strong></span>
-                      <span>PayNow: <strong style={{ color: C.forest }}>${habitualMRR.toLocaleString()}</strong></span>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                      {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
+                      {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
+                      {totalMRR === 0 && <span>None set up yet</span>}
                     </div>
-                    {activeRecurring.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>No recurring gifts set up yet</div>}
                   </div>
                 </div>
               )
