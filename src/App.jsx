@@ -3158,18 +3158,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {!loading && donations.length === 0 && (
               <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>A few things to get you started:</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
                     { label: 'Confirm your charity details are correct', action: () => setActiveTab('settings') },
-                    { label: 'Try logging a donation manually (cash, cheque, or wire)', action: () => { setActiveTab('donations'); setShowManualForm(true) } },
-                    charityIsIpc
-                      ? { label: 'Check your IRAS export once you have a donation', action: () => setActiveTab('iras') }
-                      : { label: 'Check your donation report once you have a donation', action: () => setActiveTab('analytics') },
+                    { label: 'Log your first donation manually', action: () => { setActiveTab('donations'); setShowManualForm(true) } },
+                    { label: 'Set your monthly expenses for coverage tracking', action: () => setActiveTab('settings') },
                   ].map((step, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={step.action}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${C.sage}`, flexShrink: 0 }} />
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${C.sage}`, flexShrink: 0 }} />
                       <div style={{ fontSize: 13, color: C.text }}>{step.label}</div>
                       <div style={{ marginLeft: 'auto', fontSize: 11, color: C.sage, fontWeight: 600 }}>Go →</div>
                     </div>
@@ -3177,97 +3175,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
             )}
-            {(() => {
-              const suggestions = donorList.filter(d => {
-                if (d.count < 3) return false
-                const donorKey = d.email?.trim() || d.name
-                const alreadyRecurring = recurringGifts.some(g => g.donor_key === donorKey && g.status === 'active')
-                if (alreadyRecurring) return false
-                const donorDonations = donations
-                  .filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === donorKey)
-                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                const amounts = donorDonations.map(don => don.amount)
-                const avgAmount = amounts.reduce((s, a) => s + a, 0) / amounts.length
-                const allSimilar = amounts.every(a => Math.abs(a - avgAmount) / avgAmount < 0.2)
-                return allSimilar
-              }).slice(0, 3)
-              if (suggestions.length === 0) return null
-              return (
-                <div style={{ background: C.successBg, border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: '12px 18px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 6 }}>💡 Recurring donor suggestion{suggestions.length > 1 ? 's' : ''}</div>
-                  <div style={{ fontSize: 12, color: C.sage, marginBottom: 10 }}>These donors have given {suggestions[0]?.count}+ times with similar amounts — consider tagging them as recurring:</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {suggestions.map((d, i) => (
-                      <span key={i} style={{ fontSize: 12, fontWeight: 600, color: C.forest, background: C.white, padding: '4px 12px', borderRadius: 20, border: `1px solid ${C.sage}`, cursor: 'pointer' }}
-                        onClick={() => { setActiveTab('recurring'); setShowRecurringForm(true); setRecurringForm(f => ({ ...f, donor_name: d.name, donor_email: d.email || '', amount: (d.total / d.count).toFixed(0) })) }}
-                      >{d.name} · ${(d.total / d.count).toFixed(0)}/gift · {d.count} gifts → Tag as recurring</span>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
-
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 20, padding: '14px 18px', background: C.white, borderRadius: 12, border: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: 13, color: C.muted }}>💰 Total raised</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: C.forest, marginLeft: 4 }}>${totalAllTime.toLocaleString()}</span>
-              <span style={{ fontSize: 13, color: C.muted, marginLeft: 'auto' }}>All time</span>
-            </div>
-
-            {(() => {
-              const needsConfirming = unconfirmedCount + donations.filter(d => d.payment_status === 'confirmed' && !d.receipt_issued).length
-              const needsNric = charityIsIpc ? donations.filter(d => !d.donor_nric && d.payment_status === 'confirmed').length : 0
-              const needsThanking = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent).length
-              const allCaughtUp = needsConfirming === 0 && needsNric === 0 && needsThanking === 0
-              if (allCaughtUp) {
-                return (
-                  <div style={{ background: C.successBg, border: `1.5px solid ${C.sage}`, borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>✓</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>All caught up — nothing needs your attention right now.</span>
-                  </div>
-                )
-              }
-              return (
-                <div style={isMobile ? { display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginBottom: 24 } : { display: 'grid', gridTemplateColumns: charityIsIpc ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
-                  <div
-                    style={{ background: needsConfirming > 0 ? '#FBE9E7' : C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${needsConfirming > 0 ? C.red : C.border}` }}
-                    onClick={() => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: 18 }}>⚠️</span>
-                      <span style={{ fontSize: 24, fontWeight: 800, color: needsConfirming > 0 ? C.red : C.muted }}>{needsConfirming}</span>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: needsConfirming > 0 ? C.red : C.text }}>Needs confirming</div>
-                    <div style={{ fontSize: 12, color: needsConfirming > 0 ? C.red : C.muted, marginTop: 2 }}>Payments awaiting review</div>
-                  </div>
-
-                  {charityIsIpc && (
-                    <div
-                      style={{ background: needsNric > 0 ? C.warningBg : C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${needsNric > 0 ? C.warningBorder : C.border}` }}
-                      onClick={() => { clearDonationFilters({ keepYear: false }); setFilterNric('Missing NRIC'); setActiveTab('donations') }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontSize: 18 }}>🪪</span>
-                        <span style={{ fontSize: 24, fontWeight: 800, color: needsNric > 0 ? C.warning : C.muted }}>{needsNric}</span>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: needsNric > 0 ? C.warning : C.text }}>NRIC missing</div>
-                      <div style={{ fontSize: 12, color: needsNric > 0 ? C.warning : C.muted, marginTop: 2 }}>Blocks tax deduction</div>
-                    </div>
-                  )}
-
-                  <div
-                    style={{ background: C.ivory, borderRadius: 12, padding: 16, cursor: 'pointer', border: `1px solid ${C.border}` }}
-                    onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: 18 }}>💌</span>
-                      <span style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{needsThanking}</span>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Thank-yous pending</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Donors with email on file</div>
-                  </div>
-                </div>
-              )
-            })()}
+            
 
             {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={s.tableCard}>
@@ -3326,17 +3234,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            {myCauses.filter(c => c.status === 'pending').length > 0 && (
-              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 16px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 18 }}>⏳</div>
-                  <div style={{ fontSize: 13, color: C.warning }}>
-                    <strong>{myCauses.filter(c => c.status === 'pending').length} campaign{myCauses.filter(c => c.status === 'pending').length > 1 ? 's' : ''} pending review</strong>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: C.warning, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>View →</div>
-              </div>
-            )}
+            
 
             {(() => {
               const needsActionPool = donations.filter(d =>
