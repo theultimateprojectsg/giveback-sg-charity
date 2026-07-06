@@ -2921,12 +2921,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontSize: 12, fontWeight: 700, color: urgent ? C.red : soon ? C.warning : C.muted }}>{days}d</span>
                               {o.type !== 'iras' && o.type !== 'coc' && (
-                                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                                  const updated = customObligations.filter((_, j) => j !== i - builtIn.length)
-                                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                                  if (!error) { setCustomObligations(updated); showToast('Removed') }
-                                }}>✕</span>
-                              )}
+                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
+                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                  if (!error) { setCustomObligations(updated); showToast('Removed') }
+                }}>✕</span>
+              )}
                             </div>
                           </div>
                         )
