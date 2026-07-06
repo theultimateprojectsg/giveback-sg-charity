@@ -33,7 +33,6 @@ function useScreenSize() {
   function getSize() {
     const w = window.innerWidth
     if (w <= 640) return 'mobile'
-    if (w <= 1024) return 'tablet'
     return 'desktop'
   }
   const [screenSize, setScreenSize] = useState(getSize())
@@ -109,6 +108,8 @@ export default function App() {
   const [massAppealStep, setMassAppealStep] = useState('setup')
   const [massAppealProgress, setMassAppealProgress] = useState(null)
   const massAppealCancelRef = useRef(false)
+  const [massAppeals, setMassAppeals] = useState([])
+  const [selectedAppeal, setSelectedAppeal] = useState(null)
   const [showMigrationTool, setShowMigrationTool] = useState(false)
   const [migrationFile, setMigrationFile] = useState(null)
   const [migrationPreview, setMigrationPreview] = useState(null)
@@ -195,6 +196,7 @@ export default function App() {
       loadAllDonorTags(session)
       loadPledges(session)
       loadRecurringGifts(session)
+      loadMassAppeals(session)
     }
   }, [session])
 
@@ -433,6 +435,18 @@ export default function App() {
         showToast('Recurring gift cancelled')
       },
     })
+  }
+
+  async function loadMassAppeals(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('mass_appeals')
+      .select('*')
+      .eq('charity_uen', uen)
+      .order('created_at', { ascending: false })
+    if (error) { console.error('Could not load mass appeals:', error); return }
+    setMassAppeals(data || [])
   }
 
   async function loadMyCauses() {
@@ -930,6 +944,20 @@ export default function App() {
       action: 'mass_appeal_sent',
       details: { sent, failed, total: selected.length, cause_id: massAppealForm.cause_id },
     })
+
+    const { data: appealData } = await supabase.from('mass_appeals').insert([{
+      charity_uen: charityUen,
+      cause_id: massAppealForm.cause_id || null,
+      cause_name: causeName,
+      amount: parseFloat(massAppealForm.amount),
+      message: massAppealForm.message || null,
+      donor_count: selected.length,
+      sent_count: sent,
+      failed_count: failed,
+      status: 'sent',
+      created_by: session.user.email,
+    }]).select()
+    if (appealData?.[0]) setMassAppeals(prev => [appealData[0], ...prev])
 
     setMassAppealStep('done')
     setMassAppealProgress(null)
@@ -2500,8 +2528,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard', staffOnly: false },
             { id: 'donations', icon: '💳', label: 'Donations', staffOnly: false },
-            { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
             { id: 'donors',    icon: '👥', label: 'Donors',    staffOnly: true },
+            { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
           ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
             <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
               <span style={s.navIcon}>{item.icon}</span>{item.label}
@@ -2509,23 +2537,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           ))}
           {userRole === 'staff' && (
             <>
-              <div style={s.navLabel}>Compliance</div>
-              {[...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []), { id: 'activity', icon: '📋', label: 'Activity Log' }].map(item => (
+              <div style={s.navLabel}>Campaigns</div>
+              {[
+                { id: 'promotions', icon: '📣', label: 'Promotions' },
+                { id: 'pledges',    icon: '🤝', label: 'Pledges' },
+                { id: 'recurring',  icon: '🔁', label: 'Recurring' },
+                { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
+              ].map(item => (
                 <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
                   <span style={s.navIcon}>{item.icon}</span>{item.label}
                 </div>
               ))}
-              <div style={s.navLabel}>Donors</div>
-              <div style={{ ...s.navItem, ...(activeTab === 'pledges' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null) }}>
-                <span style={s.navIcon}>🤝</span>Pledges
-              </div>
-              <div style={{ ...s.navItem, ...(activeTab === 'recurring' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null) }}>
-                <span style={s.navIcon}>🔁</span>Recurring
-              </div>
-              <div style={s.navLabel}>Account</div>
-              <div style={{ ...s.navItem, ...(activeTab === 'promotions' ? s.navItemActive : {}) }} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null) }}>
-                <span style={s.navIcon}>📣</span>Promotions
-              </div>
+              <div style={s.navLabel}>Compliance</div>
+              {[
+                { id: 'reports',  icon: '📋', label: 'Reports' },
+                { id: 'activity', icon: '🗒️', label: 'Audit Log' },
+                ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export' }] : []),
+              ].map(item => (
+                <div key={item.id} style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  <span style={s.navIcon}>{item.icon}</span>{item.label}
+                </div>
+              ))}
             </>
           )}
           <div style={s.navLabel}>Account</div>
@@ -2543,34 +2575,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       </div>
       )}
 
-      {/* ── SIDEBAR (tablet, icon-only) ── */}
-      {isTablet && (
-      <div style={s.sidebarTablet}>
-        <div style={s.sidebarTabletLogo}>
-          <img src={logo} style={{ width: 28, height: 28, objectFit: 'contain' }} />
-        </div>
-        <div style={s.sidebarTabletNav}>
-          {[
-            { id: 'dashboard',  icon: '📊', label: 'Dashboard',    staffOnly: false },
-            { id: 'donations',  icon: '💳', label: 'Donations',    staffOnly: false },
-            { id: 'analytics',  icon: '📈', label: 'Analytics',    staffOnly: true },
-            { id: 'donors',     icon: '👥', label: 'Donors',       staffOnly: true },
-            ...(charityIsIpc ? [{ id: 'iras', icon: '🏛️', label: 'IRAS Export', staffOnly: true }] : []),
-            { id: 'activity',   icon: '📋', label: 'Activity Log', staffOnly: true },
-            { id: 'promotions', icon: '📣', label: 'Promotions',   staffOnly: true },
-          { id: 'pledges',    icon: '🤝', label: 'Pledges',      staffOnly: true },
-          { id: 'recurring',  icon: '🔁', label: 'Recurring',    staffOnly: true },
-          ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
-            <div key={item.id} style={{ ...s.sidebarTabletItem, ...(activeTab === item.id ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }} title={item.label}>
-              <span style={{ fontSize: 20 }}>{item.icon}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ ...s.sidebarTabletItem, ...(activeTab === 'settings' ? s.sidebarTabletItemActive : {}) }} onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }} title="Settings">
-          <span style={{ fontSize: 20 }}>⚙️</span>
-        </div>
-      </div>
-      )}
+      
 
       {/* ── TOP BAR (mobile) ── */}
       {isMobile && (
@@ -2582,14 +2587,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
-            {userRole === 'staff' && charityIsIpc && (
-              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>
-            )}
             {userRole === 'staff' && (
-              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Activity Log</div>
-            )}
-            {userRole === 'staff' && (
-              <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
+              <>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Campaigns</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Compliance</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('reports'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Reports</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>🗒️ Audit Log</div>
+                {charityIsIpc && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('iras'); setSelectedDonor(null); setShowMobileMenu(false) }}>🏛️ IRAS Export</div>}
+              </>
             )}
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
           </div>
@@ -2615,7 +2624,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {/* ── MAIN ── */}
-      <div style={isMobile ? s.mainMobile : isTablet ? s.mainTablet : s.main}>
+      <div style={isMobile ? s.mainMobile : s.main}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
@@ -5454,10 +5463,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Promotions</div>
+                <div style={s.pageTitle}>Promotions</div> 
                 <div style={s.pageSub}>Submit campaigns and sponsored banner requests for Giving Tree's review</div>
               </div>
-              <button style={s.btnForest} onClick={() => { setShowMassAppealTool(true); setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]) }}>📣 Mass Appeal</button>
+              
             </div>
 
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
@@ -5823,6 +5832,281 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )}
 
+        {/* ── MASS APPEAL ── */}
+        {activeTab === 'massappeal' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>📢 Mass Appeal</div>
+                <div style={s.pageSub}>Send personalised PayNow QR codes to all your donors at once</div>
+              </div>
+              {massAppealStep !== 'setup' && !massAppealProgress && (
+                <button style={s.viewBtn} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]) }}>← Start Over</button>
+              )}
+            </div>
+
+            {/* Setup form */}
+            {massAppealStep === 'setup' && !massAppealProgress && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
+                <div style={s.card}>
+                  <div style={s.cardTitle}>New Appeal</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div>
+                      <div style={s.formLabel}>Campaign (Optional)</div>
+                      <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
+                        <option value="">General Appeal — no specific campaign</option>
+                        {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                          <option key={c.id} value={c.id}>{c.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={s.formLabel}>Default Amount (SGD) *</div>
+                      <input style={s.formInput} type="number" placeholder="e.g. 50" value={massAppealForm.amount} onChange={e => setMassAppealForm(f => ({ ...f, amount: e.target.value }))} />
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Each donor's QR will be pre-filled with this amount</div>
+                    </div>
+                    <div>
+                      <div style={s.formLabel}>Personal Message (Optional)</div>
+                      <textarea style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }} placeholder="e.g. Dear [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code</div>
+                    </div>
+                    <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 10, padding: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
+                      <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => !d.deactivated && d.email?.trim()).length}</strong> donors with email on file</div>
+                      {donorList.filter(d => !d.deactivated && !d.email?.trim()).length > 0 && (
+                        <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{donorList.filter(d => !d.deactivated && !d.email?.trim()).length} donors without email excluded — downloadable via QR ZIP</div>
+                      )}
+                    </div>
+                    <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={generateMassAppealRefs}>Next — Preview Donor List →</button>
+                  </div>
+                </div>
+
+                {/* Appeal history */}
+                <div style={s.card}>
+                  <div style={s.cardTitle}>Past Appeals</div>
+                  {massAppeals.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No appeals sent yet.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {massAppeals.map(a => (
+                        <div key={a.id} style={{ background: C.ivory, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{a.cause_name || 'General Appeal'}</div>
+                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                                {new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · SGD ${Number(a.amount).toLocaleString()} default
+                              </div>
+                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                                {a.sent_count} sent · {a.failed_count > 0 ? `${a.failed_count} failed · ` : ''}{a.donor_count} total
+                              </div>
+                            </div>
+                            <span style={{ ...s.badgeIssued, flexShrink: 0 }}>✓ Sent</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Preview step */}
+            {massAppealStep === 'preview' && !massAppealProgress && (
+              <div style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{massAppealRefs.filter(r => r.selected).length} donors selected</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: true })))}>Select All</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: false })))}>Deselect All</button>
+                  </div>
+                </div>
+                <div style={{ maxHeight: 400, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16 }}>
+                  {massAppealRefs.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: `1px solid ${C.ivoryDark}`, background: r.selected ? C.white : C.ivoryDark }}>
+                      <input type="checkbox" checked={r.selected} onChange={() => setMassAppealRefs(prev => prev.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{r.donor_name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email} · Ref: {r.ref}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${r.amount}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={sendMassAppealEmails}>
+                    📧 Send to {massAppealRefs.filter(r => r.selected).length} Donors
+                  </button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={downloadMassAppealQRZip}>
+                    ⬇️ Download QR ZIP
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Sending progress */}
+            {massAppealProgress && (
+              <div style={s.card}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.forest, marginBottom: 16 }}>📧 Sending appeals...</div>
+                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 12, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ width: `${(massAppealProgress.done / massAppealProgress.total) * 100}%`, height: '100%', background: C.sage, borderRadius: 6, transition: 'width 0.3s' }} />
+                </div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
+                  {massAppealProgress.done} of {massAppealProgress.total} · {massAppealProgress.sent} sent · {massAppealProgress.failed} failed
+                </div>
+                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { massAppealCancelRef.current = true }}>✕ Cancel</button>
+              </div>
+            )}
+
+            {/* Done */}
+            {massAppealStep === 'done' && !massAppealProgress && (
+              <div style={{ ...s.card, textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.forest, marginBottom: 8 }}>Appeal Sent</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Each donor received a personalised email with their unique PayNow QR code.</div>
+                <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]) }}>Send Another Appeal</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── REPORTS ── */}
+        {activeTab === 'reports' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={s.pageTitle}>📋 Reports</div>
+                <div style={s.pageSub}>Annual returns, board reports, and compliance exports</div>
+              </div>
+            </div>
+
+            {/* COC Annual Return */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>🏛️ COC Annual Return</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Summary of donations by financial year for your Commissioner of Charities annual submission.
+              </div>
+              {(() => {
+                const years = [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a)
+                if (years.length === 0) return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No donation data yet.</div>
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {years.map(year => {
+                      const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === year && d.payment_status === 'confirmed')
+                      const total = yearDonations.reduce((s, d) => s + d.amount, 0)
+                      const uniqueDonors = new Set(yearDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
+                      return (
+                        <div key={year} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 10, padding: '14px 16px', border: `1px solid ${C.border}` }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>FY {year}</div>
+                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{yearDonations.length} donations · {uniqueDonors} unique donors</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: C.forest }}>SGD ${total.toLocaleString()}</div>
+                            <button style={s.exportSmallBtn} onClick={() => {
+                              const rows = yearDonations.map(d => [
+                                new Date(d.created_at).toLocaleDateString('en-SG'),
+                                d.donor_name,
+                                d.donor_email || '',
+                                d.amount,
+                                d.payment_method || '',
+                                d.receipt_number || d.payment_ref || '',
+                                d.receipt_issued ? 'Yes' : 'No',
+                              ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+                              const csv = ['Date,Donor Name,Email,Amount,Payment Method,Receipt No.,Receipt Issued', ...rows].join('\n')
+                              const blob = new Blob([csv], { type: 'text/csv' })
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = `${charityName}-COC-Annual-Return-${year}.csv`
+                              a.click()
+                              URL.revokeObjectURL(url)
+                              showToast(`FY ${year} annual return exported ✓`)
+                            }}>⬇️ Export CSV</button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Board Report */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>📊 Board Report</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                A full analytics snapshot formatted for your board meeting — financial summary, donor insights, campaign performance, and health check.
+              </div>
+              <button style={s.btnForest} onClick={exportAnalyticsPDF}>📄 Download Board Packet PDF</button>
+            </div>
+
+            {/* Donor Summary */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>👥 Donor Year-End Summary</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Individual giving summaries for each donor — useful for sending year-end thank you letters or donor acknowledgements.
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option value="All">All Years</option>
+                  {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <button style={s.exportSmallBtn} onClick={exportDonorContactsCSV}>⬇️ Export Donor Contacts CSV</button>
+              </div>
+            </div>
+
+            {/* IRAS Export — IPC only */}
+            {charityIsIpc && (
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={s.cardTitle}>🏛️ IRAS Tax Deduction Export</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  Excel export of donor NRIC and giving data for IRAS 250% tax deduction submission. Select a year before exporting.
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                    <option value="All">Select Year</option>
+                    {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                  <button style={s.btnForest} onClick={() => { if (filterYear === 'All') { showToast('Select a year first'); return } exportIRASExcel() }}>⬇️ Export IRAS Excel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Audit Trail */}
+            <div style={s.card}>
+              <div style={s.cardTitle}>🗒️ Audit Trail Export</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Full log of all system actions — receipts issued, voids, imports, and staff activity. For auditors and compliance review.
+              </div>
+              <button style={s.exportSmallBtn} onClick={() => {
+                const rows = auditLog.map(entry => {
+                  const details = entry.details ? Object.entries(entry.details).map(([k, v]) => `${k}: ${v}`).join(' | ') : ''
+                  return [
+                    new Date(entry.created_at).toLocaleString('en-SG'),
+                    entry.actor_email || '',
+                    entry.actor_type || '',
+                    entry.action || '',
+                    details,
+                  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+                })
+                const csv = ['Timestamp,Actor Email,Actor Type,Action,Details', ...rows].join('\n')
+                const blob = new Blob([csv], { type: 'text/csv' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${charityName}-audit-trail-${new Date().toISOString().split('T')[0]}.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+                showToast('Audit trail exported ✓')
+              }}>⬇️ Export Audit Trail CSV</button>
+            </div>
+          </div>
+        )}
+
         {/* ── SETTINGS ── */}
         {activeTab === 'settings' && (
           <div style={s.content}>
@@ -5960,112 +6244,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       </div>
 
-      {showMassAppealTool && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!massAppealProgress) setShowMassAppealTool(false) }}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📣 Mass Appeal</div>
-              {!massAppealProgress && <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowMassAppealTool(false)}>✕</button>}
-            </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
-              Generate a unique PayNow QR and personalised message for every donor. Send by email or download a ZIP of QR details for WhatsApp distribution.
-            </div>
-
-            {massAppealStep === 'setup' && (
-              <div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                  <div>
-                    <div style={s.formLabel}>Campaign (Optional)</div>
-                    <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
-                      <option value="">General Appeal — no specific campaign</option>
-                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
-                        <option key={c.id} value={c.id}>{c.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Default Amount (SGD) *</div>
-                    <input style={s.formInput} type="number" placeholder="e.g. 50" value={massAppealForm.amount} onChange={e => setMassAppealForm(f => ({ ...f, amount: e.target.value }))} />
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Each donor's QR will be pre-filled with this amount</div>
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Personal Message (Optional)</div>
-                    <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="e.g. Dear [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>This will appear in the email above the QR code. Leave blank for a default message.</div>
-                  </div>
-                </div>
-                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 6 }}>Who will receive this appeal?</div>
-                  <div style={{ fontSize: 13, color: C.text }}><strong>{donorList.filter(d => !d.deactivated && d.email?.trim()).length}</strong> donors with email addresses on file</div>
-                  {donorList.filter(d => !d.deactivated && !d.email?.trim()).length > 0 && (
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                      {donorList.filter(d => !d.deactivated && !d.email?.trim()).length} donors without email will be excluded — you can download their QR details for manual WhatsApp distribution.
-                    </div>
-                  )}
-                </div>
-                <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} onClick={generateMassAppealRefs}>
-                  Next — Preview Donor List →
-                </button>
-              </div>
-            )}
-
-            {massAppealStep === 'preview' && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{massAppealRefs.filter(r => r.selected).length} donors selected</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: true })))}>Select All</button>
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: false })))}>Deselect All</button>
-                  </div>
-                </div>
-                <div style={{ maxHeight: 280, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 16 }}>
-                  {massAppealRefs.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: `1px solid ${C.ivoryDark}`, background: r.selected ? C.white : C.ivoryDark }}>
-                      <input type="checkbox" checked={r.selected} onChange={() => setMassAppealRefs(prev => prev.map((x, j) => j === i ? { ...x, selected: !x.selected } : x))} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{r.donor_name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email} · Ref: {r.ref}</div>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${r.amount}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={sendMassAppealEmails}>
-                    📧 Send Email to {massAppealRefs.filter(r => r.selected).length} Donors
-                  </button>
-                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={downloadMassAppealQRZip}>
-                    ⬇️ Download QR ZIP
-                  </button>
-                </div>
-                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setMassAppealStep('setup')}>← Back to Setup</button>
-              </div>
-            )}
-
-            {massAppealProgress && (
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 12 }}>Sending appeals...</div>
-                <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden', marginBottom: 8 }}>
-                  <div style={{ width: `${(massAppealProgress.done / massAppealProgress.total) * 100}%`, height: '100%', background: C.sage, borderRadius: 6, transition: 'width 0.2s' }} />
-                </div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
-                  {massAppealProgress.done} of {massAppealProgress.total} · {massAppealProgress.sent} sent · {massAppealProgress.failed} failed
-                </div>
-                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { massAppealCancelRef.current = true }}>✕ Cancel</button>
-              </div>
-            )}
-
-            {massAppealStep === 'done' && (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, marginBottom: 8 }}>Appeal Sent</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Each donor received a personalised email with their unique PayNow QR code.</div>
-                <button style={{ ...s.btnForest, justifyContent: 'center', width: '100%' }} onClick={() => setShowMassAppealTool(false)}>Done</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      
 
       {showMigrationTool && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!migrationProgress) setShowMigrationTool(false) }}>
