@@ -66,7 +66,7 @@ function InfoTip({ text }) {
     >
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'default', flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
       {show && (
-        <span style={{ position: 'absolute', bottom: '130%', left: '50%', transform: 'translateX(-50%)', background: 'white', color: '#444', fontSize: 11, fontWeight: 400, lineHeight: 1.6, padding: '8px 12px', borderRadius: 8, whiteSpace: 'normal', width: 200, zIndex: 999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', pointerEvents: 'none', textTransform: 'none', letterSpacing: 0 }}>
+        <span style={{ position: 'absolute', bottom: '130%', left: '50%', transform: 'translateX(-50%)', background: 'white', color: '#444', fontSize: 11, fontWeight: 400, lineHeight: 1.6, padding: '8px 12px', borderRadius: 8, whiteSpace: 'normal', width: 200, zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', pointerEvents: 'none', textTransform: 'none', letterSpacing: 0 }}>
           {text}
           <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: 'white transparent transparent transparent' }} />
         </span>
@@ -2914,10 +2914,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   return days >= 0 && days <= 180
                 })
                 return (
-                  <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <div style={s.cardTitle}>📅 Upcoming Obligations</div>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Upcoming Obligations</div>
+                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 600, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
                     </div>
                   {showAddObligation && (
                     <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
@@ -2952,13 +2952,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const urgent = days <= 30
                         const soon = days <= 60
                         return (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: urgent ? '#FEF2F2' : soon ? '#FDF3DC' : C.ivory, borderRadius: 10, border: `1px solid ${urgent ? C.red : soon ? C.warningBorder : C.border}` }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 600, color: urgent ? C.red : C.forest }}>{o.title}</div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: urgent ? C.red : soon ? C.warning : C.muted }}>{days}d</span>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 600, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
                               {o.type !== 'iras' && o.type !== 'coc' && (
                 <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
                   const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
@@ -2995,16 +2995,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return daysSince >= 60 && d.count >= 2
               }).sort((a, b) => b.total - a.total).slice(0, 5)
               return (
-                <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
-                  <div style={s.cardTitle}>⏰ Lapsed Donors</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave 2+ times but haven't donated in 60+ days</div>
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Lapsed Donors</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>Gave 2+ times but haven't donated in 60+ days</div>
                   {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {lapsed.map((d, i) => {
                       const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
                       return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
                             <div style={{ fontSize: 11, color: C.muted }}>Last gave {daysSince} days ago · {d.count} donations · ${d.total.toLocaleString()} lifetime</div>
@@ -3055,34 +3055,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).filter(Boolean).slice(0, 3)
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20 }}>
                   {/* Concentration */}
-                  <div style={{ ...s.card, background: highRisk ? '#FEF2F2' : medRisk ? '#FDF3DC' : C.white, border: `1px solid ${highRisk ? C.red : medRisk ? C.warningBorder : C.border}` }}>
-                    <div style={s.cardTitle}>🎯 Donor Concentration</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: highRisk ? C.red : medRisk ? C.warning : C.forest, marginBottom: 4 }}>{concentrationPct}%</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>of revenue from top {Math.min(10, sorted.length)} donors</div>
-                    <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.warning : C.sage, borderRadius: 6 }} />
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 10 }}>Donor Concentration</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(10, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontSize: 11, color: highRisk ? C.red : medRisk ? C.warning : C.sage, marginTop: 6, fontWeight: 600 }}>
-                      {highRisk ? '⚠️ High risk — diversify donor base' : medRisk ? '⚠️ Moderate risk' : '✓ Healthy diversification'}
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600 }}>
+                      {highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
                   </div>
 
                   {/* Upgrade/downgrade */}
-                  <div style={s.card}>
-                    <div style={s.cardTitle}>📊 Giving Changes</div>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 14 }}>Giving Changes</div>
                     {flags.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {flags.map((f, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: f.changePct < 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: 10 }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4 }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{f.name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
                             </div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: f.changePct < 0 ? C.red : C.sage }}>
+                            <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 600, color: f.changePct < 0 ? C.red : C.sage }}>
                               {f.changePct > 0 ? '↑' : '↓'} {Math.abs(f.changePct)}%
                             </span>
                           </div>
