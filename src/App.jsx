@@ -180,6 +180,7 @@ export default function App() {
     return saved ? Number(saved) : 30
   })
   const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
+  const [givingChangeAckHistory, setGivingChangeAckHistory] = useState({})
 
   function buildUpgradeThankYouNote(donor, changePct, recent, prevAvg) {
     const lines = []
@@ -390,8 +391,26 @@ export default function App() {
       loadRecurringGifts(session)
       loadMassAppeals(session)
       loadLapsedReminders(session)
+      loadGivingChangeAcks(session)
     }
   }, [session])
+
+  async function loadGivingChangeAcks(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('giving_change_acks')
+      .select('donor_key, direction, change_pct, sent_at, sent_by')
+      .eq('charity_uen', uen)
+      .order('sent_at', { ascending: false })
+    if (error) { console.error('Could not load giving change acks:', error); return }
+    const history = {}
+    ;(data || []).forEach(r => {
+      if (!history[r.donor_key]) history[r.donor_key] = []
+      history[r.donor_key].push(r)
+    })
+    setGivingChangeAckHistory(history)
+  }
 
   async function loadLapsedReminders(activeSession = session) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
@@ -4407,12 +4426,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {isUpgrade ? '↑' : '↓'} {Math.abs(flagMatch.changePct)}%
                         </span>
                       </div>
+                      {(() => {
+                        const ackKey = selectedDonor.email?.trim() || selectedDonor.name
+                        const ackHistory = givingChangeAckHistory[ackKey] || []
+                        if (ackHistory.length === 0) return null
+                        const last = ackHistory[0]
+                        const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                        return (
+                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10, fontStyle: 'italic' }}>
+                            Already {last.direction === 'upgrade' ? 'thanked' : 'checked in with'} {daysAgo === 0 ? 'today' : `${daysAgo}d ago`} ({ackHistory.length}× total)
+                          </div>
+                        )
+                      })()}
                       {isUpgrade ? (
                         <button
                           style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }}
                           onClick={() => setThankYouDraft({
                             donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count },
                             badgeState: null,
+                            givingChangeMeta: { direction: 'upgrade', changePct: flagMatch.changePct },
                             text: buildUpgradeThankYouNote(selectedDonor, flagMatch.changePct, flagMatch.recent, flagMatch.prevAvg),
                           })}
                         >💌 Send thank-you for increased gift</button>
@@ -8140,7 +8172,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 style={{ flex: 1, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: thankYouDraft.donor.email?.trim() ? 1 : 0.5 }}
                 disabled={!thankYouDraft.donor.email?.trim()}
                 onClick={async () => {
-                  const { donor, badgeState, text } = thankYouDraft
+                  const { donor, badgeState, text, givingChangeMeta } = thankYouDraft
                   const { error } = await supabase.functions.invoke('send-thank-you', {
                     body: {
                       type: 'milestone_thank_you',
@@ -8153,6 +8185,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
                   if (badgeState) await ackDonorBadges(donor, badgeState)
+                  if (givingChangeMeta) {
+                    const donorKey = donor.email?.trim() || donor.name
+                    const { data: inserted } = await supabase.from('giving_change_acks').insert({
+                      charity_uen: charityUen,
+                      donor_key: donorKey,
+                      direction: givingChangeMeta.direction,
+                      change_pct: givingChangeMeta.changePct,
+                      message: text,
+                      sent_by: session.user.email,
+                    }).select().single()
+                    if (inserted) {
+                      setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
+                    }
+                  }
                   setThankYouDraft(null)
                   showToast(`Thank-you note sent to ${donor.email}`)
                 }}
