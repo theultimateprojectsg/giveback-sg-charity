@@ -6431,13 +6431,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
                     {(pledgeReminderHistory[p.id] || []).length > 0 && (
-                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>
-                        {(() => {
-                          const history = pledgeReminderHistory[p.id]
-                          const last = history[0]
-                          const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                          return `Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length} reminder${history.length > 1 ? 's' : ''} sent`
-                        })()}
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.gold }}>
+                          {(() => {
+                            const history = pledgeReminderHistory[p.id]
+                            const last = history[0]
+                            const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                            return `✉ Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× sent`
+                          })()}
+                        </span>
                       </div>
                     )}
                     {p.status === 'pending' && (isOverdue || isDueSoon) && (
