@@ -134,15 +134,7 @@ export default function App() {
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
-  useEffect(() => {
-    if (showPledgeThankYouModal && pledgeCompletionCandidate) {
-      const { pledge } = pledgeCompletionCandidate
-      setPledgeThankYouSubject(`Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
-      setPledgeThankYouBody(
-        `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
-      )
-    }
-  }, [showPledgeThankYouModal, pledgeCompletionCandidate])
+  
   const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState(false)
   const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
@@ -225,6 +217,16 @@ export default function App() {
   const [thankYouDraft, setThankYouDraft] = useState(null)
   const [dashboardDonationsPage, setDashboardDonationsPage] = useState(0)
   
+
+  useEffect(() => {
+    if (showPledgeThankYouModal && pledgeCompletionCandidate) {
+      const { pledge } = pledgeCompletionCandidate
+      setPledgeThankYouSubject(`Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
+      setPledgeThankYouBody(
+        `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
+      )
+    }
+  }, [showPledgeThankYouModal, pledgeCompletionCandidate])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
