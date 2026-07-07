@@ -150,6 +150,12 @@ export default function App() {
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
+  const [showPausedRecurring, setShowPausedRecurring] = useState(false)
+  const [showCancelledRecurring, setShowCancelledRecurring] = useState(false)
+  const [recurringSearchTerm, setRecurringSearchTerm] = useState('')
+  const [recurringUrgencyFilter, setRecurringUrgencyFilter] = useState('All')
+  const [recurringAmountFilter, setRecurringAmountFilter] = useState('All')
+  const [recurringTypeFilter, setRecurringTypeFilter] = useState('All')
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
@@ -6263,78 +6269,171 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {['active', 'paused', 'cancelled'].map(tab => (
-                <button
-                  key={tab}
-                  style={{ ...s.viewBtn, background: activeRecurringTab === tab ? C.forest : C.ivory, color: activeRecurringTab === tab ? 'white' : C.forest, borderColor: activeRecurringTab === tab ? C.forest : C.border }}
-                  onClick={() => setActiveRecurringTab(tab)}
-                >
-                  {tab === 'active' ? '🔁' : tab === 'paused' ? '⏸' : '✕'} {tab.charAt(0).toUpperCase() + tab.slice(1)} ({recurringGifts.filter(g => g.status === tab).length})
-                </button>
-              ))}
-            </div>
-
-            <div style={s.tableCard}>
-              <div style={s.tableHeader}>
-                <div style={s.tableTitle}>
-                  {activeRecurringTab === 'active' ? '🔁 Active Recurring Gifts' : activeRecurringTab === 'paused' ? '⏸ Paused' : '✕ Cancelled'}
-                </div>
-                <div style={s.tableCount}>{recurringGifts.filter(g => g.status === activeRecurringTab).length} records</div>
-              </div>
-              {recurringGifts.filter(g => g.status === activeRecurringTab).length === 0 ? (
-                <div style={s.empty}>No {activeRecurringTab} recurring gifts.</div>
-              ) : (
-                <div>
-                  {recurringGifts.filter(g => g.status === activeRecurringTab).map(g => {
-                    const today = new Date(); today.setHours(0,0,0,0)
-                    const nextDate = new Date(g.next_expected_date)
-                    const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24))
-                    const isLate = daysUntil < -7 && g.status === 'active'
-                    const isDueSoon = daysUntil >= -7 && daysUntil <= 7 && g.status === 'active'
-                    const frequencyLabel = { weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' }[g.frequency] || g.frequency
-                    return (
-                      <div key={g.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.ivoryDark}`, borderLeft: `3px solid ${isLate ? C.red : isDueSoon ? C.warning : C.sage}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{g.donor_name}</div>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: '#E8F0EE', padding: '2px 8px', borderRadius: 20 }}>{g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other'}</span>
-                              {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>⚠️ {Math.abs(daysUntil)} days late</span>}
-                              {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>Due today</span>}
-                              {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
-                            </div>
-                            {g.donor_email && <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{g.donor_email}</div>}
-                            <div style={{ fontSize: 12, color: C.muted }}>
-                              ${Number(g.amount).toLocaleString()} / {frequencyLabel}
-                              {g.giro_reference && ` · Ref: ${g.giro_reference}`}
-                            </div>
-                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                              Next expected: {new Date(g.next_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              {g.last_received_date && ` · Last received: ${new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                            </div>
-                            {g.notes && <div style={{ fontSize: 11, color: C.muted, marginTop: 2, fontStyle: 'italic' }}>{g.notes}</div>}
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: C.forest, marginBottom: 8 }}>${Number(g.amount).toLocaleString()}</div>
-                            {g.status === 'active' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
-                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
-                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
-                              </div>
-                            )}
-                            {g.status === 'paused' && (
-                              <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by donor name, email, or notes..." value={recurringSearchTerm} onChange={e => setRecurringSearchTerm(e.target.value)} />
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={recurringUrgencyFilter} onChange={e => setRecurringUrgencyFilter(e.target.value)}>
+                <option value="All">All urgency</option>
+                <option value="Late">Late (7d+)</option>
+                <option value="Due Soon">Due soon</option>
+                <option value="Healthy">Healthy</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={recurringAmountFilter} onChange={e => setRecurringAmountFilter(e.target.value)}>
+                <option value="All">All amounts</option>
+                <option value="Under 50">Under $50</option>
+                <option value="50-200">$50 – $200</option>
+                <option value="200-500">$200 – $500</option>
+                <option value="Over 500">Over $500</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={recurringTypeFilter} onChange={e => setRecurringTypeFilter(e.target.value)}>
+                <option value="All">All types</option>
+                <option value="giro">GIRO</option>
+                <option value="habitual_paynow">Habitual PayNow</option>
+                <option value="standing_order">Standing Order</option>
+                <option value="other">Other</option>
+              </select>
+              {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All') }}>✕ Clear Filters</button>
               )}
             </div>
+
+            {(() => {
+              const today = new Date(); today.setHours(0,0,0,0)
+
+              const q = recurringSearchTerm.toLowerCase().trim()
+              const matchesSearch = (g) => {
+                if (!q) return true
+                const fields = [g.donor_name, g.donor_email, g.notes, g.giro_reference]
+                return fields.some(f => f?.toLowerCase().includes(q))
+              }
+              const matchesUrgency = (g) => {
+                if (recurringUrgencyFilter === 'All') return true
+                if (g.status !== 'active') return false
+                const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
+                if (recurringUrgencyFilter === 'Late') return days < -7
+                if (recurringUrgencyFilter === 'Due Soon') return days >= -7 && days <= 7
+                if (recurringUrgencyFilter === 'Healthy') return days > 7
+                return true
+              }
+              const matchesAmount = (g) => {
+                const amt = Number(g.amount)
+                if (recurringAmountFilter === 'All') return true
+                if (recurringAmountFilter === 'Under 50') return amt < 50
+                if (recurringAmountFilter === '50-200') return amt >= 50 && amt <= 200
+                if (recurringAmountFilter === '200-500') return amt > 200 && amt <= 500
+                if (recurringAmountFilter === 'Over 500') return amt > 500
+                return true
+              }
+              const matchesType = (g) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
+
+              const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g))
+
+              const renderRecurringCard = (g) => {
+                const nextDate = new Date(g.next_expected_date)
+                const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24))
+                const isLate = daysUntil < -7 && g.status === 'active'
+                const isDueSoon = daysUntil >= -7 && daysUntil <= 7 && g.status === 'active'
+                const frequencyLabel = { weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' }[g.frequency] || g.frequency
+                const typeLabel = g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other'
+
+                return (
+                  <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>{g.donor_name}</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${Number(g.amount).toLocaleString()}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 8px', borderRadius: 20 }}>{typeLabel}</span>
+                      {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                      {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
+                      {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
+                    </div>
+                    {g.donor_email && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{g.donor_email}</div>}
+
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
+                      ${Number(g.amount).toLocaleString()} / {frequencyLabel}
+                      {g.giro_reference && ` · Ref: ${g.giro_reference}`}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
+                      Next expected: {nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                    {g.last_received_date && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
+                        Last received: {new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
+
+                    {g.status === 'active' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                    {g.status === 'paused' && (
+                      <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center', marginTop: 'auto' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                    )}
+                  </div>
+                )
+              }
+
+              const active = filtered.filter(g => g.status === 'active')
+              const paused = filtered.filter(g => g.status === 'paused')
+              const cancelled = filtered.filter(g => g.status === 'cancelled')
+
+              return (
+                <>
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Active Recurring Gifts ({active.length})</div>
+                    {active.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        {active.map(renderRecurringCard)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div
+                      style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => setShowPausedRecurring(v => !v)}
+                    >
+                      <span style={{ fontSize: 11, color: C.muted }}>{showPausedRecurring ? '▾' : '▸'}</span>
+                      Paused ({paused.length})
+                    </div>
+                    {showPausedRecurring && (
+                      paused.length === 0 ? (
+                        <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          {paused.map(renderRecurringCard)}
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  {cancelled.length > 0 && (
+                    <div>
+                      <div
+                        style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => setShowCancelledRecurring(v => !v)}
+                      >
+                        <span style={{ fontSize: 11, color: C.muted }}>{showCancelledRecurring ? '▾' : '▸'}</span>
+                        Cancelled ({cancelled.length})
+                      </div>
+                      {showCancelledRecurring && (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          {cancelled.map(renderRecurringCard)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         )}
 
