@@ -3387,7 +3387,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
               if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'medium', tab: 'recurring' })
 
-              const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => d.count >= lapsedMinGifts && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= lapsedMinDays).length
+              const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
+                if (d.count < lapsedMinGifts) return false
+                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                if (daysSince < lapsedMinDays) return false
+                if (lapsedDismissals[d.key]) return false
+                const history = lapsedReminderHistory[d.key]
+                if (history && history.length > 0) {
+                  const daysSinceReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                  if (daysSinceReminder < 30) return false
+                }
+                return true
+              }).length
               if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
               const obligationsDue = (() => {
