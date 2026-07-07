@@ -146,6 +146,8 @@ export default function App() {
   const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
   const [linkingPledgeManually, setLinkingPledgeManually] = useState(false)
   const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
+  const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
+  const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -6342,7 +6344,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
-            <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 280, marginBottom: 20 }} placeholder="🔍 Search pledges by donor name or email..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeUrgencyFilter} onChange={e => setPledgeUrgencyFilter(e.target.value)}>
+                <option value="All">All urgency</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Due Soon">Due soon (7d)</option>
+                <option value="Healthy">Healthy</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeAmountFilter} onChange={e => setPledgeAmountFilter(e.target.value)}>
+                <option value="All">All amounts</option>
+                <option value="Under 100">Under $100</option>
+                <option value="100-500">$100 – $500</option>
+                <option value="500-1000">$500 – $1,000</option>
+                <option value="Over 1000">Over $1,000</option>
+              </select>
+            </div>
 
             {showPledgeReminderModal && pledgeReminderCandidate && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
@@ -6521,7 +6538,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const searchFields = [p.donor_name, p.donor_email, p.notes]
                 return searchFields.some(field => field?.toLowerCase().includes(q))
               }
-              const searchedPledges = pledges.filter(matchesSearch)
+              const matchesUrgency = (p) => {
+                if (pledgeUrgencyFilter === 'All') return true
+                if (p.status !== 'pending') return false
+                const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24))
+                if (pledgeUrgencyFilter === 'Overdue') return days < 0
+                if (pledgeUrgencyFilter === 'Due Soon') return days >= 0 && days <= 7
+                if (pledgeUrgencyFilter === 'Healthy') return days > 7
+                return true
+              }
+              const matchesAmount = (p) => {
+                const amt = Number(p.amount)
+                if (pledgeAmountFilter === 'All') return true
+                if (pledgeAmountFilter === 'Under 100') return amt < 100
+                if (pledgeAmountFilter === '100-500') return amt >= 100 && amt <= 500
+                if (pledgeAmountFilter === '500-1000') return amt > 500 && amt <= 1000
+                if (pledgeAmountFilter === 'Over 1000') return amt > 1000
+                return true
+              }
+              const searchedPledges = pledges.filter(p => matchesSearch(p) && matchesUrgency(p) && matchesAmount(p))
 
               const outstanding = searchedPledges.filter(p => p.status === 'pending')
               const fulfilled = searchedPledges.filter(p => p.status === 'fulfilled')
