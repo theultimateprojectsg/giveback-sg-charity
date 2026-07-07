@@ -507,16 +507,19 @@ export default function App() {
     setDonorTagsMap(map)
   }
 
+  const [pledgesLoaded, setPledgesLoaded] = useState(false)
+
   async function loadPledges(activeSession = session) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
-    if (!uen) return
+    if (!uen) { setPledgesLoaded(true); return }
     const { data, error } = await supabase
       .from('pledges')
       .select('*')
       .eq('charity_uen', uen)
       .order('expected_date', { ascending: true })
-    if (error) { console.error('Could not load pledges:', error); return }
+    if (error) { console.error('Could not load pledges:', error); setPledgesLoaded(true); return }
     setPledges(data || [])
+    setPledgesLoaded(true)
 
     if (data && data.length > 0) {
       const { data: linkData } = await supabase
@@ -3465,8 +3468,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
                 return daysSinceLastReminder < 7
               }
-              const overduePledges = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p))
-              const dueSoonPledges = pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 })
+              const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
+              const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
               if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
               if (dueSoonPledges.length > 0) items.push({ icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
