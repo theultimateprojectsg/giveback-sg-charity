@@ -134,6 +134,19 @@ export default function App() {
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
+  useEffect(() => {
+    if (showPledgeThankYouModal && pledgeCompletionCandidate) {
+      const { pledge } = pledgeCompletionCandidate
+      setPledgeThankYouSubject(`Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
+      setPledgeThankYouBody(
+        `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
+      )
+    }
+  }, [showPledgeThankYouModal, pledgeCompletionCandidate])
+  const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState(false)
+  const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
+  const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
+  const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [recurringForm, setRecurringForm] = useState({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
@@ -1068,6 +1081,92 @@ export default function App() {
     setDonations(data)
     setSelectedDonationIds(prev => prev.filter(id => data.some(d => d.id === id)))
     setLoading(false)
+  } 
+
+  async function checkPledgeCompletion(donation) {
+    const donorKey = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
+    const matchingPledge = pledges.find(p => {
+      if (p.status !== 'pending') return false
+      const pledgeKey = p.donor_email?.trim() || p.donor_name
+      return pledgeKey === donorKey
+    })
+    if (!matchingPledge) return null
+
+    const { data: existingLinks } = await supabase
+      .from('pledge_donations')
+      .select('amount_applied')
+      .eq('pledge_id', matchingPledge.id)
+
+    const alreadyApplied = (existingLinks || []).reduce((s, l) => s + Number(l.amount_applied), 0)
+    const wouldReach = alreadyApplied + Number(donation.amount)
+
+    if (wouldReach >= Number(matchingPledge.amount)) {
+      return matchingPledge
+    }
+    return null
+  }
+
+  async function sendPledgeThankYou() {
+    if (!pledgeCompletionCandidate) return
+    setSendingPledgeThankYou(true)
+    const { pledge, donation } = pledgeCompletionCandidate
+
+    const { error: linkError } = await supabase.from('pledge_donations').insert({
+      pledge_id: pledge.id,
+      donation_id: donation.id,
+      amount_applied: donation.amount,
+      created_by: session.user.email,
+    })
+    if (linkError) { showToast('Error linking donation to pledge', 'error'); setSendingPledgeThankYou(false); return }
+
+    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
+    if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+
+    const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        type: 'pledge_thank_you',
+        donor_name: donation.donor_name,
+        donor_email: donation.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        pledge_amount: Number(pledge.amount).toLocaleString(),
+        subject_override: pledgeThankYouSubject,
+        custom_message: pledgeThankYouBody,
+      }
+    })
+    if (!emailError) {
+      await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
+      setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
+      showToast(`Pledge fulfilled ✓ — thank you sent to ${donation.donor_email} 🎉`)
+    } else {
+      showToast('Pledge marked fulfilled, but the email failed to send — try sending manually', 'error')
+    }
+
+    setSendingPledgeThankYou(false)
+    setShowPledgeThankYouModal(false)
+    setPledgeCompletionCandidate(null)
+  }
+
+  async function skipPledgeThankYou() {
+    if (!pledgeCompletionCandidate) return
+    const { pledge, donation } = pledgeCompletionCandidate
+
+    const { error: linkError } = await supabase.from('pledge_donations').insert({
+      pledge_id: pledge.id,
+      donation_id: donation.id,
+      amount_applied: donation.amount,
+      created_by: session.user.email,
+    })
+    if (linkError) { showToast('Error linking donation to pledge', 'error'); return }
+
+    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
+    if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); return }
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+
+    showToast('Pledge marked fulfilled')
+    setShowPledgeThankYouModal(false)
+    setPledgeCompletionCandidate(null)
   }
 
   async function confirmPaymentFlow(donation) {
@@ -1100,6 +1199,13 @@ export default function App() {
     })
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
     setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
+
+    const completedPledge = await checkPledgeCompletion(donation)
+    if (completedPledge) {
+      setPledgeCompletionCandidate({ pledge: completedPledge, donation })
+      setShowPledgeThankYouModal(true)
+      return
+    }
 
     if (!donation.donor_email) {
       showToast('Payment confirmed and receipt issued')
@@ -6076,6 +6182,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
+
+            {showPledgeThankYouModal && pledgeCompletionCandidate && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>🎉 Pledge completed</div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                    This donation brings {pledgeCompletionCandidate.pledge.donor_name}'s pledge of ${Number(pledgeCompletionCandidate.pledge.amount).toLocaleString()} to completion. Send a special thank-you?
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={s.formLabel}>Subject</div>
+                    <input style={s.formInput} value={pledgeThankYouSubject} onChange={e => setPledgeThankYouSubject(e.target.value)} />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={s.formLabel}>Message</div>
+                    <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeThankYouBody} onChange={e => setPledgeThankYouBody(e.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeThankYou} onClick={sendPledgeThankYou}>
+                      {sendingPledgeThankYou ? 'Sending...' : '✓ Mark fulfilled & send'}
+                    </button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={skipPledgeThankYou}>
+                      Skip — just mark fulfilled
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showPledgeForm && (
               <div style={{ ...s.card, marginBottom: 24, border: `1.5px solid ${C.sage}` }}>
