@@ -2921,7 +2921,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Upcoming Obligations</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
                       <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 600, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
                     </div>
                   {showAddObligation && (
@@ -3036,7 +3036,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
                   {/* Concentration */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 10 }}>Donor Concentration</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue coming from your top 10 donors. High concentration means your income depends heavily on a small number of people." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(10, sorted.length)} donors</div>
                     <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
@@ -3049,7 +3049,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Lapsed Donors */}
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Lapsed Donors</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given 2 or more times but haven't donated in over 60 days." /></div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>Gave 2+ times but haven't donated in 60+ days</div>
                     {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -3071,7 +3071,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Giving Changes */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 14 }}>Giving Changes</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift was 30% or more above or below their historical average, based on 3+ prior gifts." /></div>
                     {flags.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
                     ) : (
@@ -3102,7 +3102,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 ? (
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Active Campaigns</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations. Manage goals and end dates under Campaigns." /></div>
                     <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -3153,7 +3153,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const colors = [C.forest, C.sage, C.gold, C.borderStrong]
               return (
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Seasonality Trends</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}>Seasonality Trends <InfoTip text="Monthly donation totals by year, so you can spot patterns like year-end giving spikes." /></div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 16 }}>Monthly donations by year</div>
                   <div style={{ overflowX: 'auto' }}>
                     <div style={{ minWidth: 400 }}>
@@ -3196,7 +3196,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Donor Lifetime Value</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
@@ -3358,7 +3358,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {confirmedDonations.length > 0 && (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Recent Donations</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Recent Donations <InfoTip text="Your 5 most recently confirmed donations. View all in the Donations tab." /></div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('donations')}>View all →</div>
                 </div>
                 <div>
