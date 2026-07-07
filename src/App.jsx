@@ -6350,7 +6350,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeUrgencyFilter} onChange={e => setPledgeUrgencyFilter(e.target.value)}>
                 <option value="All">All urgency</option>
@@ -6365,6 +6365,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="500-1000">$500 – $1,000</option>
                 <option value="Over 1000">Over $1,000</option>
               </select>
+              {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All') }}>✕ Clear Filters</button>
+              )}
             </div>
 
             {showPledgeReminderModal && pledgeReminderCandidate && (
