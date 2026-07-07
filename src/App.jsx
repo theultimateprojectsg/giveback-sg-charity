@@ -142,6 +142,9 @@ export default function App() {
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
   const [pledgeReminderHistory, setPledgeReminderHistory] = useState({})
+  const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
+  const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
+  const [linkingPledgeManually, setLinkingPledgeManually] = useState(false)
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -1235,6 +1238,43 @@ export default function App() {
       return matchingPledge
     }
     return null
+  }
+
+  async function manuallyLinkDonationToPledge(donation, pledgeId) {
+    setLinkingPledgeManually(true)
+    const pledge = pledges.find(p => p.id === pledgeId)
+    if (!pledge) { showToast('Pledge not found', 'error'); setLinkingPledgeManually(false); return }
+
+    const { error: linkError } = await supabase.from('pledge_donations').insert({
+      pledge_id: pledge.id,
+      donation_id: donation.id,
+      amount_applied: donation.amount,
+      created_by: session.user.email,
+    })
+    if (linkError) { showToast('Error linking donation to pledge', 'error'); setLinkingPledgeManually(false); return }
+
+    setPledgeGivenTotals(prev => ({
+      ...prev,
+      [pledge.id]: (prev[pledge.id] || 0) + Number(donation.amount)
+    }))
+
+    const { data: existingLinks } = await supabase
+      .from('pledge_donations')
+      .select('amount_applied')
+      .eq('pledge_id', pledge.id)
+    const total = (existingLinks || []).reduce((s, l) => s + Number(l.amount_applied), 0)
+
+    if (total >= Number(pledge.amount)) {
+      setPledgeCompletionCandidate({ pledge, donation })
+      setShowPledgeThankYouModal(true)
+      showToast(`Linked — this completes ${pledge.donor_name}'s pledge!`)
+    } else {
+      showToast(`Linked $${Number(donation.amount).toLocaleString()} to ${pledge.donor_name}'s pledge`)
+    }
+
+    setLinkingPledgeManually(false)
+    setShowManualPledgeLinkModal(false)
+    setManualPledgeLinkSelection('')
   }
 
   async function sendPledgeThankYou() {
@@ -4702,6 +4742,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {selectedDonation.receipt_issued && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
                         )}
+                        {selectedDonation.payment_status === 'confirmed' && pledges.filter(p => p.status === 'pending').length > 0 && (
+                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
+                        )}
                         {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && (
                           <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
                         )}
@@ -6297,6 +6340,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
+
+            {showManualPledgeLinkModal && selectedDonation && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Link this donation to a pledge</div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                    ${Number(selectedDonation.amount).toLocaleString()} from {selectedDonation.donor_name} — choose which pending pledge this should count toward.
+                  </div>
+                  {pledges.filter(p => p.status === 'pending').length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>No pending pledges to link to.</div>
+                  ) : (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={s.formLabel}>Pending pledges</div>
+                      <select style={s.formInput} value={manualPledgeLinkSelection} onChange={e => setManualPledgeLinkSelection(e.target.value)}>
+                        <option value="">Select a pledge...</option>
+                        {pledges.filter(p => p.status === 'pending').map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.donor_name} — ${Number(p.amount).toLocaleString()} (${(pledgeGivenTotals[p.id] || 0).toLocaleString()} given so far)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!manualPledgeLinkSelection || linkingPledgeManually} onClick={() => manuallyLinkDonationToPledge(selectedDonation, manualPledgeLinkSelection)}>
+                      {linkingPledgeManually ? 'Linking...' : '✓ Link donation'}
+                    </button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showPledgeReminderModal && pledgeReminderCandidate && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
