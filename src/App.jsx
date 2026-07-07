@@ -367,16 +367,43 @@ export default function App() {
   }
 
   async function fulfillPledge(pledge) {
-    const { error } = await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', pledge.id)
-    if (error) { showToast('Error updating pledge', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'pledge_fulfilled',
-      details: { donor_name: pledge.donor_name, amount: pledge.amount },
+    setConfirmModal({
+      title: 'Mark this pledge as fulfilled?',
+      description: `The pledge of $${Number(pledge.amount).toLocaleString()} from ${pledge.donor_name} will be marked as fulfilled. You can revert this later if needed.`,
+      confirmLabel: 'Mark Fulfilled',
+      onConfirm: async () => {
+        const { error } = await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', pledge.id)
+        if (error) { showToast('Error updating pledge', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'pledge_fulfilled',
+          details: { donor_name: pledge.donor_name, amount: pledge.amount },
+        })
+        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+        showToast(`Pledge from ${pledge.donor_name} marked as fulfilled ✓`)
+      },
     })
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
-    showToast(`Pledge from ${pledge.donor_name} marked as fulfilled ✓`)
+  }
+
+  async function revertPledgeToPending(pledge) {
+    setConfirmModal({
+      title: 'Revert this pledge to pending?',
+      description: `The pledge of $${Number(pledge.amount).toLocaleString()} from ${pledge.donor_name} will be moved back to Outstanding Pledges.`,
+      confirmLabel: 'Revert to Pending',
+      onConfirm: async () => {
+        const { error } = await supabase.from('pledges').update({ status: 'pending' }).eq('id', pledge.id)
+        if (error) { showToast('Error reverting pledge', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'pledge_reverted_to_pending',
+          details: { donor_name: pledge.donor_name, amount: pledge.amount },
+        })
+        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'pending' } : p))
+        showToast(`Pledge from ${pledge.donor_name} reverted to pending`)
+      },
+    })
   }
 
   async function cancelPledge(pledge) {
@@ -6306,6 +6333,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
+                      </div>
+                    )}
+                    {p.status === 'fulfilled' && (
+                      <div style={{ marginTop: 'auto' }}>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to Pending</button>
                       </div>
                     )}
                   </div>
