@@ -170,6 +170,7 @@ export default function App() {
   const [recurringReminderBody, setRecurringReminderBody] = useState('')
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
+  const [concentrationTopN, setConcentrationTopN] = useState(10)
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
@@ -3487,10 +3488,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
               const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
-              const top10Total = sorted.slice(0, 10).reduce((s, d) => s + d.total, 0)
-              const concentrationPct = grandTotal > 0 ? Math.round((top10Total / grandTotal) * 100) : 0
-              const highRisk = concentrationPct >= 70
-              const medRisk = concentrationPct >= 50
+              const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
+              const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
+              const tooFewDonors = sorted.length < concentrationTopN * 3
+              const highRisk = !tooFewDonors && concentrationPct >= 70
+              const medRisk = !tooFewDonors && concentrationPct >= 50
 
               const flags = sorted.filter(d => d.gifts.length >= 3).map(d => {
                 const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -3522,14 +3524,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
                   {/* Concentration */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue coming from your top 10 donors. High concentration means your income depends heavily on a small number of people." /></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => setConcentrationTopN(Number(e.target.value))}>
+                        <option value={5}>Top 5</option>
+                        <option value={10}>Top 10</option>
+                        <option value={20}>Top 20</option>
+                      </select>
+                    </div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(10, sorted.length)} donors</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
                     <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
                       <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                     </div>
                     <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600 }}>
-                      {highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
+                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
                   </div>
 
