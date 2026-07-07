@@ -4082,25 +4082,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
 
-            {!loading && donations.length === 0 && (
-              <div style={{ background: C.white, border: `1.5px solid ${C.sage}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 4 }}>👋 Welcome to Giving Tree</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>A few things to get you started:</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { label: 'Confirm your charity details are correct', action: () => setActiveTab('settings') },
-                    { label: 'Log your first donation manually', action: () => { setActiveTab('donations'); setShowManualForm(true) } },
-                    { label: 'Set your monthly expenses for coverage tracking', action: () => setActiveTab('settings') },
-                  ].map((step, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={step.action}>
-                      <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${C.sage}`, flexShrink: 0 }} />
-                      <div style={{ fontSize: 13, color: C.text }}>{step.label}</div>
-                      <div style={{ marginLeft: 'auto', fontSize: 11, color: C.sage, fontWeight: 600 }}>Go →</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            
             
 
             
@@ -4197,39 +4179,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Recent Activity</span>
-              </div>
-
-            {/* ── RECENT DONATIONS ── */}
-            {confirmedDonations.length > 0 && (
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Recent Donations <InfoTip text="Your 5 most recently confirmed donations. View all in the Donations tab." /></div>
-                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('donations')}>View all →</div>
-                </div>
-                <div>
-                  {confirmedDonations.slice(0, 5).map(d => (
-                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                      <div style={{ ...s.donorAvatar, background: C.gold, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.donor_name?.charAt(0)}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.donor_name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.source === 'manual' ? d.payment_method || 'Manual' : 'App'}{causeNameForDonation(d) ? ` · ${causeNameForDonation(d)}` : ''}</div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
-                        <div style={{ marginTop: 2 }}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Receipt</span> : <span style={s.badgePending}>Pending</span>}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            </div>
             </div>
         )}
 
