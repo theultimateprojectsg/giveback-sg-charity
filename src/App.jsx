@@ -6341,40 +6341,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
-            {showManualPledgeLinkModal && selectedDonation && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%' }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Link this donation to a pledge</div>
-                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
-                    ${Number(selectedDonation.amount).toLocaleString()} from {selectedDonation.donor_name} — choose which pending pledge this should count toward.
-                  </div>
-                  {pledges.filter(p => p.status === 'pending').length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>No pending pledges to link to.</div>
-                  ) : (
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={s.formLabel}>Pending pledges</div>
-                      <select style={s.formInput} value={manualPledgeLinkSelection} onChange={e => setManualPledgeLinkSelection(e.target.value)}>
-                        <option value="">Select a pledge...</option>
-                        {pledges.filter(p => p.status === 'pending').map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.donor_name} — ${Number(p.amount).toLocaleString()} (${(pledgeGivenTotals[p.id] || 0).toLocaleString()} given so far)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!manualPledgeLinkSelection || linkingPledgeManually} onClick={() => manuallyLinkDonationToPledge(selectedDonation, manualPledgeLinkSelection)}>
-                      {linkingPledgeManually ? 'Linking...' : '✓ Link donation'}
-                    </button>
-                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {showPledgeReminderModal && pledgeReminderCandidate && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -7117,6 +7083,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showManualPledgeLinkModal && selectedDonation && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Link this donation to a pledge</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              ${Number(selectedDonation.amount).toLocaleString()} from {selectedDonation.donor_name} — choose which pending pledge this should count toward.
+            </div>
+            {pledges.filter(p => p.status === 'pending').length === 0 ? (
+              <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>No pending pledges to link to.</div>
+            ) : (
+              <div style={{ marginBottom: 16 }}>
+                <div style={s.formLabel}>Pending pledges</div>
+                <select style={s.formInput} value={manualPledgeLinkSelection} onChange={e => setManualPledgeLinkSelection(e.target.value)}>
+                  <option value="">Select a pledge...</option>
+                  {pledges.filter(p => p.status === 'pending').map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.donor_name} — ${Number(p.amount).toLocaleString()} (${(pledgeGivenTotals[p.id] || 0).toLocaleString()} given so far)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!manualPledgeLinkSelection || linkingPledgeManually} onClick={() => manuallyLinkDonationToPledge(selectedDonation, manualPledgeLinkSelection)}>
+                {linkingPledgeManually ? 'Linking...' : '✓ Link donation'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
