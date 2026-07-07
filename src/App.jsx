@@ -135,6 +135,7 @@ export default function App() {
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
   
+  const [pledgeCompletionCandidate, setPledgeCompletionCandidate] = useState(null)
   const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState(false)
   const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
