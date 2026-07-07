@@ -2733,10 +2733,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const items = []
 
               const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-              if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', tab: 'donations' })
+              if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
               const pendingReceipts = donations.filter(d => d.payment_status === 'confirmed' && !d.receipt_issued).length
-              if (pendingReceipts > 0) items.push({ icon: '🧾', label: `${pendingReceipts} receipt${pendingReceipts > 1 ? 's' : ''} not yet issued`, priority: 'high', tab: 'donations' })
+              if (pendingReceipts > 0) items.push({ icon: '🧾', label: `${pendingReceipts} receipt${pendingReceipts > 1 ? 's' : ''} not yet issued`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Receipt Pending'); setActiveTab('donations') } })
 
               if (charityIsIpc && daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount > 0) {
                 items.push({ icon: '🏛️', label: `IRAS deadline in ${daysToDeadline} days — ${pendingCount} receipt${pendingCount > 1 ? 's' : ''} outstanding`, priority: 'high', tab: 'iras' })
@@ -2787,7 +2787,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
                     {items.map((item, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, cursor: 'pointer', background: C.white, fontSize: 13 }}
-                        onClick={() => setActiveTab(item.tab)}
+                        onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}
                         onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                         onMouseLeave={e => e.currentTarget.style.background = C.white}
                       >
