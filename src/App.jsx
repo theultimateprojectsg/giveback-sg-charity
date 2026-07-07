@@ -52,11 +52,11 @@ function InfoTip({ text }) {
       onMouseLeave={() => setShow(false)}
       onTouchStart={() => setShow(v => !v)}
     >
-      <span style={{ width: 15, height: 15, borderRadius: '50%', background: 'rgba(0,0,0,0.08)', color: '#888', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default', userSelect: 'none' }}>i</span>
+      <span style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid #ccc', color: '#aaa', fontSize: 9, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default', userSelect: 'none', lineHeight: 1 }}>i</span>
       {show && (
-        <span style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', background: '#1B4332', color: 'white', fontSize: 11, lineHeight: 1.5, padding: '6px 10px', borderRadius: 8, whiteSpace: 'pre-wrap', width: 220, zIndex: 999, boxShadow: '0 4px 12px rgba(0,0,0,0.2)', pointerEvents: 'none' }}>
+        <span style={{ position: 'absolute', bottom: '130%', left: '50%', transform: 'translateX(-50%)', background: 'white', color: '#444', fontSize: 11, fontWeight: 400, lineHeight: 1.6, padding: '8px 12px', borderRadius: 8, whiteSpace: 'normal', width: 200, zIndex: 999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', pointerEvents: 'none', textTransform: 'none', letterSpacing: 0 }}>
           {text}
-          <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: '#1B4332 transparent transparent transparent' }} />
+          <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: 'white transparent transparent transparent' }} />
         </span>
       )}
     </span>
