@@ -2706,9 +2706,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            {/* ── SECTION: TODAY'S OVERVIEW ── */}
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Today's Overview</div>
+            
+
+            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Today's Overview</div>
 
             {/* ── ACTION ITEMS ── */}
             {(() => {
@@ -2871,9 +2872,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
 
-            {/* ── SECTION: FINANCIAL HEALTH ── */}
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
+            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
 
             {/* ── OBLIGATIONS + LAPSED ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
@@ -2899,12 +2899,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
                   return days >= 0 && days <= 180
                 })
-              return (
-                <div style={{ ...s.card, marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={s.cardTitle}>📅 Upcoming Obligations</div>
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
-                  </div>
+                return (
+                  <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={s.cardTitle}>📅 Upcoming Obligations</div>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                    </div>
                   {showAddObligation && (
                     <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
@@ -2981,7 +2981,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return daysSince >= 60 && d.count >= 2
               }).sort((a, b) => b.total - a.total).slice(0, 5)
               return (
-                <div style={{ ...s.card, marginBottom: 20 }}>
+                <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
                   <div style={s.cardTitle}>⏰ Lapsed Donors</div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave 2+ times but haven't donated in 60+ days</div>
                   {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
@@ -3004,6 +3004,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
             </div>
+
+            </div>
+
+            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📈 Trends & Insights</div>
 
             {/* ── CONCENTRATION RISK + UPGRADE/DOWNGRADE ── */}
             {(() => {
@@ -3075,9 +3080,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20, alignItems: 'start' }}>
             </div>
 
-            {/* ── SECTION: TRENDS ── */}
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📈 Trends</div>
+            
 
             {/* ── SEASONALITY TREND ── */}
             {confirmedDonations.length > 0 && (() => {
@@ -3188,82 +3191,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
             
 
-            {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
-              <div style={s.tableCard}>
-                <div style={s.tableHeader}>
-                  <div style={s.tableTitle}>Active Campaigns</div>
-                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
-                </div>
-                <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
-                  {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map((c) => {
-                    const stats = causeRaisedMap[c.id] || { total: 0, donors: new Set() }
-                    const goal = c.target_amount || 0
-                    const pct = goal > 0 ? Math.min(100, Math.round((stats.total / goal) * 100)) : 0
-                    const daysLeft = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24))) : null
-                    const behindPace = goal > 0 && pct < 40
-                    return (
-                      <div key={c.id} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{c.title}</div>
-                          <span style={s.badgeIssued}>✓ Approved</span>
-                        </div>
-
-                        {goal > 0 && (
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
-                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: behindPace ? C.warning : C.sage, borderRadius: 3 }} />
-                          </div>
-                        )}
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 8 }}>
-                          <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Raised</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${stats.total.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Goal</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{goal > 0 ? `$${goal.toLocaleString()}` : '—'}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Donors</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{stats.donors.size}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Ends</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{daysLeft !== null ? `${daysLeft}d` : '—'}</div>
-                          </div>
-                        </div>
-
-                        {goal > 0 && (
-                          <div style={{ marginTop: 10, fontSize: 11, color: behindPace ? C.warning : C.muted, fontWeight: behindPace ? 600 : 400 }}>
-                            {behindPace ? `⚠ Behind pace · ${pct}% funded` : `${pct}% funded`}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+            
 
             
 
-            {(() => {
-              const needsActionPool = donations.filter(d =>
-                d.payment_status !== 'confirmed' ||
-                !d.receipt_issued ||
-                (charityIsIpc && !d.donor_nric) ||
-                (d.donor_email?.trim() && !d.thank_you_sent)
-              ).slice(0, 5)
-              const dashboardDonationsPool = needsActionPool
-              const totalPages = 1
-              const pageDonations = dashboardDonationsPool
-              return (
+            {false && (() => { return (
                 <div style={s.tableCard}>
                   <div style={s.tableHeader}>
                     <div style={s.tableTitle}>Needs your attention</div>
-                    <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => { setFilterYear('All'); setFilterType('All'); setFilterNric('All'); setSearchTerm(''); setActiveTab('donations') }}>View all donations →</div>
                   </div>
-                  {loading ? <div style={s.empty}>Loading...</div> : dashboardDonationsPool.length === 0 ? (
+                  {false ? (
                     <div style={s.empty}>Nothing needs action right now.</div>
                   ) : (isMobile || isTablet) ? (
                     <div>
@@ -3348,15 +3285,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            </div>
-
-            {/* ── SECTION: CAMPAIGNS ── */}
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>🎯 Campaigns</div>
+            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>🎯 Campaigns</div>
 
             {/* ── ACTIVE CAMPAIGNS ── */}
             {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
-              <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={s.cardTitle}>🎯 Active Campaigns</div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
@@ -3395,13 +3329,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
 
-            {/* ── SECTION: RECENT ACTIVITY ── */}
-            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💳 Recent Activity</div>
+            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💳 Recent Activity</div>
 
             {/* ── RECENT DONATIONS ── */}
             {confirmedDonations.length > 0 && (
-              <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={{ background: C.white, borderRadius: 12, padding: 16, marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <div style={s.cardTitle}>💳 Recent Donations</div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('donations')}>View all →</div>
