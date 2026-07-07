@@ -2821,9 +2821,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', border: `1px solid ${C.border}`, borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', marginBottom: 20 }}>
                   {/* MTD donations */}
-                  <div style={{ background: C.forest, padding: '16px 18px' }}>
+                  <div style={{ background: C.forest, padding: '16px 18px', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, borderTopLeftRadius: 4, borderBottomLeftRadius: 4 }}>
                     <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: 'white', lineHeight: 1 }}>${mtd.toLocaleString()}</div>
                     {mtdDiff !== null ? (
@@ -2836,7 +2836,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* Coverage ratio */}
-                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                  <div style={{ background: C.white, padding: '16px 18px', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}` }}>
                     <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
@@ -2854,7 +2854,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* New donors this month */}
-                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                  <div style={{ background: C.white, padding: '16px 18px', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}` }}>
                     <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{newDonorsThisMonth}</div>
                     {newDonorsDiff !== null ? (
@@ -2867,7 +2867,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* MRR */}
-                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                  <div style={{ background: C.white, padding: '16px 18px', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, borderTopRightRadius: 4, borderBottomRightRadius: 4 }}>
                     <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
