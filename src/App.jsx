@@ -1281,10 +1281,11 @@ export default function App() {
     if (!pledgeCompletionCandidate) return
     setSendingPledgeThankYou(true)
     const { pledge, donation } = pledgeCompletionCandidate
+    const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
 
-    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
+    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', resolution_notes: autoNote } : p))
 
     const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
       body: {
@@ -1314,10 +1315,11 @@ export default function App() {
   async function skipPledgeThankYou() {
     if (!pledgeCompletionCandidate) return
     const { pledge, donation } = pledgeCompletionCandidate
+    const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
 
-    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
+    const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); return }
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', resolution_notes: autoNote } : p))
 
     showToast('Pledge marked fulfilled')
     setShowPledgeThankYouModal(false)
