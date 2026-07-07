@@ -170,7 +170,14 @@ export default function App() {
   const [recurringReminderBody, setRecurringReminderBody] = useState('')
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
-  const [concentrationTopN, setConcentrationTopN] = useState(10)
+  const [concentrationTopN, setConcentrationTopN] = useState(() => {
+    const saved = localStorage.getItem('gt_concentration_top_n')
+    return saved ? Number(saved) : 10
+  })
+
+  useEffect(() => {
+    localStorage.setItem('gt_concentration_top_n', String(concentrationTopN))
+  }, [concentrationTopN])
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
