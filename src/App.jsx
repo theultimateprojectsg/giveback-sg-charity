@@ -179,6 +179,23 @@ export default function App() {
     localStorage.setItem('gt_concentration_top_n', String(concentrationTopN))
   }, [concentrationTopN])
 
+  const [lapsedMinGifts, setLapsedMinGifts] = useState(() => {
+    const saved = localStorage.getItem('gt_lapsed_min_gifts')
+    return saved ? Number(saved) : 2
+  })
+  const [lapsedMinDays, setLapsedMinDays] = useState(() => {
+    const saved = localStorage.getItem('gt_lapsed_min_days')
+    return saved ? Number(saved) : 60
+  })
+
+  useEffect(() => {
+    localStorage.setItem('gt_lapsed_min_gifts', String(lapsedMinGifts))
+  }, [lapsedMinGifts])
+
+  useEffect(() => {
+    localStorage.setItem('gt_lapsed_min_days', String(lapsedMinDays))
+  }, [lapsedMinDays])
+
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
       const g = recurringReminderCandidate
@@ -3244,7 +3261,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
               if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'medium', tab: 'recurring' })
 
-              const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => d.count >= 2 && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= 60).length
+              const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => d.count >= lapsedMinGifts && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= lapsedMinDays).length
               if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in 60+ days`, priority: 'medium', tab: 'donors' })
 
               const obligationsDue = (() => {
@@ -3524,7 +3541,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return map
               })()).filter(d => {
                 const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                return daysSince >= 60 && d.count >= 2
+                return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
               }).sort((a, b) => b.total - a.total).slice(0, 5)
 
               return (
@@ -3551,8 +3568,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Lapsed Donors */}
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given 2 or more times but haven't donated in over 60 days." /></div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>Gave 2+ times but haven't donated in 60+ days</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
+                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => setLapsedMinGifts(Math.max(1, Number(e.target.value) || 1))} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ times but haven't donated in</span>
+                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => setLapsedMinDays(Math.max(1, Number(e.target.value) || 1))} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ days</span>
+                    </div>
                     {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {lapsed.map((d, i) => {
