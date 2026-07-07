@@ -2706,6 +2706,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
+            {/* ── SECTION: TODAY'S OVERVIEW ── */}
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Today's Overview</div>
+
             {/* ── ACTION ITEMS ── */}
             {(() => {
               const today = new Date()
@@ -2864,6 +2868,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+
+            </div>
+
+            {/* ── SECTION: FINANCIAL HEALTH ── */}
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
 
             {/* ── OBLIGATIONS + LAPSED ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
@@ -3063,6 +3073,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {/* ── SEASONALITY + LTV ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20, alignItems: 'start' }}>
+            </div>
+
+            {/* ── SECTION: TRENDS ── */}
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📈 Trends</div>
+
             {/* ── SEASONALITY TREND ── */}
             {confirmedDonations.length > 0 && (() => {
               const years = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort()
@@ -3332,6 +3348,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            </div>
+
+            {/* ── SECTION: CAMPAIGNS ── */}
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>🎯 Campaigns</div>
+
             {/* ── ACTIVE CAMPAIGNS ── */}
             {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
               <div style={{ ...s.card, marginBottom: 16 }}>
@@ -3371,6 +3393,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            </div>
+
+            {/* ── SECTION: RECENT ACTIVITY ── */}
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💳 Recent Activity</div>
+
             {/* ── RECENT DONATIONS ── */}
             {confirmedDonations.length > 0 && (
               <div style={{ ...s.card, marginBottom: 16 }}>
@@ -3396,6 +3424,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            </div>
             </div>
         )}
 
