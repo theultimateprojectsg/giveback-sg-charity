@@ -141,6 +141,25 @@ export default function App() {
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
+  const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
+  const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
+  const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
+  const [pledgeReminderBody, setPledgeReminderBody] = useState('')
+  const [sendingPledgeReminder, setSendingPledgeReminder] = useState(false)
+
+  useEffect(() => {
+    if (showPledgeReminderModal && pledgeReminderCandidate) {
+      const p = pledgeReminderCandidate
+      const daysUntil = Math.ceil((new Date(p.expected_date) - new Date()) / (1000 * 60 * 60 * 24))
+      const isOverdue = daysUntil < 0
+      setPledgeReminderSubject(`Following up on your pledge to ${charityName}`)
+      setPledgeReminderBody(
+        isOverdue
+          ? `Just a friendly note — we haven't yet received your pledge of $${Number(p.amount).toLocaleString()}, which was expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n${charityName}`
+          : `Just a friendly reminder that your pledge of $${Number(p.amount).toLocaleString()} is expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n${charityName}`
+      )
+    }
+  }, [showPledgeReminderModal, pledgeReminderCandidate])
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [recurringForm, setRecurringForm] = useState({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
@@ -384,6 +403,33 @@ export default function App() {
         showToast(`Pledge from ${pledge.donor_name} marked as fulfilled ✓`)
       },
     })
+  }
+
+  async function sendPledgeReminder() {
+    if (!pledgeReminderCandidate) return
+    if (!pledgeReminderCandidate.donor_email) {
+      showToast('This donor has no email on file', 'error')
+      return
+    }
+    setSendingPledgeReminder(true)
+    const p = pledgeReminderCandidate
+    const { error } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        type: 'pledge_reminder',
+        donor_name: p.donor_name,
+        donor_email: p.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        pledge_amount: Number(p.amount).toLocaleString(),
+        subject_override: pledgeReminderSubject,
+        custom_message: pledgeReminderBody,
+      }
+    })
+    setSendingPledgeReminder(false)
+    if (error) { showToast('Failed to send reminder', 'error'); return }
+    showToast(`Reminder sent to ${p.donor_email}`)
+    setShowPledgeReminderModal(false)
+    setPledgeReminderCandidate(null)
   }
 
   async function revertPledgeToPending(pledge) {
@@ -6226,6 +6272,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
+            {showPledgeReminderModal && pledgeReminderCandidate && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Send pledge reminder</div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                    To {pledgeReminderCandidate.donor_name} ({pledgeReminderCandidate.donor_email || 'no email on file'})
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={s.formLabel}>Subject</div>
+                    <input style={s.formInput} value={pledgeReminderSubject} onChange={e => setPledgeReminderSubject(e.target.value)} />
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={s.formLabel}>Message</div>
+                    <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeReminderBody} onChange={e => setPledgeReminderBody(e.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeReminder || !pledgeReminderCandidate.donor_email} onClick={sendPledgeReminder}>
+                      {sendingPledgeReminder ? 'Sending...' : '✓ Send reminder'}
+                    </button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {showPledgeThankYouModal && pledgeCompletionCandidate && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -6329,6 +6402,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
+                    {p.status === 'pending' && (isOverdue || isDueSoon) && (
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
+                    )}
                     {p.status === 'pending' && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
