@@ -2768,7 +2768,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()
               obligationsDue.forEach(o => items.push({ icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', tab: 'reports' }))
 
-              if (items.length === 0) return null
+              if (items.length === 0) {
+                return (
+                  <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 13, color: C.forest, fontWeight: 600 }}>You're all caught up.</span>
+                    <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
+                  </div>
+                )
+              }
 
               const highItems = items.filter(i => i.priority === 'high')
 
@@ -2889,8 +2896,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Financial Health</span>
               </div>
 
-            {/* ── OBLIGATIONS + LAPSED ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
             {/* ── UPCOMING OBLIGATIONS ── */}
             {(() => {
               const today = new Date()
@@ -2949,8 +2954,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {all.map((o, i) => {
                         const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
-                        const urgent = days <= 30
-                        const soon = days <= 60
+                        const urgent = days <= 7
+                        const soon = days <= 30
                         return (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
                             <div>
@@ -2976,49 +2981,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {/* ── LAPSED DONORS (60+ days) ── */}
-            {(() => {
-              const today = new Date()
-              const lapsed = Object.values((() => {
-                const map = {}
-                confirmedDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
-                    map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
-                  }
-                  map[key].count++
-                  map[key].total += d.amount
-                })
-                return map
-              })()).filter(d => {
-                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                return daysSince >= 60 && d.count >= 2
-              }).sort((a, b) => b.total - a.total).slice(0, 5)
-              return (
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Lapsed Donors</div>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>Gave 2+ times but haven't donated in 60+ days</div>
-                  {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {lapsed.map((d, i) => {
-                      const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                      return (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>Last gave {daysSince} days ago · {d.count} donations · ${d.total.toLocaleString()} lifetime</div>
-                          </div>
-                          {d.email && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => { setActiveTab('massappeal') }}>Appeal →</button>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })()}
-            </div>
-
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
@@ -3028,7 +2990,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Trends and Insights</span>
               </div>
 
-            {/* ── CONCENTRATION RISK + UPGRADE/DOWNGRADE ── */}
+            {/* ── CONCENTRATION + LAPSED + GIVING CHANGES (3-across) ── */}
             {(() => {
               const donorTotals = {}
               confirmedDonations.forEach(d => {
@@ -3044,7 +3006,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const highRisk = concentrationPct >= 70
               const medRisk = concentrationPct >= 50
 
-              // Upgrade/downgrade detection
               const flags = sorted.filter(d => d.gifts.length >= 3).map(d => {
                 const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
                 const recent = byDate[byDate.length - 1].amount
@@ -3054,8 +3015,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return null
               }).filter(Boolean).slice(0, 3)
 
+              const lapsedToday = new Date()
+              const lapsed = Object.values((() => {
+                const map = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
+                    map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
+                  }
+                  map[key].count++
+                  map[key].total += d.amount
+                })
+                return map
+              })()).filter(d => {
+                const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                return daysSince >= 60 && d.count >= 2
+              }).sort((a, b) => b.total - a.total).slice(0, 5)
+
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
                   {/* Concentration */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 10 }}>Donor Concentration</div>
@@ -3069,7 +3047,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
 
-                  {/* Upgrade/downgrade */}
+                  {/* Lapsed Donors */}
+                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Lapsed Donors</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>Gave 2+ times but haven't donated in 60+ days</div>
+                    {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {lapsed.map((d, i) => {
+                        const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
+                            </div>
+                            {d.email && <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => { setActiveTab('massappeal') }}>Appeal →</button>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Giving Changes */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 14 }}>Giving Changes</div>
                     {flags.length === 0 ? (
@@ -3094,14 +3094,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {/* ── SEASONALITY + LTV ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20, alignItems: 'start' }}>
-            </div>
-
             
 
-            {/* ── SEASONALITY TREND ── */}
-            {confirmedDonations.length > 0 && (() => {
+            {/* ── ACTIVE CAMPAIGNS + SEASONALITY (2-across) ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20, alignItems: 'start' }}>
+
+              {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 ? (
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Active Campaigns</div>
+                    <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => {
+                      const stats = causeRaisedMap[c.id] || { total: 0, donors: new Set() }
+                      const goal = c.target_amount || 0
+                      const pct = goal > 0 ? Math.min(100, Math.round((stats.total / goal) * 100)) : 0
+                      const daysLeft = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24))) : null
+                      const behindPace = goal > 0 && pct < 40
+                      return (
+                        <div key={c.id} style={{ background: C.ivory, borderRadius: 4, padding: 14, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
+                            <span style={s.badgeIssued}>✓ Live</span>
+                          </div>
+                          {goal > 0 && (
+                            <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 10 }}>
+                              <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: behindPace ? C.gold : C.sage, borderRadius: 3 }} />
+                            </div>
+                          )}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                            <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Raised</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>${stats.total.toLocaleString()}</div></div>
+                            <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Goal</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{goal > 0 ? `$${goal.toLocaleString()}` : '—'}</div></div>
+                            <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{stats.donors.size}</div></div>
+                            <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Ends</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{daysLeft !== null ? `${daysLeft}d` : '—'}</div></div>
+                          </div>
+                          {goal > 0 && <div style={{ marginTop: 8, fontSize: 11, color: behindPace ? C.gold : C.muted, fontWeight: behindPace ? 600 : 400 }}>{behindPace ? `⚠ Behind pace · ${pct}% funded` : `${pct}% funded`}</div>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 6 }}>Active Campaigns</div>
+                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns right now.</div>
+                </div>
+              )}
+
+              {confirmedDonations.length > 0 && (() => {
               const years = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort()
               const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
               const data = years.map(year => ({
@@ -3109,13 +3150,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 monthly: months.map((_, m) => confirmedDonations.filter(d => new Date(d.created_at).getFullYear() === year && new Date(d.created_at).getMonth() === m).reduce((s, d) => s + d.amount, 0))
               }))
               const maxVal = Math.max(...data.flatMap(y => y.monthly))
-              const colors = ['#1B4332', '#2D6A4F', '#40916C', '#74C69D']
+              const colors = [C.forest, C.sage, C.gold, C.borderStrong]
               return (
-                <div style={{ ...s.card, marginBottom: 20 }}>
-                  <div style={s.cardTitle}>📈 Seasonality Trends</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Monthly donations by year</div>
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>Seasonality Trends</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 16 }}>Monthly donations by year</div>
                   <div style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 500 }}>
+                    <div style={{ minWidth: 400 }}>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 120, marginBottom: 8 }}>
                         {months.map((month, m) => (
                           <div key={m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -3137,55 +3178,58 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {/* ── DONOR LIFETIME VALUE ── */}
-            {confirmedDonations.length > 0 && (() => {
-              const sorted = Object.values((() => {
-                const map = {}
-                confirmedDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
-                  map[key].total += d.amount
-                  map[key].count++
-                  if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
-                })
-                return map
-              })()).sort((a, b) => b.total - a.total)
-              const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
-              const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
-              return (
-                <div style={{ ...s.card, marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div style={s.cardTitle}>💎 Donor Lifetime Value</div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, color: C.muted }}>Avg LTV</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: C.forest }}>${avgLTV.toLocaleString()}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-                    <div style={{ background: C.ivory, borderRadius: 10, padding: '10px 14px' }}>
-                      <div style={{ fontSize: 11, color: C.muted }}>Avg gifts per donor</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>{avgGifts}</div>
-                    </div>
-                    <div style={{ background: C.ivory, borderRadius: 10, padding: '10px 14px' }}>
-                      <div style={{ fontSize: 11, color: C.muted }}>Top donor LTV</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {sorted.slice(0, 5).map((d, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.ivory, borderRadius: 8 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: [C.forest, C.sage, C.teal, C.gold, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{d.name}</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
-                        </div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
+              {/* Donor Lifetime Value */}
+              {confirmedDonations.length > 0 && (() => {
+                const sorted = Object.values((() => {
+                  const map = {}
+                  confirmedDonations.forEach(d => {
+                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                    if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
+                    map[key].total += d.amount
+                    map[key].count++
+                    if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
+                  })
+                  return map
+                })()).sort((a, b) => b.total - a.total)
+                const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
+                const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+                return (
+                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Donor Lifetime Value</div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
                       </div>
-                    ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
+                      </div>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sorted.slice(0, 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: [C.forest, C.sage, C.gold, C.borderStrong, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{i + 1}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
+                          </div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )
-            })()}
+                )
+              })()}
+
+            </div>
+
             </div>
 
             {!loading && donations.length === 0 && (
@@ -3354,7 +3398,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Recent Activity</span>
               </div>
 
