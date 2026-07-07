@@ -86,6 +86,15 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('giveback_charity_tab') || 'dashboard')
   const [selectedDonor, setSelectedDonor] = useState(null)
+  const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(() => localStorage.getItem('giveback_charity_selected_donor') || null)
+
+  useEffect(() => {
+    if (selectedDonor) {
+      localStorage.setItem('giveback_charity_selected_donor', selectedDonor.email?.trim() || selectedDonor.name)
+    } else {
+      localStorage.removeItem('giveback_charity_selected_donor')
+    }
+  }, [selectedDonor])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('All')
   const [filterNric, setFilterNric] = useState('All')
@@ -2358,6 +2367,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   })
   const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
   const activeDonorList = donorList.filter(d => !d.deactivated)
+
+  useEffect(() => {
+    if (pendingSelectedDonorKey && !selectedDonor && activeDonorList.length > 0) {
+      const found = activeDonorList.find(d => (d.email?.trim() || d.name) === pendingSelectedDonorKey)
+      if (found) {
+        setSelectedDonor(found)
+      }
+      setPendingSelectedDonorKey(null)
+    }
+  }, [pendingSelectedDonorKey, activeDonorList])
   const deactivatedDonorList = donorList.filter(d => d.deactivated)
   const noteworthyDonors = donorList
     .filter(d => {
