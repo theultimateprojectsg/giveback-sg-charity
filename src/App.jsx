@@ -44,7 +44,7 @@ function useScreenSize() {
   return screenSize
 }
 
-function Tooltip({ text }) {
+function InfoTip({ text }) {
   const [show, setShow] = React.useState(false)
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
@@ -2810,7 +2810,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
                   {/* MTD donations */}
                   <div style={{ background: C.forest, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <Tooltip text="Total confirmed donations received so far this calendar month." /></div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>${mtd.toLocaleString()}</div>
                     {mtdDiff !== null ? (
                       <div style={{ fontSize: 12, color: mtdDiff >= 0 ? '#86EFAC' : '#FCA5A5', marginTop: 4 }}>
@@ -2823,7 +2823,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Coverage ratio */}
                   <div style={{ background: coverageRatio === null ? C.ivory : coverageRatio >= 1 ? '#F0FDF4' : '#FEF2F2', borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${coverageRatio === null ? C.border : coverageRatio >= 1 ? C.sage : C.red}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <Tooltip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -2841,7 +2841,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* New donors this month */}
                   <div style={{ background: C.ivory, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <Tooltip text="Donors whose very first donation was this month." /></div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
                     {newDonorsDiff !== null ? (
                       <div style={{ fontSize: 12, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 4 }}>
@@ -2856,7 +2856,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* MRR */}
                   <div style={{ background: C.ivory, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<Tooltip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
                       {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
