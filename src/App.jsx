@@ -150,6 +150,8 @@ export default function App() {
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
+  const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
+  const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -406,24 +408,26 @@ export default function App() {
     showToast('Pledge recorded ✓')
   }
 
-  async function fulfillPledge(pledge) {
-    setConfirmModal({
-      title: 'Mark this pledge as fulfilled?',
-      description: `The pledge of $${Number(pledge.amount).toLocaleString()} from ${pledge.donor_name} will be marked as fulfilled. You can revert this later if needed.`,
-      confirmLabel: 'Mark Fulfilled',
-      onConfirm: async () => {
-        const { error } = await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', pledge.id)
-        if (error) { showToast('Error updating pledge', 'error'); return }
-        await supabase.from('audit_log').insert({
-          actor_type: 'charity',
-          actor_email: session.user.email,
-          action: 'pledge_fulfilled',
-          details: { donor_name: pledge.donor_name, amount: pledge.amount },
-        })
-        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled' } : p))
-        showToast(`Pledge from ${pledge.donor_name} marked as fulfilled ✓`)
-      },
+  function fulfillPledge(pledge) {
+    setPledgeResolutionNotes('')
+    setPledgeResolutionModal({ type: 'fulfilled', pledge })
+  }
+
+  async function confirmPledgeResolution() {
+    if (!pledgeResolutionModal) return
+    const { type, pledge } = pledgeResolutionModal
+    const { error } = await supabase.from('pledges').update({ status: type, resolution_notes: pledgeResolutionNotes || null }).eq('id', pledge.id)
+    if (error) { showToast('Error updating pledge', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: type === 'fulfilled' ? 'pledge_fulfilled' : 'pledge_cancelled',
+      details: { donor_name: pledge.donor_name, amount: pledge.amount, notes: pledgeResolutionNotes || null },
     })
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: type, resolution_notes: pledgeResolutionNotes || null } : p))
+    showToast(`Pledge from ${pledge.donor_name} marked as ${type} ${type === 'fulfilled' ? '✓' : ''}`)
+    setPledgeResolutionModal(null)
+    setPledgeResolutionNotes('')
   }
 
   async function sendPledgeReminder() {
@@ -488,18 +492,9 @@ export default function App() {
     })
   }
 
-  async function cancelPledge(pledge) {
-    setConfirmModal({
-      title: 'Cancel this pledge?',
-      description: `The pledge of $${pledge.amount.toLocaleString()} from ${pledge.donor_name} will be marked as cancelled. The record is kept for reference.`,
-      confirmLabel: 'Cancel Pledge',
-      onConfirm: async () => {
-        const { error } = await supabase.from('pledges').update({ status: 'cancelled' }).eq('id', pledge.id)
-        if (error) { showToast('Error cancelling pledge', 'error'); return }
-        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'cancelled' } : p))
-        showToast('Pledge cancelled')
-      },
-    })
+  function cancelPledge(pledge) {
+    setPledgeResolutionNotes('')
+    setPledgeResolutionModal({ type: 'cancelled', pledge })
   }
 
   async function loadRecurringGifts(activeSession = session) {
@@ -6534,6 +6529,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
                       </div>
                     )}
+                    {p.resolution_notes && (
+                      <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8, background: C.ivory, borderRadius: 4, padding: '6px 8px' }}>"{p.resolution_notes}"</div>
+                    )}
                     {(p.status === 'fulfilled' || p.status === 'cancelled') && (
                       <div style={{ marginTop: 'auto' }}>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to Pending</button>
@@ -7167,6 +7165,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {pledgeResolutionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 440, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>
+              {pledgeResolutionModal.type === 'fulfilled' ? 'Mark this pledge as fulfilled?' : 'Cancel this pledge?'}
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              The pledge of ${Number(pledgeResolutionModal.pledge.amount).toLocaleString()} from {pledgeResolutionModal.pledge.donor_name} will be marked as {pledgeResolutionModal.type}.
+              {pledgeResolutionModal.type === 'cancelled' && ' The record is kept for reference.'}
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Notes (optional)</div>
+              <textarea
+                style={{ ...s.formInput, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder={pledgeResolutionModal.type === 'fulfilled' ? 'e.g. Received via bank transfer, confirmed by phone' : 'e.g. Donor withdrew pledge, entered in error'}
+                value={pledgeResolutionNotes}
+                onChange={e => setPledgeResolutionNotes(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={confirmPledgeResolution}>
+                {pledgeResolutionModal.type === 'fulfilled' ? '✓ Mark Fulfilled' : '✕ Cancel Pledge'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>
+                Back
+              </button>
+            </div>
           </div>
         </div>
       )}
