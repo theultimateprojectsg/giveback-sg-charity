@@ -519,7 +519,6 @@ export default function App() {
       .order('expected_date', { ascending: true })
     if (error) { console.error('Could not load pledges:', error); setPledgesLoaded(true); return }
     setPledges(data || [])
-    setPledgesLoaded(true)
 
     if (data && data.length > 0) {
       const { data: linkData } = await supabase
@@ -544,6 +543,7 @@ export default function App() {
       })
       setPledgeReminderHistory(history)
     }
+    setPledgesLoaded(true)
   }
 
   async function savePledge() {
