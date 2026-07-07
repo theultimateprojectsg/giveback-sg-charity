@@ -2391,6 +2391,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const confirmedDonations = donations.filter(d => d.payment_status === 'confirmed')
+
+  const allGivingChangeFlags = (() => {
+    const donorTotals = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
+      donorTotals[key].total += d.amount
+      donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
+    })
+    return Object.values(donorTotals).filter(d => d.gifts.length >= givingChangeMinGifts).map(d => {
+      const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
+      const recent = byDate[byDate.length - 1].amount
+      const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
+      const changePct = Math.round(((recent - prevAvg) / prevAvg) * 100)
+      if (Math.abs(changePct) >= givingChangeMinPct) return { name: d.name, email: d.email, changePct, recent, prevAvg: Math.round(prevAvg) }
+      return null
+    }).filter(Boolean).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+  })()
   const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
   const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
   const monthChangePct = lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : null
@@ -3700,14 +3718,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
               const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
 
-              const allFlags = sorted.filter(d => d.gifts.length >= givingChangeMinGifts).map(d => {
-                const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
-                const recent = byDate[byDate.length - 1].amount
-                const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
-                const changePct = Math.round(((recent - prevAvg) / prevAvg) * 100)
-                if (Math.abs(changePct) >= givingChangeMinPct) return { name: d.name, email: d.email, changePct, recent, prevAvg: Math.round(prevAvg) }
-                return null
-              }).filter(Boolean).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+              const allFlags = allGivingChangeFlags
               const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 3)
 
               const lapsedToday = new Date()
@@ -4381,7 +4392,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
                 {(() => {
                   const donorKeyForFlag = selectedDonor.email?.trim() || selectedDonor.name
-                  const flagMatch = (typeof allFlags !== 'undefined' ? allFlags : []).find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
+                  const flagMatch = allGivingChangeFlags.find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
                   if (!flagMatch) return null
                   const isUpgrade = flagMatch.changePct > 0
                   return (
