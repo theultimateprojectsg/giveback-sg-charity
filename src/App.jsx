@@ -6609,13 +6609,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
                     )}
                     {g.status === 'active' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip This Cycle</button>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
-                        </div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
                       </div>
                     )}
                     {g.status === 'paused' && (
