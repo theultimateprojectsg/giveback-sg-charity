@@ -2754,17 +2754,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const highItems = items.filter(i => i.priority === 'high')
 
               return (
-                <div style={{ background: C.white, border: `0.5px solid ${highItems.length > 0 ? C.red : C.warningBorder}`, borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
-                  <div style={{ background: highItems.length > 0 ? '#FEF2F2' : '#FDF3DC', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14 }}>{highItems.length > 0 ? '⚡' : '📋'}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: highItems.length > 0 ? C.red : C.warning }}>
-                      {items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention
-                    </span>
+                <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: 16, border: `1.5px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                  <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 14 }}>⚡</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
                     {items.map((item, i) => (
-                      <div key={i}
-                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < items.length - 1 ? `0.5px solid ${C.ivoryDark}` : 'none', cursor: 'pointer', background: C.white }}
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < items.length - 1 ? `0.5px solid ${C.ivoryDark}` : 'none', cursor: 'pointer', background: C.white }}
                         onClick={() => setActiveTab(item.tab)}
                         onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                         onMouseLeave={e => e.currentTarget.style.background = C.white}
