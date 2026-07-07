@@ -1217,6 +1217,20 @@ export default function App() {
     const alreadyApplied = (existingLinks || []).reduce((s, l) => s + Number(l.amount_applied), 0)
     const wouldReach = alreadyApplied + Number(donation.amount)
 
+    // Link this donation to the pledge regardless of whether it completes it
+    const { error: linkError } = await supabase.from('pledge_donations').insert({
+      pledge_id: matchingPledge.id,
+      donation_id: donation.id,
+      amount_applied: donation.amount,
+      created_by: session.user.email,
+    })
+    if (linkError) { console.error('Could not link donation to pledge:', linkError); return null }
+
+    setPledgeGivenTotals(prev => ({
+      ...prev,
+      [matchingPledge.id]: (prev[matchingPledge.id] || 0) + Number(donation.amount)
+    }))
+
     if (wouldReach >= Number(matchingPledge.amount)) {
       return matchingPledge
     }
@@ -1227,14 +1241,6 @@ export default function App() {
     if (!pledgeCompletionCandidate) return
     setSendingPledgeThankYou(true)
     const { pledge, donation } = pledgeCompletionCandidate
-
-    const { error: linkError } = await supabase.from('pledge_donations').insert({
-      pledge_id: pledge.id,
-      donation_id: donation.id,
-      amount_applied: donation.amount,
-      created_by: session.user.email,
-    })
-    if (linkError) { showToast('Error linking donation to pledge', 'error'); setSendingPledgeThankYou(false); return }
 
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
@@ -1268,14 +1274,6 @@ export default function App() {
   async function skipPledgeThankYou() {
     if (!pledgeCompletionCandidate) return
     const { pledge, donation } = pledgeCompletionCandidate
-
-    const { error: linkError } = await supabase.from('pledge_donations').insert({
-      pledge_id: pledge.id,
-      donation_id: donation.id,
-      amount_applied: donation.amount,
-      created_by: session.user.email,
-    })
-    if (linkError) { showToast('Error linking donation to pledge', 'error'); return }
 
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); return }
@@ -6411,7 +6409,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {p.status === 'pending' && (
                       <div style={{ marginBottom: 4 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage }}>{pct}% given</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage, display: 'flex', alignItems: 'center', gap: 4 }}>{pct}% given <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." /></span>
                           <span style={{ fontSize: 11, color: C.muted }}>${given.toLocaleString()} of ${pledgedAmount.toLocaleString()}</span>
                         </div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
