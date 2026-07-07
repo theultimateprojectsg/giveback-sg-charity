@@ -141,6 +141,7 @@ export default function App() {
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
+  const [pledgeReminderHistory, setPledgeReminderHistory] = useState({})
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -355,6 +356,18 @@ export default function App() {
         totals[l.pledge_id] = (totals[l.pledge_id] || 0) + Number(l.amount_applied)
       })
       setPledgeGivenTotals(totals)
+
+      const { data: reminderData } = await supabase
+        .from('pledge_reminders')
+        .select('pledge_id, sent_at, sent_by, subject')
+        .in('pledge_id', data.map(p => p.id))
+        .order('sent_at', { ascending: false })
+      const history = {}
+      ;(reminderData || []).forEach(r => {
+        if (!history[r.pledge_id]) history[r.pledge_id] = []
+        history[r.pledge_id].push(r)
+      })
+      setPledgeReminderHistory(history)
     }
   }
 
@@ -425,8 +438,23 @@ export default function App() {
         custom_message: pledgeReminderBody,
       }
     })
+    if (error) { showToast('Failed to send reminder', 'error'); setSendingPledgeReminder(false); return }
+
+    const { data: inserted } = await supabase.from('pledge_reminders').insert({
+      pledge_id: p.id,
+      subject: pledgeReminderSubject,
+      message: pledgeReminderBody,
+      sent_by: session.user.email,
+    }).select().single()
+
+    if (inserted) {
+      setPledgeReminderHistory(prev => ({
+        ...prev,
+        [p.id]: [inserted, ...(prev[p.id] || [])]
+      }))
+    }
+
     setSendingPledgeReminder(false)
-    if (error) { showToast('Failed to send reminder', 'error'); return }
     showToast(`Reminder sent to ${p.donor_email}`)
     setShowPledgeReminderModal(false)
     setPledgeReminderCandidate(null)
@@ -6402,6 +6430,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
+                    {(pledgeReminderHistory[p.id] || []).length > 0 && (
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>
+                        {(() => {
+                          const history = pledgeReminderHistory[p.id]
+                          const last = history[0]
+                          const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                          return `Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length} reminder${history.length > 1 ? 's' : ''} sent`
+                        })()}
+                      </div>
+                    )}
                     {p.status === 'pending' && (isOverdue || isDueSoon) && (
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
                     )}
@@ -6411,7 +6449,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
                       </div>
                     )}
-                    {p.status === 'fulfilled' && (
+                    {(p.status === 'fulfilled' || p.status === 'cancelled') && (
                       <div style={{ marginTop: 'auto' }}>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to Pending</button>
                       </div>
