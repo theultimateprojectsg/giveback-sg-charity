@@ -3766,7 +3766,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
                               </div>
                             )}
-                            <button style={{ fontSize: 10.5, color: C.muted, background: 'transparent', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setLapsedDismissReason(''); setShowLapsedDismissModal(d) }}>Not interested — stop showing this donor</button>
+                            
                           </div>
                         )
                       })}
