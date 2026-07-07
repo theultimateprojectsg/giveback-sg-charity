@@ -3756,11 +3756,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{d.name}</div>
                                 <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
                               </div>
-                              {d.email && <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => { setLapsedReminderCandidate(d); setShowLapsedReminderModal(true) }}>✉ Reach Out</button>}
                             </div>
                             {reminderCount > 0 && (
                               <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 600 }}>
@@ -4303,10 +4302,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
                   const outreachHistory = lapsedReminderHistory[donorKey] || []
                   const dismissal = lapsedDismissals[donorKey]
-                  if (outreachHistory.length === 0 && !dismissal) return null
+                  const daysSinceLastGift = Math.floor((new Date() - new Date(donations.filter(dn => (dn.donor_email?.trim() || dn.donor_name) === donorKey).slice(-1)[0]?.created_at || new Date())) / (1000 * 60 * 60 * 24))
+                  const isLapsed = daysSinceLastGift >= lapsedMinDays && selectedDonor.count >= lapsedMinGifts
+                  if (outreachHistory.length === 0 && !dismissal && !isLapsed) return null
                   return (
                     <div style={{ ...s.card, marginTop: 16 }}>
-                      <div style={s.cardTitle}>Outreach History</div>
+                      <div style={{ ...s.cardTitle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        Outreach History
+                        {isLapsed && !dismissal && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {selectedDonor.email && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) }}>✉ Reach Out</button>}
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setLapsedDismissReason(''); setShowLapsedDismissModal({ name: selectedDonor.name, email: selectedDonor.email }) }}>Not interested</button>
+                          </div>
+                        )}
+                      </div>
                       {dismissal && (
                         <div style={{ background: C.ivory, borderRadius: 8, padding: '10px 12px', marginBottom: outreachHistory.length > 0 ? 10 : 0, border: `1px solid ${C.border}` }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: C.muted }}>Marked not interested</div>
