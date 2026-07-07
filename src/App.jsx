@@ -166,6 +166,11 @@ export default function App() {
   const [lapsedReminderBody, setLapsedReminderBody] = useState('')
   const [sendingLapsedReminder, setSendingLapsedReminder] = useState(false)
   const [lapsedReminderHistory, setLapsedReminderHistory] = useState({})
+  const [lapsedDismissals, setLapsedDismissals] = useState({})
+  const [showLapsedDismissModal, setShowLapsedDismissModal] = useState(null)
+  const [lapsedDismissReason, setLapsedDismissReason] = useState('')
+  const [dismissingLapsed, setDismissingLapsed] = useState(false)
+  const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
 
   useEffect(() => {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
@@ -373,6 +378,15 @@ export default function App() {
       history[r.donor_key].push(r)
     })
     setLapsedReminderHistory(history)
+
+    const { data: dismissData, error: dismissError } = await supabase
+      .from('lapsed_donor_dismissals')
+      .select('donor_key, reason, dismissed_at, dismissed_by')
+      .eq('charity_uen', uen)
+    if (dismissError) { console.error('Could not load lapsed dismissals:', dismissError); return }
+    const dismissals = {}
+    ;(dismissData || []).forEach(d => { dismissals[d.donor_key] = d })
+    setLapsedDismissals(dismissals)
   }
 
   async function loadCharityIpcStatus(activeSession) {
@@ -843,6 +857,40 @@ export default function App() {
     showToast(`Reminder sent to ${g.donor_email}`)
     setShowRecurringReminderModal(false)
     setRecurringReminderCandidate(null)
+  }
+
+  async function confirmDismissLapsedDonor() {
+    if (!showLapsedDismissModal) return
+    setDismissingLapsed(true)
+    const d = showLapsedDismissModal
+    const donorKey = d.email?.trim() || d.name
+
+    const { data: inserted, error } = await supabase.from('lapsed_donor_dismissals').upsert({
+      charity_uen: charityUen,
+      donor_key: donorKey,
+      reason: lapsedDismissReason || null,
+      dismissed_by: session.user.email,
+      dismissed_at: new Date().toISOString(),
+    }, { onConflict: 'charity_uen,donor_key' }).select().single()
+
+    if (error) { showToast('Error dismissing donor', 'error'); setDismissingLapsed(false); return }
+
+    setLapsedDismissals(prev => ({ ...prev, [donorKey]: inserted }))
+    showToast(`${d.name} marked as not interested`)
+    setDismissingLapsed(false)
+    setShowLapsedDismissModal(null)
+    setLapsedDismissReason('')
+  }
+
+  async function undismissLapsedDonor(donorKey) {
+    const { error } = await supabase.from('lapsed_donor_dismissals').delete().eq('charity_uen', charityUen).eq('donor_key', donorKey)
+    if (error) { showToast('Error undoing dismissal', 'error'); return }
+    setLapsedDismissals(prev => {
+      const next = { ...prev }
+      delete next[donorKey]
+      return next
+    })
+    showToast('Donor restored to lapsed list')
   }
 
   async function sendLapsedReminder() {
@@ -3621,7 +3669,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).filter(Boolean).slice(0, 3)
 
               const lapsedToday = new Date()
-              const lapsed = Object.values((() => {
+              const allLapsed = Object.values((() => {
                 const map = {}
                 confirmedDonations.forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
@@ -3635,7 +3683,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()).filter(d => {
                 const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
                 return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
-              }).sort((a, b) => b.total - a.total).slice(0, 5)
+              }).map(d => ({ ...d, key: d.email?.trim() || d.name })).sort((a, b) => b.total - a.total)
+
+              const isInReachOutCooldown = (donorKey) => {
+                const history = lapsedReminderHistory[donorKey]
+                if (!history || history.length === 0) return false
+                const daysSinceReminder = Math.floor((lapsedToday - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                return daysSinceReminder < 30
+              }
+
+              const lapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key)).slice(0, 5)
+              const dismissedLapsed = allLapsed.filter(d => lapsedDismissals[d.key])
 
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
@@ -3698,10 +3756,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
                               </div>
                             )}
+                            <button style={{ fontSize: 10.5, color: C.muted, background: 'transparent', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setLapsedDismissReason(''); setShowLapsedDismissModal(d) }}>Not interested — stop showing this donor</button>
                           </div>
                         )
                       })}
                     </div>
+                    {dismissedLapsed.length > 0 && (
+                      <div>
+                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowDismissedLapsedDonors(v => !v)}>
+                          {showDismissedLapsedDonors ? 'Hide' : 'Show'} {dismissedLapsed.length} dismissed donor{dismissedLapsed.length !== 1 ? 's' : ''}
+                        </button>
+                        {showDismissedLapsedDonors && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                            {dismissedLapsed.map((d, i) => {
+                              const donorKey = d.email?.trim() || d.name
+                              return (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{d.name}</div>
+                                    {lapsedDismissals[donorKey]?.reason && <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>"{lapsedDismissals[donorKey].reason}"</div>}
+                                  </div>
+                                  <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => undismissLapsedDonor(donorKey)}>↺ Restore</button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Giving Changes */}
@@ -7667,6 +7749,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showLapsedDismissModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Mark {showLapsedDismissModal.name} as not interested?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              They'll be hidden from this list indefinitely. If they donate again on their own, they'll naturally reappear as an active donor — you can also restore them manually at any time.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Reason (optional)</div>
+              <input style={s.formInput} placeholder="e.g. Said no in person, requested no further contact" value={lapsedDismissReason} onChange={e => setLapsedDismissReason(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={dismissingLapsed} onClick={confirmDismissLapsedDonor}>
+                {dismissingLapsed ? 'Saving...' : '✓ Confirm'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowLapsedDismissModal(null); setLapsedDismissReason('') }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
