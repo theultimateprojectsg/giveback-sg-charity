@@ -3351,54 +3351,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Campaigns</span>
-              </div>
-
-            {/* ── ACTIVE CAMPAIGNS ── */}
-            {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 && (
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Active Campaigns</div>
-                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>Manage →</div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 12 }}>
-                  {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => {
-                    const stats = causeRaisedMap[c.id] || { total: 0, donors: new Set() }
-                    const goal = c.target_amount || 0
-                    const pct = goal > 0 ? Math.min(100, Math.round((stats.total / goal) * 100)) : 0
-                    const daysLeft = c.end_date ? Math.max(0, Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24))) : null
-                    const behindPace = goal > 0 && pct < 40
-                    return (
-                      <div key={c.id} style={{ background: C.ivory, borderRadius: 4, padding: 14, border: `1px solid ${C.border}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
-                          <span style={s.badgeIssued}>✓ Live</span>
-                        </div>
-                        {goal > 0 && (
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden', marginBottom: 10 }}>
-                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: behindPace ? C.gold : C.sage, borderRadius: 3 }} />
-                          </div>
-                        )}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Raised</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>${stats.total.toLocaleString()}</div></div>
-                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Goal</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{goal > 0 ? `$${goal.toLocaleString()}` : '—'}</div></div>
-                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{stats.donors.size}</div></div>
-                          <div><div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Ends</div><div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{daysLeft !== null ? `${daysLeft}d` : '—'}</div></div>
-                        </div>
-                        {goal > 0 && <div style={{ marginTop: 8, fontSize: 11, color: behindPace ? C.gold : C.muted, fontWeight: behindPace ? 600 : 400 }}>{behindPace ? `⚠ Behind pace · ${pct}% funded` : `${pct}% funded`}</div>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Recent Activity</span>
               </div>
 
