@@ -215,10 +215,17 @@ export default function App() {
   useEffect(() => {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
       const d = lapsedReminderCandidate
-      setLapsedReminderSubject(`We miss you, ${d.name}!`)
-      setLapsedReminderBody(
-        `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
-      )
+      if (d.givingChangeMeta) {
+        setLapsedReminderSubject(`Just checking in, ${d.name}`)
+        setLapsedReminderBody(
+          `We noticed your most recent gift was a bit different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n${charityName}`
+        )
+      } else {
+        setLapsedReminderSubject(`We miss you, ${d.name}!`)
+        setLapsedReminderBody(
+          `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
+        )
+      }
     }
   }, [showLapsedReminderModal, lapsedReminderCandidate])
   const [skipCycleModal, setSkipCycleModal] = useState(null)
@@ -976,19 +983,32 @@ export default function App() {
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingLapsedReminder(false); return }
 
-    const { data: inserted } = await supabase.from('lapsed_donor_reminders').insert({
-      charity_uen: charityUen,
-      donor_key: donorKey,
-      subject: lapsedReminderSubject,
-      message: lapsedReminderBody,
-      sent_by: session.user.email,
-    }).select().single()
-
-    if (inserted) {
-      setLapsedReminderHistory(prev => ({
-        ...prev,
-        [donorKey]: [inserted, ...(prev[donorKey] || [])]
-      }))
+    if (d.givingChangeMeta) {
+      const { data: inserted } = await supabase.from('giving_change_acks').insert({
+        charity_uen: charityUen,
+        donor_key: donorKey,
+        direction: 'downgrade',
+        change_pct: d.givingChangeMeta.changePct,
+        message: lapsedReminderBody,
+        sent_by: session.user.email,
+      }).select().single()
+      if (inserted) {
+        setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
+      }
+    } else {
+      const { data: inserted } = await supabase.from('lapsed_donor_reminders').insert({
+        charity_uen: charityUen,
+        donor_key: donorKey,
+        subject: lapsedReminderSubject,
+        message: lapsedReminderBody,
+        sent_by: session.user.email,
+      }).select().single()
+      if (inserted) {
+        setLapsedReminderHistory(prev => ({
+          ...prev,
+          [donorKey]: [inserted, ...(prev[donorKey] || [])]
+        }))
+      }
     }
 
     setSendingLapsedReminder(false)
@@ -4482,7 +4502,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         selectedDonor.email && (
                           <button
                             style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }}
-                            onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) }}
+                            onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: flagMatch.changePct } }); setShowLapsedReminderModal(true) }}
                           >✉ Check in about decreased giving</button>
                         )
                       )}
