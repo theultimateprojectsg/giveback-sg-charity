@@ -3006,8 +3006,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 items.push({ icon: '🏛️', label: `IRAS deadline in ${daysToDeadline} days — ${pendingCount} receipt${pendingCount > 1 ? 's' : ''} outstanding`, priority: 'high', tab: 'iras' })
               }
 
-              const overduePledges = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today)
-              const dueSoonPledges = pledges.filter(p => { if (p.status !== 'pending') return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 })
+              const wasRecentlyReminded = (p) => {
+                const history = pledgeReminderHistory[p.id]
+                if (!history || history.length === 0) return false
+                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                return daysSinceLastReminder < 7
+              }
+              const overduePledges = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p))
+              const dueSoonPledges = pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 })
               if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', tab: 'pledges' })
               if (dueSoonPledges.length > 0) items.push({ icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', tab: 'pledges' })
 
