@@ -10,23 +10,35 @@ import JSZip from 'jszip'
 import logo from './assets/logo.png'
 import './App.css'
 
+if (typeof document !== 'undefined' && !document.getElementById('gt-font-import')) {
+  const link = document.createElement('link')
+  link.id = 'gt-font-import'
+  link.rel = 'stylesheet'
+  link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@500&display=swap'
+  document.head.appendChild(link)
+}
+
 const C = {
   forest:    '#1B4332',
+  forestInk: '#0F2A1F',
   teal:      '#1A3C34',
-  sage:      '#40916C',
-  gold:      '#D4A017',
+  sage:      '#3D7A5C',
+  gold:      '#B4870E',
   ivory:     '#FAF7F2',
   ivoryDark: '#F0EBE1',
   border:    '#E2D9CC',
+  borderStrong: '#CFC3AF',
   text:      '#1C1C1C',
-  muted:     '#7A6E62',
+  muted:     '#6B6255',
   white:     '#FFFFFF',
-  red:       '#C0392B',
-  warning:       '#A07010',
-  warningBg:     '#FDF3DC',
+  red:       '#A0472F',
+  warning:       '#B4870E',
+  warningBg:     '#FBF2DE',
   warningBorder: '#E8CC7A',
-  successBg: '#EEF6F1',
+  successBg: '#EAF3EC',
   bucket1:   '#74C69D',
+  fontVoice: "'Fraunces', serif",
+  fontMono:  "'IBM Plex Mono', monospace",
 }
 
 function useScreenSize() {
@@ -2699,17 +2711,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
           <div style={s.content}>
-            <div style={{ ...s.pageHeader, marginBottom: 20 }}>
+            <div style={{ ...s.pageHeader, marginBottom: 32 }}>
               <div>
-                <div style={s.pageTitle}>{greeting}, {charityName} 👋</div>
-                <div style={s.pageSub}>Here's what's happening right now</div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>{greeting}, {charityName}</div>
+                <div style={{ ...s.pageSub, marginTop: 4 }}>Here's what's happening right now</div>
               </div>
             </div>
 
-            
-
-            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Today's Overview</div>
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>01</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Today's Overview</span>
+              </div>
 
             {/* ── ACTION ITEMS ── */}
             {(() => {
@@ -2759,21 +2773,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const highItems = items.filter(i => i.priority === 'high')
 
               return (
-                <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: 16, border: `1.5px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
-                  <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 14 }}>⚡</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention</span>
+                <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                  <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'white' }}>{items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention</span>
                   </div>
                   <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
                     {items.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < items.length - 1 ? `0.5px solid ${C.ivoryDark}` : 'none', cursor: 'pointer', background: C.white }}
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, cursor: 'pointer', background: C.white, fontSize: 13 }}
                         onClick={() => setActiveTab(item.tab)}
                         onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                         onMouseLeave={e => e.currentTarget.style.background = C.white}
                       >
-                        <span style={{ fontSize: 15, flexShrink: 0 }}>{item.icon}</span>
-                        <span style={{ fontSize: 13, color: item.priority === 'high' ? C.red : C.text, flex: 1 }}>{item.label}</span>
-                        <span style={{ fontSize: 11, color: C.sage, fontWeight: 600, flexShrink: 0 }}>→</span>
+                        <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1 }}>{item.label}</span>
+                        <span style={{ fontSize: 12, color: C.sage, fontWeight: 600, fontFamily: C.fontMono, flexShrink: 0 }}>→</span>
                       </div>
                     ))}
                   </div>
@@ -2809,23 +2821,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', border: `1px solid ${C.border}`, borderRadius: 4, overflow: 'hidden', marginBottom: 20 }}>
                   {/* MTD donations */}
-                  <div style={{ background: C.forest, borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: 'white' }}>${mtd.toLocaleString()}</div>
+                  <div style={{ background: C.forest, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: 'white', lineHeight: 1 }}>${mtd.toLocaleString()}</div>
                     {mtdDiff !== null ? (
-                      <div style={{ fontSize: 12, color: mtdDiff >= 0 ? '#86EFAC' : '#FCA5A5', marginTop: 4 }}>
+                      <div style={{ fontSize: 11.5, color: mtdDiff >= 0 ? '#9FD9BC' : '#F0B8A8', marginTop: 6 }}>
                         {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs last year
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>No prior year data</div>
+                      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>No prior year data</div>
                     )}
                   </div>
 
                   {/* Coverage ratio */}
-                  <div style={{ background: coverageRatio === null ? C.ivory : coverageRatio >= 1 ? '#F0FDF4' : '#FEF2F2', borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${coverageRatio === null ? C.border : coverageRatio >= 1 ? C.sage : C.red}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
+                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -2833,34 +2845,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: coverageRatio >= 1 ? C.forest : C.red }}>{coverageRatio.toFixed(1)}x</div>
-                        <div style={{ fontSize: 11, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 4, fontWeight: 600 }}>
-                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠️ Shortfall'}
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: coverageRatio >= 1 ? C.forest : C.red, lineHeight: 1 }}>{coverageRatio.toFixed(1)}×</div>
+                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 6, fontWeight: 600 }}>
+                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠ Shortfall'}
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* New donors this month */}
-                  <div style={{ background: C.white, borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${C.border}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
+                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{newDonorsThisMonth}</div>
                     {newDonorsDiff !== null ? (
-                      <div style={{ fontSize: 12, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 4 }}>
+                      <div style={{ fontSize: 11.5, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 6 }}>
                         {newDonorsDiff >= 0 ? '↑' : '↓'} {Math.abs(newDonorsDiff)}% vs last year
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>This month</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>This month</div>
                     )}
                   </div>
 
-                  
-
                   {/* MRR */}
-                  <div style={{ background: C.white, borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${C.border}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                  <div style={{ background: C.white, padding: '16px 18px', borderLeft: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
                       {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
                       {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
                       {totalMRR === 0 && <span>None set up yet</span>}
@@ -2872,8 +2882,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
 
-            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Financial Health</span>
+              </div>
 
             {/* ── OBLIGATIONS + LAPSED ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 20 }}>
@@ -3007,8 +3021,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
 
-            <div style={{ background: C.forest, borderRadius: 14, padding: 16, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📈 Trends & Insights</div>
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Trends and Insights</span>
+              </div>
 
             {/* ── CONCENTRATION RISK + UPGRADE/DOWNGRADE ── */}
             {(() => {
