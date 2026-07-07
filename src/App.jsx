@@ -2441,11 +2441,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return Object.values(donorTotals).filter(d => d.gifts.length >= givingChangeMinGifts).map(d => {
       const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
       const recent = byDate[byDate.length - 1].amount
+      const recentDate = byDate[byDate.length - 1].date
       const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
       const changePct = Math.round(((recent - prevAvg) / prevAvg) * 100)
-      if (Math.abs(changePct) >= givingChangeMinPct) return { name: d.name, email: d.email, changePct, recent, prevAvg: Math.round(prevAvg) }
+      if (Math.abs(changePct) >= givingChangeMinPct) return { name: d.name, email: d.email, changePct, recent, recentDate, prevAvg: Math.round(prevAvg) }
       return null
-    }).filter(Boolean).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+    }).filter(Boolean).map(f => {
+      const donorKey = f.email?.trim() || f.name
+      const acks = givingChangeAckHistory[donorKey] || []
+      const isHandled = acks.length > 0 && new Date(acks[0].sent_at) > new Date(f.recentDate)
+      return { ...f, isHandled }
+    }).filter(f => !f.isHandled).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
   })()
   const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
   const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
