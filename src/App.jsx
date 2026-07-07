@@ -145,6 +145,7 @@ export default function App() {
   const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
   const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
   const [linkingPledgeManually, setLinkingPledgeManually] = useState(false)
+  const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -6341,6 +6342,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
+            <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 280, marginBottom: 20 }} placeholder="🔍 Search pledges by donor name or email..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
+
             {showPledgeReminderModal && pledgeReminderCandidate && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -6512,9 +6515,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               }
 
-              const outstanding = pledges.filter(p => p.status === 'pending')
-              const fulfilled = pledges.filter(p => p.status === 'fulfilled')
-              const cancelled = pledges.filter(p => p.status === 'cancelled')
+              const q = pledgeSearchTerm.toLowerCase().trim()
+              const matchesSearch = (p) => {
+                if (!q) return true
+                const searchFields = [p.donor_name, p.donor_email, p.notes]
+                return searchFields.some(field => field?.toLowerCase().includes(q))
+              }
+              const searchedPledges = pledges.filter(matchesSearch)
+
+              const outstanding = searchedPledges.filter(p => p.status === 'pending')
+              const fulfilled = searchedPledges.filter(p => p.status === 'fulfilled')
+              const cancelled = searchedPledges.filter(p => p.status === 'cancelled')
 
               return (
                 <>
