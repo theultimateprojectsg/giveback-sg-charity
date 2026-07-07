@@ -2837,7 +2837,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* New donors this month */}
-                  <div style={{ background: C.ivory, borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ background: C.white, borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${C.border}` }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>{newDonorsThisMonth}</div>
                     {newDonorsDiff !== null ? (
@@ -2852,7 +2852,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   
 
                   {/* MRR */}
-                  <div style={{ background: C.ivory, borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ background: C.white, borderRadius: 10, padding: '14px 16px', border: `0.5px solid ${C.border}` }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: C.forest }}>${totalMRR.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
