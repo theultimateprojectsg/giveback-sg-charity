@@ -148,6 +148,8 @@ export default function App() {
   const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
   const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
+  const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
+  const [showCancelledPledges, setShowCancelledPledges] = useState(false)
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -6585,22 +6587,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   <div style={{ marginBottom: 32 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Fulfilled Pledges ({fulfilled.length})</div>
-                    {fulfilled.length === 0 ? (
-                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                        {fulfilled.map(renderPledgeCard)}
-                      </div>
+                    <div
+                      style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => setShowFulfilledPledges(v => !v)}
+                    >
+                      <span style={{ fontSize: 11, color: C.muted }}>{showFulfilledPledges ? '▾' : '▸'}</span>
+                      Fulfilled Pledges ({fulfilled.length})
+                    </div>
+                    {showFulfilledPledges && (
+                      fulfilled.length === 0 ? (
+                        <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          {fulfilled.map(renderPledgeCard)}
+                        </div>
+                      )
                     )}
                   </div>
 
                   {cancelled.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 12 }}>Cancelled ({cancelled.length})</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                        {cancelled.map(renderPledgeCard)}
+                      <div
+                        style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => setShowCancelledPledges(v => !v)}
+                      >
+                        <span style={{ fontSize: 11, color: C.muted }}>{showCancelledPledges ? '▾' : '▸'}</span>
+                        Cancelled ({cancelled.length})
                       </div>
+                      {showCancelledPledges && (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          {cancelled.map(renderPledgeCard)}
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
