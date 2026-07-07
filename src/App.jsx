@@ -156,6 +156,10 @@ export default function App() {
   const [recurringUrgencyFilter, setRecurringUrgencyFilter] = useState('All')
   const [recurringAmountFilter, setRecurringAmountFilter] = useState('All')
   const [recurringTypeFilter, setRecurringTypeFilter] = useState('All')
+  const [markReceivedModal, setMarkReceivedModal] = useState(null)
+  const [markReceivedAmount, setMarkReceivedAmount] = useState('')
+  const [markingReceived, setMarkingReceived] = useState(false)
+  const [recurringGivenTotals, setRecurringGivenTotals] = useState({})
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
@@ -513,6 +517,20 @@ export default function App() {
       .order('next_expected_date', { ascending: true })
     if (error) { console.error('Could not load recurring gifts:', error); return }
     setRecurringGifts(data || [])
+
+    if (data && data.length > 0) {
+      const { data: linkedDonations } = await supabase
+        .from('donations')
+        .select('recurring_gift_id, amount')
+        .in('recurring_gift_id', data.map(g => g.id))
+      const totals = {}
+      ;(linkedDonations || []).forEach(d => {
+        if (!totals[d.recurring_gift_id]) totals[d.recurring_gift_id] = { total: 0, count: 0 }
+        totals[d.recurring_gift_id].total += Number(d.amount)
+        totals[d.recurring_gift_id].count += 1
+      })
+      setRecurringGivenTotals(totals)
+    }
   }
 
   function computeNextExpectedDate(startDate, frequency, lastReceivedDate) {
@@ -562,22 +580,79 @@ export default function App() {
     showToast('Recurring gift recorded ✓')
   }
 
-  async function markRecurringReceived(gift) {
+  function markRecurringReceived(gift) {
+    setMarkReceivedAmount(String(gift.amount))
+    setMarkReceivedModal(gift)
+  }
+
+  async function confirmMarkReceived() {
+    if (!markReceivedModal) return
+    const amount = parseFloat(markReceivedAmount)
+    if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+
+    setMarkingReceived(true)
+    const gift = markReceivedModal
     const today = new Date().toISOString().split('T')[0]
     const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, today)
-    const { error } = await supabase.from('recurring_gifts').update({
+
+    const { data: donationData, error: donationError } = await supabase.from('donations').insert({
+      donor_name: gift.donor_name,
+      donor_email: gift.donor_email,
+      amount: amount,
+      payment_status: 'confirmed',
+      receipt_issued: true,
+      source: 'manual',
+      payment_method: gift.type === 'giro' ? 'GIRO' : gift.type === 'habitual_paynow' ? 'PayNow' : 'Bank Transfer',
+      status: 'confirmed',
+      recurring_gift_id: gift.id,
+      notes: `Recurring ${gift.frequency} gift`,
+      charity_uen: charityUen,
+    }).select().single()
+
+    if (donationError) { showToast('Error recording donation', 'error'); setMarkingReceived(false); return }
+
+    const { error: giftError } = await supabase.from('recurring_gifts').update({
       last_received_date: today,
       next_expected_date: nextExpected,
     }).eq('id', gift.id)
-    if (error) { showToast('Error updating recurring gift', 'error'); return }
+    if (giftError) { showToast('Donation recorded, but error updating recurring gift dates', 'error'); setMarkingReceived(false); return }
+
     setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, last_received_date: today, next_expected_date: nextExpected } : g))
+    setDonations(prev => [donationData, ...prev])
+    setRecurringGivenTotals(prev => ({
+      ...prev,
+      [gift.id]: {
+        total: (prev[gift.id]?.total || 0) + amount,
+        count: (prev[gift.id]?.count || 0) + 1
+      }
+    }))
+
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'recurring_gift_received',
-      details: { donor_name: gift.donor_name, amount: gift.amount, frequency: gift.frequency },
+      donation_id: donationData.id,
+      details: { donor_name: gift.donor_name, amount: amount, frequency: gift.frequency },
     })
-    showToast(`Payment from ${gift.donor_name} marked as received ✓ · Next expected ${new Date(nextExpected).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`)
+
+    if (gift.donor_email) {
+      await supabase.functions.invoke('send-thank-you', {
+        body: {
+          donor_name: gift.donor_name,
+          donor_email: gift.donor_email,
+          charity_name: charityName,
+          charity_uen: charityUen,
+          amount: amount,
+          date: new Date(today).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+          notes: `Recurring ${gift.frequency} gift`,
+        }
+      })
+    }
+
+    showToast(`$${amount.toLocaleString()} recorded ✓ · Next expected ${new Date(nextExpected).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`)
+    setMarkingReceived(false)
+    setMarkReceivedModal(null)
+    setMarkReceivedAmount('')
   }
 
   async function pauseRecurringGift(gift) {
@@ -6357,8 +6432,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       Next expected: {nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                     {g.last_received_date && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
                         Last received: {new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    {g.start_date && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
+                        Giving since {new Date(g.start_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    {recurringGivenTotals[g.id] && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.sage + '1A', border: `1px solid ${C.sage}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage }}>
+                          ${recurringGivenTotals[g.id].total.toLocaleString()} total · {recurringGivenTotals[g.id].count} payment{recurringGivenTotals[g.id].count !== 1 ? 's' : ''}
+                        </span>
                       </div>
                     )}
                     {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
@@ -7266,6 +7353,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {markReceivedModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Mark payment as received</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              From {markReceivedModal.donor_name} — confirm the amount received. This will create a donation record and send a thank-you email if they have one on file.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Amount received (SGD)</div>
+              <input style={s.formInput} type="number" value={markReceivedAmount} onChange={e => setMarkReceivedAmount(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={markingReceived} onClick={confirmMarkReceived}>
+                {markingReceived ? 'Recording...' : '✓ Confirm Received'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
