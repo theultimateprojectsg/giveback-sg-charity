@@ -2707,7 +2707,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {/* ── SECTION: TODAY'S OVERVIEW ── */}
-            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📊 Today's Overview</div>
 
             {/* ── ACTION ITEMS ── */}
@@ -2872,7 +2872,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {/* ── SECTION: FINANCIAL HEALTH ── */}
-            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💰 Financial Health</div>
 
             {/* ── OBLIGATIONS + LAPSED ── */}
@@ -3076,7 +3076,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {/* ── SECTION: TRENDS ── */}
-            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>📈 Trends</div>
 
             {/* ── SEASONALITY TREND ── */}
@@ -3351,7 +3351,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {/* ── SECTION: CAMPAIGNS ── */}
-            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>🎯 Campaigns</div>
 
             {/* ── ACTIVE CAMPAIGNS ── */}
@@ -3396,7 +3396,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {/* ── SECTION: RECENT ACTIVITY ── */}
-            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>💳 Recent Activity</div>
 
             {/* ── RECENT DONATIONS ── */}
