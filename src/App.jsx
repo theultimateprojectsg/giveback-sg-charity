@@ -170,6 +170,7 @@ export default function App() {
   const [recurringReminderBody, setRecurringReminderBody] = useState('')
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
+  const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
   const [concentrationTopN, setConcentrationTopN] = useState(() => {
     const saved = localStorage.getItem('gt_concentration_top_n')
     return saved ? Number(saved) : 10
@@ -3517,6 +3518,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const tooFewDonors = sorted.length < concentrationTopN * 3
               const highRisk = !tooFewDonors && concentrationPct >= 70
               const medRisk = !tooFewDonors && concentrationPct >= 50
+              const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
+
+              const quarterAgo = new Date()
+              quarterAgo.setDate(quarterAgo.getDate() - 90)
+              const priorDonorTotals = {}
+              confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
+                priorDonorTotals[key] += d.amount
+              })
+              const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
+              const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
+              const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
+              const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
+              const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
 
               const flags = sorted.filter(d => d.gifts.length >= 3).map(d => {
                 const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -3556,14 +3572,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <option value={20}>Top 20</option>
                       </select>
                     </div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                      {concentrationTrend !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: concentrationTrend <= 0 ? C.sage : C.red }}>
+                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
                     <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
                       <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600 }}>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600, marginBottom: 10 }}>
                       {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
                   </div>
 
                   {/* Lapsed Donors */}
@@ -3917,6 +3941,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageSub}>{uniqueDonors.length} donors · All time</div>
               </div>
             </div>
+            {filterTopDonorNames && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                <span style={{ fontSize: 13, color: C.forest, fontWeight: 600 }}>Showing top {filterTopDonorNames.length} donors by lifetime giving</span>
+                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => setFilterTopDonorNames(null)}>✕ Clear</button>
+              </div>
+            )}
             <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
               <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
                 <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Donors</div>
@@ -3963,7 +3993,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
                     const donorKey = d.email?.trim() || d.name
                     const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
-                    return matchSearch && matchTag
+                    const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
+                    return matchSearch && matchTag && matchTopDonors
                   }).map((d, i) => (
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
@@ -3992,7 +4023,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
                       const donorKey = d.email?.trim() || d.name
                       const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
-                      return matchSearch && matchTag
+                      const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
+                      return matchSearch && matchTag && matchTopDonors
                     }).map((d, i) => {
                       const key = d.email?.trim() || d.name
                       const b = donorBadgeMap[key]
