@@ -3096,8 +3096,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             
 
-            {/* ── ACTIVE CAMPAIGNS + SEASONALITY (2-across) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20, alignItems: 'start' }}>
+            {/* ── ACTIVE CAMPAIGNS + SEASONALITY + DONOR LTV (3-across) ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
 
               {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).length > 0 ? (
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
