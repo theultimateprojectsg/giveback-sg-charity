@@ -3493,6 +3493,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).length
               if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
+              if (allGivingChangeFlags.length > 0) items.push({ icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { document.getElementById('giving-changes-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+
               const obligationsDue = (() => {
                 const builtIn = [
                   ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
@@ -3883,7 +3885,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* Giving Changes */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div id="giving-changes-card" style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', scrollMarginTop: 20 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
