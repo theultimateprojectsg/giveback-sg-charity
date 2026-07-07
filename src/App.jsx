@@ -160,6 +160,22 @@ export default function App() {
   const [markReceivedAmount, setMarkReceivedAmount] = useState('')
   const [markingReceived, setMarkingReceived] = useState(false)
   const [recurringGivenTotals, setRecurringGivenTotals] = useState({})
+  const [lapsedReminderCandidate, setLapsedReminderCandidate] = useState(null)
+  const [showLapsedReminderModal, setShowLapsedReminderModal] = useState(false)
+  const [lapsedReminderSubject, setLapsedReminderSubject] = useState('')
+  const [lapsedReminderBody, setLapsedReminderBody] = useState('')
+  const [sendingLapsedReminder, setSendingLapsedReminder] = useState(false)
+  const [lapsedReminderHistory, setLapsedReminderHistory] = useState({})
+
+  useEffect(() => {
+    if (showLapsedReminderModal && lapsedReminderCandidate) {
+      const d = lapsedReminderCandidate
+      setLapsedReminderSubject(`We miss you, ${d.name}!`)
+      setLapsedReminderBody(
+        `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
+      )
+    }
+  }, [showLapsedReminderModal, lapsedReminderCandidate])
   const [skipCycleModal, setSkipCycleModal] = useState(null)
   const [skipCycleReason, setSkipCycleReason] = useState('')
   const [skippingCycle, setSkippingCycle] = useState(false)
@@ -338,8 +354,26 @@ export default function App() {
       loadPledges(session)
       loadRecurringGifts(session)
       loadMassAppeals(session)
+      loadLapsedReminders(session)
     }
   }, [session])
+
+  async function loadLapsedReminders(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('lapsed_donor_reminders')
+      .select('donor_key, sent_at, sent_by')
+      .eq('charity_uen', uen)
+      .order('sent_at', { ascending: false })
+    if (error) { console.error('Could not load lapsed reminders:', error); return }
+    const history = {}
+    ;(data || []).forEach(r => {
+      if (!history[r.donor_key]) history[r.donor_key] = []
+      history[r.donor_key].push(r)
+    })
+    setLapsedReminderHistory(history)
+  }
 
   async function loadCharityIpcStatus(activeSession) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
@@ -809,6 +843,49 @@ export default function App() {
     showToast(`Reminder sent to ${g.donor_email}`)
     setShowRecurringReminderModal(false)
     setRecurringReminderCandidate(null)
+  }
+
+  async function sendLapsedReminder() {
+    if (!lapsedReminderCandidate) return
+    if (!lapsedReminderCandidate.email) {
+      showToast('This donor has no email on file', 'error')
+      return
+    }
+    setSendingLapsedReminder(true)
+    const d = lapsedReminderCandidate
+    const donorKey = d.email?.trim() || d.name
+    const { error } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        type: 'lapsed_donor_reminder',
+        donor_name: d.name,
+        donor_email: d.email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        subject_override: lapsedReminderSubject,
+        custom_message: lapsedReminderBody,
+      }
+    })
+    if (error) { showToast('Failed to send reminder', 'error'); setSendingLapsedReminder(false); return }
+
+    const { data: inserted } = await supabase.from('lapsed_donor_reminders').insert({
+      charity_uen: charityUen,
+      donor_key: donorKey,
+      subject: lapsedReminderSubject,
+      message: lapsedReminderBody,
+      sent_by: session.user.email,
+    }).select().single()
+
+    if (inserted) {
+      setLapsedReminderHistory(prev => ({
+        ...prev,
+        [donorKey]: [inserted, ...(prev[donorKey] || [])]
+      }))
+    }
+
+    setSendingLapsedReminder(false)
+    showToast(`Reminder sent to ${d.email}`)
+    setShowLapsedReminderModal(false)
+    setLapsedReminderCandidate(null)
   }
 
   async function pauseRecurringGift(gift) {
@@ -3263,7 +3340,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'medium', tab: 'recurring' })
 
               const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => d.count >= lapsedMinGifts && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= lapsedMinDays).length
-              if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => setActiveTab('dashboard') })
+              if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
               const obligationsDue = (() => {
                 const builtIn = [
@@ -3591,7 +3668,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   {/* Lapsed Donors */}
-                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
+                  <div id="lapsed-donors-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', scrollMarginTop: 20 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
@@ -3604,14 +3681,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {lapsed.map((d, i) => {
                         const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                        const donorKey = d.email?.trim() || d.name
+                        const reminderCount = (lapsedReminderHistory[donorKey] || []).length
                         return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                            <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
-                              <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
+                          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
+                              </div>
+                              {d.email && <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => { setLapsedReminderCandidate(d); setShowLapsedReminderModal(true) }}>✉ Reach Out</button>}
                             </div>
-                            {d.email && <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => { setActiveTab('massappeal') }}>Appeal →</button>}
+                            {reminderCount > 0 && (
+                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 600 }}>
+                                ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -7581,6 +7667,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showLapsedReminderModal && lapsedReminderCandidate && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Reach out to a lapsed donor</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              To {lapsedReminderCandidate.name} ({lapsedReminderCandidate.email || 'no email on file'})
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Subject</div>
+              <input style={s.formInput} value={lapsedReminderSubject} onChange={e => setLapsedReminderSubject(e.target.value)} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Message</div>
+              <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={lapsedReminderBody} onChange={e => setLapsedReminderBody(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingLapsedReminder || !lapsedReminderCandidate.email} onClick={sendLapsedReminder}>
+                {sendingLapsedReminder ? 'Sending...' : '✓ Send message'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
