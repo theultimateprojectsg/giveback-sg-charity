@@ -181,6 +181,19 @@ export default function App() {
   })
   const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
 
+  function buildUpgradeThankYouNote(donor, changePct, recent, prevAvg) {
+    const lines = []
+    lines.push(`Dear ${donor.name},`)
+    lines.push('')
+    lines.push(`We noticed your most recent gift of $${recent.toLocaleString()} was a real step up from your usual giving — and we wanted to take a moment to personally thank you for it. Support like yours genuinely makes a difference to the work we do.`)
+    lines.push('')
+    lines.push(`We're deeply grateful to have you in our corner.`)
+    lines.push('')
+    lines.push(`With warm thanks,`)
+    lines.push(charityName)
+    return lines.join('\n')
+  }
+
   useEffect(() => {
     localStorage.setItem('gt_giving_change_min_gifts', String(givingChangeMinGifts))
   }, [givingChangeMinGifts])
@@ -4367,6 +4380,43 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
                 {(() => {
+                  const donorKeyForFlag = selectedDonor.email?.trim() || selectedDonor.name
+                  const flagMatch = (typeof allFlags !== 'undefined' ? allFlags : []).find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
+                  if (!flagMatch) return null
+                  const isUpgrade = flagMatch.changePct > 0
+                  return (
+                    <div style={{ ...s.card, marginTop: 16 }}>
+                      <div style={s.cardTitle}>Giving Pattern</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: isUpgrade ? '#EAF3EC' : '#FBEEE9', borderRadius: 4, marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{isUpgrade ? 'Giving increased' : 'Giving decreased'}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>Avg was ${flagMatch.prevAvg} · Last gift ${flagMatch.recent.toLocaleString()}</div>
+                        </div>
+                        <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 600, color: isUpgrade ? C.sage : C.red }}>
+                          {isUpgrade ? '↑' : '↓'} {Math.abs(flagMatch.changePct)}%
+                        </span>
+                      </div>
+                      {isUpgrade ? (
+                        <button
+                          style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }}
+                          onClick={() => setThankYouDraft({
+                            donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count },
+                            badgeState: null,
+                            text: buildUpgradeThankYouNote(selectedDonor, flagMatch.changePct, flagMatch.recent, flagMatch.prevAvg),
+                          })}
+                        >💌 Send thank-you for increased gift</button>
+                      ) : (
+                        selectedDonor.email && (
+                          <button
+                            style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }}
+                            onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) }}
+                          >✉ Check in about decreased giving</button>
+                        )
+                      )}
+                    </div>
+                  )
+                })()}
+                {(() => {
                   const key = selectedDonor.email?.trim() || selectedDonor.name
                   const b = donorBadgeMap[key]
                   if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
@@ -8091,7 +8141,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
-                  await ackDonorBadges(donor, badgeState)
+                  if (badgeState) await ackDonorBadges(donor, badgeState)
                   setThankYouDraft(null)
                   showToast(`Thank-you note sent to ${donor.email}`)
                 }}
