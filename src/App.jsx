@@ -140,6 +140,7 @@ export default function App() {
   const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
+  const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [recurringForm, setRecurringForm] = useState({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
@@ -324,6 +325,18 @@ export default function App() {
       .order('expected_date', { ascending: true })
     if (error) { console.error('Could not load pledges:', error); return }
     setPledges(data || [])
+
+    if (data && data.length > 0) {
+      const { data: linkData } = await supabase
+        .from('pledge_donations')
+        .select('pledge_id, amount_applied')
+        .in('pledge_id', data.map(p => p.id))
+      const totals = {}
+      ;(linkData || []).forEach(l => {
+        totals[l.pledge_id] = (totals[l.pledge_id] || 0) + Number(l.amount_applied)
+      })
+      setPledgeGivenTotals(totals)
+    }
   }
 
   async function savePledge() {
@@ -6249,67 +6262,95 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {['pending', 'fulfilled', 'cancelled'].map(tab => (
-                <button
-                  key={tab}
-                  style={{ ...s.viewBtn, background: activePledgeTab === tab ? C.forest : C.ivory, color: activePledgeTab === tab ? 'white' : C.forest, borderColor: activePledgeTab === tab ? C.forest : C.border }}
-                  onClick={() => setActivePledgeTab(tab)}
-                >
-                  {tab === 'pending' ? '⏳' : tab === 'fulfilled' ? '✓' : '✕'} {tab.charAt(0).toUpperCase() + tab.slice(1)} ({pledges.filter(p => p.status === tab).length})
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const today = new Date(); today.setHours(0,0,0,0)
+              const renderPledgeCard = (p) => {
+                const expectedDate = new Date(p.expected_date)
+                const daysUntil = Math.ceil((expectedDate - today) / (1000 * 60 * 60 * 24))
+                const isOverdue = daysUntil < 0 && p.status === 'pending'
+                const isDueSoon = daysUntil >= 0 && daysUntil <= 7 && p.status === 'pending'
+                const given = pledgeGivenTotals[p.id] || 0
+                const pledgedAmount = Number(p.amount)
+                const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
+                return (
+                  <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>{p.donor_name}</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${pledgedAmount.toLocaleString()}</div>
+                    </div>
+                    {p.donor_email && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{p.donor_email}</div>}
 
-            <div style={s.tableCard}>
-              <div style={s.tableHeader}>
-                <div style={s.tableTitle}>
-                  {activePledgeTab === 'pending' ? '⏳ Pending Pledges' : activePledgeTab === 'fulfilled' ? '✓ Fulfilled Pledges' : '✕ Cancelled Pledges'}
-                </div>
-                <div style={s.tableCount}>{pledges.filter(p => p.status === activePledgeTab).length} records</div>
-              </div>
-              {pledges.filter(p => p.status === activePledgeTab).length === 0 ? (
-                <div style={s.empty}>No {activePledgeTab} pledges.</div>
-              ) : (
-                <div>
-                  {pledges.filter(p => p.status === activePledgeTab).map(p => {
-                    const today = new Date(); today.setHours(0,0,0,0)
-                    const expectedDate = new Date(p.expected_date)
-                    const daysUntil = Math.ceil((expectedDate - today) / (1000 * 60 * 60 * 24))
-                    const isOverdue = daysUntil < 0 && p.status === 'pending'
-                    const isDueSoon = daysUntil >= 0 && daysUntil <= 7 && p.status === 'pending'
-                    return (
-                      <div key={p.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.ivoryDark}`, borderLeft: `3px solid ${isOverdue ? C.red : isDueSoon ? C.warning : C.sage}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>{p.donor_name}</div>
-                              {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBE9E7' }}>⚠️ Overdue by {Math.abs(daysUntil)} day{Math.abs(daysUntil) !== 1 ? 's' : ''}</span>}
-                              {isDueSoon && <span style={s.badgePending}>⏰ Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>}
-                            </div>
-                            {p.donor_email && <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{p.donor_email}</div>}
-                            <div style={{ fontSize: 12, color: C.muted }}>
-                              Expected by {new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}
-                              {p.notes && ` · ${p.notes}`}
-                            </div>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: C.forest, marginBottom: 8 }}>${Number(p.amount).toLocaleString()}</div>
-                            {p.status === 'pending' && (
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
-                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
-                              </div>
-                            )}
-                          </div>
+                    {p.status === 'pending' && (
+                      <div style={{ marginBottom: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage }}>{pct}% given</span>
+                          <span style={{ fontSize: 11, color: C.muted }}>${given.toLocaleString()} of ${pledgedAmount.toLocaleString()}</span>
+                        </div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                    )}
+
+                    <div style={{ marginTop: 10, marginBottom: 4 }}>
+                      {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ Overdue by {Math.abs(daysUntil)}d</span>}
+                      {isDueSoon && <span style={s.badgePending}>⏰ Due in {daysUntil}d</span>}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                      Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {p.notes && ` · ${p.notes}`}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+
+                    {p.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              const outstanding = pledges.filter(p => p.status === 'pending')
+              const fulfilled = pledges.filter(p => p.status === 'fulfilled')
+              const cancelled = pledges.filter(p => p.status === 'cancelled')
+
+              return (
+                <>
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Outstanding Pledges ({outstanding.length})</div>
+                    {outstanding.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        {outstanding.map(renderPledgeCard)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Fulfilled Pledges ({fulfilled.length})</div>
+                    {fulfilled.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        {fulfilled.map(renderPledgeCard)}
+                      </div>
+                    )}
+                  </div>
+
+                  {cancelled.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 12 }}>Cancelled ({cancelled.length})</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        {cancelled.map(renderPledgeCard)}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         )}
 
