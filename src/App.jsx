@@ -171,6 +171,23 @@ export default function App() {
   const [lapsedDismissReason, setLapsedDismissReason] = useState('')
   const [dismissingLapsed, setDismissingLapsed] = useState(false)
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
+  const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
+    const saved = localStorage.getItem('gt_giving_change_min_gifts')
+    return saved ? Number(saved) : 3
+  })
+  const [givingChangeMinPct, setGivingChangeMinPct] = useState(() => {
+    const saved = localStorage.getItem('gt_giving_change_min_pct')
+    return saved ? Number(saved) : 30
+  })
+  const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem('gt_giving_change_min_gifts', String(givingChangeMinGifts))
+  }, [givingChangeMinGifts])
+
+  useEffect(() => {
+    localStorage.setItem('gt_giving_change_min_pct', String(givingChangeMinPct))
+  }, [givingChangeMinPct])
 
   useEffect(() => {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
@@ -3643,7 +3660,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const donorTotals = {}
               confirmedDonations.forEach(d => {
                 const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, total: 0, gifts: [] }
+                if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
                 donorTotals[key].total += d.amount
                 donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
               })
@@ -3670,14 +3687,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
               const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
 
-              const flags = sorted.filter(d => d.gifts.length >= 3).map(d => {
+              const allFlags = sorted.filter(d => d.gifts.length >= givingChangeMinGifts).map(d => {
                 const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
                 const recent = byDate[byDate.length - 1].amount
                 const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
                 const changePct = Math.round(((recent - prevAvg) / prevAvg) * 100)
-                if (Math.abs(changePct) >= 30) return { name: d.name, changePct, recent, prevAvg: Math.round(prevAvg) }
+                if (Math.abs(changePct) >= givingChangeMinPct) return { name: d.name, email: d.email, changePct, recent, prevAvg: Math.round(prevAvg) }
                 return null
-              }).filter(Boolean).slice(0, 3)
+              }).filter(Boolean).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
+              const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 3)
 
               const lapsedToday = new Date()
               const allLapsed = Object.values((() => {
@@ -3798,15 +3816,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Giving Changes */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift was 30% or more above or below their historical average, based on 3+ prior gifts." /></div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
+                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => setGivingChangeMinGifts(Math.max(2, Number(e.target.value) || 2))} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
+                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => setGivingChangeMinPct(Math.max(1, Number(e.target.value) || 1))} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
+                    </div>
                     {flags.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         {flags.map((f, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4 }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: f.name, email: f.email, total: f.recent, count: givingChangeMinGifts, receipts: 0 }); setActiveTab('donors') }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{f.name}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{f.name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
                             </div>
                             <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 600, color: f.changePct < 0 ? C.red : C.sage }}>
@@ -3815,6 +3840,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         ))}
                       </div>
+                    )}
+                    {allFlags.length > 3 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowAllGivingChanges(v => !v)}>
+                        {showAllGivingChanges ? 'Show top 3 only' : `Show all ${allFlags.length}`}
+                      </button>
                     )}
                   </div>
                 </div>
