@@ -160,6 +160,26 @@ export default function App() {
   const [markReceivedAmount, setMarkReceivedAmount] = useState('')
   const [markingReceived, setMarkingReceived] = useState(false)
   const [recurringGivenTotals, setRecurringGivenTotals] = useState({})
+  const [skipCycleModal, setSkipCycleModal] = useState(null)
+  const [skipCycleReason, setSkipCycleReason] = useState('')
+  const [skippingCycle, setSkippingCycle] = useState(false)
+  const [recurringSkipHistory, setRecurringSkipHistory] = useState({})
+  const [recurringReminderCandidate, setRecurringReminderCandidate] = useState(null)
+  const [showRecurringReminderModal, setShowRecurringReminderModal] = useState(false)
+  const [recurringReminderSubject, setRecurringReminderSubject] = useState('')
+  const [recurringReminderBody, setRecurringReminderBody] = useState('')
+  const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
+  const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
+
+  useEffect(() => {
+    if (showRecurringReminderModal && recurringReminderCandidate) {
+      const g = recurringReminderCandidate
+      setRecurringReminderSubject(`A quick note about your recurring gift to ${charityName}`)
+      setRecurringReminderBody(
+        `We noticed we haven't received your usual $${Number(g.amount).toLocaleString()} ${g.frequency} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n${charityName}`
+      )
+    }
+  }, [showRecurringReminderModal, recurringReminderCandidate])
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
@@ -530,6 +550,30 @@ export default function App() {
         totals[d.recurring_gift_id].count += 1
       })
       setRecurringGivenTotals(totals)
+
+      const { data: skipData } = await supabase
+        .from('recurring_gift_skips')
+        .select('recurring_gift_id, skipped_cycle_date, reason, created_at')
+        .in('recurring_gift_id', data.map(g => g.id))
+        .order('created_at', { ascending: false })
+      const skips = {}
+      ;(skipData || []).forEach(s => {
+        if (!skips[s.recurring_gift_id]) skips[s.recurring_gift_id] = []
+        skips[s.recurring_gift_id].push(s)
+      })
+      setRecurringSkipHistory(skips)
+
+      const { data: reminderData } = await supabase
+        .from('recurring_gift_reminders')
+        .select('recurring_gift_id, sent_at, sent_by')
+        .in('recurring_gift_id', data.map(g => g.id))
+        .order('sent_at', { ascending: false })
+      const reminders = {}
+      ;(reminderData || []).forEach(r => {
+        if (!reminders[r.recurring_gift_id]) reminders[r.recurring_gift_id] = []
+        reminders[r.recurring_gift_id].push(r)
+      })
+      setRecurringReminderHistory(reminders)
     }
   }
 
@@ -653,6 +697,92 @@ export default function App() {
     setMarkingReceived(false)
     setMarkReceivedModal(null)
     setMarkReceivedAmount('')
+  }
+
+  function skipRecurringCycle(gift) {
+    setSkipCycleReason('')
+    setSkipCycleModal(gift)
+  }
+
+  async function confirmSkipCycle() {
+    if (!skipCycleModal) return
+    setSkippingCycle(true)
+    const gift = skipCycleModal
+    const skippedDate = gift.next_expected_date
+    const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, skippedDate)
+
+    const { data: inserted, error: skipError } = await supabase.from('recurring_gift_skips').insert({
+      recurring_gift_id: gift.id,
+      skipped_cycle_date: skippedDate,
+      reason: skipCycleReason || null,
+      created_by: session.user.email,
+    }).select().single()
+    if (skipError) { showToast('Error recording skip', 'error'); setSkippingCycle(false); return }
+
+    const { error: giftError } = await supabase.from('recurring_gifts').update({
+      next_expected_date: nextExpected,
+    }).eq('id', gift.id)
+    if (giftError) { showToast('Skip recorded, but error updating next expected date', 'error'); setSkippingCycle(false); return }
+
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, next_expected_date: nextExpected } : g))
+    setRecurringSkipHistory(prev => ({
+      ...prev,
+      [gift.id]: [inserted, ...(prev[gift.id] || [])]
+    }))
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_skipped',
+      details: { donor_name: gift.donor_name, skipped_cycle_date: skippedDate, reason: skipCycleReason || null },
+    })
+
+    showToast(`Cycle skipped · Next expected ${new Date(nextExpected).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`)
+    setSkippingCycle(false)
+    setSkipCycleModal(null)
+    setSkipCycleReason('')
+  }
+
+  async function sendRecurringReminder() {
+    if (!recurringReminderCandidate) return
+    if (!recurringReminderCandidate.donor_email) {
+      showToast('This donor has no email on file', 'error')
+      return
+    }
+    setSendingRecurringReminder(true)
+    const g = recurringReminderCandidate
+    const { error } = await supabase.functions.invoke('send-thank-you', {
+      body: {
+        type: 'recurring_gift_reminder',
+        donor_name: g.donor_name,
+        donor_email: g.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        recurring_amount: Number(g.amount).toLocaleString(),
+        subject_override: recurringReminderSubject,
+        custom_message: recurringReminderBody,
+      }
+    })
+    if (error) { showToast('Failed to send reminder', 'error'); setSendingRecurringReminder(false); return }
+
+    const { data: inserted } = await supabase.from('recurring_gift_reminders').insert({
+      recurring_gift_id: g.id,
+      subject: recurringReminderSubject,
+      message: recurringReminderBody,
+      sent_by: session.user.email,
+    }).select().single()
+
+    if (inserted) {
+      setRecurringReminderHistory(prev => ({
+        ...prev,
+        [g.id]: [inserted, ...(prev[g.id] || [])]
+      }))
+    }
+
+    setSendingRecurringReminder(false)
+    showToast(`Reminder sent to ${g.donor_email}`)
+    setShowRecurringReminderModal(false)
+    setRecurringReminderCandidate(null)
   }
 
   async function pauseRecurringGift(gift) {
@@ -3097,7 +3227,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
               if (dueSoonPledges.length > 0) items.push({ icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
-              const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active') return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
+              const wasRecurringRecentlyReminded = (g) => {
+                const history = recurringReminderHistory[g.id]
+                if (!history || history.length === 0) return false
+                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                return daysSinceLastReminder < 7
+              }
+              const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
               if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'medium', tab: 'recurring' })
 
               const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => d.count >= 2 && Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24)) >= 60).length
@@ -6450,9 +6586,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                     {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
 
+                    {(recurringSkipHistory[g.id] || []).length > 0 && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.gold }}>
+                          ⏭ {recurringSkipHistory[g.id].length} cycle{recurringSkipHistory[g.id].length !== 1 ? 's' : ''} skipped
+                        </span>
+                      </div>
+                    )}
+                    {g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0 && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.gold }}>
+                          {(() => {
+                            const history = recurringReminderHistory[g.id]
+                            const last = history[0]
+                            const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                            return `✉ Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× sent`
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    {g.status === 'active' && isLate && (
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
+                    )}
                     {g.status === 'active' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip This Cycle</button>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
@@ -7353,6 +7512,56 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showRecurringReminderModal && recurringReminderCandidate && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Send reminder</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              To {recurringReminderCandidate.donor_name} ({recurringReminderCandidate.donor_email || 'no email on file'})
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Subject</div>
+              <input style={s.formInput} value={recurringReminderSubject} onChange={e => setRecurringReminderSubject(e.target.value)} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Message</div>
+              <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={recurringReminderBody} onChange={e => setRecurringReminderBody(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingRecurringReminder || !recurringReminderCandidate.donor_email} onClick={sendRecurringReminder}>
+                {sendingRecurringReminder ? 'Sending...' : '✓ Send reminder'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {skipCycleModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Skip this cycle?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              {skipCycleModal.donor_name}'s payment for this cycle will be marked as skipped — no donation record will be created, and the schedule moves to the next expected date.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Reason (optional)</div>
+              <input style={s.formInput} placeholder="e.g. Auto-payment failed, donor requested pause" value={skipCycleReason} onChange={e => setSkipCycleReason(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={skippingCycle} onClick={confirmSkipCycle}>
+                {skippingCycle ? 'Skipping...' : '⏭ Skip Cycle'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
