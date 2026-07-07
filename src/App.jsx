@@ -2800,7 +2800,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {/* ── ROW 1: KEY METRICS ── */}
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Financial Health</span>
+              </div>
+
+            {/* ── KEY METRICS ── */}
             {(() => {
               const now = new Date()
               const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -2886,15 +2895,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
-
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 600 }}>Financial Health</span>
-              </div>
 
             {/* ── UPCOMING OBLIGATIONS ── */}
             {(() => {
