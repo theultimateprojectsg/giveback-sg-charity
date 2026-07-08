@@ -708,6 +708,17 @@ export default function App() {
   }
 
   async function sendCharityEmail(body) {
+    const targetEmail = body.donor_email?.trim()
+    if (targetEmail) {
+      const donorKey = targetEmail
+      const isBlocked = donations.some(d =>
+        (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey && d.donor_do_not_contact
+      )
+      if (isBlocked) {
+        console.warn(`Email blocked: ${body.donor_name || targetEmail} is marked Do Not Contact`)
+        return { data: null, error: { message: 'This donor is marked as Do Not Contact — email was not sent.' } }
+      }
+    }
     return supabase.functions.invoke('send-thank-you', {
       body: {
         ...body,
@@ -1767,9 +1778,10 @@ export default function App() {
     const selected = massAppealRefs.filter(r => r.selected)
     if (selected.length === 0) { showToast('No donors selected', 'error'); return }
     massAppealCancelRef.current = false
-    setMassAppealProgress({ done: 0, total: selected.length, sent: 0, failed: 0 })
+    setMassAppealProgress({ done: 0, total: selected.length, sent: 0, failed: 0, blocked: 0 })
     let sent = 0
     let failed = 0
+    let blocked = 0
     const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
 
     for (let i = 0; i < selected.length; i++) {
@@ -1787,16 +1799,22 @@ export default function App() {
         custom_message: massAppealForm.message || null,
         paynow_url: donor.qrValue,
       })
-      if (error) { failed++; console.error('Failed to send to', donor.donor_email, error) }
-      else sent++
-      setMassAppealProgress({ done: i + 1, total: selected.length, sent, failed })
+      if (error?.message?.includes('Do Not Contact')) {
+        blocked++
+      } else if (error) {
+        failed++
+        console.error('Failed to send to', donor.donor_email, error)
+      } else {
+        sent++
+      }
+      setMassAppealProgress({ done: i + 1, total: selected.length, sent, failed, blocked })
     }
 
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'mass_appeal_sent',
-      details: { sent, failed, total: selected.length, cause_id: massAppealForm.cause_id },
+      details: { sent, failed, blocked, total: selected.length, cause_id: massAppealForm.cause_id },
     })
 
     const { data: appealData } = await supabase.from('mass_appeals').insert([{
@@ -2659,13 +2677,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   donations.forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!donorMap[key]) {
-      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false }
+      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false }
     }
     if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
     donorMap[key].total += d.amount
     donorMap[key].count += 1
     if (d.receipt_issued) donorMap[key].receipts += 1
     if (d.donor_deactivated) donorMap[key].deactivated = true
+    if (d.donor_do_not_contact) donorMap[key].doNotContact = true
     if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
       donorMap[key].lastDate = d.created_at
     }
@@ -4644,6 +4663,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button style={s.backBtn} onClick={() => setSelectedDonor(null)}>← Back to Donors</button>
             </div>
+            {selectedDonor.doNotContact && (
+              <div style={{ background: '#FBEEE9', border: `1px solid ${C.red}`, borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.red }}>🚫 Do Not Contact — this donor is excluded from all emails, appeals, and outreach.</span>
+              </div>
+            )}
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div>
                 <div style={{ ...s.card, background: C.teal, marginBottom: 16 }}>
@@ -4964,6 +4988,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })
                     }}
                   >{selectedDonor.deactivated ? '✓ Reactivate Donor' : '⊘ Deactivate Donor'}</button>
+                  <button
+                    style={{ ...s.viewBtn, color: selectedDonor.doNotContact ? C.sage : C.red, borderColor: selectedDonor.doNotContact ? C.sage : C.red }}
+                    onClick={() => {
+                      const isDNC = selectedDonor.doNotContact
+                      setConfirmModal({
+                        title: isDNC ? 'Allow contact with this donor again?' : 'Mark as Do Not Contact?',
+                        description: isDNC
+                          ? 'This donor will become eligible for reminders, appeals, and outreach emails again.'
+                          : 'This donor will be excluded from every email sent by this platform — mass appeals, reminders, thank-yous, and any future outreach. Their donation history and receipts are unaffected.',
+                        confirmLabel: isDNC ? 'Allow Contact' : 'Mark Do Not Contact',
+                        onConfirm: async () => {
+                          const newVal = !isDNC
+                          const donorKey = selectedDonor.email?.trim() || selectedDonor.name
+                          const donorDonationIds = donations
+                            .filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey)
+                            .map(d => d.id)
+                          const { error } = await supabase
+                            .from('donations')
+                            .update({ donor_do_not_contact: newVal })
+                            .in('id', donorDonationIds)
+                          if (error) { showToast('Error updating donor status', 'error'); return }
+                          await supabase.from('audit_log').insert({
+                            actor_type: 'charity',
+                            actor_email: session.user.email,
+                            action: newVal ? 'donor_marked_do_not_contact' : 'donor_contact_allowed',
+                            details: { donor_name: selectedDonor.name },
+                          })
+                          setDonations(prev => prev.map(d =>
+                            donorDonationIds.includes(d.id) ? { ...d, donor_do_not_contact: newVal } : d
+                          ))
+                          setSelectedDonor(prev => ({ ...prev, doNotContact: newVal }))
+                          showToast(newVal ? `${selectedDonor.name} marked as Do Not Contact` : `${selectedDonor.name} can be contacted again ✓`)
+                        },
+                      })
+                    }}
+                  >{selectedDonor.doNotContact ? '✓ Allow Contact' : '🚫 Do Not Contact'}</button>
                   <button style={(issuing || bulkActionInProgress) ? s.issuingBtn : s.btnForest} disabled={!!issuing || bulkActionInProgress} onClick={async () => {
                     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
                     setBulkActionInProgress(true)
@@ -7820,7 +7880,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ width: `${(massAppealProgress.done / massAppealProgress.total) * 100}%`, height: '100%', background: C.sage, borderRadius: 6, transition: 'width 0.3s' }} />
                 </div>
                 <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-                  {massAppealProgress.done} of {massAppealProgress.total} · {massAppealProgress.sent} sent · {massAppealProgress.failed} failed
+                  {massAppealProgress.done} of {massAppealProgress.total} · {massAppealProgress.sent} sent · {massAppealProgress.failed} failed{massAppealProgress.blocked > 0 ? ` · ${massAppealProgress.blocked} skipped (Do Not Contact)` : ''}
                 </div>
                 <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { massAppealCancelRef.current = true }}>✕ Cancel</button>
               </div>
