@@ -4458,7 +4458,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
                       {sorted.slice(0, showAllConcentrationDonors ? 10 : 3).map((d, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{d.name}</span>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</span>
                           <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>${d.total.toLocaleString()}</span>
                         </div>
                       ))}
@@ -4492,7 +4492,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{d.name}</div>
+                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
                                 <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
                               </div>
                             </div>
@@ -4553,7 +4553,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {flags.map((f, i) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: f.name, email: f.email, total: f.recent, count: givingChangeMinGifts, receipts: 0 }); setActiveTab('donors') }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{f.name}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{f.name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
                             </div>
                             <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 600, color: f.changePct < 0 ? C.red : C.sage }}>
@@ -8253,7 +8253,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const renderAppealCard = (a) => (
                 <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }} onClick={() => openAppealDetail(a)}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>{a.cause_name || 'General Appeal'}</div>
                     {a.failed_count > 0 ? (
                       <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 20, padding: '3px 10px' }}>⚠ Partial</span>
                     ) : (
