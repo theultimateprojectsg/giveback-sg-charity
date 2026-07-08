@@ -170,6 +170,7 @@ export default function App() {
   const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
   const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
+  const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
   const [showPausedRecurring, setShowPausedRecurring] = useState(false)
@@ -3048,6 +3049,70 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         }
       },
     })
+  }
+
+  function exportPledgesExcel(searchedPledges) {
+    const rows = searchedPledges.map(p => ({
+      'Donor Name': p.donor_name,
+      'Email': p.donor_email || '',
+      'Amount (SGD)': p.amount,
+      'Expected Date': new Date(p.expected_date).toLocaleDateString('en-SG'),
+      'Status': p.status.charAt(0).toUpperCase() + p.status.slice(1),
+      'Given So Far (SGD)': pledgeGivenTotals[p.id] || 0,
+      'Notes': p.notes || '',
+      'Resolution Notes': p.resolution_notes || '',
+      'Recorded By': p.created_by,
+      'Recorded On': new Date(p.created_at).toLocaleDateString('en-SG'),
+    }))
+    if (rows.length === 0) { showToast('No pledges to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 30 }, { wch: 30 }, { wch: 24 }, { wch: 14 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Pledges')
+    XLSX.writeFile(wb, `GivingTree-Pledges-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  function exportRecurringExcel(filteredGifts) {
+    const rows = filteredGifts.map(g => ({
+      'Donor Name': g.donor_name,
+      'Email': g.donor_email || '',
+      'Amount (SGD)': g.amount,
+      'Frequency': g.frequency,
+      'Type': g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other',
+      'Status': g.status.charAt(0).toUpperCase() + g.status.slice(1),
+      'Start Date': g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG') : '',
+      'Next Expected': g.next_expected_date ? new Date(g.next_expected_date).toLocaleDateString('en-SG') : '',
+      'Last Received': g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG') : '',
+      'Total Received (SGD)': recurringGivenTotals[g.id]?.total || 0,
+      'Payments Made': recurringGivenTotals[g.id]?.count || 0,
+      'GIRO Reference': g.giro_reference || '',
+      'Notes': g.notes || '',
+    }))
+    if (rows.length === 0) { showToast('No recurring gifts to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 30 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
+    XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  function exportMassAppealsExcel(filteredAppeals) {
+    const rows = filteredAppeals.map(a => ({
+      'Date': new Date(a.created_at).toLocaleDateString('en-SG'),
+      'Campaign': a.cause_name || 'General Appeal',
+      'Default Amount (SGD)': a.amount,
+      'Message': a.message || '',
+      'Donors Targeted': a.donor_count,
+      'Sent': a.sent_count,
+      'Failed': a.failed_count,
+      'Sent By': a.created_by,
+    }))
+    if (rows.length === 0) { showToast('No appeals to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 14 }, { wch: 25 }, { wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 24 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Mass Appeals')
+    XLSX.writeFile(wb, `GivingTree-MassAppeals-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   function exportDonationsExcel() {
@@ -7564,9 +7629,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="500-1000">$500 – $1,000</option>
                 <option value="Over 1000">Over $1,000</option>
               </select>
-              {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All') && (
-                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={pledgeYearFilter} onChange={e => setPledgeYearFilter(e.target.value)}>
+                <option value="All">All years</option>
+                {[...new Set(pledges.map(p => new Date(p.expected_date).getFullYear()))].sort((a, b) => b - a).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All' || pledgeYearFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All') }}>✕ Clear Filters</button>
               )}
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                const q = pledgeSearchTerm.toLowerCase().trim()
+                const filtered = pledges.filter(p => {
+                  const matchesSearch = !q || [p.donor_name, p.donor_email, p.notes].some(f => f?.toLowerCase().includes(q))
+                  const matchesYear = pledgeYearFilter === 'All' || new Date(p.expected_date).getFullYear().toString() === pledgeYearFilter
+                  const amt = Number(p.amount)
+                  const matchesAmt = pledgeAmountFilter === 'All'
+                    || (pledgeAmountFilter === 'Under 100' && amt < 100)
+                    || (pledgeAmountFilter === '100-500' && amt >= 100 && amt <= 500)
+                    || (pledgeAmountFilter === '500-1000' && amt > 500 && amt <= 1000)
+                    || (pledgeAmountFilter === 'Over 1000' && amt > 1000)
+                  return matchesSearch && matchesYear && matchesAmt
+                })
+                exportPledgesExcel(filtered)
+              }}>⬇️ Export to Excel</button>
             </div>
 
             {showPledgeReminderModal && pledgeReminderCandidate && (
