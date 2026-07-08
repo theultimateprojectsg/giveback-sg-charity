@@ -5125,7 +5125,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                  <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', 'Total Given', 'Donations', 'Avg. Donation', 'Last Donation', 'Tags']).map(h => <th key={h} style={{ ...s.th, width: h === 'Donor' ? 200 : undefined, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+                  <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', ...DONOR_COLUMN_OPTIONS.filter(o => selectedDonorColumns.includes(o.key)).map(o => o.label)]).map(h => <th key={h} style={{ ...s.th, width: h === 'Donor' ? 260 : undefined, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {combinedDonorList.filter(d => {
@@ -9883,9 +9883,9 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   th: { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, background: C.ivory, borderBottom: `1px solid ${C.border}` },
   tr: { borderBottom: `1px solid ${C.ivoryDark}` },
   td: { padding: '11px 18px', fontSize: 13 },
-  donorCell: { display: 'flex', alignItems: 'center', gap: 10 },
+  donorCell: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 },
   donorAvatar: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: C.fontVoice, fontSize: 12, fontWeight: 500, color: 'white', flexShrink: 0 },
-  donorName: { fontWeight: 600, color: C.forest, fontSize: 13 },
+  donorName: { fontWeight: 600, color: C.forest, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 },
   amountText: { fontFamily: C.fontVoice, fontWeight: 500, color: C.forest },
   dateText: { color: C.muted, fontSize: 11.5 },
   badgeIssued: { fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block' },
