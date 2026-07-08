@@ -2476,18 +2476,31 @@ export default function App() {
   async function deleteDonation(id) {
     const donationToDelete = donations.find(d => d.id === id)
 
-    const { data: pledgeLink } = await supabase
+    const { data: linkRow, error: linkErr } = await supabase
       .from('pledge_donations')
-      .select('pledge_id, amount_applied, pledges(donor_name, status)')
+      .select('pledge_id, amount_applied')
       .eq('donation_id', id)
       .maybeSingle()
+
+    if (linkErr) console.error('Error checking pledge link:', linkErr)
+
+    let pledgeLink = null
+    if (linkRow) {
+      const { data: pledgeRow, error: pledgeErr } = await supabase
+        .from('pledges')
+        .select('donor_name, status')
+        .eq('id', linkRow.pledge_id)
+        .maybeSingle()
+      if (pledgeErr) console.error('Error fetching pledge for link warning:', pledgeErr)
+      pledgeLink = { ...linkRow, pledgeDonorName: pledgeRow?.donor_name, pledgeStatus: pledgeRow?.status }
+    }
 
     let description = donationToDelete?.receipt_issued
       ? 'This entry already has a receipt issued. The record will be kept for audit purposes but removed from your active lists.'
       : 'The record will be kept for audit purposes but removed from your active lists.'
 
     if (pledgeLink) {
-      description = `⚠ This donation is linked to ${pledgeLink.pledges?.donor_name || 'a'}'s pledge ($${Number(pledgeLink.amount_applied).toLocaleString()} applied). Deleting it will unlink it from that pledge and reduce the pledge's given-total accordingly${pledgeLink.pledges?.status === 'fulfilled' ? '. Since this pledge was marked fulfilled by this donation, it will also revert to pending.' : '.'}`
+      description = `⚠ This donation is linked to ${pledgeLink.pledgeDonorName || 'a'}'s pledge ($${Number(pledgeLink.amount_applied).toLocaleString()} applied). Deleting it will unlink it from that pledge and reduce the pledge's given-total accordingly${pledgeLink.pledgeStatus === 'fulfilled' ? '. Since this pledge was marked fulfilled by this donation, it will also revert to pending.' : '.'}`
     }
 
     setConfirmModal({
@@ -2511,7 +2524,7 @@ export default function App() {
         ...prev,
         [pledgeLink.pledge_id]: Math.max(0, (prev[pledgeLink.pledge_id] || 0) - Number(pledgeLink.amount_applied))
       }))
-      if (pledgeLink.pledges?.status === 'fulfilled') {
+      if (pledgeLink.pledgeStatus === 'fulfilled') {
         await supabase.from('pledges').update({ status: 'pending' }).eq('id', pledgeLink.pledge_id)
         setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending' } : p))
       }
