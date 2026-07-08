@@ -150,6 +150,11 @@ export default function App() {
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
+  const [pledgeRescheduleHistory, setPledgeRescheduleHistory] = useState({})
+  const [rescheduleModal, setRescheduleModal] = useState(null)
+  const [rescheduleNewDate, setRescheduleNewDate] = useState('')
+  const [rescheduleReason, setRescheduleReason] = useState('')
+  const [reschedulingPledge, setReschedulingPledge] = useState(false)
   const [pledgeReminderHistory, setPledgeReminderHistory] = useState({})
   const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
   const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
@@ -549,6 +554,18 @@ export default function App() {
         history[r.pledge_id].push(r)
       })
       setPledgeReminderHistory(history)
+
+      const { data: rescheduleData } = await supabase
+        .from('pledge_reschedules')
+        .select('pledge_id, old_expected_date, new_expected_date, reason, created_at, created_by')
+        .in('pledge_id', data.map(p => p.id))
+        .order('created_at', { ascending: false })
+      const rescheduleHistory = {}
+      ;(rescheduleData || []).forEach(r => {
+        if (!rescheduleHistory[r.pledge_id]) rescheduleHistory[r.pledge_id] = []
+        rescheduleHistory[r.pledge_id].push(r)
+      })
+      setPledgeRescheduleHistory(rescheduleHistory)
     }
     setPledgesLoaded(true)
   }
@@ -578,6 +595,42 @@ export default function App() {
     setPledgeForm({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
     setShowPledgeForm(false)
     showToast('Pledge recorded ✓')
+  }
+
+  async function confirmReschedule() {
+    if (!rescheduleModal || !rescheduleNewDate) return
+    setReschedulingPledge(true)
+    const pledge = rescheduleModal
+    const oldDate = pledge.expected_date
+
+    const { error: updateError } = await supabase.from('pledges').update({ expected_date: rescheduleNewDate }).eq('id', pledge.id)
+    if (updateError) { showToast('Error rescheduling pledge', 'error'); setReschedulingPledge(false); return }
+
+    const { data: inserted } = await supabase.from('pledge_reschedules').insert({
+      pledge_id: pledge.id,
+      old_expected_date: oldDate,
+      new_expected_date: rescheduleNewDate,
+      reason: rescheduleReason || null,
+      created_by: session.user.email,
+    }).select().single()
+
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, expected_date: rescheduleNewDate } : p))
+    if (inserted) {
+      setPledgeRescheduleHistory(prev => ({ ...prev, [pledge.id]: [inserted, ...(prev[pledge.id] || [])] }))
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_rescheduled',
+      details: { donor_name: pledge.donor_name, old_date: oldDate, new_date: rescheduleNewDate, reason: rescheduleReason || null },
+    })
+
+    showToast(`Pledge rescheduled to ${new Date(rescheduleNewDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`)
+    setReschedulingPledge(false)
+    setRescheduleModal(null)
+    setRescheduleNewDate('')
+    setRescheduleReason('')
   }
 
   function fulfillPledge(pledge) {
@@ -7274,8 +7327,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                       </div>
                     )}
+                    {p.status === 'pending' && (pledgeRescheduleHistory[p.id] || []).length > 0 && (
+                      <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>
+                        Rescheduled from {new Date(pledgeRescheduleHistory[p.id][0].old_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(pledgeRescheduleHistory[p.id][0].new_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {pledgeRescheduleHistory[p.id][0].reason && ` — "${pledgeRescheduleHistory[p.id][0].reason}"`}
+                      </div>
+                    )}
                     {p.status === 'pending' && (isOverdue || isDueSoon) && (
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
+                    )}
+                    {p.status === 'pending' && (
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
                     )}
                     {p.status === 'pending' && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
@@ -8039,6 +8101,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {markingReceived ? 'Recording...' : '✓ Confirm Received'}
               </button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rescheduleModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Reschedule pledge</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              {rescheduleModal.donor_name}'s pledge is currently expected by {new Date(rescheduleModal.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. This updates the expected date and stops it from showing as overdue until then.
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>New expected date</div>
+              <input style={s.formInput} type="date" value={rescheduleNewDate} onChange={e => setRescheduleNewDate(e.target.value)} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Reason (optional)</div>
+              <input style={s.formInput} placeholder="e.g. Donor requested more time, follow up in August" value={rescheduleReason} onChange={e => setRescheduleReason(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!rescheduleNewDate || reschedulingPledge} onClick={confirmReschedule}>
+                {reschedulingPledge ? 'Saving...' : '✓ Reschedule'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setRescheduleModal(null); setRescheduleNewDate(''); setRescheduleReason('') }}>
                 Cancel
               </button>
             </div>
