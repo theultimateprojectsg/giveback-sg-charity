@@ -211,7 +211,7 @@ export default function App() {
   const [showMassAppealModal, setShowMassAppealModal] = useState(false)
   const [donorContacts, setDonorContacts] = useState([])
   const [showAddDonorModal, setShowAddDonorModal] = useState(false)
-  const [addDonorForm, setAddDonorForm] = useState({ full_name: '', email: '', nric: '', notes: '' })
+  const [addDonorForm, setAddDonorForm] = useState({ full_name: '', email: '', notes: '' })
   const [addDonorError, setAddDonorError] = useState('')
   const [savingDonorContact, setSavingDonorContact] = useState(false)
 
@@ -3288,7 +3288,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       charity_uen: charityUen,
       full_name: addDonorForm.full_name.trim(),
       email: addDonorForm.email.trim() || null,
-      nric: addDonorForm.nric.trim() || null,
       notes: addDonorForm.notes.trim() || null,
       created_by: session.user.email,
     }).select()
@@ -3298,7 +3297,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     setDonorContacts(prev => [data[0], ...prev])
     setShowAddDonorModal(false)
-    setAddDonorForm({ full_name: '', email: '', nric: '', notes: '' })
+    setAddDonorForm({ full_name: '', email: '', notes: '' })
     showToast(`${data[0].full_name} added ✓`)
   }
 
@@ -4912,7 +4911,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Donors</div>
                 <div style={s.pageSub}>{combinedDonorList.length} donors · All time</div>
               </div>
-              <button style={s.btnGold} onClick={() => { setAddDonorForm({ full_name: '', email: '', nric: '', notes: '' }); setAddDonorError(''); setShowAddDonorModal(true) }}>+ Add Donor</button>
+              <button style={s.btnGold} onClick={() => { setAddDonorForm({ full_name: '', email: '', notes: '' }); setAddDonorError(''); setShowAddDonorModal(true) }}>+ Add Donor</button>
             </div>
             {filterTopDonorNames && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
@@ -9292,10 +9291,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={s.formLabel}>Email</div>
               <input style={s.formInput} placeholder="Optional" value={addDonorForm.email} onChange={e => setAddDonorForm(f => ({ ...f, email: e.target.value }))} />
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <div style={s.formLabel}>NRIC/FIN</div>
-              <input style={s.formInput} placeholder="Optional" value={addDonorForm.nric} onChange={e => setAddDonorForm(f => ({ ...f, nric: e.target.value }))} />
-            </div>
+            
             <div style={{ marginBottom: 16 }}>
               <div style={s.formLabel}>Notes</div>
               <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Met at gala dinner, interested in Winter Cancer Drive" value={addDonorForm.notes} onChange={e => setAddDonorForm(f => ({ ...f, notes: e.target.value }))} />
