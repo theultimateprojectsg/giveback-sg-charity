@@ -5168,7 +5168,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {isTablet ? (
                             <>
                               <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
-                              <td style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
+                              <td style={s.td}><span style={s.amountText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
                             </>
                           ) : (() => {
                             const openPledge = pledges.find(p => p.status === 'pending' && (p.donor_email?.trim() || p.donor_name) === donorKey)
@@ -5176,7 +5176,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             const cellRenderers = {
                               total: <td key="total" style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>,
                               count: <td key="count" style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>,
-                              avg: <td key="avg" style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>,
+                              avg: <td key="avg" style={s.td}><span style={s.amountText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>,
                               lastDate: <td key="lastDate" style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>,
                               tags: (
                                 <td key="tags" style={s.td}>
