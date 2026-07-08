@@ -171,6 +171,8 @@ export default function App() {
   const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
   const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
+  const [massAppealSearchTerm, setMassAppealSearchTerm] = useState('')
+  const [recurringYearFilter, setRecurringYearFilter] = useState('All')
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
   const [showPausedRecurring, setShowPausedRecurring] = useState(false)
@@ -7424,8 +7426,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="standing_order">Standing Order</option>
                 <option value="other">Other</option>
               </select>
-              {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All') && (
-                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 150 }} value={recurringYearFilter} onChange={e => setRecurringYearFilter(e.target.value)}>
+                <option value="All">All start years</option>
+                {[...new Set(recurringGifts.filter(g => g.start_date).map(g => new Date(g.start_date).getFullYear()))].sort((a, b) => b - a).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All' || recurringYearFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All') }}>✕ Clear Filters</button>
               )}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = recurringSearchTerm.toLowerCase().trim()
@@ -7449,7 +7457,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       else if (recurringUrgencyFilter === 'Healthy') matchesUrgency = days > 7
                     }
                   }
-                  return matchesSearch && matchesType && matchesAmt && matchesUrgency
+                  const matchesYear = recurringYearFilter === 'All' || (g.start_date && new Date(g.start_date).getFullYear().toString() === recurringYearFilter)
+                  return matchesSearch && matchesType && matchesAmt && matchesUrgency && matchesYear
                 })
                 exportRecurringExcel(filtered)
               }}>⬇️ Export to Excel</button>
@@ -7483,8 +7492,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return true
               }
               const matchesType = (g) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
+              const matchesYear = (g) => recurringYearFilter === 'All' || (g.start_date && new Date(g.start_date).getFullYear().toString() === recurringYearFilter)
 
-              const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g))
+              const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g) && matchesYear(g))
 
               const renderRecurringCard = (g) => {
                 const nextDate = new Date(g.next_expected_date)
@@ -7957,23 +7967,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
             </div>
 
-            {massAppeals.length > 0 && (() => {
-              const years = [...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => b - a)
-              return years.length > 1 ? (
-                <div style={{ marginBottom: 16 }}>
-                  <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealYearFilter} onChange={e => setMassAppealYearFilter(e.target.value)}>
-                    <option value="All">All years</option>
-                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              ) : null
-            })()}
+            {massAppeals.length > 0 && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
+                <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by campaign name or message..." value={massAppealSearchTerm} onChange={e => setMassAppealSearchTerm(e.target.value)} />
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealYearFilter} onChange={e => setMassAppealYearFilter(e.target.value)}>
+                  <option value="All">All years</option>
+                  {[...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                {(massAppealSearchTerm !== '' || massAppealYearFilter !== 'All') && (
+                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setMassAppealSearchTerm(''); setMassAppealYearFilter('All') }}>✕ Clear Filters</button>
+                )}
+                <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                  const q = massAppealSearchTerm.toLowerCase().trim()
+                  const filtered = massAppeals.filter(a => {
+                    const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
+                    const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
+                    return matchesSearch && matchesYear
+                  })
+                  exportMassAppealsExcel(filtered)
+                }}>⬇️ Export to Excel</button>
+              </div>
+            )}
 
             {massAppeals.length === 0 ? (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No appeals sent yet — click "+ New Appeal" to get started.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                {massAppeals.filter(a => massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter).map(a => (
+                {massAppeals.filter(a => {
+                  const q = massAppealSearchTerm.toLowerCase().trim()
+                  const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
+                  const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
+                  return matchesSearch && matchesYear
+                }).map(a => (
                   <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
