@@ -1363,11 +1363,92 @@ export default function App() {
   function deleteCause(id) {
     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
     setConfirmModal({
-      title: 'Delete this submission?',
-      description: 'It will be moved to Past Campaigns and removed from the donor app.',
+      title: 'Delete this campaign?',
+      description: 'It will be moved to Past Campaigns. Any donations already tagged to it are kept for your records.',
       confirmLabel: 'Delete',
       onConfirm: () => deleteCauseConfirmed(id),
     })
+  }
+
+  function completeCause(c, raisedAmount) {
+    const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
+    setConfirmModal({
+      title: 'Mark this campaign as complete?',
+      description: metGoal
+        ? `"${c.title}" raised $${raisedAmount.toLocaleString()} of its $${Number(c.target_amount).toLocaleString()} goal — nicely done! It will move to Past Campaigns.`
+        : `"${c.title}" raised $${raisedAmount.toLocaleString()}${c.target_amount > 0 ? ` of its $${Number(c.target_amount).toLocaleString()} goal` : ''}. It will move to Past Campaigns as ended.`,
+      confirmLabel: 'Mark Complete',
+      onConfirm: () => completeCauseConfirmed(c.id),
+    })
+  }
+
+  async function completeCauseConfirmed(id) {
+    setBulkActionInProgress(true)
+    const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
+    setBulkActionInProgress(false)
+    if (error) { showToast('Error completing campaign', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_completed',
+      details: { charity_uen: charityUen },
+    })
+    loadMyCauses()
+    showToast('Campaign marked complete ✓')
+  }
+
+  function completeCause(c, raisedAmount) {
+    const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
+    setConfirmModal({
+      title: 'Mark this campaign as complete?',
+      description: metGoal
+        ? `"${c.title}" raised $${raisedAmount.toLocaleString()} of its $${Number(c.target_amount).toLocaleString()} goal — nicely done! It will move to Past Campaigns.`
+        : `"${c.title}" raised $${raisedAmount.toLocaleString()}${c.target_amount > 0 ? ` of its $${Number(c.target_amount).toLocaleString()} goal` : ''}. It will move to Past Campaigns as ended.`,
+      confirmLabel: 'Mark Complete',
+      onConfirm: () => completeCauseConfirmed(c.id),
+    })
+  }
+
+  async function completeCauseConfirmed(id) {
+    setBulkActionInProgress(true)
+    const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
+    setBulkActionInProgress(false)
+    if (error) { showToast('Error completing campaign', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_completed',
+      details: { charity_uen: charityUen },
+    })
+    loadMyCauses()
+    showToast('Campaign marked complete ✓')
+  }
+
+  function completeCause(c, raisedAmount) {
+    const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
+    setConfirmModal({
+      title: 'Mark this campaign as complete?',
+      description: metGoal
+        ? `"${c.title}" raised $${raisedAmount.toLocaleString()} of its $${Number(c.target_amount).toLocaleString()} goal — nicely done! It will move to Past Campaigns.`
+        : `"${c.title}" raised $${raisedAmount.toLocaleString()}${c.target_amount > 0 ? ` of its $${Number(c.target_amount).toLocaleString()} goal` : ''}. It will move to Past Campaigns as ended.`,
+      confirmLabel: 'Mark Complete',
+      onConfirm: () => completeCauseConfirmed(c.id),
+    })
+  }
+
+  async function completeCauseConfirmed(id) {
+    setBulkActionInProgress(true)
+    const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
+    setBulkActionInProgress(false)
+    if (error) { showToast('Error completing campaign', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_completed',
+      details: { charity_uen: charityUen },
+    })
+    loadMyCauses()
+    showToast('Campaign marked complete ✓')
   }
 
   async function deleteCauseConfirmed(id) {
@@ -1381,7 +1462,7 @@ export default function App() {
 
   function startEditCause(c) {
     setCauseForm({ title: c.title, description: c.description, target_amount: c.target_amount?.toString() || '', end_date: c.end_date || '', editingId: c.id })
-    setShowCauseForm(true)
+    setShowCampaignModal(true)
   }
 
   function requestRevision(c) {
@@ -7279,23 +7360,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const q = campaignSearchTerm.toLowerCase().trim()
               const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
               const matchesYear = c => campaignYearFilter === 'All' || new Date(c.created_at).getFullYear().toString() === campaignYearFilter
-              const isPast = c => c.status === 'rejected' || c.status === 'deleted' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
+              const isPast = c => c.status === 'rejected' || c.status === 'deleted' || c.status === 'completed' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
               const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c))
               const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c))
 
               const renderCard = c => {
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+                const donorCount = new Set(donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
                 const pct = c.target_amount > 0 ? Math.min(100, Math.round((raised / c.target_amount) * 100)) : null
+                const daysLeft = c.end_date ? Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+                const isActive = c.status === 'approved' && !isPast(c)
+                const goalMet = c.target_amount > 0 && raised >= c.target_amount
+
+                let behindPace = false
+                if (isActive && c.target_amount > 0 && c.end_date) {
+                  const totalDuration = new Date(c.end_date) - new Date(c.created_at)
+                  const elapsed = new Date() - new Date(c.created_at)
+                  const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
+                  behindPace = pct < elapsedPct - 15
+                }
+
                 return (
                   <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>{c.title}</div>
                       <span style={
                         c.status === 'approved' ? s.badgeIssued :
+                        c.status === 'completed' ? (goalMet ? s.badgeIssued : { ...s.badgePending, color: C.muted, background: C.ivory }) :
                         c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBEEE9' } :
                         s.badgePending
                       }>
-                        {c.status === 'approved' ? '✓ Live' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
+                        {c.status === 'approved' ? '✓ Live' : c.status === 'completed' ? (goalMet ? '✓ Goal Met!' : '◻ Ended') : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
                       </span>
                     </div>
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
@@ -7306,20 +7401,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontSize: 11.5, color: C.muted }}>of ${Number(c.target_amount).toLocaleString()}</span>
                         </div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                          <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: goalMet ? C.sage : behindPace ? C.gold : C.sage, borderRadius: 3 }} />
                         </div>
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 600, color: C.forest }}>{donorCount}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>{isActive ? 'Ends' : 'Ended'}</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 600, color: C.forest }}>
+                          {daysLeft === null ? '—' : isActive ? (daysLeft >= 0 ? `${daysLeft}d` : 'Overdue') : new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
+                        </div>
+                      </div>
+                    </div>
+                    {isActive && behindPace && (
+                      <div style={{ fontSize: 11, color: C.gold, fontWeight: 600, marginBottom: 10 }}>⚠ Behind pace · {pct}% funded</div>
+                    )}
+                    {c.status === 'completed' && (
+                      <div style={{ fontSize: 11, color: goalMet ? C.sage : C.muted, fontWeight: 600, marginBottom: 10 }}>
+                        {goalMet ? `✓ Goal met · ${pct}% funded` : `Ended · ${pct !== null ? `${pct}% funded` : 'no target set'}`}
                       </div>
                     )}
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
                       Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {c.end_date && ` · Ends ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                     </div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                       {c.status === 'pending' && (
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => startEditCause(c)}>Edit</button>
                       )}
-                      {c.status === 'approved' && !isPast(c) && (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>Edit</button>
+                      {isActive && (
+                        <>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>Edit</button>
+                          <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
+                        </>
                       )}
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                     </div>
