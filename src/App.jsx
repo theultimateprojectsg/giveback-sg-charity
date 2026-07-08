@@ -4491,11 +4491,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const reminderCount = (lapsedReminderHistory[donorKey] || []).length
                         return (
                           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
-                                <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>${d.total.toLocaleString()} lifetime</div>
                               </div>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.gold, flexShrink: 0 }}>{daysSince}d ago</span>
                             </div>
                             {reminderCount > 0 && (
                               <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
