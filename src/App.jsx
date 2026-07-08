@@ -193,6 +193,7 @@ export default function App() {
   const [lapsedDismissReason, setLapsedDismissReason] = useState('')
   const [dismissingLapsed, setDismissingLapsed] = useState(false)
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
+  const [showAllLapsedDonors, setShowAllLapsedDonors] = useState(false)
   const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
     const saved = localStorage.getItem('gt_giving_change_min_gifts')
     return saved ? Number(saved) : 3
@@ -4107,7 +4108,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return daysSinceReminder < 30
               }
 
-              const lapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key)).slice(0, 5)
+              const activeLapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key))
+              const lapsed = showAllLapsedDonors ? activeLapsed : activeLapsed.slice(0, 5)
               const dismissedLapsed = allLapsed.filter(d => lapsedDismissals[d.key])
 
               return (
@@ -4175,6 +4177,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )
                       })}
                     </div>
+                    {activeLapsed.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
+                        {showAllLapsedDonors ? 'Show fewer' : `Show all ${activeLapsed.length}`}
+                      </button>
+                    )}
                     {dismissedLapsed.length > 0 && (
                       <div>
                         <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowDismissedLapsedDonors(v => !v)}>
