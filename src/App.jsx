@@ -75,6 +75,17 @@ function InfoTip({ text }) {
   )
 }
 
+function colorForDonor(nameOrEmail, palette) {
+  const str = (nameOrEmail || '').trim().toLowerCase()
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
+  }
+  const index = Math.abs(hash) % palette.length
+  return palette[index]
+}
+
 export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
@@ -5104,7 +5115,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
-                          <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
+                          <div style={{ ...s.donorAvatar, background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.name?.charAt(0)}</div>
                           <div>
                             <div style={s.donationCardName}>{d.name}</div>
                             <div style={s.donationCardDate}>{d.isContactOnly ? 'No donations yet' : `${d.count} donation${d.count > 1 ? 's' : ''} · Last ${new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}</div>
@@ -5144,7 +5155,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
                             <div style={s.donorCell}>
-                              <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <div style={s.donorName}>{d.name}</div>
