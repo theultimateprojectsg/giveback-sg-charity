@@ -197,6 +197,22 @@ export default function App() {
   const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState(false)
   const [showAppealPreview, setShowAppealPreview] = useState(false)
   const [sendingTestAppeal, setSendingTestAppeal] = useState(false)
+  const [selectedAppealDetail, setSelectedAppealDetail] = useState(null)
+  const [appealRecipients, setAppealRecipients] = useState([])
+  const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
+
+  async function openAppealDetail(appeal) {
+    setSelectedAppealDetail(appeal)
+    setLoadingAppealDetail(true)
+    const { data, error } = await supabase
+      .from('mass_appeal_recipients')
+      .select('*')
+      .eq('appeal_id', appeal.id)
+      .order('created_at', { ascending: true })
+    if (error) { console.error('Could not load appeal recipients:', error) }
+    setAppealRecipients(data || [])
+    setLoadingAppealDetail(false)
+  }
   const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
     const saved = localStorage.getItem('gt_giving_change_min_gifts')
     return saved ? Number(saved) : 3
@@ -1812,6 +1828,20 @@ export default function App() {
     let blocked = 0
     const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
 
+    const { data: appealRow } = await supabase.from('mass_appeals').insert([{
+      charity_uen: charityUen,
+      cause_id: massAppealForm.cause_id || null,
+      cause_name: causeName,
+      amount: parseFloat(massAppealForm.amount),
+      message: massAppealForm.message || null,
+      donor_count: selected.length,
+      sent_count: 0,
+      failed_count: 0,
+      status: 'sending',
+      created_by: session.user.email,
+    }]).select()
+    const appealId = appealRow?.[0]?.id
+
     for (let i = 0; i < selected.length; i++) {
       if (massAppealCancelRef.current) break
       const donor = selected[i]
@@ -1829,14 +1859,30 @@ export default function App() {
           : null,
         paynow_url: donor.qrValue,
       })
+      let recipientStatus = 'sent'
       if (error?.message?.includes('Do Not Contact')) {
         blocked++
+        recipientStatus = 'blocked'
       } else if (error) {
         failed++
+        recipientStatus = 'failed'
         console.error('Failed to send to', donor.donor_email, error)
       } else {
         sent++
       }
+
+      if (appealId) {
+        await supabase.from('mass_appeal_recipients').insert({
+          appeal_id: appealId,
+          donor_name: donor.donor_name,
+          donor_email: donor.donor_email,
+          amount: donor.amount,
+          payment_ref: donor.ref,
+          status: recipientStatus,
+          error_message: error?.message || null,
+        })
+      }
+
       setMassAppealProgress({ done: i + 1, total: selected.length, sent, failed, blocked })
     }
 
@@ -1847,19 +1893,14 @@ export default function App() {
       details: { sent, failed, blocked, total: selected.length, cause_id: massAppealForm.cause_id },
     })
 
-    const { data: appealData } = await supabase.from('mass_appeals').insert([{
-      charity_uen: charityUen,
-      cause_id: massAppealForm.cause_id || null,
-      cause_name: causeName,
-      amount: parseFloat(massAppealForm.amount),
-      message: massAppealForm.message || null,
-      donor_count: selected.length,
-      sent_count: sent,
-      failed_count: failed,
-      status: 'sent',
-      created_by: session.user.email,
-    }]).select()
-    if (appealData?.[0]) setMassAppeals(prev => [appealData[0], ...prev])
+    if (appealId) {
+      const { data: updatedAppeal } = await supabase.from('mass_appeals').update({
+        sent_count: sent,
+        failed_count: failed,
+        status: 'sent',
+      }).eq('id', appealId).select()
+      if (updatedAppeal?.[0]) setMassAppeals(prev => [updatedAppeal[0], ...prev.filter(a => a.id !== appealId)])
+    }
 
     setMassAppealStep('done')
     setMassAppealProgress(null)
@@ -7848,10 +7889,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {massAppeals.map(a => (
-                        <div key={a.id} style={{ background: C.ivory, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+                        <div key={a.id} style={{ background: C.ivory, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{a.cause_name || 'General Appeal'}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
                               <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                                 {new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · SGD ${Number(a.amount).toLocaleString()} default
                               </div>
@@ -8592,6 +8633,54 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>
                 Back
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedAppealDetail && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setSelectedAppealDetail(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 600, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '20px 24px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.forest }}>{selectedAppealDetail.cause_name || 'General Appeal'}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                    {new Date(selectedAppealDetail.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · SGD ${Number(selectedAppealDetail.amount).toLocaleString()} default
+                  </div>
+                </div>
+                <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => setSelectedAppealDetail(null)}>✕</span>
+              </div>
+              {selectedAppealDetail.message && (
+                <div style={{ marginTop: 12, padding: 12, background: C.ivory, borderRadius: 6, fontSize: 12.5, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                  {selectedAppealDetail.message}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+              {loadingAppealDetail ? (
+                <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Loading recipients...</div>
+              ) : appealRecipients.length === 0 ? (
+                <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No recipient details available for this appeal.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {appealRecipients.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.ivory, borderRadius: 4 }}>
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{r.donor_name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
+                      </div>
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+                        color: r.status === 'sent' ? C.sage : r.status === 'blocked' ? C.gold : C.red,
+                        background: r.status === 'sent' ? '#EAF3EC' : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
+                      }}>
+                        {r.status === 'sent' ? '✓ Sent' : r.status === 'blocked' ? '🚫 Blocked' : '✕ Failed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
