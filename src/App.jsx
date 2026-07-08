@@ -4398,7 +4398,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
 
               const allFlags = allGivingChangeFlags
-              const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 3)
+              const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 5)
 
               const lapsedToday = new Date()
               const allLapsed = Object.values((() => {
@@ -4456,14 +4456,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                      {sorted.slice(0, showAllConcentrationDonors ? 10 : 3).map((d, i) => (
+                      {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</span>
                           <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>${d.total.toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
-                    {sorted.length > 3 && (
+                    {sorted.length > 5 && (
                       <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
                         {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
                       </button>
@@ -4563,9 +4563,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         ))}
                       </div>
                     )}
-                    {allFlags.length > 3 && (
+                    {allFlags.length > 5 && (
                       <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowAllGivingChanges(v => !v)}>
-                        {showAllGivingChanges ? 'Show top 3 only' : `Show all ${allFlags.length}`}
+                        {showAllGivingChanges ? 'Show top 5 only' : `Show all ${allFlags.length}`}
                       </button>
                     )}
                   </div>
