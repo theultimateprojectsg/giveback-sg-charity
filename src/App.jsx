@@ -1451,6 +1451,43 @@ export default function App() {
     showToast('Campaign marked complete ✓')
   }
 
+  async function permanentlyDeleteCause(c) {
+    const linkedDonations = donations.filter(d => d.cause_id === c.id).length
+    if (linkedDonations > 0) {
+      setConfirmModal({
+        title: 'Cannot permanently delete',
+        description: `"${c.title}" has ${linkedDonations} donation${linkedDonations !== 1 ? 's' : ''} still linked to it. Permanently deleting it would break those records, so this isn't allowed. The campaign will remain soft-deleted (hidden from active use, but kept for your records).`,
+        confirmLabel: 'OK',
+        onConfirm: () => {},
+      })
+      return
+    }
+    setConfirmModal({
+      title: 'Permanently delete this campaign?',
+      description: `This cannot be undone. "${c.title}" will be completely removed, not just hidden.`,
+      confirmLabel: 'Permanently Delete',
+      onConfirm: () => permanentlyDeleteCauseConfirmed(c.id),
+    })
+  }
+
+  async function permanentlyDeleteCauseConfirmed(id) {
+    setBulkActionInProgress(true)
+    const { error } = await supabase.from('causes').delete().eq('id', id)
+    setBulkActionInProgress(false)
+    if (error) {
+      showToast(error.message.includes('foreign key') ? 'Cannot delete — donations are still linked to this campaign' : 'Error deleting campaign', 'error')
+      return
+    }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_permanently_deleted',
+      details: { title: undefined, charity_uen: charityUen },
+    })
+    setMyCauses(prev => prev.filter(c => c.id !== id))
+    showToast('Campaign permanently deleted')
+  }
+
   async function deleteCauseConfirmed(id) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'deleted', active: false }).eq('id', id)
@@ -7388,9 +7425,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         c.status === 'approved' ? s.badgeIssued :
                         c.status === 'completed' ? (goalMet ? s.badgeIssued : { ...s.badgePending, color: C.muted, background: C.ivory }) :
                         c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBEEE9' } :
+                        c.status === 'deleted' ? { ...s.badgePending, color: C.muted, background: C.ivory } :
                         s.badgePending
                       }>
-                        {c.status === 'approved' ? '✓ Live' : c.status === 'completed' ? (goalMet ? '✓ Goal Met!' : '◻ Ended') : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
+                        {c.status === 'approved' ? '✓ Live' : c.status === 'completed' ? (goalMet ? '✓ Goal Met!' : '◻ Ended') : c.status === 'rejected' ? '✕ Rejected' : c.status === 'deleted' ? '🗑 Deleted' : '⏳ Pending'}
                       </span>
                     </div>
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
@@ -7438,7 +7476,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
                         </>
                       )}
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                      {c.status === 'deleted' ? (
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
+                      ) : (
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                      )}
                     </div>
                   </div>
                 )
