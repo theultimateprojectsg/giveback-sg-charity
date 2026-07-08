@@ -3823,6 +3823,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
 
               const visibleItems = items.filter(i => i.priority === 'high' || !i.key || !dismissedTodayItems[i.key])
+                .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
               const highItems = visibleItems.filter(i => i.priority === 'high')
 
               if (visibleItems.length === 0) {
