@@ -8013,7 +8013,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }} onClick={() => openAppealDetail(a)}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
-                    <span style={s.badgeIssued}>✓ Sent</span>
+                    {a.failed_count > 0 ? (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 20, padding: '3px 10px' }}>⚠ Partial</span>
+                    ) : (
+                      <span style={s.badgeIssued}>✓ Sent</span>
+                    )}
                   </div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
                     {new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
