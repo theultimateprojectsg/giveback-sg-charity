@@ -201,6 +201,7 @@ export default function App() {
   const [appealRecipients, setAppealRecipients] = useState([])
   const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
   const [showMassAppealModal, setShowMassAppealModal] = useState(false)
+  const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
 
   async function openAppealDetail(appeal) {
     setSelectedAppealDetail(appeal)
@@ -7844,11 +7845,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
             </div>
 
+            {massAppeals.length > 0 && (() => {
+              const years = [...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => b - a)
+              return years.length > 1 ? (
+                <div style={{ marginBottom: 16 }}>
+                  <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealYearFilter} onChange={e => setMassAppealYearFilter(e.target.value)}>
+                    <option value="All">All years</option>
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+              ) : null
+            })()}
+
             {massAppeals.length === 0 ? (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No appeals sent yet — click "+ New Appeal" to get started.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                {massAppeals.map(a => (
+                {massAppeals.filter(a => massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter).map(a => (
                   <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
