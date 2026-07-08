@@ -289,6 +289,7 @@ export default function App() {
   }, [showRecurringReminderModal, recurringReminderCandidate])
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
+  const [fulfillAmount, setFulfillAmount] = useState('')
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -735,24 +736,74 @@ export default function App() {
 
   function fulfillPledge(pledge) {
     setPledgeResolutionNotes('')
+    const alreadyGiven = pledgeGivenTotals[pledge.id] || 0
+    setFulfillAmount(String(Number(pledge.amount) - alreadyGiven))
     setPledgeResolutionModal({ type: 'fulfilled', pledge })
   }
 
   async function confirmPledgeResolution() {
     if (!pledgeResolutionModal) return
     const { type, pledge } = pledgeResolutionModal
-    const { error } = await supabase.from('pledges').update({ status: type, resolution_notes: pledgeResolutionNotes || null }).eq('id', pledge.id)
-    if (error) { showToast('Error updating pledge', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: type === 'fulfilled' ? 'pledge_fulfilled' : 'pledge_cancelled',
-      details: { donor_name: pledge.donor_name, amount: pledge.amount, notes: pledgeResolutionNotes || null },
+
+    if (type === 'cancelled') {
+      const { error } = await supabase.from('pledges').update({ status: 'cancelled', resolution_notes: pledgeResolutionNotes || null }).eq('id', pledge.id)
+      if (error) { showToast('Error updating pledge', 'error'); return }
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'pledge_cancelled',
+        details: { donor_name: pledge.donor_name, amount: pledge.amount, notes: pledgeResolutionNotes || null },
+      })
+      setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'cancelled', resolution_notes: pledgeResolutionNotes || null } : p))
+      showToast(`Pledge from ${pledge.donor_name} marked as cancelled`)
+      setPledgeResolutionModal(null)
+      setPledgeResolutionNotes('')
+      return
+    }
+
+    // type === 'fulfilled': create a real donation record for the amount received
+    const amount = parseFloat(fulfillAmount)
+    if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+
+    const { data: donationData, error: donationError } = await supabase.from('donations').insert({
+      donor_name: pledge.donor_name,
+      donor_email: pledge.donor_email,
+      amount: amount,
+      payment_status: 'confirmed',
+      receipt_issued: true,
+      source: 'manual',
+      payment_method: 'Other',
+      status: 'confirmed',
+      notes: pledgeResolutionNotes || 'Pledge fulfillment',
+      charity_uen: charityUen,
+    }).select().single()
+
+    if (donationError) { showToast('Error recording donation', 'error'); return }
+
+    const { error: linkError } = await supabase.from('pledge_donations').insert({
+      pledge_id: pledge.id,
+      donation_id: donationData.id,
+      amount_applied: amount,
+      created_by: session.user.email,
     })
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: type, resolution_notes: pledgeResolutionNotes || null } : p))
-    showToast(`Pledge from ${pledge.donor_name} marked as ${type} ${type === 'fulfilled' ? '✓' : ''}`)
+    if (linkError) { showToast('Donation recorded, but error linking to pledge', 'error') }
+
+    setDonations(prev => [donationData, ...prev])
+    setPledgeGivenTotals(prev => ({ ...prev, [pledge.id]: (prev[pledge.id] || 0) + amount }))
+
+    const alreadyGiven = pledgeGivenTotals[pledge.id] || 0
+    const wouldReach = alreadyGiven + amount
+
     setPledgeResolutionModal(null)
     setPledgeResolutionNotes('')
+
+    if (wouldReach >= Number(pledge.amount)) {
+      // Fully covers the pledge — route through the existing completion flow (offers thank-you)
+      setPledgeCompletionCandidate({ pledge, donation: donationData })
+      setShowPledgeThankYouModal(true)
+    } else {
+      showToast(`$${amount.toLocaleString()} recorded toward ${pledge.donor_name}'s pledge — ${(Number(pledge.amount) - wouldReach).toLocaleString()} remaining`)
+    }
   }
 
   async function sendPledgeReminder() {
@@ -8284,9 +8335,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {pledgeResolutionModal.type === 'fulfilled' ? 'Mark this pledge as fulfilled?' : 'Cancel this pledge?'}
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
-              The pledge of ${Number(pledgeResolutionModal.pledge.amount).toLocaleString()} from {pledgeResolutionModal.pledge.donor_name} will be marked as {pledgeResolutionModal.type}.
-              {pledgeResolutionModal.type === 'cancelled' && ' The record is kept for reference.'}
+              {pledgeResolutionModal.type === 'fulfilled'
+                ? `This will record a real donation and link it to ${pledgeResolutionModal.pledge.donor_name}'s pledge.`
+                : `The pledge of $${Number(pledgeResolutionModal.pledge.amount).toLocaleString()} from ${pledgeResolutionModal.pledge.donor_name} will be marked as cancelled. The record is kept for reference.`}
             </div>
+            {pledgeResolutionModal.type === 'fulfilled' && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={s.formLabel}>Amount received (SGD)</div>
+                <input style={s.formInput} type="number" value={fulfillAmount} onChange={e => setFulfillAmount(e.target.value)} />
+              </div>
+            )}
             <div style={{ marginBottom: 16 }}>
               <div style={s.formLabel}>Notes (optional)</div>
               <textarea
