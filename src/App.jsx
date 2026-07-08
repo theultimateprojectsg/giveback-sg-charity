@@ -290,28 +290,7 @@ export default function App() {
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [fulfillAmount, setFulfillAmount] = useState('')
-  const [donationPledgeLink, setDonationPledgeLink] = useState(null)
-
-  useEffect(() => {
-    if (selectedDonation) {
-      supabase
-        .from('pledge_donations')
-        .select('pledge_id, amount_applied')
-        .eq('donation_id', selectedDonation.id)
-        .maybeSingle()
-        .then(async ({ data: linkRow }) => {
-          if (!linkRow) { setDonationPledgeLink(null); return }
-          const { data: pledgeRow } = await supabase
-            .from('pledges')
-            .select('donor_name')
-            .eq('id', linkRow.pledge_id)
-            .maybeSingle()
-          setDonationPledgeLink({ ...linkRow, pledgeDonorName: pledgeRow?.donor_name })
-        })
-    } else {
-      setDonationPledgeLink(null)
-    }
-  }, [selectedDonation?.id])
+  
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -356,6 +335,28 @@ export default function App() {
   const [confirmingPayNow, setConfirmingPayNow] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [selectedDonation, setSelectedDonation] = useState(null)
+  const [donationPledgeLink, setDonationPledgeLink] = useState(null)
+
+  useEffect(() => {
+    if (selectedDonation) {
+      supabase
+        .from('pledge_donations')
+        .select('pledge_id, amount_applied')
+        .eq('donation_id', selectedDonation.id)
+        .maybeSingle()
+        .then(async ({ data: linkRow }) => {
+          if (!linkRow) { setDonationPledgeLink(null); return }
+          const { data: pledgeRow } = await supabase
+            .from('pledges')
+            .select('donor_name')
+            .eq('id', linkRow.pledge_id)
+            .maybeSingle()
+          setDonationPledgeLink({ ...linkRow, pledgeDonorName: pledgeRow?.donor_name })
+        })
+    } else {
+      setDonationPledgeLink(null)
+    }
+  }, [selectedDonation?.id])
   const [editingNoteId, setEditingNoteId] = useState(null)
   const [noteText, setNoteText] = useState('')
   const [editingManual, setEditingManual] = useState(false) 
