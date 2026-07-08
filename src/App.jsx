@@ -343,7 +343,7 @@ export default function App() {
   const [savingRecurring, setSavingRecurring] = useState(false)
   const [activeRecurringTab, setActiveRecurringTab] = useState('active')
   const [showMassAppealTool, setShowMassAppealTool] = useState(false)
-  const [massAppealForm, setMassAppealForm] = useState({ cause_id: '', amount: '', message: '' })
+  const [massAppealForm, setMassAppealForm] = useState({ cause_id: '', amount: '', message: '', customLabel: '' })
   const [massAppealRefs, setMassAppealRefs] = useState([])
   const [massAppealStep, setMassAppealStep] = useState('setup')
   const [massAppealProgress, setMassAppealProgress] = useState(null)
@@ -1770,7 +1770,7 @@ export default function App() {
     if (!session?.user?.email) { showToast('No email on your account', 'error'); return }
     setSendingTestAppeal(true)
     const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
-    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : (massAppealForm.customLabel?.trim() || null)
     const testMessage = massAppealForm.message
       ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
       : null
@@ -1832,7 +1832,7 @@ export default function App() {
     let sent = 0
     let failed = 0
     let blocked = 0
-    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : (massAppealForm.customLabel?.trim() || null)
 
     const { data: appealRow } = await supabase.from('mass_appeals').insert([{
       charity_uen: charityUen,
@@ -1919,7 +1919,7 @@ export default function App() {
     showToast('Generating QR codes...')
 
     const zip = new JSZip()
-    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'General Appeal') : 'General Appeal'
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'General Appeal') : (massAppealForm.customLabel?.trim() || 'General Appeal')
 
     for (const donor of selected) {
       // Render QR to canvas via a temporary DOM element
@@ -7965,7 +7965,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Mass Appeal</div>
                 <div style={s.pageSub}>{massAppeals.length} appeal{massAppeals.length !== 1 ? 's' : ''} sent · Personal PayNow QR codes to your donor base</div>
               </div>
-              <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
+              <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
             </div>
 
             {massAppeals.length > 0 && (
@@ -8084,11 +8084,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div>
                         <div style={s.formLabel}>Campaign (Optional)</div>
                         <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
-                          <option value="">General Appeal — no specific campaign</option>
+                          <option value="">No specific campaign — give it a name below</option>
                           {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
                             <option key={c.id} value={c.id}>{c.title}</option>
                           ))}
                         </select>
+                        {!massAppealForm.cause_id && (
+                          <div style={{ marginTop: 8 }}>
+                            <input
+                              style={s.formInput}
+                              placeholder="e.g. Q1 Appeal, Year-End Appeal, Chinese New Year Appeal"
+                              value={massAppealForm.customLabel || ''}
+                              onChange={e => setMassAppealForm(f => ({ ...f, customLabel: e.target.value }))}
+                            />
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Not tied to a tracked campaign — just a label to tell your appeals apart. Leave blank for "General Appeal."</div>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div style={s.formLabel}>Default Amount (SGD) *</div>
@@ -8163,7 +8174,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 16, fontWeight: 600, color: C.forest, marginBottom: 6 }}>Appeal Sent</div>
                       <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Each donor received a personalised email with their unique PayNow QR code.</div>
                       <div style={{ display: 'flex', gap: 10 }}>
-                        <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '' }); setMassAppealRefs([]) }}>Send Another</button>
+                        <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]) }}>Send Another</button>
                         <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>Done</button>
                       </div>
                     </div>
@@ -8902,7 +8913,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             {(() => {
               const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
-              const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
+              const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : (massAppealForm.customLabel?.trim() || null)
               const previewMessage = massAppealForm.message
                 ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
                 : '(No message written yet)'
