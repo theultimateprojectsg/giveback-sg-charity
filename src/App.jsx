@@ -5125,7 +5125,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', ...DONOR_COLUMN_OPTIONS.filter(o => selectedDonorColumns.includes(o.key)).map(o => o.label)]).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                  <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', 'Total Given', 'Donations', 'Avg. Donation', 'Last Donation', 'Tags']).map(h => <th key={h} style={{ ...s.th, width: h === 'Donor' ? 200 : undefined, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {combinedDonorList.filter(d => {
