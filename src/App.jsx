@@ -150,6 +150,32 @@ export default function App() {
       return next
     })
   }
+  const DONATION_COLUMN_OPTIONS = [
+    { key: 'amount', label: 'Amount' },
+    { key: 'date', label: 'Date' },
+    { key: 'cause', label: 'Cause' },
+    { key: 'source', label: 'Source' },
+    { key: 'nric', label: 'NRIC' },
+    { key: 'payment', label: 'Payment' },
+    { key: 'receipt', label: 'Receipt' },
+    { key: 'receiptNo', label: 'Receipt No.' },
+    { key: 'thankYou', label: 'Thank You' },
+  ]
+  const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
+  const [selectedDonationColumns, setSelectedDonationColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('donationTableColumns')
+      return saved ? JSON.parse(saved) : DONATION_COLUMN_DEFAULTS
+    } catch { return DONATION_COLUMN_DEFAULTS }
+  })
+  const [showDonationColumnPicker, setShowDonationColumnPicker] = useState(false)
+  const toggleDonationColumn = (key) => {
+    setSelectedDonationColumns(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      localStorage.setItem('donationTableColumns', JSON.stringify(next))
+      return next
+    })
+  }
   const [userRole, setUserRole] = useState('staff')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
@@ -4910,45 +4936,60 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           return (
                           <tr key={d.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
-                            <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
-                            <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                            {!isTablet && (
-                              <td style={s.td}>
-                                {causeNameForDonation(d) ? (
-                                  <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
-                                ) : (
-                                  <span style={{ fontSize: 11, color: C.muted }}>General</span>
-                                )}
-                              </td>
-                            )}
-                            {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
-                            <td style={s.td}>
-                              {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={s.badgePending}>⚠️ Unverified</span>
-                                  <button
-                                    style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setConfirmModal({
-                                        title: 'Confirm this payment?',
-                                        subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
-                                        donorName: d.donor_name,
-                                        amount: d.amount,
-                                        reference: d.payment_ref || d.receipt_number,
-                                        steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
-                                        confirmLabel: 'Confirm payment',
-                                        onConfirm: () => confirmPaymentFlow(d),
-                                      })
-                                    }}
-                                  >✓ Confirm</button>
-                                </div>
-                              )}
-                            </td>
-                            <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
-                            {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                            {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
+                            {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
+                            {isTablet ? (
+                              <>
+                                {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
+                                <td style={s.td}>
+                                  {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
+                                </td>
+                                <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                              </>
+                            ) : (() => {
+                              const cellRenderers = {
+                                cause: (
+                                  <td key="cause" style={s.td}>
+                                    {causeNameForDonation(d) ? (
+                                      <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
+                                    ) : (
+                                      <span style={{ fontSize: 11, color: C.muted }}>General</span>
+                                    )}
+                                  </td>
+                                ),
+                                source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
+                                nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
+                                payment: (
+                                  <td key="payment" style={s.td}>
+                                    {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={s.badgePending}>⚠️ Unverified</span>
+                                        <button
+                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setConfirmModal({
+                                              title: 'Confirm this payment?',
+                                              subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                              donorName: d.donor_name,
+                                              amount: d.amount,
+                                              reference: d.payment_ref || d.receipt_number,
+                                              steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                              confirmLabel: 'Confirm payment',
+                                              onConfirm: () => confirmPaymentFlow(d),
+                                            })
+                                          }}
+                                        >✓ Confirm</button>
+                                      </div>
+                                    )}
+                                  </td>
+                                ),
+                                receipt: <td key="receipt" style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>,
+                                receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>,
+                                thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
+                              }
+                              return selectedDonationColumns.map(key => cellRenderers[key]).filter(Boolean)
+                            })()}
                           </tr>
                           )
                         })}
@@ -5741,6 +5782,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 style={bulkEditMode ? { ...s.viewBtn, background: C.teal, color: 'white', borderColor: C.teal } : s.viewBtn}
                 onClick={() => { setBulkEditMode(v => !v); if (bulkEditMode) setSelectedDonationIds([]) }}
               >{bulkEditMode ? '✕ Exit Bulk Edit' : '☑️ Bulk Edit'}</button>
+              {!isMobile && !isTablet && (
+                <div style={{ position: 'relative' }}>
+                  <button style={s.exportSmallBtn} onClick={() => setShowDonationColumnPicker(v => !v)}>⚙️ Columns</button>
+                  {showDonationColumnPicker && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowDonationColumnPicker(false)} />
+                      <div style={{ position: 'absolute', top: '110%', right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 10, zIndex: 50, minWidth: 200 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show columns</div>
+                        {DONATION_COLUMN_OPTIONS.filter(opt => opt.key !== 'nric' || charityIsIpc).map(opt => (
+                          <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 4px', fontSize: 13, color: C.forest, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={selectedDonationColumns.includes(opt.key)} onChange={() => toggleDonationColumn(opt.key)} />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
@@ -5892,7 +5952,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           )}
                           {(isTablet
                             ? charityIsIpc ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Payment', 'Receipt']
-                            : charityIsIpc ? ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']
+                            : ['Donor', ...DONATION_COLUMN_OPTIONS.filter(o => selectedDonationColumns.includes(o.key) && (o.key !== 'nric' || charityIsIpc)).sort((a, b) => selectedDonationColumns.indexOf(a.key) - selectedDonationColumns.indexOf(b.key)).map(o => o.label)]
                           ).map(h => {
                             const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
                             return (
@@ -5921,45 +5981,62 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </td>
                             )}
                             <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
-                            <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>
-                            <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                            {!isTablet && (
-                              <td style={s.td}>
-                                {causeNameForDonation(d) ? (
-                                  <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
-                                ) : (
-                                  <span style={{ fontSize: 11, color: C.muted }}>General</span>
-                                )}
-                              </td>
-                            )}
-                            {!isTablet && <td style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>}
-                            {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
-                            <td style={s.td}>
-                              {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={s.badgePending}>⚠️ Unverified</span>
-                                  <button
-                                    style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setConfirmModal({
-                                        title: 'Confirm this payment?',
-                                        subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
-                                        donorName: d.donor_name,
-                                        amount: d.amount,
-                                        reference: d.payment_ref || d.receipt_number,
-                                        steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
-                                        confirmLabel: 'Confirm payment',
-                                        onConfirm: () => confirmPaymentFlow(d),
-                                      })
-                                    }}
-                                  >✓ Confirm</button>
-                                </div>
-                              )}
-                            </td>
-                            <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                            {!isTablet && <td style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>}
-                            {!isTablet && <td style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>}
+                            {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
+                            {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
+                            {isTablet ? (
+                              <>
+                                {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
+                                <td style={s.td}>
+                                  {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
+                                </td>
+                                <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
+                              </>
+                            ) : (() => {
+                              const cellRenderers = {
+                                amount: <td key="amount" style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>,
+                                date: <td key="date" style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>,
+                                cause: (
+                                  <td key="cause" style={s.td}>
+                                    {causeNameForDonation(d) ? (
+                                      <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
+                                    ) : (
+                                      <span style={{ fontSize: 11, color: C.muted }}>General</span>
+                                    )}
+                                  </td>
+                                ),
+                                source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
+                                nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
+                                payment: (
+                                  <td key="payment" style={s.td}>
+                                    {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={s.badgePending}>⚠️ Unverified</span>
+                                        <button
+                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setConfirmModal({
+                                              title: 'Confirm this payment?',
+                                              subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
+                                              donorName: d.donor_name,
+                                              amount: d.amount,
+                                              reference: d.payment_ref || d.receipt_number,
+                                              steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                              confirmLabel: 'Confirm payment',
+                                              onConfirm: () => confirmPaymentFlow(d),
+                                            })
+                                          }}
+                                        >✓ Confirm</button>
+                                      </div>
+                                    )}
+                                  </td>
+                                ),
+                                receipt: <td key="receipt" style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>,
+                                receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>,
+                                thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
+                              }
+                              return selectedDonationColumns.map(key => cellRenderers[key]).filter(Boolean)
+                            })()}
                           </tr>
                           )
                         })}
