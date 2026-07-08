@@ -212,6 +212,8 @@ export default function App() {
   const [donorContacts, setDonorContacts] = useState([])
   const [showAddDonorModal, setShowAddDonorModal] = useState(false)
   const [addDonorForm, setAddDonorForm] = useState({ full_name: '', email: '', notes: '' })
+  const [donorStatusFilter, setDonorStatusFilter] = useState('All')
+  const [donorYearFilter, setDonorYearFilter] = useState('All')
   const [addDonorError, setAddDonorError] = useState('')
   const [savingDonorContact, setSavingDonorContact] = useState(false)
 
@@ -4961,14 +4963,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <option value="All">All Tags</option>
                     {allTags.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
+                  <select style={s.filterSelect} value={donorStatusFilter} onChange={e => setDonorStatusFilter(e.target.value)}>
+                    <option value="All">All Statuses</option>
+                    <option value="Active">Active donors</option>
+                    <option value="Prospect">Prospects (no gift yet)</option>
+                    <option value="DoNotContact">Do Not Contact</option>
+                    <option value="Deactivated">Deactivated</option>
+                  </select>
+                  <select style={s.filterSelect} value={donorYearFilter} onChange={e => setDonorYearFilter(e.target.value)}>
+                    <option value="All">All years (last donation)</option>
+                    {[...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                  {(searchTerm !== '' || filterDonorTag !== 'All' || donorStatusFilter !== 'All' || donorYearFilter !== 'All') && (
+                    <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setSearchTerm(''); setFilterDonorTag('All'); setDonorStatusFilter('All'); setDonorYearFilter('All') }}>✕ Clear Filters</button>
+                  )}
                   <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={async () => {
                     const q = searchTerm.toLowerCase()
                     const filtered = combinedDonorList.filter(d => {
                       const matchesSearch = d.name?.toLowerCase().includes(q)
                       const donorKey = d.email?.trim() || d.name
                       const matchesTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
-                      return matchesSearch && matchesTag
+                      const matchesStatus = donorStatusFilter === 'All'
+                        || (donorStatusFilter === 'Active' && !d.isContactOnly && !d.deactivated)
+                        || (donorStatusFilter === 'Prospect' && d.isContactOnly)
+                        || (donorStatusFilter === 'DoNotContact' && d.doNotContact)
+                        || (donorStatusFilter === 'Deactivated' && d.deactivated)
+                      const matchesYear = donorYearFilter === 'All' || (d.lastDate && new Date(d.lastDate).getFullYear().toString() === donorYearFilter)
+                      return matchesSearch && matchesTag && matchesStatus && matchesYear
                     })
                     showToast('Preparing export...')
                     await exportDonorsExcel(filtered)
