@@ -4919,7 +4919,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
                           <div style={s.donationCardTop}>
                             <div style={s.donationCardDonor}>
-                              <div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donationCardName}>{d.donor_name}</div>
                                 <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -4946,7 +4946,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           const railColor = d.payment_status !== 'confirmed' ? C.red : !d.receipt_issued ? C.gold : C.sage
                           return (
                           <tr key={d.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                             {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                             {isTablet ? (
@@ -5991,7 +5991,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
                               </td>
                             )}
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                             {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                             {isTablet ? (
@@ -7495,7 +7495,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div key={i} style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                           <div style={s.donorCell}>
-                            <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
+                            <div style={{ ...s.donorAvatar, background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.name?.charAt(0)}</div>
                             <div style={s.donorName}>{d.name}</div>
                           </div>
                           {charityIsIpc && (nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>)}
@@ -7532,7 +7532,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <tr key={i} style={s.tr}>
                         <td style={s.td}>
                             <div style={s.donorCell}>
-                              <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donorName}>{d.name}</div>
                                 {(() => {
