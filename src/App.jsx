@@ -195,6 +195,8 @@ export default function App() {
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
   const [showAllLapsedDonors, setShowAllLapsedDonors] = useState(false)
   const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState(false)
+  const [showAppealPreview, setShowAppealPreview] = useState(false)
+  const [sendingTestAppeal, setSendingTestAppeal] = useState(false)
   const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
     const saved = localStorage.getItem('gt_giving_change_min_gifts')
     return saved ? Number(saved) : 3
@@ -1742,6 +1744,32 @@ export default function App() {
     return `GT-${clean}-${suffix}`
   }
 
+  async function sendTestAppealToSelf() {
+    if (!session?.user?.email) { showToast('No email on your account', 'error'); return }
+    setSendingTestAppeal(true)
+    const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
+    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+    const testMessage = massAppealForm.message
+      ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
+      : null
+
+    const { error } = await sendCharityEmail({
+      type: 'mass_appeal',
+      donor_name: `[TEST] ${sampleDonor?.donor_name || 'Sample Donor'}`,
+      donor_email: session.user.email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      amount: massAppealForm.amount,
+      payment_ref: sampleDonor?.ref || 'TEST-REF',
+      cause_title: causeName,
+      custom_message: testMessage,
+      paynow_url: sampleDonor?.qrValue,
+    })
+    setSendingTestAppeal(false)
+    if (error) { showToast('Failed to send test email', 'error'); return }
+    showToast(`Test email sent to ${session.user.email} — check your inbox`)
+  }
+
   async function generateMassAppealRefs() {
     if (!massAppealForm.amount || parseFloat(massAppealForm.amount) <= 0) {
       showToast('Please enter a default amount', 'error'); return
@@ -1796,7 +1824,9 @@ export default function App() {
         amount: donor.amount,
         payment_ref: donor.ref,
         cause_title: causeName,
-        custom_message: massAppealForm.message || null,
+        custom_message: massAppealForm.message
+          ? massAppealForm.message.replace(/\[name\]/gi, donor.donor_name?.split(' ')[0] || 'there')
+          : null,
         paynow_url: donor.qrValue,
       })
       if (error?.message?.includes('Do Not Contact')) {
@@ -7797,7 +7827,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div>
                       <div style={s.formLabel}>Personal Message (Optional)</div>
                       <textarea style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }} placeholder="e.g. Dear [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code</div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code. Type <strong>[name]</strong> anywhere to insert each donor's first name automatically.</div>
                     </div>
                     <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 10, padding: 12 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
@@ -7860,6 +7890,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${r.amount}</div>
                     </div>
                   ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowAppealPreview(true)}>
+                    👁 Preview Email
+                  </button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={sendingTestAppeal} onClick={sendTestAppealToSelf}>
+                    {sendingTestAppeal ? 'Sending...' : '✉ Send Test to Myself'}
+                  </button>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={sendMassAppealEmails}>
@@ -8555,6 +8593,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 Back
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showAppealPreview && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAppealPreview(false)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            {(() => {
+              const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
+              const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+              const previewMessage = massAppealForm.message
+                ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
+                : '(No message written yet)'
+              return (
+                <div>
+                  <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>Email Preview — showing as {sampleDonor?.donor_name || 'a sample donor'} would see it</div>
+                    <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => setShowAppealPreview(false)}>✕</span>
+                  </div>
+                  <div style={{ padding: 24, background: C.ivory }}>
+                    <div style={{ background: C.forest, borderRadius: 12, padding: 24, textAlign: 'center', marginBottom: 16 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>{causeName}</div>
+                    </div>
+                    <div style={{ background: C.white, borderRadius: 12, padding: 20, border: `1px solid ${C.border}` }}>
+                      <div style={{ fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: 16 }}>{previewMessage}</div>
+                      <div style={{ textAlign: 'center', padding: 16, background: C.ivory, borderRadius: 8 }}>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Scan to give via PayNow</div>
+                        <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic' }}>[QR code]</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginTop: 8 }}>Suggested: SGD ${massAppealForm.amount || '—'}</div>
+                        <div style={{ fontSize: 10, color: C.muted, fontFamily: 'monospace', marginTop: 4 }}>Ref: {sampleDonor?.ref || '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
