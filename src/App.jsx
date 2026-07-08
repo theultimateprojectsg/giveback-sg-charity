@@ -4964,16 +4964,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
-                          <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                          <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                           <div>
                             <div style={s.donationCardName}>{d.name}</div>
-                            <div style={s.donationCardDate}>{d.count} donation{d.count > 1 ? 's' : ''} · Last {new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                            <div style={s.donationCardDate}>{d.isContactOnly ? 'No donations yet' : `${d.count} donation${d.count > 1 ? 's' : ''} · Last ${new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}</div>
                           </div>
                         </div>
                         <div style={s.donationCardAmount}>${d.total.toLocaleString()}</div>
                       </div>
                       <div style={s.donationCardBadges}>
-                        <span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} receipts issued</span>
+                        {d.isContactOnly ? (
+                          <span style={{ ...s.badgePending, color: C.gold, background: '#FBF2DE' }}>👤 Prospect — no gift yet</span>
+                        ) : (
+                          <span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} receipts issued</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -4999,7 +5003,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <tr key={i} style={s.tr}>
                           <td style={s.td}>
                             <div style={s.donorCell}>
-                              <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donorName}>{d.name}</div>
                                 {(() => {
@@ -7274,7 +7278,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div key={i} style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                           <div style={s.donorCell}>
-                            <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                            <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                             <div style={s.donorName}>{d.name}</div>
                           </div>
                           {charityIsIpc && (nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>)}
@@ -7311,7 +7315,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <tr key={i} style={s.tr}>
                         <td style={s.td}>
                             <div style={s.donorCell}>
-                              <div style={{ ...s.donorAvatar, background: [C.sage, C.teal, C.gold, C.forest, C.red][i % 5] }}>{d.name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donorName}>{d.name}</div>
                                 {(() => {
@@ -9270,6 +9274,36 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+          </div>
+        </div>
+      )}
+
+      {showAddDonorModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAddDonorModal(false)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Add a Donor</div>
+            <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>Track someone you know but haven't received a donation from yet — a major donor prospect, or someone you met in person. They'll automatically merge with their real record once they give.</div>
+            {addDonorError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{addDonorError}</div>}
+            <div style={{ marginBottom: 10 }}>
+              <div style={s.formLabel}>Full Name *</div>
+              <input style={s.formInput} placeholder="e.g. Tan Wei Ling" value={addDonorForm.full_name} onChange={e => setAddDonorForm(f => ({ ...f, full_name: e.target.value }))} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={s.formLabel}>Email</div>
+              <input style={s.formInput} placeholder="Optional" value={addDonorForm.email} onChange={e => setAddDonorForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <div style={s.formLabel}>NRIC/FIN</div>
+              <input style={s.formInput} placeholder="Optional" value={addDonorForm.nric} onChange={e => setAddDonorForm(f => ({ ...f, nric: e.target.value }))} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Notes</div>
+              <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Met at gala dinner, interested in Winter Cancer Drive" value={addDonorForm.notes} onChange={e => setAddDonorForm(f => ({ ...f, notes: e.target.value }))} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={savingDonorContact} onClick={saveDonorContact}>{savingDonorContact ? 'Saving...' : '✓ Add Donor'}</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowAddDonorModal(false)}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
