@@ -4459,7 +4459,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
                             ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
                           </span>
                         </div>
@@ -4475,7 +4475,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Lapsed Donors */}
                   <div id="lapsed-donors-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', scrollMarginTop: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
                       <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => setLapsedMinGifts(Math.max(1, Number(e.target.value) || 1))} />
@@ -4493,12 +4493,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
+                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
                                 <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
                               </div>
                             </div>
                             {reminderCount > 0 && (
-                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 600 }}>
+                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
                                 ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
                               </div>
                             )}
