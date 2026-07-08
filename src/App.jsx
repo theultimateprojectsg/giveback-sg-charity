@@ -7377,7 +7377,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Campaigns</div>
+                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Campaigns <InfoTip text="A campaign tracks progress toward a fundraising goal. Link a Mass Appeal to a campaign, and donations paid via that appeal's PayNow QR are automatically tagged to it when you confirm the payment." /></div>
                 <div style={s.pageSub}>{myCauses.filter(c => c.type === 'campaign').length} campaign{myCauses.filter(c => c.type === 'campaign').length !== 1 ? 's' : ''} · Trackable goals for Mass Appeal and manual donations</div>
               </div>
               <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCampaignModal(true) }}>+ New Campaign</button>
@@ -7578,7 +7578,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Recurring Giving</div>
+                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Recurring Giving <InfoTip text="Mark Received creates a real donation record and advances the schedule. Skip This Cycle advances the schedule without creating a donation, for a missed or failed auto-payment." /></div>
                 <div style={s.pageSub}>{recurringGifts.filter(g => g.status === 'active').length} active · ${recurringGifts.filter(g => g.status === 'active').reduce((s, g) => s + g.amount, 0).toLocaleString()} expected/cycle</div>
               </div>
               <button style={s.btnGold} onClick={() => { setShowRecurringForm(true); setRecurringError('') }}>+ Add Recurring Gift</button>
@@ -7882,7 +7882,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Pledges</div>
+                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Pledges <InfoTip text="A pledge is a promise to give a specific amount by a date. Donations from that donor are matched automatically and applied to their earliest-due pledge. Reminders snooze the pledge for 30 days; marking Fulfilled records a real donation." /></div>
                 <div style={s.pageSub}>{pledges.filter(p => p.status === 'pending').length} pending · {pledges.filter(p => p.status === 'fulfilled').length} fulfilled</div>
               </div>
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
@@ -8199,7 +8199,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Mass Appeal</div>
+                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Mass Appeal <InfoTip text="Emails your donor base with a personal PayNow QR code each. Donors marked Do Not Contact are automatically skipped. Type [name] in your message to insert each donor's first name." /></div>
                 <div style={s.pageSub}>{massAppeals.length} appeal{massAppeals.length !== 1 ? 's' : ''} sent · Personal PayNow QR codes to your donor base</div>
               </div>
               <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
