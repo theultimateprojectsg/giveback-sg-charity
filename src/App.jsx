@@ -5236,14 +5236,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).map(d => (
-                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                      <div style={{ width: 36, height: 36, background: C.successBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💳</div>
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `✏️ ${d.payment_method || 'Manual'}` : '📱 Giving Tree App'}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : 'Giving Tree App'}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
                         <div style={{ fontSize: 10, color: d.receipt_issued ? C.sage : C.warning, fontWeight: 500 }}>{d.receipt_issued ? '✓ Issued' : 'Pending'}</div>
                       </div>
                     </div>
@@ -5369,8 +5368,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {activeTab === 'donations' && (
           <div style={s.content}>
             {userRole === 'volunteer' && (
-              <div style={{ background: C.warningBg, border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '12px 18px', marginBottom: 20, fontSize: 13, color: C.warning, fontWeight: 500 }}>
-                👋 You're logged in as a volunteer. You can log new manual entries below. To view donor records or financials, please contact a staff member.
+              <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 16px', marginBottom: 20, fontSize: 13, color: C.warning, fontWeight: 500 }}>
+                You're logged in as a volunteer. You can log new manual entries below. To view donor records or financials, please contact a staff member.
               </div>
             )}
             <div style={s.pageHeader}>
@@ -5386,20 +5385,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {showManualForm && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setShowManualForm(false); setManualError('') }}>
-                <div style={{ background: C.ivory, borderRadius: 16, padding: isMobile ? 20 : 28, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📝 New Manual Entry</div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>New Manual Entry</div>
                     <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
                   </div>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 18 }}>Log a cash, cheque, or wire donation received outside the app.</div>
-                  {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Log a cash, cheque, or wire donation received outside the app.</div>
+                  {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
                   {manualDuplicateWarning && (
-                    <div style={{ background: '#FDF3DC', border: `1.5px solid ${C.warningBorder}`, borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.warning, marginBottom: 8 }}>⚠️ Possible duplicate donor</div>
+                    <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '12px 14px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.warning, marginBottom: 8 }}>⚠ Possible duplicate donor</div>
                       <div style={{ fontSize: 12, color: C.warning, marginBottom: 10 }}>We found {manualDuplicateWarning.length} existing donor{manualDuplicateWarning.length > 1 ? 's' : ''} with a similar name. Is this the same person?</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                         {manualDuplicateWarning.slice(0, 3).map((d, i) => (
-                          <div key={i} style={{ background: C.white, borderRadius: 8, padding: '8px 12px', fontSize: 12, color: C.forest }}>
+                          <div key={i} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '8px 12px', fontSize: 12, color: C.forest }}>
                             <strong>{d.name}</strong> — {d.count} donation{d.count > 1 ? 's' : ''}, last gave ${d.total.toLocaleString()}
                           </div>
                         ))}
@@ -5457,10 +5456,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {payNowQrDonation && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: C.forest, marginBottom: 16 }}>SGD ${Number(payNowQrDonation.amount).toFixed(2)}</div>
-                  <div style={{ background: 'white', borderRadius: 16, padding: 16, border: `1.5px solid ${C.border}`, display: 'inline-block', marginBottom: 14 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 16 }}>SGD ${Number(payNowQrDonation.amount).toFixed(2)}</div>
+                  <div style={{ background: 'white', borderRadius: 4, padding: 16, border: `1px solid ${C.border}`, display: 'inline-block', marginBottom: 14 }}>
                     <QRCodeSVG value={`https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${payNowQrDonation.amount}&ref=${payNowQrDonation.payment_ref}`} size={180} level="H" />
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Ask the donor to scan with their banking app</div>
@@ -5531,12 +5530,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {bulkProgress && (
-              <div style={{ background: C.forest, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+              <div style={{ background: C.forest, borderRadius: 4, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'white', flexShrink: 0 }}>
                   Issuing {bulkProgress.done} of {bulkProgress.total}...
                 </span>
-                <div style={{ flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                  <div style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%`, height: '100%', background: C.gold, borderRadius: 6, transition: 'width 0.2s' }} />
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                  <div style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%`, height: '100%', background: C.gold, borderRadius: 3, transition: 'width 0.2s' }} />
                 </div>
                 <button
                   style={{ ...s.bannerBtn, background: 'white', color: C.red, flexShrink: 0 }}
@@ -5546,8 +5545,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {selectedDonationIds.length > 0 && (
-              <div style={{ background: C.teal, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{selectedDonationIds.length} selected</span>
+              <div style={{ background: C.forest, borderRadius: 4, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{selectedDonationIds.length} selected</span>
                 {selectedDonationIds.length < filteredDonations.length && (
                   <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => {
                     if (filteredDonations.length > 200) {
@@ -5564,9 +5563,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     Select all {filteredDonations.length} matching filters
                   </span>
                 )}
-                <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkIssueSelectedReceipts} disabled={bulkActionInProgress}>🧾 Issue Receipts</button>
+                <button style={{ ...s.bannerBtn, background: 'white', color: C.forest }} onClick={bulkIssueSelectedReceipts} disabled={bulkActionInProgress}>🧾 Issue Receipts</button>
                 {charityIsIpc && (
-                  <button style={{ ...s.bannerBtn, background: 'white', color: C.teal }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
+                  <button style={{ ...s.bannerBtn, background: 'white', color: C.forest }} onClick={bulkRequestSelectedNric} disabled={bulkActionInProgress}>🪪 Request NRIC</button>
                 )}
                 <button style={{ ...s.bannerBtn, background: 'white', color: C.red }} onClick={bulkDeleteSelectedManual} disabled={bulkActionInProgress}>🗑️ Delete Manual</button>
                 <button style={{ ...s.bannerBtn, background: 'rgba(255,255,255,0.15)', color: 'white' }} onClick={() => setSelectedDonationIds([])}>✕ Clear Selection</button>
@@ -5777,11 +5776,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {userRole === 'staff' && selectedDonation && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
-                <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', borderRadius: 16 }} onClick={e => e.stopPropagation()}>
-                  <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.ivory, borderRadius: 16, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 28 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexShrink: 0 }}>
+                <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
+                  <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.white, borderRadius: 8, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexShrink: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 52, height: 52, borderRadius: 12, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'white', flexShrink: 0 }}>{selectedDonation.donor_name?.charAt(0)}</div>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: 'white', flexShrink: 0 }}>{selectedDonation.donor_name?.charAt(0)}</div>
                         <div>
                           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Donation Details</div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{selectedDonation.donor_name}</div>
@@ -8767,9 +8766,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showMigrationTool && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!migrationProgress) setShowMigrationTool(false) }}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 28, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>📥 Migration Tool</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Migration Tool</div>
               {!migrationProgress && <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowMigrationTool(false)}>✕</button>}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
@@ -9227,8 +9226,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showVoidModal && selectedDonation && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 420, width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.red, marginBottom: 4 }}>🚫 Void & Reissue Receipt</div>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.red, marginBottom: 4 }}>Void & Reissue Receipt</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
               The original receipt number <strong style={{ fontFamily: 'monospace' }}>{selectedDonation.receipt_number || selectedDonation.payment_ref}</strong> will be marked as voided and kept on record. A new corrected receipt will be issued with the next sequential number.
             </div>
@@ -9271,8 +9270,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {thankYouDraft && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 520, width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and edit before sending. This won't be sent as-is.</div>
             <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} />
             <textarea
@@ -9322,9 +9321,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showCustomizeAnalytics && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.forest }}>Customize Analytics</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Customize Analytics</div>
               <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Choose which metrics appear on this page.</div>
@@ -9377,11 +9376,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {confirmModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
-          <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 400, width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 20, color: C.forest }}>✓</span>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 400, width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 18, color: C.forest }}>✓</span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 6 }}>{confirmModal.title}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 6 }}>{confirmModal.title}</div>
             {confirmModal.subtitle && <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>{confirmModal.subtitle}</div>}
             {confirmModal.description && <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>{confirmModal.description}</div>}
             {(confirmModal.donorName || confirmModal.amount != null) && (
