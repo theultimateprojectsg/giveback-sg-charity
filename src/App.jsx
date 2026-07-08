@@ -173,6 +173,7 @@ export default function App() {
   const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
   const [massAppealSearchTerm, setMassAppealSearchTerm] = useState('')
   const [recurringYearFilter, setRecurringYearFilter] = useState('All')
+  const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
   const [showPausedRecurring, setShowPausedRecurring] = useState(false)
@@ -7993,31 +7994,77 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {massAppeals.length === 0 ? (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No appeals sent yet — click "+ New Appeal" to get started.</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                {massAppeals.filter(a => {
-                  const q = massAppealSearchTerm.toLowerCase().trim()
-                  const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
-                  const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
-                  return matchesSearch && matchesYear
-                }).map(a => (
-                  <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
-                      <span style={s.badgeIssued}>✓ Sent</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
-                      {new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, marginBottom: 4 }}>${Number(a.amount).toLocaleString()}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted }}>suggested default</div>
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 11.5, color: C.muted }}>
-                      {a.sent_count} sent{a.failed_count > 0 ? ` · ${a.failed_count} failed` : ''} · {a.donor_count} total
-                    </div>
+            ) : (() => {
+              const searchedAppeals = massAppeals.filter(a => {
+                const q = massAppealSearchTerm.toLowerCase().trim()
+                const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
+                const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
+                return matchesSearch && matchesYear
+              })
+              const byYear = {}
+              searchedAppeals.forEach(a => {
+                const y = new Date(a.created_at).getFullYear()
+                if (!byYear[y]) byYear[y] = []
+                byYear[y].push(a)
+              })
+              const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
+
+              const renderAppealCard = (a) => (
+                <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }} onClick={() => openAppealDetail(a)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{a.cause_name || 'General Appeal'}</div>
+                    <span style={s.badgeIssued}>✓ Sent</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
+                    {new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${Number(a.amount).toLocaleString()}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted }}>suggested amount asked per donor</div>
+                  </div>
+                  {a.message && (
+                    <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic', marginTop: 6, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      "{a.message}"
+                    </div>
+                  )}
+                  <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 11.5, color: C.muted }}>
+                    <span style={{ color: C.sage, fontWeight: 600 }}>{a.sent_count} sent</span>
+                    {a.failed_count > 0 && <span style={{ color: C.red, fontWeight: 600 }}> · {a.failed_count} failed</span>}
+                    {' · '}{a.donor_count} total
+                  </div>
+                  <div style={{ fontSize: 10.5, color: C.muted, marginTop: 8, textAlign: 'center' }}>Click for full details →</div>
+                </div>
+              )
+
+              return (
+                <div>
+                  {years.map(year => {
+                    const isExpanded = expandedAppealYears.has(year)
+                    return (
+                      <div key={year} style={{ marginBottom: 24 }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: isExpanded ? 12 : 0 }}
+                          onClick={() => setExpandedAppealYears(prev => {
+                            const next = new Set(prev)
+                            if (next.has(year)) next.delete(year); else next.add(year)
+                            return next
+                          })}
+                        >
+                          <span style={{ fontSize: 11, color: C.muted }}>{isExpanded ? '▾' : '▸'}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{year}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>({byYear[year].length} appeal{byYear[year].length !== 1 ? 's' : ''})</span>
+                        </div>
+                        {isExpanded && (
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                            {byYear[year].map(renderAppealCard)}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
 
             {showMassAppealModal && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
