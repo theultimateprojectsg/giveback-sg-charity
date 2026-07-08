@@ -4968,40 +4968,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
             <div style={isMobile ? s.twoColMobile : s.twoCol}>
               <div>
-                <div style={{ ...s.card, background: C.teal, marginBottom: 16 }}>
-                  <div style={{ ...s.donorAvatar, width: 56, height: 56, fontSize: 22, background: C.sage, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
+                <div style={{ background: C.forest, borderRadius: 4, padding: '20px 18px', marginBottom: 16 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: C.fontVoice, fontWeight: 500, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
+                  <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
                 </div>
-                <div style={s.card}>
-                  <div style={s.cardTitle}>Giving Summary</div>
-                  <div style={s.infoGrid}>
-                    <div style={{ ...s.infoItem, background: C.sage }}>
-                      <div style={{ ...s.infoLabel, color: 'rgba(255,255,255,0.7)' }}>Total Given</div>
-                      <div style={{ ...s.infoValue, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Summary</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div style={{ background: C.forest, borderRadius: 4, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Total Given</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
                     </div>
-                    <div style={s.infoItem}>
-                      <div style={s.infoLabel}>Donations</div>
-                      <div style={s.infoValue}>{selectedDonor.count}</div>
+                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Donations</div>
+                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{selectedDonor.count}</div>
                     </div>
-                    <div style={s.infoItem}>
-                      <div style={s.infoLabel}>Avg. Donation</div>
-                      <div style={s.infoValue}>${(selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Avg. Donation</div>
+                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${(selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                     </div>
-                    <div style={s.infoItem}>
-                      <div style={s.infoLabel}>Receipts</div>
-                      <div style={s.infoValue}>{selectedDonor.receipts}/{selectedDonor.count}</div>
+                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Receipts</div>
+                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{selectedDonor.receipts}/{selectedDonor.count}</div>
                     </div>
                   </div>
                   {charityIsIpc && (
-                    <div style={{ marginTop: 16, padding: 14, background: C.ivory, borderRadius: 12, border: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, color: C.muted }}>250% Tax Deductible</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: C.forest }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
+                    <div style={{ marginTop: 14, padding: 12, background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>250% Tax Deductible</span>
+                        <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: C.forest }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 12, color: C.muted }}>Est. Tax Savings (22%)</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: C.sage }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Est. Tax Savings (22%)</span>
+                        <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: C.sage }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                       </div>
                     </div>
                   )}
@@ -5014,9 +5014,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const isLapsed = daysSinceLastGift >= lapsedMinDays && selectedDonor.count >= lapsedMinGifts
                   if (outreachHistory.length === 0 && !dismissal && !isLapsed) return null
                   return (
-                    <div style={{ ...s.card, marginTop: 16 }}>
-                      <div style={{ ...s.cardTitle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        Outreach History
+                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Outreach History</span>
                         {isLapsed && !dismissal && (
                           <div style={{ display: 'flex', gap: 6 }}>
                             {selectedDonor.email && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) }}>✉ Reach Out</button>}
@@ -5025,7 +5025,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                       </div>
                       {dismissal && (
-                        <div style={{ background: C.ivory, borderRadius: 8, padding: '10px 12px', marginBottom: outreachHistory.length > 0 ? 10 : 0, border: `1px solid ${C.border}` }}>
+                        <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', marginBottom: outreachHistory.length > 0 ? 8 : 0, border: `1px solid ${C.border}` }}>
                           <div style={{ fontSize: 12.5, fontWeight: 500, color: C.muted }}>Marked not interested</div>
                           <div style={{ fontSize: 11, color: C.muted }}>{new Date(dismissal.dismissed_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} by {dismissal.dismissed_by}</div>
                           {dismissal.reason && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 4 }}>"{dismissal.reason}"</div>}
@@ -5034,7 +5034,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {outreachHistory.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {outreachHistory.map((r, i) => (
-                            <div key={i} style={{ background: C.ivory, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
+                            <div key={i} style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}` }}>
                               <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>✉ Re-engagement email sent</div>
                               <div style={{ fontSize: 11, color: C.muted }}>{new Date(r.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} by {r.sent_by}</div>
                             </div>
@@ -5050,8 +5050,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   if (!flagMatch) return null
                   const isUpgrade = flagMatch.changePct > 0
                   return (
-                    <div style={{ ...s.card, marginTop: 16 }}>
-                      <div style={s.cardTitle}>Giving Pattern</div>
+                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Pattern</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: isUpgrade ? '#EAF3EC' : '#FBEEE9', borderRadius: 4, marginBottom: 12 }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{isUpgrade ? 'Giving increased' : 'Giving decreased'}</div>
@@ -5099,13 +5099,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const b = donorBadgeMap[key]
                   if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
                   return (
-                    <div style={{ ...s.card, marginTop: 16 }}>
-                      <div style={s.cardTitle}>Milestones</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: b.hasUnackedBadge ? 16 : 0 }}>
+                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Milestones</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: b.hasUnackedBadge ? 14 : 0 }}>
                         {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
                         {b.isBigGift && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
-                        {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.teal, background: '#E8F0EE' }}>🔁 Loyal donor</span>}
-                        {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: '#993C1D', background: '#FAECE7' }}>📈 Biggest gift yet</span>}
+                        {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal donor</span>}
+                        {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest gift yet</span>}
                       </div>
                       {b.hasUnackedBadge && (
                         <button
@@ -5117,8 +5117,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
-              <div style={{ ...s.card, marginBottom: 16 }}>
-                <div style={s.cardTitle}>🏷️ Tags</div>
+              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
                 {(() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
                   const tags = donorTagsMap[donorKey] || []
@@ -5128,7 +5128,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, minHeight: 28 }}>
                         {tags.length === 0 && <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No tags yet</span>}
                         {tags.map(t => (
-                          <span key={t.id} style={{ fontSize: 11, fontWeight: 700, color: C.teal, background: '#E8F0EE', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span key={t.id} style={{ fontSize: 11, fontWeight: 600, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                             {t.tag}
                             <span style={{ cursor: 'pointer', color: C.muted, fontSize: 12 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
                           </span>
@@ -5138,7 +5138,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
                           <span
                             key={p}
-                            style={{ fontSize: 11, color: C.muted, background: C.ivoryDark, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: `1px dashed ${C.border}` }}
+                            style={{ fontSize: 11, color: C.muted, background: C.ivory, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', border: `1px dashed ${C.borderStrong}` }}
                             onClick={() => { setNewTagInput(p); }}
                           >+ {p}</span>
                         ))}
@@ -5162,8 +5162,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
               </div>
 
-              <div style={{ ...s.card, marginBottom: 16 }}>
-                <div style={s.cardTitle}>📋 Communication Log</div>
+              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   <select
                     style={{ ...s.filterSelect, fontSize: 12, padding: '8px 12px' }}
@@ -5196,7 +5196,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {donorNotes.map((n, i) => {
                       const typeConfig = {
-                        call:      { icon: '📞', label: 'Call',      color: C.teal },
+                        call:      { icon: '📞', label: 'Call',      color: C.forest },
                         email:     { icon: '📧', label: 'Email',     color: C.sage },
                         meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
                         whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
@@ -5204,11 +5204,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       }
                       const tc = typeConfig[n.note_type] || typeConfig.note
                       return (
-                        <div key={n.id} style={{ background: C.ivory, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+                        <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '12px 14px', border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontSize: 14 }}>{tc.icon}</span>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 600, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontSize: 11, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -5232,8 +5232,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
 
-              <div style={s.card}>
-                <div style={s.cardTitle}>Donation History</div>
+              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).map(d => (
                     <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
@@ -9470,10 +9470,10 @@ const s = {
   logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
   charityBadge: { margin: 16, background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 10 },
   charityIcon: { width: 36, height: 36, background: '#FFF5E6', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
-  charityName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
+  charityName: { fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: 'white', lineHeight: 1.3 },
   charityUen: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   navSection: { padding: '8px 12px', flex: 1 },
-  navLabel: { fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5, padding: '12px 12px 6px' },
+  navLabel: { fontFamily: C.fontMono, fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5, padding: '12px 12px 6px' },
   navItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', marginBottom: 2, fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.6)' },
   navItemActive: { background: C.sage, color: 'white' },
   navIcon: { fontSize: 16, width: 20, textAlign: 'center' },
