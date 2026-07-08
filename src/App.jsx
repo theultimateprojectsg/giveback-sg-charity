@@ -290,6 +290,20 @@ export default function App() {
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [fulfillAmount, setFulfillAmount] = useState('')
+  const [donationPledgeLink, setDonationPledgeLink] = useState(null)
+
+  useEffect(() => {
+    if (selectedDonation) {
+      supabase
+        .from('pledge_donations')
+        .select('pledge_id, amount_applied, pledges(donor_name)')
+        .eq('donation_id', selectedDonation.id)
+        .maybeSingle()
+        .then(({ data }) => setDonationPledgeLink(data || null))
+    } else {
+      setDonationPledgeLink(null)
+    }
+  }, [selectedDonation?.id])
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
@@ -1882,6 +1896,20 @@ export default function App() {
     const pledge = pledges.find(p => p.id === pledgeId)
     if (!pledge) { showToast('Pledge not found', 'error'); setLinkingPledgeManually(false); return }
 
+    const { data: existingLink } = await supabase
+      .from('pledge_donations')
+      .select('pledge_id, pledges(donor_name)')
+      .eq('donation_id', donation.id)
+      .maybeSingle()
+
+    if (existingLink) {
+      const alreadyLinkedTo = existingLink.pledge_id === pledge.id ? 'this same pledge' : `${existingLink.pledges?.donor_name || 'a different'} pledge`
+      showToast(`This donation is already linked to ${alreadyLinkedTo} — not linking again`, 'error')
+      setLinkingPledgeManually(false)
+      setShowManualPledgeLinkModal(false)
+      return
+    }
+
     const { error: linkError } = await supabase.from('pledge_donations').insert({
       pledge_id: pledge.id,
       donation_id: donation.id,
@@ -2445,31 +2473,56 @@ export default function App() {
     setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' })
   }
 
-  function deleteDonation(id) {
+  async function deleteDonation(id) {
     const donationToDelete = donations.find(d => d.id === id)
-    const description = donationToDelete?.receipt_issued
+
+    const { data: pledgeLink } = await supabase
+      .from('pledge_donations')
+      .select('pledge_id, amount_applied, pledges(donor_name, status)')
+      .eq('donation_id', id)
+      .maybeSingle()
+
+    let description = donationToDelete?.receipt_issued
       ? 'This entry already has a receipt issued. The record will be kept for audit purposes but removed from your active lists.'
       : 'The record will be kept for audit purposes but removed from your active lists.'
+
+    if (pledgeLink) {
+      description = `⚠ This donation is linked to ${pledgeLink.pledges?.donor_name || 'a'}'s pledge ($${Number(pledgeLink.amount_applied).toLocaleString()} applied). Deleting it will unlink it from that pledge and reduce the pledge's given-total accordingly${pledgeLink.pledges?.status === 'fulfilled' ? '. Since this pledge was marked fulfilled by this donation, it will also revert to pending.' : '.'}`
+    }
+
     setConfirmModal({
       title: donationToDelete?.receipt_issued ? 'Delete this entry anyway?' : 'Delete this manual entry?',
       description,
       confirmLabel: 'Delete',
-      onConfirm: () => deleteDonationConfirmed(id),
+      onConfirm: () => deleteDonationConfirmed(id, pledgeLink),
     })
   }
 
-  async function deleteDonationConfirmed(id) {
+  async function deleteDonationConfirmed(id, pledgeLink = null) {
     const donationToDelete = donations.find(d => d.id === id)
     const originalStatus = donationToDelete?.status || 'confirmed'
     setDeletingId(id)
     const { error } = await supabase.from('donations').update({ status: 'deleted_by_charity' }).eq('id', id)
     if (error) { console.error(error); setDeletingId(null); return }
+
+    if (pledgeLink) {
+      await supabase.from('pledge_donations').delete().eq('pledge_id', pledgeLink.pledge_id).eq('donation_id', id)
+      setPledgeGivenTotals(prev => ({
+        ...prev,
+        [pledgeLink.pledge_id]: Math.max(0, (prev[pledgeLink.pledge_id] || 0) - Number(pledgeLink.amount_applied))
+      }))
+      if (pledgeLink.pledges?.status === 'fulfilled') {
+        await supabase.from('pledges').update({ status: 'pending' }).eq('id', pledgeLink.pledge_id)
+        setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending' } : p))
+      }
+    }
+
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'manual_entry_deleted',
       donation_id: id,
-      details: { donor_name: donationToDelete?.donor_name, amount: donationToDelete?.amount },
+      details: { donor_name: donationToDelete?.donor_name, amount: donationToDelete?.amount, unlinked_pledge: pledgeLink?.pledge_id || null },
     })
     setDonations(prev => prev.filter(d => d.id !== id))
     setDeletingId(null)
@@ -5560,7 +5613,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {selectedDonation.receipt_issued && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
                         )}
-                        {selectedDonation.payment_status === 'confirmed' && pledges.filter(p => p.status === 'pending').length > 0 && (
+                        {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
+                          <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
+                            ✓ Already linked to {donationPledgeLink.pledges?.donor_name || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
+                          </div>
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
                         )}
                         {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && (
@@ -8341,7 +8399,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
             {pledgeResolutionModal.type === 'fulfilled' && (
               <div style={{ marginBottom: 16 }}>
-                <div style={s.formLabel}>Amount received (SGD)</div>
+                <div style={s.formLabel}>Amount Received (SGD)</div>
                 <input style={s.formInput} type="number" value={fulfillAmount} onChange={e => setFulfillAmount(e.target.value)} />
               </div>
             )}
