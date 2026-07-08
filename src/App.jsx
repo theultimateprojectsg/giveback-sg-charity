@@ -125,6 +125,31 @@ export default function App() {
   const [newTagInput, setNewTagInput] = useState('')
   const [savingTag, setSavingTag] = useState(false) 
   const [filterDonorTag, setFilterDonorTag] = useState('All')
+  const DONOR_COLUMN_OPTIONS = [
+    { key: 'total', label: 'Total Given' },
+    { key: 'count', label: 'Donations' },
+    { key: 'avg', label: 'Avg. Donation' },
+    { key: 'lastDate', label: 'Last Donation' },
+    { key: 'tags', label: 'Tags' },
+    { key: 'milestones', label: 'Milestones' },
+    { key: 'recurring', label: 'Recurring Status' },
+    { key: 'pledge', label: 'Pledge Status' },
+  ]
+  const DONOR_COLUMN_DEFAULTS = ['total', 'count', 'avg', 'lastDate', 'tags']
+  const [selectedDonorColumns, setSelectedDonorColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('donorTableColumns')
+      return saved ? JSON.parse(saved) : DONOR_COLUMN_DEFAULTS
+    } catch { return DONOR_COLUMN_DEFAULTS }
+  })
+  const [showColumnPicker, setShowColumnPicker] = useState(false)
+  const toggleDonorColumn = (key) => {
+    setSelectedDonorColumns(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      localStorage.setItem('donorTableColumns', JSON.stringify(next))
+      return next
+    })
+  }
   const [userRole, setUserRole] = useState('staff')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
@@ -4999,6 +5024,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
                   )}
+                  {!isMobile && !isTablet && (
+                    <div style={{ position: 'relative' }}>
+                      <button style={s.exportSmallBtn} onClick={() => setShowColumnPicker(v => !v)}>⚙️ Columns</button>
+                      {showColumnPicker && (
+                        <>
+                          <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowColumnPicker(false)} />
+                          <div style={{ position: 'absolute', top: '110%', right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 10, zIndex: 50, minWidth: 200 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show columns</div>
+                            {DONOR_COLUMN_OPTIONS.map(opt => (
+                              <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 4px', fontSize: 13, color: C.forest, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={selectedDonorColumns.includes(opt.key)} onChange={() => toggleDonorColumn(opt.key)} />
+                                {opt.label}
+                              </label>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })()}
@@ -5040,7 +5084,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', 'Total Given', 'Donations', 'Avg. Donation', 'Last Donation', 'Tags', 'Milestones']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', ...DONOR_COLUMN_OPTIONS.filter(o => selectedDonorColumns.includes(o.key)).map(o => o.label)]).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {combinedDonorList.filter(d => {
@@ -5069,30 +5113,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             </div>
                           </td>
-                          <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>}
-                          <td style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
-                          {!isTablet && <td style={s.td}>
-                            {tags.length > 0 ? (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {tags.slice(0, 2).map(t => (
-                                  <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
-                                ))}
-                                {tags.length > 2 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 2}</span>}
-                              </div>
-                            ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
-                          </td>}
-                          {!isTablet && <td style={s.td}>
-                            {b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet) ? (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First gift</span>}
-                                {b.isBigGift && <span style={s.badgeIssued}>💰 Big gift</span>}
-                                {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal</span>}
-                                {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest yet</span>}
-                              </div>
-                            ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
-                          </td>}
+                          {isTablet ? (
+                            <>
+                              <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
+                              <td style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
+                            </>
+                          ) : (() => {
+                            const openPledge = pledges.find(p => p.status === 'pending' && (p.donor_email?.trim() || p.donor_name) === donorKey)
+                            const activeRecurring = recurringGifts.find(g => g.status === 'active' && (g.donor_email?.trim() || g.donor_name) === donorKey)
+                            const cellRenderers = {
+                              total: <td key="total" style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>,
+                              count: <td key="count" style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>,
+                              avg: <td key="avg" style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>,
+                              lastDate: <td key="lastDate" style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>,
+                              tags: (
+                                <td key="tags" style={s.td}>
+                                  {tags.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {tags.map(t => (
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
+                                      ))}
+                                    </div>
+                                  ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
+                                </td>
+                              ),
+                              milestones: (
+                                <td key="milestones" style={s.td}>
+                                  {b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet) ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First gift</span>}
+                                      {b.isBigGift && <span style={s.badgeIssued}>💰 Big gift</span>}
+                                      {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal</span>}
+                                      {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest yet</span>}
+                                    </div>
+                                  ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
+                                </td>
+                              ),
+                              recurring: (
+                                <td key="recurring" style={s.td}>
+                                  {activeRecurring ? <span style={s.badgeIssued}>🔁 ${activeRecurring.amount}/{activeRecurring.frequency}</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
+                                </td>
+                              ),
+                              pledge: (
+                                <td key="pledge" style={s.td}>
+                                  {openPledge ? <span style={s.badgePending}>${openPledge.amount.toLocaleString()} pending</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
+                                </td>
+                              ),
+                            }
+                            return selectedDonorColumns.map(key => cellRenderers[key]).filter(Boolean)
+                          })()}
                         </tr>
                       )
                     })}
