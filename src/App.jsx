@@ -4459,9 +4459,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</span>
-                          <span style={{ textAlign: 'right' }}>
-                            <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>${d.total.toLocaleString()}</span>
-                            <span style={{ fontSize: 10.5, color: C.muted, marginLeft: 6 }}>({grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%)</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>
+                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
                           </span>
                         </div>
                       ))}
