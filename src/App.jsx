@@ -194,6 +194,7 @@ export default function App() {
   const [dismissingLapsed, setDismissingLapsed] = useState(false)
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
   const [showAllLapsedDonors, setShowAllLapsedDonors] = useState(false)
+  const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState(false)
   const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
     const saved = localStorage.getItem('gt_giving_change_min_gifts')
     return saved ? Number(saved) : 3
@@ -4136,9 +4137,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
                       <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                     </div>
-                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600, marginBottom: 10 }}>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 600, marginBottom: 14 }}>
                       {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                      {sorted.slice(0, showAllConcentrationDonors ? 10 : 3).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest, textDecoration: 'underline' }}>{d.name}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 12.5, fontWeight: 600, color: C.forest }}>${d.total.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {sorted.length > 3 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
+                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
+                      </button>
+                    )}
                     <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
                   </div>
 
@@ -4178,7 +4192,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })}
                     </div>
                     {activeLapsed.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 8, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
                         {showAllLapsedDonors ? 'Show fewer' : `Show all ${activeLapsed.length}`}
                       </button>
                     )}
