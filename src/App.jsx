@@ -1451,6 +1451,21 @@ export default function App() {
     showToast('Campaign marked complete ✓')
   }
 
+  async function restoreCause(c) {
+    setBulkActionInProgress(true)
+    const { error } = await supabase.from('causes').update({ status: 'approved', active: true }).eq('id', c.id)
+    setBulkActionInProgress(false)
+    if (error) { showToast('Error restoring campaign', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_restored',
+      details: { title: c.title, charity_uen: charityUen },
+    })
+    loadMyCauses()
+    showToast(`"${c.title}" restored ✓`)
+  }
+
   async function permanentlyDeleteCause(c) {
     const linkedDonations = donations.filter(d => d.cause_id === c.id).length
     if (linkedDonations > 0) {
@@ -7477,7 +7492,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </>
                       )}
                       {c.status === 'deleted' ? (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
+                        <>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
+                        </>
                       ) : (
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
