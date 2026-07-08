@@ -209,6 +209,23 @@ export default function App() {
   const [appealRecipients, setAppealRecipients] = useState([])
   const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
   const [showMassAppealModal, setShowMassAppealModal] = useState(false)
+  const [donorContacts, setDonorContacts] = useState([])
+  const [showAddDonorModal, setShowAddDonorModal] = useState(false)
+  const [addDonorForm, setAddDonorForm] = useState({ full_name: '', email: '', nric: '', notes: '' })
+  const [addDonorError, setAddDonorError] = useState('')
+  const [savingDonorContact, setSavingDonorContact] = useState(false)
+
+  async function loadDonorContacts(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('charity_donor_contacts')
+      .select('*')
+      .eq('charity_uen', uen)
+      .order('created_at', { ascending: false })
+    if (error) { console.error('Could not load donor contacts:', error); return }
+    setDonorContacts(data || [])
+  }
   const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
 
   async function openAppealDetail(appeal) {
@@ -493,6 +510,7 @@ export default function App() {
       loadRecurringGifts(session)
       loadMassAppeals(session)
       loadLapsedReminders(session)
+      loadDonorContacts(session)
       loadGivingChangeAcks(session)
     }
   }, [session])
@@ -2903,6 +2921,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
   const activeDonorList = donorList.filter(d => !d.deactivated)
 
+  const contactOnlyDonors = donorContacts
+    .filter(c => {
+      const contactKey = c.email?.trim() || c.full_name
+      return !activeDonorList.some(d => (d.email?.trim() || d.name) === contactKey)
+    })
+    .map(c => ({
+      name: c.full_name,
+      email: c.email,
+      nric: c.nric,
+      total: 0,
+      count: 0,
+      receipts: 0,
+      deactivated: false,
+      doNotContact: false,
+      isContactOnly: true,
+      contactNotes: c.notes,
+    }))
+
+  const combinedDonorList = [...activeDonorList, ...contactOnlyDonors]
+
   useEffect(() => {
     if (pendingSelectedDonorKey && !selectedDonor && activeDonorList.length > 0) {
       const found = activeDonorList.find(d => (d.email?.trim() || d.name) === pendingSelectedDonorKey)
@@ -3231,6 +3269,59 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  async function saveDonorContact() {
+    if (!addDonorForm.full_name.trim()) { setAddDonorError('Name is required'); return }
+    setSavingDonorContact(true)
+    setAddDonorError('')
+
+    const newKey = addDonorForm.email?.trim() || addDonorForm.full_name.trim()
+    const alreadyExists = activeDonorList.some(d => (d.email?.trim() || d.name) === newKey)
+    if (alreadyExists) {
+      setAddDonorError('A donor with this name or email already exists in your donation records.')
+      setSavingDonorContact(false)
+      return
+    }
+
+    const { data, error } = await supabase.from('charity_donor_contacts').insert({
+      charity_uen: charityUen,
+      full_name: addDonorForm.full_name.trim(),
+      email: addDonorForm.email.trim() || null,
+      nric: addDonorForm.nric.trim() || null,
+      notes: addDonorForm.notes.trim() || null,
+      created_by: session.user.email,
+    }).select()
+
+    setSavingDonorContact(false)
+    if (error) { setAddDonorError(`Error: ${error.message}`); return }
+
+    setDonorContacts(prev => [data[0], ...prev])
+    setShowAddDonorModal(false)
+    setAddDonorForm({ full_name: '', email: '', nric: '', notes: '' })
+    showToast(`${data[0].full_name} added ✓`)
+  }
+
+  function exportDonorsExcel(filteredDonors) {
+    const rows = filteredDonors.map(d => {
+      const donorKey = d.email?.trim() || d.name
+      return {
+        'Name': d.name,
+        'Email': d.email || '',
+        'Total Given (SGD)': d.total,
+        'Donations': d.count,
+        'Avg. Donation (SGD)': d.count > 0 ? Math.round(d.total / d.count) : 0,
+        'Receipts Issued': `${d.receipts}/${d.count}`,
+        'Tags': (donorTagsMap[donorKey] || []).map(t => t.tag).join(', '),
+        'Do Not Contact': d.doNotContact ? 'Yes' : 'No',
+      }
+    })
+    if (rows.length === 0) { showToast('No donors to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 14 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Donors')
+    XLSX.writeFile(wb, `GivingTree-Donors-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   function exportCampaignsExcel(filteredCampaigns) {
@@ -4819,8 +4910,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>Donors</div>
-                <div style={s.pageSub}>{uniqueDonors.length} donors · All time</div>
+                <div style={s.pageSub}>{combinedDonorList.length} donors · All time</div>
               </div>
+              <button style={s.btnGold} onClick={() => { setAddDonorForm({ full_name: '', email: '', nric: '', notes: '' }); setAddDonorError(''); setShowAddDonorModal(true) }}>+ Add Donor</button>
             </div>
             {filterTopDonorNames && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
@@ -4839,6 +4931,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {allTags.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
+                  <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                    const q = searchTerm.toLowerCase()
+                    const filtered = combinedDonorList.filter(d => {
+                      const matchesSearch = d.name?.toLowerCase().includes(q)
+                      const donorKey = d.email?.trim() || d.name
+                      const matchesTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
+                      return matchesSearch && matchesTag
+                    })
+                    exportDonorsExcel(filtered)
+                  }}>⬇️ Export to Excel</button>
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
                   )}
@@ -4852,7 +4954,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (isMobile || isTablet) ? (
                 <div>
-                  {activeDonorList.filter(d => {
+                  {combinedDonorList.filter(d => {
                     const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
                     const donorKey = d.email?.trim() || d.name
                     const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
@@ -4882,7 +4984,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <tr>{(isTablet ? ['Donor', 'Total Given', 'Receipts', ''] : ['Donor', 'Total Given', 'Donations', 'Last Donation', 'Milestones', 'Receipts', '']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {activeDonorList.filter(d => {
+                    {combinedDonorList.filter(d => {
                       const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
                       const donorKey = d.email?.trim() || d.name
                       const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
