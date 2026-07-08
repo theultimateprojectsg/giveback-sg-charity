@@ -4984,7 +4984,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Receipts', ''] : ['Donor', 'Total Given', 'Donations', 'Last Donation', 'Milestones', 'Receipts', '']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+                    <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', 'Total Given', 'Donations', 'Avg. Donation', 'Milestones', 'Last Donation']).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {combinedDonorList.filter(d => {
@@ -4999,19 +4999,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const milestoneCount = b ? [b.isFirstTime, b.isBigGift, b.isLoyal, b.isBiggestYet].filter(Boolean).length : 0
                       const hasUnacked = b?.hasUnackedBadge
                       return (
-                        <tr key={i} style={s.tr}>
+                        <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
                             <div style={s.donorCell}>
                               <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donorName}>{d.name}</div>
+                                {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4, marginTop: 2, display: 'inline-block' }}>👤 Prospect</span>}
                                 {(() => {
                                   const donorKey = d.email?.trim() || d.name
                                   const tags = donorTagsMap[donorKey] || []
                                   return tags.length > 0 ? (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
                                       {tags.slice(0, 3).map(t => (
-                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: '#E8F0EE', padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
                                       ))}
                                       {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
                                     </div>
@@ -5021,8 +5022,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           </td>
                           <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count > 1 ? 's' : ''}</span></td>}
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
+                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>}
+                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
                           {!isTablet && <td style={s.td}>
                             {milestoneCount > 0 ? (
                               <span style={{ ...(hasUnacked ? { color: C.gold, background: '#FDF8EC' } : s.badgeIssued) }}>
@@ -5030,8 +5031,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </span>
                             ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
                           </td>}
-                          <td style={s.td}><span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} issued</span></td>
-                          <td style={s.td}><button style={s.viewBtn} onClick={() => setSelectedDonor(d)}>View</button></td>
+                          <td style={s.td}><span style={d.count === 0 ? { fontSize: 11, color: C.muted } : d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.count === 0 ? '—' : `${d.receipts}/${d.count} issued`}</span></td>
                         </tr>
                       )
                     })}
