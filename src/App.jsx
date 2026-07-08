@@ -5956,7 +5956,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           ).map(h => {
                             const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
                             return (
-                              <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none' }} onClick={() => {
+                              <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none', width: h === 'Donor' ? 220 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => {
                                 if (!sortKey) return
                                 if (donationSortBy === sortKey) setDonationSortDir(d => d === 'asc' ? 'desc' : 'asc')
                                 else { setDonationSortBy(sortKey); setDonationSortDir('desc') }
@@ -9879,7 +9879,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   tableCount: { fontSize: 11.5, color: C.muted },
   pendingBadge: { background: C.warningBg, color: C.warning, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 4 },
   empty: { padding: 32, textAlign: 'center', color: C.muted, fontSize: 13, fontStyle: 'italic' },
-  table: { width: '100%', borderCollapse: 'collapse' },
+  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, background: C.ivory, borderBottom: `1px solid ${C.border}` },
   tr: { borderBottom: `1px solid ${C.ivoryDark}` },
   td: { padding: '11px 18px', fontSize: 13 },
