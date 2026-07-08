@@ -7427,6 +7427,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All') && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All') }}>✕ Clear Filters</button>
               )}
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                const q = recurringSearchTerm.toLowerCase().trim()
+                const today = new Date(); today.setHours(0,0,0,0)
+                const filtered = recurringGifts.filter(g => {
+                  const matchesSearch = !q || [g.donor_name, g.donor_email, g.notes, g.giro_reference].some(f => f?.toLowerCase().includes(q))
+                  const matchesType = recurringTypeFilter === 'All' || g.type === recurringTypeFilter
+                  const amt = Number(g.amount)
+                  const matchesAmt = recurringAmountFilter === 'All'
+                    || (recurringAmountFilter === 'Under 50' && amt < 50)
+                    || (recurringAmountFilter === '50-200' && amt >= 50 && amt <= 200)
+                    || (recurringAmountFilter === '200-500' && amt > 200 && amt <= 500)
+                    || (recurringAmountFilter === 'Over 500' && amt > 500)
+                  let matchesUrgency = true
+                  if (recurringUrgencyFilter !== 'All') {
+                    if (g.status !== 'active') matchesUrgency = false
+                    else {
+                      const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
+                      if (recurringUrgencyFilter === 'Late') matchesUrgency = days < -7
+                      else if (recurringUrgencyFilter === 'Due Soon') matchesUrgency = days >= -7 && days <= 7
+                      else if (recurringUrgencyFilter === 'Healthy') matchesUrgency = days > 7
+                    }
+                  }
+                  return matchesSearch && matchesType && matchesAmt && matchesUrgency
+                })
+                exportRecurringExcel(filtered)
+              }}>⬇️ Export to Excel</button>
             </div>
 
             {(() => {
