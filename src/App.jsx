@@ -4997,8 +4997,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const key = d.email?.trim() || d.name
                       const b = donorBadgeMap[key]
                       const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
-                      const donorKey = d.email?.trim() || d.name
-                      const tags = donorTagsMap[donorKey] || []
                       return (
                         <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
@@ -5010,35 +5008,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBEEE9', padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
                                   {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
                                 </div>
+                                {(() => {
+                                  const donorKey = d.email?.trim() || d.name
+                                  const tags = donorTagsMap[donorKey] || []
+                                  return tags.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
+                                      {tags.slice(0, 3).map(t => (
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
+                                      ))}
+                                      {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
+                                    </div>
+                                  ) : null
+                                })()}
                               </div>
                             </div>
                           </td>
                           <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
                           {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>}
                           <td style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
-                          {!isTablet && <td style={s.td}>
-                            {tags.length > 0 ? (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {tags.slice(0, 2).map(t => (
-                                  <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
-                                ))}
-                                {tags.length > 2 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 2}</span>}
-                              </div>
-                            ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
-                          </td>}
                           {!isTablet && <td style={s.td}>
                             {b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet) ? (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First gift</span>}
-                                {b.isBigGift && <span style={s.badgeIssued}>💰 Big gift</span>}
-                                {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal</span>}
-                                {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest yet</span>}
+                                {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕</span>}
+                                {b.isBigGift && <span style={s.badgeIssued}>💰</span>}
+                                {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁</span>}
+                                {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈</span>}
                               </div>
                             ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
                           </td>}
-                        </tr>
-                      )
                           {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
                         </tr>
                       )
