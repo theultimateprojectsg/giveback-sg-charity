@@ -8806,6 +8806,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {selectedAppealDetail.message}
                 </div>
               )}
+              <button
+                style={{ ...s.viewBtn, marginTop: 12, width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  setMassAppealForm({
+                    cause_id: selectedAppealDetail.cause_id || '',
+                    amount: String(selectedAppealDetail.amount || ''),
+                    message: selectedAppealDetail.message || '',
+                  })
+                  setMassAppealStep('setup')
+                  setMassAppealRefs([])
+                  setSelectedAppealDetail(null)
+                  setShowMassAppealModal(true)
+                }}
+              >📋 Clone this Appeal</button>
             </div>
             <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
               {loadingAppealDetail ? (
