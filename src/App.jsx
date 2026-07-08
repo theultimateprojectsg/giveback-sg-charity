@@ -4828,25 +4828,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => setFilterTopDonorNames(null)}>✕ Clear</button>
               </div>
             )}
-            <div style={isMobile ? s.statsGridMobile : isTablet ? s.statsGridTablet : s.statsGrid}>
-              <div style={{ ...s.statCard, background: C.forest, borderColor: C.forest }}>
-                <div style={{ ...s.statLabel, color: 'rgba(255,255,255,0.7)' }}>Total Donors</div>
-                <div style={{ ...s.statValue, color: 'white' }}>{uniqueDonors.length}</div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Avg. Donation</div>
-                <div style={s.statValue}>${avgDonation.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Total Raised, All Time</div>
-                <div style={s.statValue}>${totalAllTime.toLocaleString()}</div>
-              </div>
-              <div style={s.statCard}>
-                <div style={s.statLabel}>Receipts Issued</div>
-                <div style={s.statValue}>{issuedCount}</div>
-                <div style={s.statNote}>of {donations.length} donations</div>
-              </div>
-            </div>
+            
             {(() => {
               const allTags = [...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort()
               return (
