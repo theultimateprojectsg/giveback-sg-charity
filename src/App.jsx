@@ -4996,16 +4996,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }).map((d, i) => {
                       const key = d.email?.trim() || d.name
                       const b = donorBadgeMap[key]
-                      const milestoneCount = b ? [b.isFirstTime, b.isBigGift, b.isLoyal, b.isBiggestYet].filter(Boolean).length : 0
-                      const hasUnacked = b?.hasUnackedBadge
+                      const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
                       return (
                         <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
                             <div style={s.donorCell}>
                               <div style={{ ...s.donorAvatar, background: [C.sage, C.gold, C.forest, C.red, C.borderStrong][i % 5] }}>{d.name?.charAt(0)}</div>
                               <div>
-                                <div style={s.donorName}>{d.name}</div>
-                                {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4, marginTop: 2, display: 'inline-block' }}>👤 Prospect</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <div style={s.donorName}>{d.name}</div>
+                                  {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBEEE9', padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
+                                  {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
+                                </div>
                                 {(() => {
                                   const donorKey = d.email?.trim() || d.name
                                   const tags = donorTagsMap[donorKey] || []
@@ -5023,15 +5025,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </td>
                           <td style={s.td}><span style={s.amountText}>${d.total.toLocaleString()}</span></td>
                           {!isTablet && <td style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>}
-                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
+                          <td style={s.td}><span style={s.dateText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>
                           {!isTablet && <td style={s.td}>
-                            {milestoneCount > 0 ? (
-                              <span style={{ ...(hasUnacked ? { color: C.gold, background: '#FDF8EC' } : s.badgeIssued) }}>
-                                <span style={hasUnacked ? { fontSize: 10, fontWeight: 500, padding: '3px 10px', borderRadius: 20, display: 'inline-block', color: C.gold, background: '#FDF8EC' } : s.badgeIssued}>⭐ {milestoneCount}</span>
-                              </span>
+                            {b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet) ? (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕</span>}
+                                {b.isBigGift && <span style={s.badgeIssued}>💰</span>}
+                                {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁</span>}
+                                {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈</span>}
+                              </div>
                             ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
                           </td>}
-                          <td style={s.td}><span style={d.count === 0 ? { fontSize: 11, color: C.muted } : d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.count === 0 ? '—' : `${d.receipts}/${d.count} issued`}</span></td>
+                          {!isTablet && <td style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>}
                         </tr>
                       )
                     })}
