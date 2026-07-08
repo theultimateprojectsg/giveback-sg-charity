@@ -4490,7 +4490,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         return (
                           <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 26, height: 26, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: C.fontVoice, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                               <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
                                 <div style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{d.name}</div>
                                 <div style={{ fontSize: 10.5, color: C.muted }}>{daysSince}d ago · ${d.total.toLocaleString()} lifetime</div>
