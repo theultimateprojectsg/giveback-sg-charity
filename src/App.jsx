@@ -1748,7 +1748,7 @@ export default function App() {
     if (!session?.user?.email) { showToast('No email on your account', 'error'); return }
     setSendingTestAppeal(true)
     const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
-    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
     const testMessage = massAppealForm.message
       ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
       : null
@@ -1810,7 +1810,7 @@ export default function App() {
     let sent = 0
     let failed = 0
     let blocked = 0
-    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
 
     for (let i = 0; i < selected.length; i++) {
       if (massAppealCancelRef.current) break
@@ -1872,7 +1872,7 @@ export default function App() {
     showToast('Generating QR codes...')
 
     const zip = new JSZip()
-    const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'Appeal' : 'Appeal'
+    const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'General Appeal') : 'General Appeal'
 
     for (const donor of selected) {
       // Render QR to canvas via a temporary DOM element
@@ -8602,7 +8602,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             {(() => {
               const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
-              const causeName = massAppealForm.cause_id ? myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'our campaign' : 'our campaign'
+              const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || null) : null
               const previewMessage = massAppealForm.message
                 ? massAppealForm.message.replace(/\[name\]/gi, sampleDonor?.donor_name?.split(' ')[0] || 'there')
                 : '(No message written yet)'
@@ -8614,7 +8614,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                   <div style={{ padding: 24, background: C.ivory }}>
                     <div style={{ background: C.forest, borderRadius: 12, padding: 24, textAlign: 'center', marginBottom: 16 }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>{causeName}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>{causeName || 'We need your help'}</div>
                     </div>
                     <div style={{ background: C.white, borderRadius: 12, padding: 20, border: `1px solid ${C.border}` }}>
                       <div style={{ fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: 16 }}>{previewMessage}</div>
