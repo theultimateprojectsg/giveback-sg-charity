@@ -7377,7 +7377,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Campaigns <InfoTip text="A campaign tracks progress toward a fundraising goal. Link a Mass Appeal to a campaign, and donations paid via that appeal's PayNow QR are automatically tagged to it when you confirm the payment." /></div>
+                <div style={s.pageTitle}>Campaigns</div>
                 <div style={s.pageSub}>{myCauses.filter(c => c.type === 'campaign').length} campaign{myCauses.filter(c => c.type === 'campaign').length !== 1 ? 's' : ''} · Trackable goals for Mass Appeal and manual donations</div>
               </div>
               <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCampaignModal(true) }}>+ New Campaign</button>
@@ -7449,8 +7449,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
                     {c.target_amount > 0 && (
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
+                            <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
+                          </span>
                           <span style={{ fontSize: 11.5, color: C.muted }}>of ${Number(c.target_amount).toLocaleString()}</span>
                         </div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
@@ -7578,7 +7581,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Recurring Giving <InfoTip text="Mark Received creates a real donation record and advances the schedule. Skip This Cycle advances the schedule without creating a donation, for a missed or failed auto-payment." /></div>
+                <div style={s.pageTitle}>Recurring Giving</div>
                 <div style={s.pageSub}>{recurringGifts.filter(g => g.status === 'active').length} active · ${recurringGifts.filter(g => g.status === 'active').reduce((s, g) => s + g.amount, 0).toLocaleString()} expected/cycle</div>
               </div>
               <button style={s.btnGold} onClick={() => { setShowRecurringForm(true); setRecurringError('') }}>+ Add Recurring Gift</button>
@@ -7775,8 +7778,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                     {recurringGivenTotals[g.id] && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.sage + '1A', border: `1px solid ${C.sage}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.sage, display: 'flex', alignItems: 'center', gap: 4 }}>
                           ${recurringGivenTotals[g.id].total.toLocaleString()} total · {recurringGivenTotals[g.id].count} payment{recurringGivenTotals[g.id].count !== 1 ? 's' : ''}
+                          <InfoTip text="Sum of every payment recorded via Mark Received for this recurring gift, not an estimate." />
                         </span>
                       </div>
                     )}
@@ -7882,7 +7886,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Pledges <InfoTip text="A pledge is a promise to give a specific amount by a date. Donations from that donor are matched automatically and applied to their earliest-due pledge. Reminders snooze the pledge for 30 days; marking Fulfilled records a real donation." /></div>
+                <div style={s.pageTitle}>Pledges</div>
                 <div style={s.pageSub}>{pledges.filter(p => p.status === 'pending').length} pending · {pledges.filter(p => p.status === 'fulfilled').length} fulfilled</div>
               </div>
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
@@ -8199,7 +8203,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ ...s.pageTitle, display: 'flex', alignItems: 'center', gap: 6 }}>Mass Appeal <InfoTip text="Emails your donor base with a personal PayNow QR code each. Donors marked Do Not Contact are automatically skipped. Type [name] in your message to insert each donor's first name." /></div>
+                <div style={s.pageTitle}>Mass Appeal</div>
                 <div style={s.pageSub}>{massAppeals.length} appeal{massAppeals.length !== 1 ? 's' : ''} sent · Personal PayNow QR codes to your donor base</div>
               </div>
               <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
