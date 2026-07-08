@@ -296,10 +296,18 @@ export default function App() {
     if (selectedDonation) {
       supabase
         .from('pledge_donations')
-        .select('pledge_id, amount_applied, pledges(donor_name)')
+        .select('pledge_id, amount_applied')
         .eq('donation_id', selectedDonation.id)
         .maybeSingle()
-        .then(({ data }) => setDonationPledgeLink(data || null))
+        .then(async ({ data: linkRow }) => {
+          if (!linkRow) { setDonationPledgeLink(null); return }
+          const { data: pledgeRow } = await supabase
+            .from('pledges')
+            .select('donor_name')
+            .eq('id', linkRow.pledge_id)
+            .maybeSingle()
+          setDonationPledgeLink({ ...linkRow, pledgeDonorName: pledgeRow?.donor_name })
+        })
     } else {
       setDonationPledgeLink(null)
     }
@@ -5628,7 +5636,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                         {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
                           <div style={{ fontSize: 12, color: C.sage, fontWeight: 600, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
-                            ✓ Already linked to {donationPledgeLink.pledges?.donor_name || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
+                            ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
                           </div>
                         )}
                         {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
