@@ -173,6 +173,9 @@ export default function App() {
   const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
   const [massAppealSearchTerm, setMassAppealSearchTerm] = useState('')
   const [recurringYearFilter, setRecurringYearFilter] = useState('All')
+  const [showCampaignModal, setShowCampaignModal] = useState(false)
+  const [campaignSearchTerm, setCampaignSearchTerm] = useState('')
+  const [showPastCampaigns, setShowPastCampaigns] = useState(false)
   const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
@@ -2133,16 +2136,39 @@ export default function App() {
       return
     }
 
-    const { error } = await supabase.from('donations').update({ payment_status: 'confirmed', receipt_issued: true }).eq('id', donation.id)
+    let autoTaggedCauseId = null
+    if (!donation.cause_id && donation.payment_ref) {
+      const { data: matchedRecipient } = await supabase
+        .from('mass_appeal_recipients')
+        .select('appeal_id')
+        .eq('payment_ref', donation.payment_ref)
+        .maybeSingle()
+      if (matchedRecipient) {
+        const { data: matchedAppeal } = await supabase
+          .from('mass_appeals')
+          .select('cause_id, cause_name')
+          .eq('id', matchedRecipient.appeal_id)
+          .maybeSingle()
+        if (matchedAppeal?.cause_id) {
+          autoTaggedCauseId = matchedAppeal.cause_id
+          showToast(`Auto-tagged to campaign: ${matchedAppeal.cause_name}`)
+        }
+      }
+    }
+
+    const updatePayload = { payment_status: 'confirmed', receipt_issued: true }
+    if (autoTaggedCauseId) updatePayload.cause_id = autoTaggedCauseId
+
+    const { error } = await supabase.from('donations').update(updatePayload).eq('id', donation.id)
     if (error) { showToast('Error confirming payment', 'error'); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'payment_confirmed',
       donation_id: donation.id,
-      details: { donor_name: donation.donor_name, amount: donation.amount, payment_ref: donation.payment_ref },
+      details: { donor_name: donation.donor_name, amount: donation.amount, payment_ref: donation.payment_ref, auto_tagged_cause_id: autoTaggedCauseId },
     })
-    setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
+    setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true, ...(autoTaggedCauseId ? { cause_id: autoTaggedCauseId } : {}) } : x))
     setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
 
     const completedPledge = await checkPledgeCompletion(donation)
@@ -7222,117 +7248,138 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>📣 Campaigns</div>
-                <div style={s.pageSub}>Submit fundraising campaigns and sponsored banner requests for Giving Tree's review</div>
+                <div style={s.pageTitle}>Campaigns</div>
+                <div style={s.pageSub}>{myCauses.filter(c => c.type === 'campaign').length} campaign{myCauses.filter(c => c.type === 'campaign').length !== 1 ? 's' : ''} · Trackable goals for Mass Appeal and manual donations</div>
               </div>
-              
+              <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCampaignModal(true) }}>+ New Campaign</button>
             </div>
 
-            <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              <div style={s.card}>
-                <div style={s.cardTitle}>🎯 Run a Campaign</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>Submit a fundraising campaign or cause. Once approved, it appears in the Causes tab of the donor app.</div>
-                {!showCauseForm ? (
-                  <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCauseForm(true) }}>+ Submit a Campaign</button>
-                ) : (
-                  <div>
-                    {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{causeError}</div>}
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={s.formLabel}>Title *</div>
-                      <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm(f => ({ ...f, title: e.target.value }))} />
-                    </div>
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={s.formLabel}>Description *</div>
-                      <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                      <div>
-                        <div style={s.formLabel}>Target Amount (SGD)</div>
-                        <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
-                      </div>
-                      <div>
-                        <div style={s.formLabel}>End Date</div>
-                        <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.btnForest} onClick={submitCause} disabled={savingCause}>{savingCause ? 'Submitting...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Submit for Approval')}</button>
-                      <button style={s.viewBtn} onClick={() => { setShowCauseForm(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
-                    </div>
-                  </div>
+            {myCauses.length > 0 && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
+                <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
+                {campaignSearchTerm !== '' && (
+                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => setCampaignSearchTerm('')}>✕ Clear</button>
                 )}
               </div>
-
-              <div style={s.card}>
-                <div style={s.cardTitle}>⭐ Sponsored Banner Spot</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>Request a featured spot in the donor app's homepage banner. Approved charities rotate into the spot.</div>
-                {!showSponsoredForm ? (
-                  <button style={s.btnGold} onClick={() => setShowSponsoredForm(true)}>+ Request Sponsored Spot</button>
-                ) : (
-                  <div>
-                    {sponsoredError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{sponsoredError}</div>}
-                    <div style={{ fontSize: 13, color: C.text, marginBottom: 16, lineHeight: 1.5 }}>This will submit a request for {charityName} to be featured in the rotating sponsored banner on the donor homepage. Giving Tree will review and approve.</div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.btnForest} onClick={submitSponsoredRequest} disabled={savingSponsored}>{savingSponsored ? 'Submitting...' : '✓ Submit Request'}</button>
-                      <button style={s.viewBtn} onClick={() => { setShowSponsoredForm(false); setSponsoredError('') }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
             {(() => {
+              const q = campaignSearchTerm.toLowerCase().trim()
+              const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
               const isPast = c => c.status === 'rejected' || c.status === 'deleted' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
-              const activeCauses = myCauses.filter(c => !isPast(c))
-              const pastCauses = myCauses.filter(isPast)
-              const renderRow = c => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                  <div style={{ fontSize: 18 }}>{c.type === 'sponsored' ? '⭐' : '🎯'}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>{c.title}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{c.type === 'sponsored' ? 'Sponsored banner request' : 'Campaign'} · Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.end_date ? ` · Ends ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}{c.target_amount ? ` · Target $${Number(c.target_amount).toLocaleString()}` : ''}</div>
-                    {c.description && <div style={{ fontSize: 12, color: C.text, marginTop: 4, lineHeight: 1.4 }}>{c.description}</div>}
+              const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c))
+              const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c))
+
+              const renderCard = c => {
+                const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+                const pct = c.target_amount > 0 ? Math.min(100, Math.round((raised / c.target_amount) * 100)) : null
+                return (
+                  <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.forest }}>{c.title}</div>
+                      <span style={
+                        c.status === 'approved' ? s.badgeIssued :
+                        c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBEEE9' } :
+                        s.badgePending
+                      }>
+                        {c.status === 'approved' ? '✓ Live' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
+                    {c.target_amount > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>of ${Number(c.target_amount).toLocaleString()}</span>
+                        </div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
+                      Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {c.end_date && ` · Ends ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                      {c.status === 'pending' && (
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => startEditCause(c)}>Edit</button>
+                      )}
+                      {c.status === 'approved' && !isPast(c) && (
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>Edit</button>
+                      )}
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                    </div>
                   </div>
-                  <span style={
-                    c.status === 'approved' ? s.badgeIssued :
-                    c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBE9E7' } :
-                    s.badgePending
-                  }>
-                    {c.status === 'approved' ? '✓ Approved' : c.status === 'rejected' ? '✕ Rejected' : '⏳ Pending Review'}
-                  </span>
-                  {c.status === 'pending' && c.type === 'campaign' && (
-                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => startEditCause(c)}>Edit</button>
-                  )}
-                  {c.status === 'pending' && (
-                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
-                  )}
-                  {c.status === 'approved' && !isPast(c) && (
-                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11 }} onClick={() => requestRevision(c)}>Request Change</button>
-                  )}
-                  {c.status === 'approved' && !isPast(c) && (
-                    <button style={{ ...s.viewBtn, padding: '6px 10px', fontSize: 11, color: C.red, borderColor: C.red }} onClick={() => deleteCause(c.id)}>Delete</button>
-                  )}
-                </div>
-              )
+                )
+              }
+
               return (
                 <>
-                  <div style={{ ...s.tableCard, marginBottom: 24 }}>
-                    <div style={s.tableHeader}>
-                      <div style={s.tableTitle}>Active Campaigns</div>
-                      <div style={s.tableCount}>{activeCauses.length} total</div>
-                    </div>
-                    {activeCauses.length === 0 ? <div style={s.empty}>No active campaigns or sponsored requests.</div> : <div>{activeCauses.map(renderRow)}</div>}
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Active Campaigns ({activeCauses.length})</div>
+                    {activeCauses.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns yet — click "+ New Campaign" to get started.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        {activeCauses.map(renderCard)}
+                      </div>
+                    )}
                   </div>
-                  <div style={s.tableCard}>
-                    <div style={s.tableHeader}>
-                      <div style={s.tableTitle}>Past Campaigns</div>
-                      <div style={s.tableCount}>{pastCauses.length} total</div>
+
+                  {pastCauses.length > 0 && (
+                    <div>
+                      <div
+                        style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => setShowPastCampaigns(v => !v)}
+                      >
+                        <span style={{ fontSize: 11, color: C.muted }}>{showPastCampaigns ? '▾' : '▸'}</span>
+                        Past Campaigns ({pastCauses.length})
+                      </div>
+                      {showPastCampaigns && (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          {pastCauses.map(renderCard)}
+                        </div>
+                      )}
                     </div>
-                    {pastCauses.length === 0 ? <div style={s.empty}>No past campaigns yet.</div> : <div>{pastCauses.map(renderRow)}</div>}
-                  </div>
+                  )}
                 </>
               )
             })()}
+
+            {showCampaignModal && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{causeForm.editingId ? 'Edit Campaign' : 'New Campaign'}</div>
+                    <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>✕</span>
+                  </div>
+                  {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
+                  <div style={{ marginTop: 12, marginBottom: 10 }}>
+                    <div style={s.formLabel}>Title *</div>
+                    <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm(f => ({ ...f, title: e.target.value }))} />
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={s.formLabel}>Description *</div>
+                    <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    <div>
+                      <div style={s.formLabel}>Target Amount (SGD)</div>
+                      <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
+                    </div>
+                    <div>
+                      <div style={s.formLabel}>End Date</div>
+                      <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => { await submitCause(); setShowCampaignModal(false) }} disabled={savingCause}>{savingCause ? 'Saving...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Create Campaign')}</button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
