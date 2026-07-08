@@ -3301,23 +3301,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast(`${data[0].full_name} added ✓`)
   }
 
-  function exportDonorsExcel(filteredDonors) {
+  async function exportDonorsExcel(filteredDonors) {
+    const { data: allNotes } = await supabase
+      .from('donor_notes')
+      .select('donor_key')
+      .eq('charity_uen', charityUen)
+    const noteCountByDonor = {}
+    ;(allNotes || []).forEach(n => {
+      noteCountByDonor[n.donor_key] = (noteCountByDonor[n.donor_key] || 0) + 1
+    })
+
     const rows = filteredDonors.map(d => {
       const donorKey = d.email?.trim() || d.name
+      const b = donorBadgeMap[donorKey]
+      const milestones = []
+      if (b?.isFirstTime) milestones.push('First gift')
+      if (b?.isBigGift) milestones.push('Big gift')
+      if (b?.isLoyal) milestones.push('Loyal')
+      if (b?.isBiggestYet) milestones.push('Biggest yet')
+
+      const donorNric = donations.find(dn => (dn.donor_email?.trim() || dn.donor_nric || dn.donor_name) === donorKey && dn.donor_nric)?.donor_nric || ''
+
+      const openPledge = pledges.find(p => p.status === 'pending' && (p.donor_email?.trim() || p.donor_name) === donorKey)
+      const fulfilledPledgeCount = pledges.filter(p => p.status === 'fulfilled' && (p.donor_email?.trim() || p.donor_name) === donorKey).length
+
+      const activeRecurring = recurringGifts.find(g => g.status === 'active' && (g.donor_email?.trim() || g.donor_name) === donorKey)
+      const noteCount = noteCountByDonor[donorKey] || 0
+
       return {
         'Name': d.name,
         'Email': d.email || '',
+        'NRIC/FIN': charityIsIpc ? donorNric : '',
+        'Status': d.isContactOnly ? 'Prospect (no gift yet)' : d.deactivated ? 'Deactivated' : 'Active',
         'Total Given (SGD)': d.total,
         'Donations': d.count,
         'Avg. Donation (SGD)': d.count > 0 ? Math.round(d.total / d.count) : 0,
-        'Receipts Issued': `${d.receipts}/${d.count}`,
+        'Last Donation': d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG') : '',
+        'Receipts Issued': d.count > 0 ? `${d.receipts}/${d.count}` : '',
+        'Milestones': milestones.join(', '),
         'Tags': (donorTagsMap[donorKey] || []).map(t => t.tag).join(', '),
         'Do Not Contact': d.doNotContact ? 'Yes' : 'No',
+        'Open Pledge (SGD)': openPledge ? openPledge.amount : '',
+        'Fulfilled Pledges': fulfilledPledgeCount || '',
+        'Active Recurring Gift (SGD/cycle)': activeRecurring ? `${activeRecurring.amount} (${activeRecurring.frequency})` : '',
+        'Communication Log Entries': noteCount || '',
       }
     })
     if (rows.length === 0) { showToast('No donors to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 14 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 30 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 24 }, { wch: 20 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donors')
     XLSX.writeFile(wb, `GivingTree-Donors-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -4930,7 +4962,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {allTags.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonorContactsCSV}>📇 Export Contacts</button>
-                  <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                  <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={async () => {
                     const q = searchTerm.toLowerCase()
                     const filtered = combinedDonorList.filter(d => {
                       const matchesSearch = d.name?.toLowerCase().includes(q)
@@ -4938,7 +4970,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const matchesTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
                       return matchesSearch && matchesTag
                     })
-                    exportDonorsExcel(filtered)
+                    showToast('Preparing export...')
+                    await exportDonorsExcel(filtered)
                   }}>⬇️ Export to Excel</button>
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
