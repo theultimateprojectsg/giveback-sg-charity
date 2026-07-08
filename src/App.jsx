@@ -336,6 +336,25 @@ export default function App() {
   const [deletingId, setDeletingId] = useState(null)
   const [selectedDonation, setSelectedDonation] = useState(null)
   const [donationPledgeLink, setDonationPledgeLink] = useState(null)
+  const [dismissedTodayItems, setDismissedTodayItems] = useState(() => {
+    const todayKey = new Date().toDateString()
+    const saved = localStorage.getItem('gt_dismissed_action_items')
+    if (!saved) return {}
+    try {
+      const parsed = JSON.parse(saved)
+      return parsed.date === todayKey ? parsed.items : {}
+    } catch {
+      return {}
+    }
+  })
+
+  function dismissActionItemForToday(itemKey) {
+    setDismissedTodayItems(prev => {
+      const next = { ...prev, [itemKey]: true }
+      localStorage.setItem('gt_dismissed_action_items', JSON.stringify({ date: new Date().toDateString(), items: next }))
+      return next
+    })
+  }
 
   useEffect(() => {
     if (selectedDonation) {
@@ -3752,7 +3771,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
               const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
               if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-              if (dueSoonPledges.length > 0) items.push({ icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
               const wasRecurringRecentlyReminded = (g) => {
                 const history = recurringReminderHistory[g.id]
@@ -3775,9 +3794,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 return true
               }).length
-              if (lapsedCount > 0) items.push({ icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (lapsedCount > 0) items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
-              if (allGivingChangeFlags.length > 0) items.push({ icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { document.getElementById('giving-changes-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (allGivingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { document.getElementById('giving-changes-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
               const obligationsDue = (() => {
                 const builtIn = [
@@ -3792,7 +3811,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).filter(Boolean)
                 return [...builtIn, ...custom]
               })()
-              obligationsDue.forEach(o => items.push({ icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', tab: 'reports' }))
+              obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', tab: 'reports' }))
 
               if (items.length === 0) {
                 return (
@@ -3803,22 +3822,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               }
 
-              const highItems = items.filter(i => i.priority === 'high')
+              const visibleItems = items.filter(i => i.priority === 'high' || !i.key || !dismissedTodayItems[i.key])
+              const highItems = visibleItems.filter(i => i.priority === 'high')
+
+              if (visibleItems.length === 0) {
+                return (
+                  <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 13, color: C.forest, fontWeight: 600 }}>You're all caught up for today.</span>
+                    <span style={{ fontSize: 13, color: C.muted }}>Nothing left to review — nice work.</span>
+                  </div>
+                )
+              }
 
               return (
                 <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
                   <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'white' }}>{items.length} action item{items.length > 1 ? 's' : ''} need{items.length === 1 ? 's' : ''} your attention</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'white' }}>{visibleItems.length} action item{visibleItems.length > 1 ? 's' : ''} need{visibleItems.length === 1 ? 's' : ''} your attention</span>
                   </div>
                   <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                    {items.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, cursor: 'pointer', background: C.white, fontSize: 13 }}
-                        onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}
+                    {visibleItems.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
                         onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                         onMouseLeave={e => e.currentTarget.style.background = C.white}
                       >
-                        <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1 }}>{item.label}</span>
-                        <span style={{ fontSize: 12, color: C.sage, fontWeight: 600, fontFamily: C.fontMono, flexShrink: 0 }}>→</span>
+                        <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                        <span style={{ fontSize: 12, color: C.sage, fontWeight: 600, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                        {item.priority === 'medium' && item.key && (
+                          <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); dismissActionItemForToday(item.key) }} title="Dismiss for today">✕</span>
+                        )}
                       </div>
                     ))}
                   </div>
