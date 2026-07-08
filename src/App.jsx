@@ -644,6 +644,21 @@ export default function App() {
     setRescheduleReason('')
   }
 
+  function SenderIdentityLine() {
+    if (senderDomainStatus === 'verified' && senderDomain) {
+      return (
+        <div style={{ fontSize: 11.5, color: C.sage, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+          ✓ Sending from <strong>{senderEmailLocalPart}@{senderDomain}</strong>
+        </div>
+      )
+    }
+    return (
+      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+        ✉ Sending from Giving Tree — replies go to your inbox ({session?.user?.email})
+      </div>
+    )
+  }
+
   async function sendCharityEmail(body) {
     return supabase.functions.invoke('send-thank-you', {
       body: {
@@ -7238,9 +7253,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Send pledge reminder</div>
-                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>
                     To {pledgeReminderCandidate.donor_name} ({pledgeReminderCandidate.donor_email || 'no email on file'})
                   </div>
+                  <SenderIdentityLine />
                   <div style={{ marginBottom: 12 }}>
                     <div style={s.formLabel}>Subject</div>
                     <input style={s.formInput} value={pledgeReminderSubject} onChange={e => setPledgeReminderSubject(e.target.value)} />
@@ -8103,9 +8119,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Reach out to a lapsed donor</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>
               To {lapsedReminderCandidate.name} ({lapsedReminderCandidate.email || 'no email on file'})
             </div>
+            <SenderIdentityLine />
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={lapsedReminderSubject} onChange={e => setLapsedReminderSubject(e.target.value)} />
@@ -8130,9 +8147,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Send reminder</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>
               To {recurringReminderCandidate.donor_name} ({recurringReminderCandidate.donor_email || 'no email on file'})
             </div>
+            <SenderIdentityLine />
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={recurringReminderSubject} onChange={e => setRecurringReminderSubject(e.target.value)} />
@@ -8378,7 +8396,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
           <div style={{ background: C.ivory, borderRadius: 16, padding: 24, maxWidth: 520, width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 700, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Review and edit before sending. This won't be sent as-is.</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Review and edit before sending. This won't be sent as-is.</div>
+            <SenderIdentityLine />
             <textarea
               style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
               value={thankYouDraft.text}
