@@ -5777,11 +5777,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
   }
               </select>
-              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
               <button
                 style={bulkEditMode ? { ...s.viewBtn, background: C.teal, color: 'white', borderColor: C.teal } : s.viewBtn}
                 onClick={() => { setBulkEditMode(v => !v); if (bulkEditMode) setSelectedDonationIds([]) }}
               >{bulkEditMode ? '✕ Exit Bulk Edit' : '☑️ Bulk Edit'}</button>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
               {!isMobile && !isTablet && (
                 <div style={{ position: 'relative' }}>
                   <button style={s.exportSmallBtn} onClick={() => setShowDonationColumnPicker(v => !v)}>⚙️ Columns</button>
