@@ -155,6 +155,14 @@ export default function App() {
   const [rescheduleNewDate, setRescheduleNewDate] = useState('')
   const [rescheduleReason, setRescheduleReason] = useState('')
   const [reschedulingPledge, setReschedulingPledge] = useState(false)
+  const [senderDomainStatus, setSenderDomainStatus] = useState('none')
+  const [senderDomain, setSenderDomain] = useState('')
+  const [senderEmailLocalPart, setSenderEmailLocalPart] = useState('hello')
+  const [senderDomainInput, setSenderDomainInput] = useState('')
+  const [showDomainSetup, setShowDomainSetup] = useState(false)
+  const [savingDomain, setSavingDomain] = useState(false)
+  const [dnsRecords, setDnsRecords] = useState(null)
+  const [checkingVerification, setCheckingVerification] = useState(false)
   const [pledgeReminderHistory, setPledgeReminderHistory] = useState({})
   const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
   const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
@@ -489,6 +497,9 @@ export default function App() {
     setLocalVolunteers(volunteerEmails)
     setMonthlyExpenses(data?.monthly_expenses || 0)
     setCustomObligations(data?.custom_obligations || [])
+    setSenderDomainStatus(data?.sender_domain_status || 'none')
+    setSenderDomain(data?.sender_domain || '')
+    setSenderEmailLocalPart(data?.sender_email_local_part || 'hello')
     setRoleLoaded(true)
   }
 
@@ -633,6 +644,77 @@ export default function App() {
     setRescheduleReason('')
   }
 
+  async function sendCharityEmail(body) {
+    return supabase.functions.invoke('send-thank-you', {
+      body: {
+        ...body,
+        sender_domain_status: senderDomainStatus,
+        sender_domain: senderDomain,
+        sender_email_local_part: senderEmailLocalPart,
+        charity_reply_to: session?.user?.email,
+      }
+    })
+  }
+
+  async function registerSenderDomain() {
+    if (!senderDomainInput.trim()) return
+    setSavingDomain(true)
+    const { data, error } = await supabase.functions.invoke('manage-sender-domain', {
+      body: { action: 'register', domain: senderDomainInput.trim() }
+    })
+    if (error || data?.error) {
+      showToast(data?.error || 'Failed to register domain', 'error')
+      setSavingDomain(false)
+      return
+    }
+
+    const { error: dbError } = await supabase.from('charity_contacts').update({
+      sender_domain: senderDomainInput.trim(),
+      sender_domain_status: 'pending',
+      resend_domain_id: data.domain_id,
+    }).eq('charity_uen', charityUen)
+
+    if (dbError) {
+      showToast('Domain registered but failed to save — please try again', 'error')
+      setSavingDomain(false)
+      return
+    }
+
+    setSenderDomain(senderDomainInput.trim())
+    setSenderDomainStatus('pending')
+    setDnsRecords(data.records)
+    setSavingDomain(false)
+    showToast('Domain registered — now add the DNS records shown below')
+  }
+
+  async function checkDomainVerification() {
+    setCheckingVerification(true)
+    const { data: charityData } = await supabase.from('charity_contacts').select('resend_domain_id').eq('charity_uen', charityUen).single()
+    if (!charityData?.resend_domain_id) {
+      showToast('No domain registered yet', 'error')
+      setCheckingVerification(false)
+      return
+    }
+
+    const { data, error } = await supabase.functions.invoke('manage-sender-domain', {
+      body: { action: 'check', domain_id: charityData.resend_domain_id }
+    })
+    if (error || data?.error) {
+      showToast(data?.error || 'Failed to check status', 'error')
+      setCheckingVerification(false)
+      return
+    }
+
+    if (data.status === 'verified') {
+      await supabase.from('charity_contacts').update({ sender_domain_status: 'verified' }).eq('charity_uen', charityUen)
+      setSenderDomainStatus('verified')
+      showToast('Domain verified! 🎉 Emails will now send from your own address.')
+    } else {
+      showToast(`Still pending — status: ${data.status}. DNS changes can take a while to take effect.`)
+    }
+    setCheckingVerification(false)
+  }
+
   function fulfillPledge(pledge) {
     setPledgeResolutionNotes('')
     setPledgeResolutionModal({ type: 'fulfilled', pledge })
@@ -663,17 +745,15 @@ export default function App() {
     }
     setSendingPledgeReminder(true)
     const p = pledgeReminderCandidate
-    const { error } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        type: 'pledge_reminder',
-        donor_name: p.donor_name,
-        donor_email: p.donor_email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        pledge_amount: Number(p.amount).toLocaleString(),
-        subject_override: pledgeReminderSubject,
-        custom_message: pledgeReminderBody,
-      }
+    const { error } = await sendCharityEmail({
+      type: 'pledge_reminder',
+      donor_name: p.donor_name,
+      donor_email: p.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      pledge_amount: Number(p.amount).toLocaleString(),
+      subject_override: pledgeReminderSubject,
+      custom_message: pledgeReminderBody,
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingPledgeReminder(false); return }
 
@@ -875,16 +955,14 @@ export default function App() {
     })
 
     if (gift.donor_email) {
-      await supabase.functions.invoke('send-thank-you', {
-        body: {
-          donor_name: gift.donor_name,
-          donor_email: gift.donor_email,
-          charity_name: charityName,
-          charity_uen: charityUen,
-          amount: amount,
-          date: new Date(today).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-          notes: `Recurring ${gift.frequency} gift`,
-        }
+      await sendCharityEmail({
+        donor_name: gift.donor_name,
+        donor_email: gift.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: amount,
+        date: new Date(today).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        notes: `Recurring ${gift.frequency} gift`,
       })
     }
 
@@ -946,17 +1024,15 @@ export default function App() {
     }
     setSendingRecurringReminder(true)
     const g = recurringReminderCandidate
-    const { error } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        type: 'recurring_gift_reminder',
-        donor_name: g.donor_name,
-        donor_email: g.donor_email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        recurring_amount: Number(g.amount).toLocaleString(),
-        subject_override: recurringReminderSubject,
-        custom_message: recurringReminderBody,
-      }
+    const { error } = await sendCharityEmail({
+      type: 'recurring_gift_reminder',
+      donor_name: g.donor_name,
+      donor_email: g.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      recurring_amount: Number(g.amount).toLocaleString(),
+      subject_override: recurringReminderSubject,
+      custom_message: recurringReminderBody,
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingRecurringReminder(false); return }
 
@@ -1023,16 +1099,14 @@ export default function App() {
     setSendingLapsedReminder(true)
     const d = lapsedReminderCandidate
     const donorKey = d.email?.trim() || d.name
-    const { error } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        type: 'lapsed_donor_reminder',
-        donor_name: d.name,
-        donor_email: d.email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        subject_override: lapsedReminderSubject,
-        custom_message: lapsedReminderBody,
-      }
+    const { error } = await sendCharityEmail({
+      type: 'lapsed_donor_reminder',
+      donor_name: d.name,
+      donor_email: d.email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      subject_override: lapsedReminderSubject,
+      custom_message: lapsedReminderBody,
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingLapsedReminder(false); return }
 
@@ -1588,19 +1662,17 @@ export default function App() {
     for (let i = 0; i < selected.length; i++) {
       if (massAppealCancelRef.current) break
       const donor = selected[i]
-      const { error } = await supabase.functions.invoke('send-thank-you', {
-        body: {
-          type: 'mass_appeal',
-          donor_name: donor.donor_name,
-          donor_email: donor.donor_email,
-          charity_name: charityName,
-          charity_uen: charityUen,
-          amount: donor.amount,
-          payment_ref: donor.ref,
-          cause_title: causeName,
-          custom_message: massAppealForm.message || null,
-          paynow_url: donor.qrValue,
-        }
+      const { error } = await sendCharityEmail({
+        type: 'mass_appeal',
+        donor_name: donor.donor_name,
+        donor_email: donor.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: donor.amount,
+        payment_ref: donor.ref,
+        cause_title: causeName,
+        custom_message: massAppealForm.message || null,
+        paynow_url: donor.qrValue,
       })
       if (error) { failed++; console.error('Failed to send to', donor.donor_email, error) }
       else sent++
@@ -1783,17 +1855,15 @@ export default function App() {
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
     setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', resolution_notes: autoNote } : p))
 
-    const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        type: 'pledge_thank_you',
-        donor_name: donation.donor_name,
-        donor_email: donation.donor_email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        pledge_amount: Number(pledge.amount).toLocaleString(),
-        subject_override: pledgeThankYouSubject,
-        custom_message: pledgeThankYouBody,
-      }
+    const { error: emailError } = await sendCharityEmail({
+      type: 'pledge_thank_you',
+      donor_name: donation.donor_name,
+      donor_email: donation.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      pledge_amount: Number(pledge.amount).toLocaleString(),
+      subject_override: pledgeThankYouSubject,
+      custom_message: pledgeThankYouBody,
     })
     if (!emailError) {
       await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -1865,18 +1935,16 @@ export default function App() {
       return
     }
 
-    const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        donor_name: donation.donor_name,
-        donor_email: donation.donor_email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        amount: donation.amount,
-        date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-        payment_ref: donation.payment_ref,
-        notes: donation.notes,
-        cause_title: causeNameForDonation(donation),
-      }
+    const { error: emailError } = await sendCharityEmail({
+      donor_name: donation.donor_name,
+      donor_email: donation.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      amount: donation.amount,
+      date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+      payment_ref: donation.payment_ref,
+      notes: donation.notes,
+      cause_title: causeNameForDonation(donation),
     })
     if (!emailError) {
       await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -1891,18 +1959,16 @@ export default function App() {
   async function sendThankYouEmail(donation) {
     if (sendingThankYouId === donation.id) return
     setSendingThankYouId(donation.id)
-    const { error } = await supabase.functions.invoke('send-thank-you', {
-      body: {
-        donor_name: donation.donor_name,
-        donor_email: donation.donor_email,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        amount: donation.amount,
-        date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-        payment_ref: donation.payment_ref,
-        notes: donation.notes,
-        cause_title: causeNameForDonation(donation),
-      }
+    const { error } = await sendCharityEmail({
+      donor_name: donation.donor_name,
+      donor_email: donation.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      amount: donation.amount,
+      date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+      payment_ref: donation.payment_ref,
+      notes: donation.notes,
+      cause_title: causeNameForDonation(donation),
     })
     if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -2079,15 +2145,13 @@ export default function App() {
     for (const donor of donorList) {
       if (bulkCancelRef.current) break
       try {
-        const { error } = await supabase.functions.invoke('send-thank-you', {
-          body: {
-            donor_name: donor.donor_name,
-            donor_email: donor.donor_email,
-            charity_name: charityName,
-            amount: donor.total,
-            date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-            request_nric: true,
-          }
+        const { error } = await sendCharityEmail({
+          donor_name: donor.donor_name,
+          donor_email: donor.donor_email,
+          charity_name: charityName,
+          amount: donor.total,
+          date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+          request_nric: true,
         })
         if (!error) sent++
       } catch (invokeErr) {
@@ -5281,9 +5345,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {selectedDonation.donor_email?.trim() && (
                             <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
                               if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
-                              const { error } = await supabase.functions.invoke('send-thank-you', {
-                                body: { donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true }
-                              })
+                              const { error } = await sendCharityEmail({ donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true })
                               if (error) { showToast('Failed to send email', 'error'); return }
                               setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
                               showToast(`NRIC request sent to ${selectedDonation.donor_email}`)
@@ -5462,18 +5524,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 }
 
                                 const donationSnapshot = { ...selectedDonation, receipt_issued: true }
-                                const { error: emailError } = await supabase.functions.invoke('send-thank-you', {
-                                  body: {
-                                    donor_name: donationSnapshot.donor_name,
-                                    donor_email: donationSnapshot.donor_email,
-                                    charity_name: charityName,
-                                    charity_uen: charityUen,
-                                    amount: donationSnapshot.amount,
-                                    date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-                                    payment_ref: donationSnapshot.payment_ref,
-                                    notes: donationSnapshot.notes,
-                                    cause_title: causeNameForDonation(donationSnapshot),
-                                  }
+                                const { error: emailError } = await sendCharityEmail({
+                                  donor_name: donationSnapshot.donor_name,
+                                  donor_email: donationSnapshot.donor_email,
+                                  charity_name: charityName,
+                                  charity_uen: charityUen,
+                                  amount: donationSnapshot.amount,
+                                  date: new Date(donationSnapshot.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                  payment_ref: donationSnapshot.payment_ref,
+                                  notes: donationSnapshot.notes,
+                                  cause_title: causeNameForDonation(donationSnapshot),
                                 })
                                 if (!emailError) {
                                   await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donationSnapshot.id)
@@ -7739,6 +7799,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>Email Sending</div>
+                {senderDomainStatus === 'verified' ? (
+                  <div>
+                    <div style={{ fontSize: 13, color: C.sage, fontWeight: 600, marginBottom: 8 }}>✓ Verified</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                      Your emails send from <strong style={{ color: C.forest }}>{senderEmailLocalPart}@{senderDomain}</strong>
+                    </div>
+                    <button style={s.viewBtn} onClick={() => { setSenderDomainInput(senderDomain); setShowDomainSetup(true) }}>Change domain</button>
+                  </div>
+                ) : senderDomainStatus === 'pending' ? (
+                  <div>
+                    <div style={{ fontSize: 13, color: C.gold, fontWeight: 600, marginBottom: 8 }}>⏳ Verification pending</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                      We're waiting for DNS records to be added for <strong style={{ color: C.forest }}>{senderDomain}</strong>. Until this is verified, your emails will send from Giving Tree with replies going to your inbox.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button style={s.issueBtn} disabled={checkingVerification} onClick={checkDomainVerification}>{checkingVerification ? 'Checking...' : '↻ Check status'}</button>
+                      <button style={s.viewBtn} onClick={() => { setSenderDomainInput(senderDomain); setShowDomainSetup(true) }}>View DNS records</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
+                      Right now, emails to your donors send from Giving Tree's address, with replies going to your inbox. If you have your own website domain, you can set up emails to send directly from your own address instead.
+                    </div>
+                    <button style={s.issueBtn} onClick={() => setShowDomainSetup(true)}>Set up my own domain</button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ ...s.card, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingFyEnd ? 12 : 0 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
                   {!editingFyEnd && (
@@ -8108,6 +8199,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
+      {showDomainSetup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Set up your own sending domain</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              Enter your organization's website domain (e.g. <code>yourcharity.org.sg</code>). This is a technical step — you may want to loop in whoever manages your website or IT.
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Your domain</div>
+              <input style={s.formInput} placeholder="yourcharity.org.sg" value={senderDomainInput} onChange={e => setSenderDomainInput(e.target.value)} />
+            </div>
+
+            {!dnsRecords ? (
+              <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} disabled={!senderDomainInput.trim() || savingDomain} onClick={registerSenderDomain}>
+                {savingDomain ? 'Setting up...' : 'Continue'}
+              </button>
+            ) : (
+              <div>
+                <div style={{ fontSize: 13, color: C.forest, fontWeight: 600, marginBottom: 8 }}>Add these DNS records</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Add these to your domain's DNS settings (ask your web host or IT provider if unsure). Verification can take anywhere from a few minutes to a day.</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                  {dnsRecords.map((rec, i) => (
+                    <div key={i} style={{ background: C.ivory, borderRadius: 6, padding: 10, border: `1px solid ${C.border}`, fontFamily: 'monospace', fontSize: 11.5 }}>
+                      <div><strong>Type:</strong> {rec.type}</div>
+                      <div><strong>Name:</strong> {rec.name}</div>
+                      <div style={{ wordBreak: 'break-all' }}><strong>Value:</strong> {rec.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center', marginTop: 10 }} onClick={() => { setShowDomainSetup(false); setDnsRecords(null); setSenderDomainInput('') }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {rescheduleModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
@@ -8261,15 +8391,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 disabled={!thankYouDraft.donor.email?.trim()}
                 onClick={async () => {
                   const { donor, badgeState, text, givingChangeMeta } = thankYouDraft
-                  const { error } = await supabase.functions.invoke('send-thank-you', {
-                    body: {
-                      type: 'milestone_thank_you',
-                      donor_name: donor.name,
-                      donor_email: donor.email,
-                      charity_name: charityName,
-                      charity_uen: charityUen,
-                      custom_message: text,
-                    }
+                  const { error } = await sendCharityEmail({
+                    type: 'milestone_thank_you',
+                    donor_name: donor.name,
+                    donor_email: donor.email,
+                    charity_name: charityName,
+                    charity_uen: charityUen,
+                    custom_message: text,
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
                   if (badgeState) await ackDonorBadges(donor, badgeState)
