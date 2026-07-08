@@ -176,6 +176,7 @@ export default function App() {
   const [showCampaignModal, setShowCampaignModal] = useState(false)
   const [campaignSearchTerm, setCampaignSearchTerm] = useState('')
   const [showPastCampaigns, setShowPastCampaigns] = useState(false)
+  const [campaignYearFilter, setCampaignYearFilter] = useState('All')
   const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
@@ -1384,32 +1385,7 @@ export default function App() {
   }
 
   function requestRevision(c) {
-    if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
-    const description = c.type === 'campaign'
-      ? `This will immediately remove "${c.title}" from the donor app, including for anyone currently viewing it, until it's re-approved.`
-      : `This will immediately remove this sponsored banner from the donor app until it's re-approved.`
-    setConfirmModal({
-      title: 'Request a revision?',
-      description,
-      confirmLabel: 'Request revision',
-      onConfirm: () => requestRevisionConfirmed(c),
-    })
-  }
-
-  async function requestRevisionConfirmed(c) {
-    setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').update({ status: 'pending' }).eq('id', c.id)
-    setBulkActionInProgress(false)
-    if (error) { showToast('Error requesting revision', 'error'); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: c.title, description: c.description, target_amount: c.target_amount, end_date: c.end_date, charity_name: charityName, type: c.type, id: c.id, is_revision: true } }).catch(err => console.error(err))
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'cause_revision_requested',
-      details: { title: c.title, charity_uen: charityUen },
-    })
-    loadMyCauses()
-    showToast('Moved back to Pending Review — click Edit to update and resubmit')
+    startEditCause(c)
   }
 
   async function submitCause() {
@@ -1448,16 +1424,15 @@ export default function App() {
       target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
       end_date: causeForm.end_date || null,
       type: 'campaign',
-      status: 'pending',
+      status: 'approved',
       active: true,
     }]).select()
     setSavingCause(false)
     if (error) { setCauseError(`Error: ${error.message}`); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: causeForm.title, description: causeForm.description, target_amount: causeForm.target_amount, end_date: causeForm.end_date, charity_name: charityName, type: 'campaign', id: data[0].id } }).catch(err => console.error(err))
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
-      action: 'cause_submitted',
+      action: 'cause_created',
       details: { title: causeForm.title, charity_uen: charityUen },
     })
     setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
@@ -3123,6 +3098,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  function exportCampaignsExcel(filteredCampaigns) {
+    const rows = filteredCampaigns.map(c => {
+      const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+      return {
+        'Title': c.title,
+        'Description': c.description || '',
+        'Status': c.status.charAt(0).toUpperCase() + c.status.slice(1),
+        'Target Amount (SGD)': c.target_amount || '',
+        'Raised (SGD)': raised,
+        'Created': new Date(c.created_at).toLocaleDateString('en-SG'),
+        'End Date': c.end_date ? new Date(c.end_date).toLocaleDateString('en-SG') : '',
+      }
+    })
+    if (rows.length === 0) { showToast('No campaigns to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 30 }, { wch: 45 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Campaigns')
+    XLSX.writeFile(wb, `GivingTree-Campaigns-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   function exportMassAppealsExcel(filteredAppeals) {
@@ -7257,18 +7253,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {myCauses.length > 0 && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
-                {campaignSearchTerm !== '' && (
-                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => setCampaignSearchTerm('')}>✕ Clear</button>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={campaignYearFilter} onChange={e => setCampaignYearFilter(e.target.value)}>
+                  <option value="All">All years</option>
+                  {[...new Set(myCauses.filter(c => c.type === 'campaign').map(c => new Date(c.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                {(campaignSearchTerm !== '' || campaignYearFilter !== 'All') && (
+                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setCampaignSearchTerm(''); setCampaignYearFilter('All') }}>✕ Clear Filters</button>
                 )}
+                <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                  const q = campaignSearchTerm.toLowerCase().trim()
+                  const filtered = myCauses.filter(c => {
+                    if (c.type !== 'campaign') return false
+                    const matchesSearch = !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
+                    const matchesYear = campaignYearFilter === 'All' || new Date(c.created_at).getFullYear().toString() === campaignYearFilter
+                    return matchesSearch && matchesYear
+                  })
+                  exportCampaignsExcel(filtered)
+                }}>⬇️ Export to Excel</button>
               </div>
             )}
 
             {(() => {
               const q = campaignSearchTerm.toLowerCase().trim()
               const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
+              const matchesYear = c => campaignYearFilter === 'All' || new Date(c.created_at).getFullYear().toString() === campaignYearFilter
               const isPast = c => c.status === 'rejected' || c.status === 'deleted' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
-              const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c))
-              const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c))
+              const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c))
+              const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c))
 
               const renderCard = c => {
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
