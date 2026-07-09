@@ -2627,6 +2627,72 @@ export default function App() {
     showToast('Payment confirmed ✓ — receipt issued. Send the thank-you when ready.')
   }
 
+  function buildThankYouPreviewHtml(donation, customMessage) {
+    const badgeInfo = donationBadgeInfo[donation.id]
+    const isRecurring = !!donation.recurring_gift_id
+    const templateType = donation.amount > thankYouThreshold ? 'major_gift'
+      : isRecurring ? 'recurring_donor'
+      : badgeInfo?.isFirstTime ? 'new_donor'
+      : 'standard'
+    const amount = Number(donation.amount).toLocaleString()
+    const causeTitle = causeNameForDonation(donation)
+    const dateStr = new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+    const customBlock = customMessage?.trim()
+      ? `<p style="font-size:13px;color:#1C1C1C;line-height:1.6;background:#FAF7F2;border-radius:10px;padding:12px;border-left:3px solid #D4A017;font-style:italic;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      : ''
+
+    if (templateType === 'major_gift') {
+      return `
+        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:28px;margin-bottom:6px;">🌳</div>
+          <div style="font-size:17px;font-weight:700;color:white;">A Gift That Changes Things</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you, ${donation.donor_name}, for your extraordinary generosity</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
+          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${charityName}, thank you.</p>
+          ${customBlock}
+          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
+          ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
+        </div>`
+    }
+    if (templateType === 'new_donor') {
+      return `
+        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:white;">Welcome, ${donation.donor_name}!</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${charityName}</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
+          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">This is the start of something good. We're so glad you're with us — here's what your first gift of <strong>SGD $${amount}</strong> supports.</p>
+          ${customBlock}
+          ${causeTitle ? `<p style="font-size:13px;color:#1C1C1C;">Your gift went toward: <strong style="color:#D4A017;">🎯 ${causeTitle}</strong></p>` : ''}
+        </div>`
+    }
+    if (templateType === 'recurring_donor') {
+      return `
+        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:17px;font-weight:700;color:white;">Thank You for Your Continued Support</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${donation.donor_name}, your steady giving makes a real difference</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
+          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift of <strong>SGD $${amount}</strong>.</p>
+          ${customBlock}
+        </div>`
+    }
+    return `
+      <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${donation.donor_name}!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your generosity makes a difference</div>
+      </div>
+      ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid #E2D9CC;margin-bottom:12px;">${customBlock}</div>` : ''}
+      <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
+        <div style="font-size:11px;color:#7A6E62;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Donation Details</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Charity</span><span style="font-weight:700;color:#1B4332;">${charityName}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:#7A6E62;">Date</span><span style="font-weight:700;color:#1B4332;">${dateStr}</span></div>
+        ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
+      </div>`
+  }
+
   async function sendThankYouEmail(donation) {
     if (sendingThankYouId === donation.id) return
     setSendingThankYouId(donation.id)
@@ -11753,31 +11819,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {thankYouPreviewModal && (() => {
         const d = thankYouPreviewModal
-        const badgeInfoPreview = donationBadgeInfo[d.id]
-        const isRecurringPreview = !!d.recurring_gift_id
-        const templateLabel = d.amount > thankYouThreshold ? 'Major gift thank-you'
-          : isRecurringPreview ? 'Recurring donor thank-you'
-          : badgeInfoPreview?.isFirstTime ? 'New donor welcome'
-          : 'Standard thank-you'
+        const previewBodyHtml = buildThankYouPreviewHtml(d, thankYouCustomMessage)
+        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setThankYouPreviewModal(null)}>
-            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>
-                {d.thank_you_sent ? 'A thank-you was already sent for this donation. ' : ''}Sending to <strong>{d.donor_email}</strong>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
+                <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setThankYouPreviewModal(null)}>✕</button>
               </div>
-              <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 12px', marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>Template</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{templateLabel}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>${Number(d.amount).toLocaleString()} · Receipt PDF will be attached</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>
+                {d.thank_you_sent ? 'A thank-you was already sent for this donation. ' : ''}Sending to <strong>{d.donor_email}</strong> · Receipt PDF will be attached
               </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={s.formLabel}>Add a personal message (optional)</div>
                 <textarea
-                  style={{ ...s.formInput, minHeight: 90, resize: 'vertical' }}
-                  placeholder="This will appear inside the email, above the standard details. Leave blank to send the template as-is."
+                  style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }}
+                  placeholder="This appears inside the email preview below as you type. Leave blank to send the template as-is."
                   value={thankYouCustomMessage}
                   onChange={e => setThankYouCustomMessage(e.target.value)}
+                />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Email Preview</div>
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+                <iframe
+                  srcDoc={fullPreviewHtml}
+                  style={{ width: '100%', height: 340, border: 'none', display: 'block' }}
+                  title="Email preview"
                 />
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
