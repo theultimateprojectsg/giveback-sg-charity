@@ -9607,7 +9607,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {showRecurringForm && (
-              <div style={{ ...s.card, marginBottom: 24, border: `1.5px solid ${C.sage}` }}>
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>
+              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 New Recurring Gift</div>
                   <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>✕</button>
@@ -9661,6 +9662,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveRecurringGift} disabled={savingRecurring}>{savingRecurring ? 'Saving...' : '✓ Save'}</button>
                   <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>Cancel</button>
                 </div>
+              </div>
               </div>
             )}
 
