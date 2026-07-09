@@ -7333,6 +7333,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {visibleMetrics.includes('cash_runway') && (() => {
+              const now5 = new Date()
+              const threeMoAgo = new Date(now5.getFullYear(), now5.getMonth() - 3, now5.getDate())
+              const recentTotal = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgo).reduce((s, d) => s + d.amount, 0)
+              const trailingAvgMonthly = recentTotal / 3
+              const runwayMonths = monthlyExpenses > 0 ? (trailingAvgMonthly / monthlyExpenses) : null
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>🛢️ Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover — not your actual bank balance." /></div>
+                  {runwayMonths === null ? (
+                    <div>
+                      <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Set your monthly expenses in Settings to see this.</div>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set expenses →</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: runwayMonths >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonths.toFixed(1)} months</div>
+                      <div style={{ fontSize: 11.5, color: runwayMonths >= 3 ? C.sage : C.red, marginTop: 8, fontWeight: 500 }}>
+                        {runwayMonths >= 3 ? '✓ Healthy pace' : '⚠ Below 3 months — worth a closer look'}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Avg ${Math.round(trailingAvgMonthly).toLocaleString()}/month over last 3 months · expenses ${monthlyExpenses.toLocaleString()}/month</div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+
             {visibleMetrics.includes('donation_breakdown') && (
             <div style={{ ...s.card, marginBottom: 0 }}>
               <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
@@ -9674,6 +9701,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { key: 'donor_highlights', label: 'Donor Highlights', note: 'Top donor, largest gift, most frequent giver, standout new supporter' },
                 { key: 'giving_streaks', label: 'Giving Streaks', note: 'Donors giving 3+ consecutive months — your most dependable supporters' },
                 { key: 'quiet_donors', label: 'Quiet Donors', note: 'Regular givers whose rhythm has slowed — catch them before they lapse' },
+                { key: 'cash_runway', label: 'Cash Runway', note: 'Months of operating expenses your recent giving pace would cover' },
                 { key: 'goal_pacing', label: 'Goal Pacing Forecast', note: 'Whether you\u2019re on track to hit your annual goal by year end' },
                 { key: 'channel_mix', label: 'How Donors Are Paying', note: 'Breakdown of PayNow vs cash vs other payment methods' },
                 { key: 'fun_facts', label: 'Fun Facts', note: 'Average daily giving, one-time donor share, your best-ever day' },
