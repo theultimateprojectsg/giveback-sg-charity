@@ -120,7 +120,7 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '' })
+  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '', referred_by_donor_key: '' })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
   const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
@@ -147,6 +147,7 @@ export default function App() {
     { key: 'milestones', label: 'Milestones' },
     { key: 'recurring', label: 'Recurring Status' },
     { key: 'pledge', label: 'Pledge Status' },
+    { key: 'warmth', label: 'Relationship Warmth' },
   ]
   const DONOR_COLUMN_DEFAULTS = ['total', 'count', 'avg', 'lastDate', 'tags']
   const [selectedDonorColumns, setSelectedDonorColumns] = useState(() => {
@@ -267,6 +268,7 @@ export default function App() {
   const [lapsedDismissals, setLapsedDismissals] = useState({})
   const [showLapsedDismissModal, setShowLapsedDismissModal] = useState(null)
   const [lapsedDismissReason, setLapsedDismissReason] = useState('')
+  const [lapsedDismissCategory, setLapsedDismissCategory] = useState('unknown')
   const [dismissingLapsed, setDismissingLapsed] = useState(false)
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
   const [showAllLapsedDonors, setShowAllLapsedDonors] = useState(false)
@@ -1348,6 +1350,7 @@ export default function App() {
       charity_uen: charityUen,
       donor_key: donorKey,
       reason: lapsedDismissReason || null,
+      reason_category: lapsedDismissCategory,
       dismissed_by: session.user.email,
       dismissed_at: new Date().toISOString(),
     }, { onConflict: 'charity_uen,donor_key' }).select().single()
@@ -2471,6 +2474,14 @@ export default function App() {
     let receiptAttachmentB64 = null
     try { receiptAttachmentB64 = getReceiptPDFBase64(donation) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
 
+    const donorKey65 = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
+    const badgeInfo65 = donationBadgeInfo[donation.id]
+    const isRecurringGift65 = !!donation.recurring_gift_id
+    const templateType65 = donation.amount > thankYouThreshold ? 'major_gift'
+      : isRecurringGift65 ? 'recurring_donor'
+      : badgeInfo65?.isFirstTime ? 'new_donor'
+      : 'standard'
+
     const { error: emailError } = await sendCharityEmail({
       donor_name: donation.donor_name,
       donor_email: donation.donor_email,
@@ -2483,6 +2494,7 @@ export default function App() {
       cause_title: causeNameForDonation(donation),
       receipt_pdf_base64: receiptAttachmentB64,
       receipt_filename: `Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`,
+      thank_you_template: templateType65,
     })
     if (!emailError) {
       await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -2804,6 +2816,17 @@ export default function App() {
     await loadDonorContacts()
   }
 
+  function getDonorWarmth(donor) {
+    const donorKey76 = donor.email?.trim() || donor.name
+    const myNotes76 = donorNotes.filter(n => n.donor_key === donorKey76).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    const lastContact76 = myNotes76[0]?.created_at || null
+    if (!lastContact76) return { level: 'red', label: 'No contact logged', daysSince: null }
+    const daysSince76 = Math.floor((new Date() - new Date(lastContact76)) / (1000 * 60 * 60 * 24))
+    if (daysSince76 <= 90) return { level: 'green', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
+    if (daysSince76 <= 180) return { level: 'amber', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
+    return { level: 'red', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
+  }
+
   async function mergeDonorInto(sourceDonor, targetDonorKey) {
     const sourceKey = sourceDonor.email?.trim() || sourceDonor.name
     const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
@@ -2892,6 +2915,7 @@ export default function App() {
       receipt_name: manualForm.receipt_name?.trim() || null,
       is_anonymous: manualForm.is_anonymous || false,
       acquisition_source: manualForm.acquisition_source || null,
+      referred_by_donor_key: manualForm.referred_by_donor_key || null,
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
@@ -4808,6 +4832,80 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (firstTimeCount > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeCount} new donor${firstTimeCount > 1 ? 's' : ''} this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
               if (biggestYetCount > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetCount} donor${biggestYetCount > 1 ? 's' : ''} gave their biggest gift yet this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
+              // Anniversary + cumulative threshold + streak milestones
+              const donorFirstGiftDate69 = {}
+              const donorCumulative69 = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGiftDate69[key] || new Date(d.created_at) < new Date(donorFirstGiftDate69[key])) donorFirstGiftDate69[key] = d.created_at
+                donorCumulative69[key] = (donorCumulative69[key] || 0) + d.amount
+              })
+
+              const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
+                const fd = new Date(firstDate)
+                const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
+                const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
+                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0
+              })
+              if (anniversariesThisWeek.length > 0) items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating their giving anniversary this week`, priority: 'medium', tab: 'donors' })
+
+              const cumulativeThresholds69 = [1000, 5000, 10000]
+              const crossedThresholdCount = Object.entries(donorCumulative69).filter(([key, total]) => {
+                const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
+                return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
+              }).length
+              if (crossedThresholdCount > 0) items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${crossedThresholdCount} donor${crossedThresholdCount > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', tab: 'donors' })
+
+              const streakMilestones69 = [12, 24, 36, 60]
+              const streakDonorMonths69 = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                const dt = new Date(d.created_at)
+                const monthKey = `${dt.getFullYear()}-${dt.getMonth()}`
+                if (!streakDonorMonths69[key]) streakDonorMonths69[key] = new Set()
+                streakDonorMonths69[key].add(monthKey)
+              })
+              const streakHitCount = Object.values(streakDonorMonths69).filter(months => streakMilestones69.includes(months.size)).length
+              if (streakHitCount > 0) items.push({ key: 'streak_milestones', icon: '🔥', label: `${streakHitCount} donor${streakHitCount > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', tab: 'donors' })
+
+              const seasonalPatternDonors71 = (() => {
+                const byDonorMonth71 = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  const dt = new Date(d.created_at)
+                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { name: d.donor_name, yearsGivingInMonth: {} }
+                  const month = dt.getMonth()
+                  if (!byDonorMonth71[key].yearsGivingInMonth[month]) byDonorMonth71[key].yearsGivingInMonth[month] = new Set()
+                  byDonorMonth71[key].yearsGivingInMonth[month].add(dt.getFullYear())
+                })
+                const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
+                return Object.values(byDonorMonth71).filter(donor => {
+                  const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
+                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2
+                })
+              })()
+              if (seasonalPatternDonors71.length > 0) items.push({ key: 'seasonal_pattern', icon: '📅', label: `${seasonalPatternDonors71.length} donor${seasonalPatternDonors71.length > 1 ? 's' : ''} usually give${seasonalPatternDonors71.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', tab: 'donors' })
+
+              const birthdaysThisWeek70 = donorContacts.filter(c => {
+                if (!c.birth_date) return false
+                const bd = new Date(c.birth_date)
+                const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
+                const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
+                return daysUntil >= 0 && daysUntil <= 7
+              })
+              if (birthdaysThisWeek70.length > 0) items.push({ key: 'donor_birthdays', icon: '🎂', label: `${birthdaysThisWeek70.length} donor birthday${birthdaysThisWeek70.length > 1 ? 's' : ''} this week — ${birthdaysThisWeek70.slice(0, 2).map(c => c.full_name).join(', ')}${birthdaysThisWeek70.length > 2 ? ` +${birthdaysThisWeek70.length - 2} more` : ''}`, priority: 'medium', tab: 'donors' })
+
+              const lapsedReturningCount = confirmedDonations.filter(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (new Date(d.created_at) < weekAgo) return false
+                const priorGifts = confirmedDonations.filter(p => (p.donor_email?.trim() || p.donor_nric || p.donor_name) === key && new Date(p.created_at) < new Date(d.created_at))
+                if (priorGifts.length === 0) return false
+                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+                return gapDays >= lapsedMinDays
+              }).length
+              if (lapsedReturningCount > 0) items.push({ key: 'lapsed_returning', icon: '🎉', label: `${lapsedReturningCount} previously lapsed donor${lapsedReturningCount > 1 ? 's' : ''} came back this week!`, priority: 'medium', tab: 'donors' })
+
               const obligationsDue = (() => {
                 const builtIn = [
                   ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
@@ -5196,7 +5294,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
                               </div>
                             )}
-                            
+                            {(() => {
+                              const isDeepRelationship74 = d.count >= 5 || d.total >= (thankYouThreshold || 500)
+                              const isRecent74 = daysSince <= 60
+                              const suggestion74 = isDeepRelationship74 && isRecent74
+                                ? { icon: '📞', text: 'Suggested: a personal call — this is a longtime supporter' }
+                                : isDeepRelationship74
+                                ? { icon: '✉️', text: 'Suggested: a personal note — they\'ve been with you a while' }
+                                : { icon: '📢', text: 'Suggested: include in your next mass appeal' }
+                              return (
+                                <div style={{ fontSize: 10.5, color: C.forest, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 8px' }}>
+                                  {suggestion74.icon} {suggestion74.text}
+                                </div>
+                              )
+                            })()}
                           </div>
                         )
                       })}
@@ -5367,6 +5478,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()).sort((a, b) => b.total - a.total)
                 const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
                 const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+                const now59 = new Date()
+                const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
+                const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
+                const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
+                const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
+                const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
                 return (
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -5384,6 +5501,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
                         <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
+                      </div>
+                    </div>
+                    <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -5714,6 +5839,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   {activeRecurring ? <span style={s.badgeIssued}>🔁 ${activeRecurring.amount}/{activeRecurring.frequency}</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
                                 </td>
                               ),
+                              warmth: (
+                                <td key="warmth" style={s.td}>
+                                  {(() => {
+                                    const w76 = getDonorWarmth(d)
+                                    const wColor76 = w76.level === 'green' ? C.sage : w76.level === 'amber' ? C.gold : C.red
+                                    return (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: wColor76, flexShrink: 0 }} />
+                                        <span style={{ fontSize: 11, color: C.muted }}>{w76.label}</span>
+                                      </div>
+                                    )
+                                  })()}
+                                </td>
+                              ),
                               pledge: (
                                 <td key="pledge" style={s.td}>
                                   {openPledge ? <span style={s.badgePending}>${openPledge.amount.toLocaleString()} pending</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
@@ -5749,6 +5888,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: C.fontVoice, fontWeight: 500, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
                   <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
                   <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
+                  {(() => {
+                    const warmth76 = getDonorWarmth(selectedDonor)
+                    const warmthColor76 = warmth76.level === 'green' ? '#74C69D' : warmth76.level === 'amber' ? '#E8CC7A' : '#E0A599'
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: warmthColor76 }} />
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{warmth76.label}</span>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Summary</div>
@@ -5976,6 +6125,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             await supabase.from('charity_donor_contacts').update({ linked_family_contact: value || null }).eq('id', existingContact41b.id)
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, linked_family_contact: value || null, created_by: session.user.email })
+                          }
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save</button>
+                      </div>
+                    )
+                  })()}
+                  {(() => {
+                    const donorKey70 = selectedDonor.email?.trim() || selectedDonor.name
+                    const existingContact70 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey70)
+                    return (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Birthday (optional — used to flag upcoming birthdays)</div>
+                        <input
+                          style={{ ...s.formInput, fontSize: 12 }}
+                          type="date"
+                          defaultValue={existingContact70?.birth_date || ''}
+                          id={`birth-date-${donorKey70}`}
+                        />
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} onClick={async () => {
+                          const value = document.getElementById(`birth-date-${donorKey70}`).value
+                          if (existingContact70) {
+                            await supabase.from('charity_donor_contacts').update({ birth_date: value || null }).eq('id', existingContact70.id)
+                          } else {
+                            await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, birth_date: value || null, created_by: session.user.email })
                           }
                           showToast('Saved ✓')
                           loadDonorContacts()
@@ -6522,6 +6696,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <option value="other">Other</option>
                       </select>
                     </div>
+                    {manualForm.acquisition_source === 'referral' && (
+                      <div>
+                        <div style={s.formLabel}>Referred by</div>
+                        <select style={s.formInput} value={manualForm.referred_by_donor_key} onChange={e => setManualForm(f => ({ ...f, referred_by_donor_key: e.target.value }))}>
+                          <option value="">Select existing donor...</option>
+                          {donorList.map((d, i) => (
+                            <option key={i} value={d.email?.trim() || d.name}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     {charityIsIpc && (
                       <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
                     )}
@@ -7931,13 +8116,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
               const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
+
+              const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
+              const allMethods61 = [...new Set(rows.map(r => r.label))]
+              const yearlyMix61 = allYears61.map(y => {
+                const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
+                const mix = {}
+                allMethods61.forEach(m => { mix[m] = 0 })
+                yearDons.forEach(d => {
+                  const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+                  mix[label] = (mix[label] || 0) + d.amount
+                })
+                return { year: y, mix, total: yearTotal }
+              })
+
               return (
                 <div style={{ ...s.card, marginBottom: 24 }}>
                   <div style={s.cardTitle}>💳 How Donors Are Paying — {filterYear}</div>
                   <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
                     {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
                     {rows.map((r, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
@@ -7947,6 +8147,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ))}
                   </div>
+                  {allYears61.length > 1 && (
+                    <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
+                      {allMethods61.map((method, mi) => {
+                        const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                        const firstPct = series[0]
+                        const lastPct = series[series.length - 1]
+                        const delta = lastPct - firstPct
+                        return (
+                          <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
+                            <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                              {yearlyMix61.map((y, yi) => (
+                                <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
+                              ))}
+                            </div>
+                            <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )
             })()}
@@ -8142,6 +8364,48 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {visibleMetrics.includes('quiet_recurring_donors') && (() => {
+              const yearAgo75 = new Date()
+              yearAgo75.setFullYear(yearAgo75.getFullYear() - 1)
+              const activeRecurringDonors75 = recurringGifts.filter(g => g.status === 'active')
+              const quietlyPaying75 = activeRecurringDonors75.map(g => {
+                const donorKey75 = g.donor_email?.trim() || g.donor_name
+                const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                const lastContact75 = myNotes75[0]?.created_at || null
+                const isQuiet75 = !lastContact75 || new Date(lastContact75) < yearAgo75
+                if (!isQuiet75) return null
+                return {
+                  name: g.donor_name,
+                  email: g.donor_email,
+                  amount: g.amount,
+                  frequency: g.frequency,
+                  lastContact: lastContact75,
+                }
+              }).filter(Boolean)
+
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Quietly Paying Donors</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
+                  {quietlyPaying75.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {quietlyPaying75.map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>${d.amount}/{d.frequency} · {d.lastContact ? `last contact ${Math.floor((new Date() - new Date(d.lastContact)) / (1000 * 60 * 60 * 24 * 30))}mo ago` : 'no contact ever logged'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             {visibleMetrics.includes('quiet_donors') && (() => {
               const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
               const byDonor = {}
@@ -8185,6 +8449,160 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ))}
                     </div>
                   )}
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('top_connectors') && (() => {
+              const referrals78 = donations.filter(d => d.referred_by_donor_key)
+              if (referrals78.length === 0) return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Top Connectors</div>
+                  <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
+                </div>
+              )
+              const byReferrer78 = {}
+              referrals78.forEach(d => {
+                const referrerKey = d.referred_by_donor_key
+                const referredKey = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!byReferrer78[referrerKey]) byReferrer78[referrerKey] = { referredDonors: {} }
+                if (!byReferrer78[referrerKey].referredDonors[referredKey]) byReferrer78[referrerKey].referredDonors[referredKey] = 0
+                byReferrer78[referrerKey].referredDonors[referredKey]++
+              })
+              const rows78 = Object.entries(byReferrer78).map(([referrerKey, info]) => {
+                const referrer = donorList.find(d => (d.email?.trim() || d.name) === referrerKey)
+                const referredCount = Object.keys(info.referredDonors).length
+                const sustainedCount = Object.values(info.referredDonors).filter(c => c > 1).length
+                return { name: referrer?.name || referrerKey, referredCount, sustainedCount }
+              }).sort((a, b) => b.sustainedCount - a.sustainedCount || b.referredCount - a.referredCount)
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Top Connectors</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rows78.slice(0, 8).map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.name}</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{r.referredCount} referred · {r.sustainedCount} became repeat givers</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('donation_forecast') && (() => {
+              const now79 = new Date()
+              const currentMonth79 = now79.getMonth()
+              const years79 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now79.getFullYear() || (y === now79.getFullYear() && false))
+              const historicalMonthTotals79 = years79.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === currentMonth79 }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+
+              if (historicalMonthTotals79.length === 0) return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Monthly Forecast</div>
+                  <div style={{ fontSize: 13, color: C.muted }}>Needs at least one prior year of data for this month to build a forecast.</div>
+                </div>
+              )
+
+              const avgHistorical79 = historicalMonthTotals79.reduce((s, t) => s + t, 0) / historicalMonthTotals79.length
+              const lowRange79 = Math.round(avgHistorical79 * 0.85)
+              const highRange79 = Math.round(avgHistorical79 * 1.15)
+
+              const activeRecurring79 = recurringGifts.filter(g => g.status === 'active')
+              const confirmedRecurringThisMonth79 = activeRecurring79.reduce((s, g) => {
+                const amt = Number(g.amount) || 0
+                if (g.frequency === 'weekly') return s + amt * 4.33
+                if (g.frequency === 'quarterly') return s + amt / 3
+                if (g.frequency === 'yearly' || g.frequency === 'annual') return s + amt / 12
+                return s + amt
+              }, 0)
+
+              const neededLow79 = Math.max(0, Math.round(lowRange79 - confirmedRecurringThisMonth79))
+              const neededHigh79 = Math.max(0, Math.round(highRange79 - confirmedRecurringThisMonth79))
+              const monthName79 = now79.toLocaleDateString('en-SG', { month: 'long' })
+
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Monthly Forecast</div>
+                  <div style={{ fontSize: 13, color: C.forest, marginBottom: 10, lineHeight: 1.6 }}>
+                    You typically receive <strong>${lowRange79.toLocaleString()}–${highRange79.toLocaleString()}</strong> in {monthName79}.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: C.muted }}>Confirmed recurring covers</span>
+                      <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(confirmedRecurringThisMonth79).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: C.muted }}>You'd need from one-off gifts</span>
+                      <span style={{ fontWeight: 500, color: C.forest }}>${neededLow79.toLocaleString()}–${neededHigh79.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Based on {historicalMonthTotals79.length} prior year{historicalMonthTotals79.length !== 1 ? 's' : ''} of {monthName79} data.</div>
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('seasonality_trend') && (() => {
+              const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+              const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
+              if (years58.length < 2) return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Seasonality Trend</div>
+                  <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
+                </div>
+              )
+              const byMonth58 = monthNames58.map((name, i) => {
+                const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
+                const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
+                const avg = nonZeroTotals.length > 0 ? totalsAcrossYears.reduce((s, t) => s + t, 0) / years58.length : 0
+                return { name, avg }
+              })
+              const overallAvg58 = byMonth58.reduce((s, m) => s + m.avg, 0) / 12
+              const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Seasonality Trend</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100, marginBottom: 8 }}>
+                    {byMonth58.map((m, i) => (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
+                        <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
+                    <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
+                    <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('lapse_reasons') && (() => {
+              const categoryLabels62 = { unknown: 'Unknown', financial_difficulty: 'Financial difficulty', moved_overseas: 'Moved overseas', switched_cause: 'Switched to another cause', deceased: 'Deceased', asked_to_stop: 'Asked to stop', other: 'Other' }
+              const dismissalsList62 = Object.values(lapsedDismissals).filter(d => d.reason_category)
+              if (dismissalsList62.length === 0) return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Why Donors Lapse</div>
+                  <div style={{ fontSize: 13, color: C.muted }}>No lapsed donors marked with a reason yet.</div>
+                </div>
+              )
+              const counts62 = {}
+              dismissalsList62.forEach(d => { counts62[d.reason_category] = (counts62[d.reason_category] || 0) + 1 })
+              const rows62 = Object.entries(counts62).map(([cat, count]) => ({ label: categoryLabels62[cat] || cat, count })).sort((a, b) => b.count - a.count)
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Why Donors Lapse</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Based on {dismissalsList62.length} donor{dismissalsList62.length !== 1 ? 's' : ''} marked not interested.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rows62.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest }}>{r.label}</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{r.count} donor{r.count !== 1 ? 's' : ''}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })()}
@@ -10290,8 +10708,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               They'll be hidden from this list indefinitely. If they donate again on their own, they'll naturally reappear as an active donor — you can also restore them manually at any time.
             </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Reason</div>
+              <select style={s.formInput} value={lapsedDismissCategory} onChange={e => setLapsedDismissCategory(e.target.value)}>
+                <option value="unknown">Unknown</option>
+                <option value="financial_difficulty">Financial difficulty</option>
+                <option value="moved_overseas">Moved overseas</option>
+                <option value="switched_cause">Switched to another cause</option>
+                <option value="deceased">Deceased</option>
+                <option value="asked_to_stop">Asked to stop</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={s.formLabel}>Reason (optional)</div>
+              <div style={s.formLabel}>Additional detail (optional)</div>
               <input style={s.formInput} placeholder="e.g. Said no in person, requested no further contact" value={lapsedDismissReason} onChange={e => setLapsedDismissReason(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -10309,7 +10739,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       {showLapsedReminderModal && lapsedReminderCandidate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Reach out to a lapsed donor</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>{lapsedReminderCandidate.givingChangeMeta ? 'Check in about decreased giving' : 'Reach out to a lapsed donor'}</div>
+            {lapsedReminderCandidate.givingChangeMeta && (
+              <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 6, padding: '10px 12px', marginBottom: 14, fontSize: 12.5, color: C.warning, lineHeight: 1.5 }}>
+                💛 This could be financial hardship, a change in circumstances, or simply a busy season — not necessarily a loss of interest. Suggested framing: a genuine check-in on how they're doing, not a question about why they gave less.
+              </div>
+            )}
             <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} />
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
@@ -10783,8 +11218,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { key: 'donor_highlights', label: 'Donor Highlights', note: 'Top donor, largest gift, most frequent giver, standout new supporter' },
                 { key: 'giving_streaks', label: 'Giving Streaks', note: 'Donors giving 3+ consecutive months — your most dependable supporters' },
                 { key: 'quiet_donors', label: 'Quiet Donors', note: 'Regular givers whose rhythm has slowed — catch them before they lapse' },
+                { key: 'quiet_recurring_donors', label: 'Quietly Paying Donors', note: 'Active recurring donors with no personal contact in 12+ months' },
                 { key: 'cash_runway', label: 'Cash Runway', note: 'Months of operating expenses your recent giving pace would cover' },
                 { key: 'acquisition_source', label: 'Donor Acquisition Sources', note: 'Which channels bring in donors who stick around' },
+                { key: 'top_connectors', label: 'Top Connectors', note: 'Donors whose referrals turned into real, sustained giving' },
+                { key: 'donation_forecast', label: 'Monthly Forecast', note: 'What to expect this month, combining confirmed recurring gifts with historical one-off patterns' },
+                { key: 'seasonality_trend', label: 'Seasonality Trend', note: 'Which months are historically strong or weak, across all your years of data' },
+                { key: 'lapse_reasons', label: 'Why Donors Lapse', note: 'Breakdown of reasons donors stop giving, from your dismissal records' },
                 { key: 'year_end_projection', label: 'Year-End Projection', note: 'Where your revenue is likely to land by December, based on your pace so far (shown from October)' },
                 { key: 'ack_timing_sla', label: 'Gift Acknowledgment Timing', note: 'Average days from a donation coming in to its receipt going out' },
                 { key: 'recurring_revenue', label: 'Monthly Recurring Revenue', note: 'GIRO and habitual PayNow gifts, separated from one-off donations' },
