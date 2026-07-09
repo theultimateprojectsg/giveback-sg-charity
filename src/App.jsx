@@ -5842,7 +5842,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 payment: (
                                   <td key="payment" style={s.td}>
                                     {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                         <span style={s.badgePending}>⚠️ Unverified</span>
                                         <button
                                           style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -6027,7 +6027,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={s.donorCell}>
                               <div style={{ ...s.donorAvatar, background: colorForDonor(d.email || d.name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.name?.charAt(0)}</div>
                               <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                   <div style={s.donorName}>{d.name}</div>
                                   {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBEEE9', padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
                                   {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
@@ -6082,7 +6082,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                     const w76 = getDonorWarmth(d)
                                     const wColor76 = w76.level === 'green' ? C.sage : w76.level === 'amber' ? C.gold : C.red
                                     return (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: wColor76, flexShrink: 0 }} />
                                         <span style={{ fontSize: 11, color: C.muted }}>{w76.label}</span>
                                       </div>
@@ -6699,7 +6699,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       return (
                         <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '12px 14px', border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                               <span style={{ fontSize: 14 }}>{tc.icon}</span>
                               <span style={{ fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 600, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
                             </div>
@@ -7309,7 +7309,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 payment: (
                                   <td key="payment" style={s.td}>
                                     {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                         <span style={s.badgePending}>⚠️ Unverified</span>
                                         <button
                                           style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
