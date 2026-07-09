@@ -11947,7 +11947,7 @@ const s = {
   charityName: { fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: 'white', lineHeight: 1.3 },
   charityUen: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   navSection: { padding: '6px 12px', flex: 1 },
-  navLabel: { fontFamily: C.fontMono, fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5, padding: '8px 12px 4px' },
+  navLabel: { fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 500, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, padding: '10px 12px 5px' },
   navItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 1, fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)' },
   navItemActive: { background: C.sage, color: 'white' },
   navIcon: { fontSize: 16, width: 20, textAlign: 'center' },
