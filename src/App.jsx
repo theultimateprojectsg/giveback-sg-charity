@@ -4861,13 +4861,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           ))}
           {(userRole === 'staff' || userRole === 'ed') && (
             <>
-              {!sidebarCollapsed && <div style={s.navLabel}>Campaigns</div>}
+              {!sidebarCollapsed && <div style={s.navLabel}>Fundraising</div>}
               {[
                 { id: 'promotions', icon: '📣', label: 'Campaigns' },
                 { id: 'pledges',    icon: '🤝', label: 'Pledges' },
                 { id: 'recurring',  icon: '🔁', label: 'Recurring' },
                 { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
-                { id: 'grants', icon: '🏛️', label: 'Grants' },
+                { id: 'grants',     icon: '🏛️', label: 'Grants' },
               ].map(item => (
                 <div key={item.id}
                   title={item.label}
