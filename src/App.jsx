@@ -194,6 +194,9 @@ export default function App() {
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
   const [customObligations, setCustomObligations] = useState([])
+  const [customTasks, setCustomTasks] = useState([])
+  const [showAddTask, setShowAddTask] = useState(false)
+  const [taskForm, setTaskForm] = useState({ title: '', date: '' })
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
   const [editingExpenses, setEditingExpenses] = useState(false)
@@ -627,7 +630,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, monthly_expenses, custom_obligations')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, monthly_expenses, custom_obligations, custom_tasks')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -652,6 +655,7 @@ export default function App() {
     setLocalVolunteers(volunteerEmails)
     setMonthlyExpenses(data?.monthly_expenses || 0)
     setCustomObligations(data?.custom_obligations || [])
+    setCustomTasks(data?.custom_tasks || [])
     setSenderDomainStatus(data?.sender_domain_status || 'none')
     setSenderDomain(data?.sender_domain || '')
     setSenderEmailLocalPart(data?.sender_email_local_part || 'hello')
@@ -7356,6 +7360,44 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Avg ${Math.round(trailingAvgMonthly).toLocaleString()}/month over last 3 months · expenses ${monthlyExpenses.toLocaleString()}/month</div>
                     </>
                   )}
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('recurring_revenue') && (() => {
+              const activeRecurring6 = recurringGifts.filter(g => g.status === 'active')
+              const monthlyize6 = (g) => {
+                const amt = Number(g.amount) || 0
+                if (g.frequency === 'weekly') return amt * 4.33
+                if (g.frequency === 'quarterly') return amt / 3
+                if (g.frequency === 'yearly' || g.frequency === 'annual') return amt / 12
+                return amt
+              }
+              const giroMonthly6 = activeRecurring6.filter(g => g.type === 'giro').reduce((s, g) => s + monthlyize6(g), 0)
+              const habitualMonthly6 = activeRecurring6.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
+              const otherMonthly6 = activeRecurring6.filter(g => g.type !== 'giro' && g.type !== 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
+              const totalMonthly6 = giroMonthly6 + habitualMonthly6 + otherMonthly6
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Monthly Recurring Revenue</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>${Math.round(totalMonthly6).toLocaleString()}</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>per month, from {activeRecurring6.length} active recurring gift{activeRecurring6.length !== 1 ? 's' : ''} — separate from one-off donations</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: C.forest }}>GIRO (confirmed)</span>
+                      <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(giroMonthly6).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: C.forest }}>Habitual PayNow (expected)</span>
+                      <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(habitualMonthly6).toLocaleString()}</span>
+                    </div>
+                    {otherMonthly6 > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: C.muted }}>Other (standing order, etc.)</span>
+                        <span style={{ fontWeight: 500, color: C.muted }}>${Math.round(otherMonthly6).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })()}
