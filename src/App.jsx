@@ -2622,39 +2622,7 @@ export default function App() {
       return
     }
 
-    let receiptAttachmentB64 = null
-    try { receiptAttachmentB64 = getReceiptPDFBase64(donation) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
-
-    const donorKey65 = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
-    const badgeInfo65 = donationBadgeInfo[donation.id]
-    const isRecurringGift65 = !!donation.recurring_gift_id
-    const templateType65 = donation.amount > thankYouThreshold ? 'major_gift'
-      : isRecurringGift65 ? 'recurring_donor'
-      : badgeInfo65?.isFirstTime ? 'new_donor'
-      : 'standard'
-
-    const { error: emailError } = await sendCharityEmail({
-      donor_name: donation.donor_name,
-      donor_email: donation.donor_email,
-      charity_name: charityName,
-      charity_uen: charityUen,
-      amount: donation.amount,
-      date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-      payment_ref: donation.payment_ref,
-      notes: donation.notes,
-      cause_title: causeNameForDonation(donation),
-      receipt_pdf_base64: receiptAttachmentB64,
-      receipt_filename: `Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`,
-      thank_you_template: templateType65,
-    })
-    if (!emailError) {
-      await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
-      setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
-      setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
-      showToast('Payment confirmed ✓ — thank you email sent to ' + donation.donor_email + ' 💌')
-    } else {
-      showToast('Payment confirmed but thank you email failed — send manually', 'error')
-    }
+    showToast('Payment confirmed ✓ — receipt issued. Send the thank-you when ready.')
   }
 
   async function sendThankYouEmail(donation) {
@@ -7832,16 +7800,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
                             disabled={sendingThankYouId === selectedDonation.id}
                             onClick={() => {
-                              if (selectedDonation.thank_you_sent) {
-                                setConfirmModal({
-                                  title: 'Send this email again?',
-                                  description: 'A thank you email was already sent for this donation.',
-                                  confirmLabel: 'Send again',
-                                  onConfirm: () => sendThankYouEmail(selectedDonation),
-                                })
-                              } else {
-                                sendThankYouEmail(selectedDonation)
-                              }
+                              const badgeInfoPreview = donationBadgeInfo[selectedDonation.id]
+                              const isRecurringPreview = !!selectedDonation.recurring_gift_id
+                              const templatePreview = selectedDonation.amount > thankYouThreshold ? 'A major gift thank-you (extra warm tone for large gifts)'
+                                : isRecurringPreview ? 'A recurring donor thank-you (acknowledges ongoing support)'
+                                : badgeInfoPreview?.isFirstTime ? 'A new donor welcome (first-gift framing)'
+                                : 'The standard thank-you template'
+                              setConfirmModal({
+                                title: selectedDonation.thank_you_sent ? 'Send this email again?' : 'Send thank-you email?',
+                                description: `${selectedDonation.thank_you_sent ? 'A thank you email was already sent for this donation. ' : ''}This will send ${templatePreview.charAt(0).toLowerCase() + templatePreview.slice(1)} to ${selectedDonation.donor_email}, with the receipt PDF attached.`,
+                                donorName: selectedDonation.donor_name,
+                                amount: selectedDonation.amount,
+                                confirmLabel: selectedDonation.thank_you_sent ? 'Send again' : 'Send email',
+                                onConfirm: () => sendThankYouEmail(selectedDonation),
+                              })
                             }}
                           >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You Email'}</button>
                         )}
