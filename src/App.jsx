@@ -5845,7 +5845,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <span style={s.badgePending}>⚠️ Unverified</span>
                                         <button
-                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             setConfirmModal({
@@ -7312,7 +7312,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <span style={s.badgePending}>⚠️ Unverified</span>
                                         <button
-                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             setConfirmModal({
