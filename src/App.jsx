@@ -120,7 +120,7 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false })
+  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '' })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
   const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
@@ -2891,6 +2891,7 @@ export default function App() {
       receipt_number: receiptNumber,
       receipt_name: manualForm.receipt_name?.trim() || null,
       is_anonymous: manualForm.is_anonymous || false,
+      acquisition_source: manualForm.acquisition_source || null,
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
@@ -4142,6 +4143,88 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.save(`GivingTree-Report-${charityName}-${filterYear}.pdf`)
   }
 
+  function exportQuarterlyBoardReportPDF() {
+    const doc = new jsPDF()
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Quarterly Board Summary', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    const now54 = new Date()
+    const quarterLabel54 = `Q${Math.floor(now54.getMonth() / 3) + 1} ${now54.getFullYear()}`
+    doc.text(`${charityName} · ${quarterLabel54}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${now54.toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    const qStart = new Date(now54.getFullYear(), Math.floor(now54.getMonth() / 3) * 3, 1)
+    const lyQStart = new Date(now54.getFullYear() - 1, Math.floor(now54.getMonth() / 3) * 3, 1)
+    const lyQEnd = new Date(now54.getFullYear() - 1, Math.floor(now54.getMonth() / 3) * 3 + 3, 1)
+    const qDonations = confirmedDonations.filter(d => new Date(d.created_at) >= qStart)
+    const lyQDonations = confirmedDonations.filter(d => new Date(d.created_at) >= lyQStart && new Date(d.created_at) < lyQEnd)
+    const qTotal = qDonations.reduce((s, d) => s + d.amount, 0)
+    const lyQTotal = lyQDonations.reduce((s, d) => s + d.amount, 0)
+    const yoyPct = lyQTotal > 0 ? Math.round(((qTotal - lyQTotal) / lyQTotal) * 100) : null
+
+    const activeRecurring54 = recurringGifts.filter(g => g.status === 'active')
+    const recurringMonthly54 = activeRecurring54.reduce((s, g) => s + Number(g.amount), 0)
+    const recurringQTotal = recurringMonthly54 * 3
+    const oneOffQTotal = qTotal - qDonations.filter(d => d.recurring_gift_id).reduce((s, d) => s + d.amount, 0)
+
+    const byMethod54 = {}
+    qDonations.forEach(d => {
+      const method = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow'
+      byMethod54[method] = (byMethod54[method] || 0) + d.amount
+    })
+
+    const qDonorKeys = new Set(qDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+    const priorDonorKeys = new Set(confirmedDonations.filter(d => new Date(d.created_at) < qStart).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+    const newThisQuarter = [...qDonorKeys].filter(k => !priorDonorKeys.has(k)).length
+    const lyQDonorKeys = new Set(lyQDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+    const retainedFromLastYear = [...lyQDonorKeys].filter(k => qDonorKeys.has(k)).length
+    const retentionPct54 = lyQDonorKeys.size > 0 ? Math.round((retainedFromLastYear / lyQDonorKeys.size) * 100) : null
+
+    let y54 = 56
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Revenue by Source', 14, y54)
+    y54 += 10
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    const rows54 = [
+      ['Total this quarter', `SGD $${qTotal.toLocaleString()}`],
+      ['  Recurring (GIRO + PayNow)', `SGD $${Math.round(recurringQTotal).toLocaleString()}`],
+      ['  One-off gifts', `SGD $${Math.round(oneOffQTotal).toLocaleString()}`],
+      ...Object.entries(byMethod54).map(([m, amt]) => [`  via ${m}`, `SGD $${amt.toLocaleString()}`]),
+    ]
+    rows54.forEach(([label, value]) => {
+      doc.text(label, 14, y54)
+      doc.text(value, 130, y54)
+      y54 += 7
+    })
+
+    y54 += 8
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Donors', 14, y54)
+    y54 += 10
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    const donorRows54 = [
+      ['New donors this quarter', `${newThisQuarter}`],
+      ['Retention (same quarter last year)', retentionPct54 !== null ? `${retentionPct54}%` : 'No prior-year data'],
+      ['Year-on-year revenue', yoyPct !== null ? `${yoyPct >= 0 ? '+' : ''}${yoyPct}% vs same quarter last year` : 'No prior-year data'],
+    ]
+    donorRows54.forEach(([label, value]) => {
+      doc.text(label, 14, y54)
+      doc.text(value, 130, y54)
+      y54 += 7
+    })
+
+    const finalY54 = y54 + 14
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY54)
+
+    doc.save(`GivingTree-QuarterlyBoardSummary-${charityName}-${quarterLabel54.replace(' ', '-')}.pdf`)
+  }
+
   function generateReceiptPDFDoc(donation) {
     const doc = new jsPDF()
     const isIpc = charityIsIpc
@@ -4282,6 +4365,79 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   function getReceiptPDFBase64(donation) {
     const doc = generateReceiptPDFDoc(donation)
     return doc.output('datauristring').split(',')[1]
+  }
+
+  function generateDonorYearEndStatementDoc(donorName, donorDonations, year) {
+    const doc = new jsPDF()
+    const sorted = [...donorDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    const total = sorted.reduce((s, d) => s + d.amount, 0)
+
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(16)
+    doc.text(charityName || 'Charity', 14, 20)
+    doc.setFontSize(10)
+    doc.text(`UEN ${charityUen || ''} · Annual Giving Statement ${year}`, 14, 30)
+
+    doc.setTextColor(28, 28, 28)
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text(`Dear ${donorName},`, 14, 56)
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    doc.text(`Thank you for your generosity in ${year}. Here is a summary of your giving this year.`, 14, 64, { maxWidth: 180 })
+
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold')
+    doc.text(`Total given in ${year}: SGD $${total.toLocaleString()}`, 14, 78)
+
+    autoTable(doc, {
+      startY: 88,
+      head: [['Date', 'Amount (SGD)', 'Receipt No.', 'Payment Method']],
+      body: sorted.map(d => [
+        new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }),
+        `$${Number(d.amount).toLocaleString()}`,
+        d.payment_ref || d.receipt_number || 'N/A',
+        d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow',
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [27, 67, 50], textColor: [255, 255, 255] },
+    })
+
+    const finalY = doc.lastAutoTable.finalY + 14
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text(`With thanks, ${charityName}`, 14, finalY)
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY + 8)
+
+    return doc
+  }
+
+  async function exportAllDonorYearEndStatements() {
+    if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }
+    const year = parseInt(filterYear)
+    const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === year && d.payment_status === 'confirmed' && !d.is_anonymous)
+    if (yearDons.length === 0) { showToast('No donations found for this year', 'error'); return }
+
+    const byDonor = {}
+    yearDons.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!byDonor[key]) byDonor[key] = { name: d.donor_name, donations: [] }
+      byDonor[key].donations.push(d)
+    })
+
+    showToast(`Generating statements for ${Object.keys(byDonor).length} donors...`)
+    const zip = new JSZip()
+    Object.values(byDonor).forEach(donor => {
+      const doc = generateDonorYearEndStatementDoc(donor.name, donor.donations, year)
+      const pdfBlob = doc.output('blob')
+      zip.file(`${donor.name.replace(/[^a-zA-Z0-9]/g, '_')}_${year}_Statement.pdf`, pdfBlob)
+    })
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const url = URL.createObjectURL(zipBlob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `GivingTree-YearEndStatements-${charityName}-${year}.zip`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast(`${Object.keys(byDonor).length} statements downloaded ✓`)
   }
 
   function exportYearEndSummary() {
@@ -6354,6 +6510,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                       <input style={s.formInput} placeholder={manualForm.is_anonymous ? 'Leave blank, or add a private note' : 'Full name'} value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} />
                     </div>
+                    <div>
+                      <div style={s.formLabel}>How did they find you? (optional)</div>
+                      <select style={s.formInput} value={manualForm.acquisition_source} onChange={e => setManualForm(f => ({ ...f, acquisition_source: e.target.value }))}>
+                        <option value="">Not specified</option>
+                        <option value="referral">Referral</option>
+                        <option value="event">Event</option>
+                        <option value="social_media">Social Media</option>
+                        <option value="walk_in">Walk-in</option>
+                        <option value="corporate_partner">Corporate Partner</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
                     {charityIsIpc && (
                       <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
                     )}
@@ -8021,6 +8189,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {visibleMetrics.includes('acquisition_source') && (() => {
+              const bySource57 = {}
+              donations.filter(d => d.acquisition_source).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
+                if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
+                bySource57[d.acquisition_source][key]++
+              })
+              const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+              const rows57 = Object.entries(bySource57).map(([source, donorCounts]) => {
+                const donorKeys = Object.keys(donorCounts)
+                const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
+                return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
+              }).sort((a, b) => b.totalDonors - a.totalDonors)
+              if (rows57.length === 0) return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                  <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
+                </div>
+              )
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {rows57.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
+                        <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             {visibleMetrics.includes('cash_runway') && (() => {
               const now5 = new Date()
               const threeMoAgo = new Date(now5.getFullYear(), now5.getMonth() - 3, now5.getDate())
@@ -9684,6 +9888,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnForest} onClick={exportAnalyticsPDF}>📄 Download Board Packet PDF</button>
             </div>
 
+            {/* One-Page Quarterly Summary */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>Quarterly Board Summary</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                A single page, paste-ready for a board deck: revenue by source and payment method, donor acquisition, retention rate, and year-on-year comparison for this quarter.
+              </div>
+              <button style={s.btnForest} onClick={exportQuarterlyBoardReportPDF}>📄 Download Quarterly Summary PDF</button>
+            </div>
+
             {/* Weekly Snapshot */}
             <div style={{ ...s.card, marginBottom: 16 }}>
               <div style={s.cardTitle}>🗓️ Weekly Snapshot</div>
@@ -9693,19 +9906,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnForest} onClick={exportWeeklySnapshotPDF}>📄 Download Weekly Snapshot PDF</button>
             </div>
 
-            {/* Donor Summary */}
+            {/* Org-Wide Year-End Summary */}
             <div style={{ ...s.card, marginBottom: 16 }}>
-              <div style={s.cardTitle}>👥 Donor Year-End Summary</div>
+              <div style={s.cardTitle}>Organisation Year-End Summary</div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                Individual giving summaries for each donor — useful for sending year-end thank you letters or donor acknowledgements.
+                One report covering your whole organisation's year — totals, busiest month, and top supporters.
+              </div>
+              <button style={s.btnForest} onClick={exportYearEndSummary}>📄 Download Year-End Summary PDF</button>
+            </div>
+
+            {/* Per-Donor Year-End Statements */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>Donor Year-End Statements</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                A personal annual statement for every donor — every gift with date, amount, and receipt number. Generated as one PDF per donor, downloaded together as a zip.
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                  <option value="All">All Years</option>
+                  <option value="All">Select a year</option>
                   {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
+                <button style={s.btnForest} onClick={exportAllDonorYearEndStatements}>📦 Download All Statements (ZIP)</button>
                 <button style={s.exportSmallBtn} onClick={exportDonorContactsCSV}>⬇️ Export Donor Contacts CSV</button>
               </div>
             </div>
@@ -10561,6 +10784,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { key: 'giving_streaks', label: 'Giving Streaks', note: 'Donors giving 3+ consecutive months — your most dependable supporters' },
                 { key: 'quiet_donors', label: 'Quiet Donors', note: 'Regular givers whose rhythm has slowed — catch them before they lapse' },
                 { key: 'cash_runway', label: 'Cash Runway', note: 'Months of operating expenses your recent giving pace would cover' },
+                { key: 'acquisition_source', label: 'Donor Acquisition Sources', note: 'Which channels bring in donors who stick around' },
                 { key: 'year_end_projection', label: 'Year-End Projection', note: 'Where your revenue is likely to land by December, based on your pace so far (shown from October)' },
                 { key: 'ack_timing_sla', label: 'Gift Acknowledgment Timing', note: 'Average days from a donation coming in to its receipt going out' },
                 { key: 'recurring_revenue', label: 'Monthly Recurring Revenue', note: 'GIRO and habitual PayNow gifts, separated from one-off donations' },
