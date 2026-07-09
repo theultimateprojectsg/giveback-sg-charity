@@ -4332,6 +4332,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent)
               if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
 
+              const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              const milestonesThisWeek = donations.filter(d => {
+                if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo) return false
+                const b = donationBadgeInfo[d.id]
+                return b && (b.isFirstTime || b.isBiggestYet)
+              })
+              const firstTimeCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime).length
+              const biggestYetCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet).length
+              if (firstTimeCount > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeCount} new donor${firstTimeCount > 1 ? 's' : ''} this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (biggestYetCount > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetCount} donor${biggestYetCount > 1 ? 's' : ''} gave their biggest gift yet this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+
               const obligationsDue = (() => {
                 const builtIn = [
                   ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
@@ -7391,6 +7402,66 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {visibleMetrics.includes('ack_timing_sla') && (() => {
+              const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
+              if (withTiming.length === 0) {
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
+                  </div>
+                )
+              }
+              const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
+              const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
+              const avgDays = avgHours / 24
+              const overSla = avgHours > 48
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
+                  <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
+                    {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
+                </div>
+              )
+            })()}
+
+            {visibleMetrics.includes('year_end_projection') && (() => {
+              const now11 = new Date()
+              if (now11.getMonth() < 9) {
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Year-End Projection</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available from October, once there's enough of the year to extrapolate from.</div>
+                  </div>
+                )
+              }
+              const yearStart11 = new Date(now11.getFullYear(), 0, 1)
+              const daysElapsed = Math.max(1, Math.ceil((now11 - yearStart11) / (1000 * 60 * 60 * 24)))
+              const ytdTotal = confirmedDonations.filter(d => new Date(d.created_at) >= yearStart11).reduce((s, d) => s + d.amount, 0)
+              const projectedTotal = Math.round((ytdTotal / daysElapsed) * 365)
+              const lastYearStart11 = new Date(now11.getFullYear() - 1, 0, 1)
+              const lastYearEnd11 = new Date(now11.getFullYear(), 0, 1)
+              const lastYearTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastYearStart11 && new Date(d.created_at) < lastYearEnd11).reduce((s, d) => s + d.amount, 0)
+              const trendPct = lastYearTotal > 0 ? Math.round(((projectedTotal - lastYearTotal) / lastYearTotal) * 100) : null
+              return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>Year-End Projection</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 8 }}>${projectedTotal.toLocaleString()}</div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where {now11.getFullYear()} is likely to land.</div>
+                  {lastYearTotal > 0 ? (
+                    <div style={{ fontSize: 12.5, color: trendPct >= 0 ? C.sage : C.red, fontWeight: 500 }}>
+                      {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}% vs {now11.getFullYear() - 1}'s ${lastYearTotal.toLocaleString()}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: C.muted }}>No data from {now11.getFullYear() - 1} to compare against.</div>
+                  )}
+                </div>
+              )
+            })()}
+
             {visibleMetrics.includes('recurring_revenue') && (() => {
               const activeRecurring6 = recurringGifts.filter(g => g.status === 'active')
               const monthlyize6 = (g) => {
@@ -9771,6 +9842,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { key: 'giving_streaks', label: 'Giving Streaks', note: 'Donors giving 3+ consecutive months — your most dependable supporters' },
                 { key: 'quiet_donors', label: 'Quiet Donors', note: 'Regular givers whose rhythm has slowed — catch them before they lapse' },
                 { key: 'cash_runway', label: 'Cash Runway', note: 'Months of operating expenses your recent giving pace would cover' },
+                { key: 'year_end_projection', label: 'Year-End Projection', note: 'Where your revenue is likely to land by December, based on your pace so far (shown from October)' },
+                { key: 'ack_timing_sla', label: 'Gift Acknowledgment Timing', note: 'Average days from a donation coming in to its receipt going out' },
                 { key: 'recurring_revenue', label: 'Monthly Recurring Revenue', note: 'GIRO and habitual PayNow gifts, separated from one-off donations' },
                 { key: 'goal_pacing', label: 'Goal Pacing Forecast', note: 'Whether you\u2019re on track to hit your annual goal by year end' },
                 { key: 'channel_mix', label: 'How Donors Are Paying', note: 'Breakdown of PayNow vs cash vs other payment methods' },
