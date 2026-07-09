@@ -4831,17 +4831,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           >{sidebarCollapsed ? '→' : '←'}</button>
         </div>
 
-        {/* Charity badge */}
-        {!sidebarCollapsed && (
-          <div style={s.charityBadge}>
-            <div style={s.charityIcon}>🏥</div>
-            <div>
-              <div style={s.charityName}>{charityName}</div>
-              <div style={s.charityUen}>UEN: {charityUen}</div>
-            </div>
-          </div>
-        )}
-
         {/* Nav */}
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
@@ -4909,7 +4898,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.footerAvatar}>{charityName.charAt(0)}</div>
             <div style={{ minWidth: 0 }}>
               <div style={s.footerName}>{charityName}</div>
-              <div style={s.footerEmail}>{session?.user?.email}</div>
+              <div style={s.footerEmail}>UEN: {charityUen}</div>
             </div>
           </div>
         )}
