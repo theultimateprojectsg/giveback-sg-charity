@@ -1683,60 +1683,6 @@ export default function App() {
     showToast('Campaign marked complete ✓')
   }
 
-  function completeCause(c, raisedAmount) {
-    const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
-    setConfirmModal({
-      title: 'Mark this campaign as complete?',
-      description: metGoal
-        ? `"${c.title}" raised $${raisedAmount.toLocaleString()} of its $${Number(c.target_amount).toLocaleString()} goal — nicely done! It will move to Past Campaigns.`
-        : `"${c.title}" raised $${raisedAmount.toLocaleString()}${c.target_amount > 0 ? ` of its $${Number(c.target_amount).toLocaleString()} goal` : ''}. It will move to Past Campaigns as ended.`,
-      confirmLabel: 'Mark Complete',
-      onConfirm: () => completeCauseConfirmed(c.id),
-    })
-  }
-
-  async function completeCauseConfirmed(id) {
-    setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
-    setBulkActionInProgress(false)
-    if (error) { showToast('Error completing campaign', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'cause_completed',
-      details: { charity_uen: charityUen },
-    })
-    loadMyCauses()
-    showToast('Campaign marked complete ✓')
-  }
-
-  function completeCause(c, raisedAmount) {
-    const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
-    setConfirmModal({
-      title: 'Mark this campaign as complete?',
-      description: metGoal
-        ? `"${c.title}" raised $${raisedAmount.toLocaleString()} of its $${Number(c.target_amount).toLocaleString()} goal — nicely done! It will move to Past Campaigns.`
-        : `"${c.title}" raised $${raisedAmount.toLocaleString()}${c.target_amount > 0 ? ` of its $${Number(c.target_amount).toLocaleString()} goal` : ''}. It will move to Past Campaigns as ended.`,
-      confirmLabel: 'Mark Complete',
-      onConfirm: () => completeCauseConfirmed(c.id),
-    })
-  }
-
-  async function completeCauseConfirmed(id) {
-    setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
-    setBulkActionInProgress(false)
-    if (error) { showToast('Error completing campaign', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'cause_completed',
-      details: { charity_uen: charityUen },
-    })
-    loadMyCauses()
-    showToast('Campaign marked complete ✓')
-  }
-
   async function restoreCause(c) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'approved', active: true }).eq('id', c.id)
