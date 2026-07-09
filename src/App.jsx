@@ -10005,7 +10005,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showPledgeForm && (
-              <div style={{ ...s.card, marginBottom: 24, border: `1.5px solid ${C.sage}` }}>
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>
+              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 New Pledge</div>
                   <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>✕</button>
@@ -10054,6 +10055,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={savePledge} disabled={savingPledge}>{savingPledge ? 'Saving...' : '✓ Save Pledge'}</button>
                   <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>Cancel</button>
                 </div>
+              </div>
               </div>
             )}
 
@@ -10521,7 +10523,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {showGrantForm && (
-              <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 20 }}>
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowGrantForm(false)}>
+              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ New Grant</div>
+                  <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowGrantForm(false)}>✕</button>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
                   <div>
                     <div style={s.formLabel}>Funder Name *</div>
@@ -10545,9 +10552,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button style={s.btnForest} onClick={saveGrant}>Save</button>
+                  <button style={s.btnForest} onClick={saveGrant}>Save Grant</button>
                   <button style={s.viewBtn} onClick={() => setShowGrantForm(false)}>Cancel</button>
                 </div>
+              </div>
               </div>
             )}
 
