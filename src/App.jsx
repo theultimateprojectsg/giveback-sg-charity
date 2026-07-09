@@ -3071,6 +3071,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const confirmedDonations = donations.filter(d => d.payment_status === 'confirmed')
 
+  const recurringTrendFlags = (() => {
+    return recurringGifts.filter(g => g.status === 'active').map(g => {
+      const cycles = donations
+        .filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed')
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      if (cycles.length < 3) return null
+      const last3 = cycles.slice(-3).map(d => d.amount)
+      const [a, b, c] = last3
+      const firstStep = b - a
+      const secondStep = c - b
+      if (firstStep > 0 && secondStep > 0) {
+        return { donor_name: g.donor_name, donor_email: g.donor_email, direction: 'upgrade', from: a, to: c, gift_id: g.id }
+      }
+      if (firstStep < 0 && secondStep < 0) {
+        return { donor_name: g.donor_name, donor_email: g.donor_email, direction: 'downgrade', from: a, to: c, gift_id: g.id }
+      }
+      return null
+    }).filter(Boolean)
+  })()
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
@@ -4304,6 +4323,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (lapsedCount > 0) items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
 
               if (allGivingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { document.getElementById('giving-changes-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+
+              const recurringUpgrades = recurringTrendFlags.filter(f => f.direction === 'upgrade')
+              const recurringDowngrades = recurringTrendFlags.filter(f => f.direction === 'downgrade')
+              if (recurringUpgrades.length > 0) items.push({ key: 'recurring_upgrades', icon: '📈', label: `${recurringUpgrades.length} recurring donor${recurringUpgrades.length > 1 ? 's' : ''} increased giving for 2 cycles in a row`, priority: 'medium', tab: 'recurring' })
+              if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for 2 cycles in a row`, priority: 'medium', tab: 'recurring' })
+
+              const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent)
+              if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
 
               const obligationsDue = (() => {
                 const builtIn = [
