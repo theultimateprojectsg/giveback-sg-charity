@@ -4811,7 +4811,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {/* ── SIDEBAR (desktop, collapsible) ── */}
       {screenSize === 'desktop' && (
-      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 240, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
+      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 208, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
 
         {/* Logo */}
         <div style={{ ...s.sidebarLogo, display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between' }}>
@@ -4954,7 +4954,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {/* ── MAIN ── */}
-      <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 240, width: `calc(100vw - ${sidebarCollapsed ? 64 : 240}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
+      <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 208, width: `calc(100vw - ${sidebarCollapsed ? 64 : 208}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
