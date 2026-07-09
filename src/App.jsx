@@ -120,7 +120,7 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '', referred_by_donor_key: '' })
+  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '', referred_by_donor_key: '', already_verified: false })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
   const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
@@ -3054,9 +3054,9 @@ export default function App() {
       charity_uen: charityUen,
       cause_id: manualForm.cause_id || null,
       amount: parseFloat(manualForm.amount),
-      status: 'confirmed',
-      payment_status: 'confirmed',
-      receipt_issued: true,
+      status: 'awaiting_donor_confirmation',
+      payment_status: 'pending',
+      receipt_issued: false,
       source: 'manual',
       payment_method: manualForm.payment_method,
       notes: manualForm.notes,
