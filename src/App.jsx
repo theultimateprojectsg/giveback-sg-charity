@@ -195,6 +195,8 @@ export default function App() {
   const [volunteerInput, setVolunteerInput] = useState('')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
+  const [localEds, setLocalEds] = useState([])
+  const [localBoardMembers, setLocalBoardMembers] = useState([])
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
   const [customObligations, setCustomObligations] = useState([])
   const [customTasks, setCustomTasks] = useState([])
@@ -212,6 +214,14 @@ export default function App() {
   const [grants, setGrants] = useState([])
   const [showGrantForm, setShowGrantForm] = useState(false)
   const [grantForm, setGrantForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', report_due_date: '' })
+  const [recurringExpenses, setRecurringExpenses] = useState([])
+  const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
+  const [refunds, setRefunds] = useState([])
+  const [showRefundForm, setShowRefundForm] = useState(false)
+  const [refundForm, setRefundForm] = useState({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
+  const [grantExpenses, setGrantExpenses] = useState([])
+  const [expandedGrantId, setExpandedGrantId] = useState(null)
+  const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
@@ -598,6 +608,9 @@ export default function App() {
       loadDonorContacts(session)
       loadPledgeInstalments()
       loadGrants()
+      loadRecurringExpenses()
+      loadRefunds()
+      loadGrantExpenses()
       loadGivingChangeAcks(session)
     }
   }, [session])
@@ -664,15 +677,26 @@ export default function App() {
     setFyEndMonthInput(month.toString())
     setFyEndDayInput(day.toString())
     setCharityIpcLoaded(true)
-    // Determine role — volunteer_emails takes precedence, then staff_emails, default to staff
+    // Determine role — precedence: ED > Staff > Board > Volunteer > default Staff
     const email = activeSession?.user?.email || ''
     const volunteerEmails = data?.volunteer_emails || []
-    if (volunteerEmails.includes(email)) {
+    const edEmails = data?.ed_emails || []
+    const boardEmails = data?.board_emails || []
+    const staffEmails = data?.staff_emails || []
+    if (edEmails.includes(email)) {
+      setUserRole('ed')
+    } else if (staffEmails.includes(email) || (!volunteerEmails.includes(email) && !boardEmails.includes(email))) {
+      setUserRole('staff')
+    } else if (boardEmails.includes(email)) {
+      setUserRole('board')
+    } else if (volunteerEmails.includes(email)) {
       setUserRole('volunteer')
     } else {
       setUserRole('staff')
     }
     setLocalVolunteers(volunteerEmails)
+    setLocalEds(edEmails)
+    setLocalBoardMembers(boardEmails)
     setMonthlyExpenses(data?.monthly_expenses || 0)
     setCustomObligations(data?.custom_obligations || [])
     setCustomTasks(data?.custom_tasks || [])
@@ -803,6 +827,98 @@ export default function App() {
     setShowPledgeForm(false)
     showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
     loadPledgeInstalments()
+  }
+
+  async function loadGrantExpenses() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('grant_expenses').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen)
+    if (error) { console.error('Could not load grant expenses:', error); return }
+    setGrantExpenses(data || [])
+  }
+
+  async function saveGrantExpense(grantId) {
+    if (!grantExpenseForm.description.trim() || !grantExpenseForm.amount) { showToast('Description and amount are required', 'error'); return }
+    const { data, error } = await supabase.from('grant_expenses').insert({
+      grant_id: grantId,
+      description: grantExpenseForm.description.trim(),
+      amount: parseFloat(grantExpenseForm.amount),
+      expense_date: grantExpenseForm.expense_date,
+      created_by: session.user.email,
+    }).select().single()
+    if (error) { showToast('Error saving expense', 'error'); return }
+    setGrantExpenses(prev => [...prev, data])
+    setGrantExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
+    showToast('Expense logged ✓')
+  }
+
+  async function deleteGrantExpense(id) {
+    await supabase.from('grant_expenses').delete().eq('id', id)
+    setGrantExpenses(prev => prev.filter(e => e.id !== id))
+    showToast('Removed')
+  }
+
+  async function loadRefunds() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('refunds').select('*').eq('charity_uen', uen)
+    if (error) { console.error('Could not load refunds:', error); return }
+    setRefunds(data || [])
+  }
+
+  async function saveRefund(donation) {
+    if (!refundForm.refund_amount || !refundForm.reason.trim()) { showToast('Refund amount and reason are required', 'error'); return }
+    const refundAmt = parseFloat(refundForm.refund_amount)
+    if (refundAmt > Number(donation.amount)) { showToast('Refund cannot exceed the original donation amount', 'error'); return }
+    const { data, error } = await supabase.from('refunds').insert({
+      donation_id: donation.id,
+      charity_uen: charityUen,
+      original_amount: donation.amount,
+      refund_amount: refundAmt,
+      refund_date: refundForm.refund_date,
+      reason: refundForm.reason.trim(),
+      approved_by: session.user.email,
+    }).select().single()
+    if (error) { showToast('Error recording refund', 'error'); return }
+    setRefunds(prev => [...prev, data])
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donation_refunded',
+      donation_id: donation.id,
+      details: { original_amount: donation.amount, refund_amount: refundAmt, reason: refundForm.reason.trim() },
+    })
+    setRefundForm({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
+    setShowRefundForm(false)
+    showToast('Refund recorded ✓')
+  }
+
+  async function loadRecurringExpenses() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('recurring_expenses').select('*').eq('charity_uen', uen).order('amount', { ascending: false })
+    if (error) { console.error('Could not load recurring expenses:', error); return }
+    setRecurringExpenses(data || [])
+  }
+
+  async function saveRecurringExpense() {
+    if (!newExpenseForm.name.trim() || !newExpenseForm.amount) { showToast('Name and amount are required', 'error'); return }
+    const { data, error } = await supabase.from('recurring_expenses').insert({
+      charity_uen: charityUen,
+      name: newExpenseForm.name.trim(),
+      amount: parseFloat(newExpenseForm.amount),
+      created_by: session.user.email,
+    }).select().single()
+    if (error) { showToast('Error saving expense', 'error'); return }
+    setRecurringExpenses(prev => [...prev, data].sort((a, b) => b.amount - a.amount))
+    setNewExpenseForm({ name: '', amount: '' })
+    showToast('Expense added ✓')
+  }
+
+  async function deleteRecurringExpense(id) {
+    await supabase.from('recurring_expenses').delete().eq('id', id)
+    setRecurringExpenses(prev => prev.filter(e => e.id !== id))
+    showToast('Removed')
   }
 
   async function loadGrants() {
@@ -3760,7 +3876,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   function exportDonationsExcel() {
-    const rows = filteredDonations.map(d => ({
+    const rows = donations.map(d => ({
       'Donor Name': d.donor_name,
       'Email': d.donor_email || '',
       ...(charityIsIpc ? { 'NRIC/FIN': d.donor_nric || '' } : {}),
@@ -4665,11 +4781,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard', staffOnly: false },
-            { id: 'donations', icon: '💳', label: 'Donations', staffOnly: false },
-            { id: 'donors',    icon: '👥', label: 'Donors',    staffOnly: true },
-            { id: 'analytics', icon: '📈', label: 'Analytics', staffOnly: true },
-          ].filter(item => !item.staffOnly || userRole === 'staff').map(item => (
+            { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board', 'volunteer'] },
+            { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
+            { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
+            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+          ].filter(item => item.roles.includes(userRole)).map(item => (
             <div key={item.id}
               title={item.label}
               style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
@@ -4678,7 +4794,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {!sidebarCollapsed && item.label}
             </div>
           ))}
-          {userRole === 'staff' && (
+          {(userRole === 'staff' || userRole === 'ed') && (
             <>
               {!sidebarCollapsed && <div style={s.navLabel}>Campaigns</div>}
               {[
@@ -5771,7 +5887,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       return matchesSearch && matchesTag && matchesStatus && matchesYear
                     })
                     showToast('Preparing export...')
-                    await exportDonorsExcel(filtered)
+                    await exportDonorsExcel(combinedDonorList)
                   }}>⬇️ Export to Excel</button>
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
@@ -7509,6 +7625,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             >{selectedDonation.needs_physical_receipt ? '📮 Flagged for Mailing' : '📮 Mark for Physical Mailing'}</button>
                           </>
                         )}
+                        {selectedDonation.payment_status === 'confirmed' && (() => {
+                          const myRefunds119 = refunds.filter(r => r.donation_id === selectedDonation.id)
+                          const totalRefunded119 = myRefunds119.reduce((s, r) => s + Number(r.refund_amount), 0)
+                          return (
+                            <div style={{ marginTop: 4 }}>
+                              {myRefunds119.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                                  {myRefunds119.map(r => (
+                                    <div key={r.id} style={{ fontSize: 12, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 6, padding: '8px 10px', color: C.red }}>
+                                      Refunded ${Number(r.refund_amount).toLocaleString()} on {new Date(r.refund_date).toLocaleDateString('en-SG')} — {r.reason}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {totalRefunded119 < Number(selectedDonation.amount) && (
+                                showRefundForm ? (
+                                  <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                                      <input style={{ ...s.formInput, fontSize: 12 }} type="number" placeholder="Refund amount" value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
+                                      <input style={{ ...s.formInput, fontSize: 12 }} type="date" value={refundForm.refund_date} onChange={e => setRefundForm(f => ({ ...f, refund_date: e.target.value }))} />
+                                    </div>
+                                    <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button style={{ ...s.btnForest, fontSize: 12 }} onClick={() => saveRefund(selectedDonation)}>Record Refund</button>
+                                      <button style={{ ...s.viewBtn, fontSize: 12 }} onClick={() => setShowRefundForm(false)}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }} onClick={() => setShowRefundForm(true)}>↩️ Record a Refund</button>
+                                )
+                              )}
+                            </div>
+                          )
+                        })()}
                         {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
                           <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
                             ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
@@ -10422,6 +10572,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {isReportOverdue83 ? `⚠ Report overdue` : `Report due ${new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                         </div>
                       )}
+                      {(() => {
+                        const myExpenses84 = grantExpenses.filter(e => e.grant_id === g.id)
+                        const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
+                        const remaining84 = Number(g.amount) - spent84
+                        const isExpanded84 = expandedGrantId === g.id
+                        return (
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>
+                              <span style={{ fontSize: 12, color: C.muted }}>Spent ${spent84.toLocaleString()} · Remaining ${remaining84.toLocaleString()}</span>
+                              <span style={{ fontSize: 11, color: C.forest }}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</span>
+                            </div>
+                            <div style={{ width: '100%', height: 6, background: C.ivory, borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min(100, Math.round((spent84 / Number(g.amount)) * 100))}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage }} />
+                            </div>
+                            {isExpanded84 && (
+                              <div style={{ marginTop: 12 }}>
+                                {myExpenses84.length > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                                    {myExpenses84.map(e => (
+                                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                                        <span style={{ color: C.text }}>{e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span></span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                          <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantExpense(e.id)}>✕</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
+                                  <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                                  <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
+                                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })}
@@ -10713,57 +10903,104 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {monthlyExpenses > 0 ? `SGD $${monthlyExpenses.toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Not set — used for coverage ratio on dashboard</span>}
                   </div>
                 )}
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Optional breakdown — see what's actually driving your costs (doesn't need to add up to the total above)</div>
+                  {recurringExpenses.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                      {recurringExpenses.map(e => (
+                        <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px' }}>
+                          <span style={{ fontSize: 12.5, color: C.text }}>{e.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                            <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteRecurringExpense(e.id)}>✕</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 600, color: C.forest, paddingTop: 4 }}>
+                        <span>Total itemised</span>
+                        <span>${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Rent, Salaries, Utilities" value={newExpenseForm.name} onChange={e => setNewExpenseForm(f => ({ ...f, name: e.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={newExpenseForm.amount} onChange={e => setNewExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={saveRecurringExpense}>Add</button>
+                  </div>
+                </div>
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={s.cardTitle}>👥 Staff & Volunteer Access</div>
+                <div style={s.cardTitle}>👥 Team Access</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                  Volunteer accounts can log manual entries but cannot see donor records, financials, analytics, or reports. Add their email addresses below.
+                  Assign a role to anyone who needs access. <strong>Executive Director</strong> sees everything. <strong>Staff</strong> has full operational access. <strong>Board Member</strong> sees dashboard trends only, no individual donor records. <strong>Volunteer</strong> can log manual entries only.
                 </div>
                 <div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                    {localVolunteers.length === 0 && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No volunteers added yet.</div>}
+                    {[...localEds.map(e => ({ email: e, role: 'ed' })), ...localBoardMembers.map(e => ({ email: e, role: 'board' })), ...localVolunteers.map(e => ({ email: e, role: 'volunteer' }))].length === 0 && (
+                      <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No additional roles assigned yet — everyone else defaults to Staff.</div>
+                    )}
+                    {localEds.map(email => (
+                      <div key={`ed-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest }}>👑 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Executive Director</span></span>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                          const updated = localEds.filter(e => e !== email)
+                          const { error } = await supabase.from('charity_contacts').update({ ed_emails: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error removing', 'error'); return }
+                          setLocalEds(updated)
+                          showToast('Removed')
+                        }}>Remove</button>
+                      </div>
+                    ))}
+                    {localBoardMembers.map(email => (
+                      <div key={`board-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest }}>📋 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Board Member</span></span>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                          const updated = localBoardMembers.filter(e => e !== email)
+                          const { error } = await supabase.from('charity_contacts').update({ board_emails: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error removing', 'error'); return }
+                          setLocalBoardMembers(updated)
+                          showToast('Removed')
+                        }}>Remove</button>
+                      </div>
+                    ))}
                     {localVolunteers.map(email => (
-                      <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 13, color: C.forest }}>👤 {email}</span>
+                      <div key={`vol-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.forest }}>👤 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Volunteer</span></span>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
                           const updated = localVolunteers.filter(e => e !== email)
                           const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
                           if (error) { showToast('Error removing', 'error'); return }
                           setLocalVolunteers(updated)
-                          showToast('Volunteer removed')
+                          showToast('Removed')
                         }}>Remove</button>
                       </div>
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input style={{ ...s.formInput, fontSize: 13 }} placeholder="volunteer@email.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} onKeyDown={async e => {
-                      if (e.key === 'Enter') {
-                        const email = volunteerInput.trim().toLowerCase()
-                        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
-                        if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
-                        setSavingVolunteer(true)
-                        const updated = [...localVolunteers, email]
-                        const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
-                        if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
-                        setLocalVolunteers(updated)
-                        setVolunteerInput('')
-                        setSavingVolunteer(false)
-                        showToast(`${email} added as volunteer ✓`)
-                      }
-                    }} />
+                    <input style={{ ...s.formInput, fontSize: 13, flex: 2 }} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} />
+                    <select style={{ ...s.formInput, fontSize: 13, flex: 1 }} id="new-role-select">
+                      <option value="ed">Executive Director</option>
+                      <option value="board">Board Member</option>
+                      <option value="volunteer">Volunteer</option>
+                    </select>
                     <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={async () => {
                       const email = volunteerInput.trim().toLowerCase()
+                      const role = document.getElementById('new-role-select').value
                       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
-                      if (localVolunteers.includes(email)) { showToast('Already added', 'error'); return }
+                      if ([...localEds, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
                       setSavingVolunteer(true)
-                      const updated = [...localVolunteers, email]
-                      const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                      const columnMap = { ed: 'ed_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+                      const currentMap = { ed: localEds, board: localBoardMembers, volunteer: localVolunteers }
+                      const updated = [...currentMap[role], email]
+                      const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
                       if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
-                      setLocalVolunteers(updated)
+                      if (role === 'ed') setLocalEds(updated)
+                      else if (role === 'board') setLocalBoardMembers(updated)
+                      else setLocalVolunteers(updated)
                       setVolunteerInput('')
                       setSavingVolunteer(false)
-                      showToast(`${email} added as volunteer ✓`)
+                      showToast(`${email} added ✓`)
                     }} disabled={savingVolunteer}>{savingVolunteer ? '...' : 'Add'}</button>
                   </div>
                 </div>
