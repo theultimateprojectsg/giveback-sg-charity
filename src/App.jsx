@@ -7525,6 +7525,60 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </>
                       )}
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 20 }}>Notes</div>
+                      {editingNoteId === selectedDonation.id ? (
+                        <div style={{ marginBottom: 20 }}>
+                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
+                            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
+                              supabase.from('donations').update({ notes: noteText }).eq('id', selectedDonation.id)
+                                .then(() => {
+                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, notes: noteText } : x))
+                                  setSelectedDonation(prev => ({ ...prev, notes: noteText }))
+                                  setEditingNoteId(null)
+                                })
+                            }}>Save</button>
+                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNoteId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20 }}
+                          onClick={() => { setEditingNoteId(selectedDonation.id); setNoteText(selectedDonation.notes || '') }}>
+                          {selectedDonation.notes
+                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{selectedDonation.notes}</div>
+                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to add a note...</div>
+                          }
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 20 }}>Impact Note</div>
+                      {editingImpactNoteId === selectedDonation.id ? (
+                        <div style={{ marginBottom: 20 }}>
+                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.gold}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 60 }}
+                            value={impactNoteText} onChange={e => setImpactNoteText(e.target.value)} placeholder="e.g. This $1,000 funded 10 tuition sessions for 3 students in Q2." autoFocus />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
+                              supabase.from('donations').update({ impact_note: impactNoteText }).eq('id', selectedDonation.id)
+                                .then(() => {
+                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, impact_note: impactNoteText } : x))
+                                  setSelectedDonation(prev => ({ ...prev, impact_note: impactNoteText }))
+                                  setEditingImpactNoteId(null)
+                                })
+                            }}>Save</button>
+                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingImpactNoteId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: '#FDF8EC', borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20 }}
+                          onClick={() => { setEditingImpactNoteId(selectedDonation.id); setImpactNoteText(selectedDonation.impact_note || '') }}>
+                          {selectedDonation.impact_note
+                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {selectedDonation.impact_note}</div>
+                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to describe what this gift funded...</div>
+                          }
+                        </div>
+                      )}
                       </div>
 
                       <div>
@@ -7607,60 +7661,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         )}
                       </div>
-
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
-                      {editingNoteId === selectedDonation.id ? (
-                        <div style={{ marginBottom: 20 }}>
-                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
-                            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
-                              supabase.from('donations').update({ notes: noteText }).eq('id', selectedDonation.id)
-                                .then(() => {
-                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, notes: noteText } : x))
-                                  setSelectedDonation(prev => ({ ...prev, notes: noteText }))
-                                  setEditingNoteId(null)
-                                })
-                            }}>Save</button>
-                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNoteId(null)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 }}
-                          onClick={() => { setEditingNoteId(selectedDonation.id); setNoteText(selectedDonation.notes || '') }}>
-                          {selectedDonation.notes
-                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{selectedDonation.notes}</div>
-                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to add a note...</div>
-                          }
-                        </div>
-                      )}
-
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Impact Note</div>
-                      {editingImpactNoteId === selectedDonation.id ? (
-                        <div style={{ marginBottom: 20 }}>
-                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.gold}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 60 }}
-                            value={impactNoteText} onChange={e => setImpactNoteText(e.target.value)} placeholder="e.g. This $1,000 funded 10 tuition sessions for 3 students in Q2." autoFocus />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => {
-                              supabase.from('donations').update({ impact_note: impactNoteText }).eq('id', selectedDonation.id)
-                                .then(() => {
-                                  setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, impact_note: impactNoteText } : x))
-                                  setSelectedDonation(prev => ({ ...prev, impact_note: impactNoteText }))
-                                  setEditingImpactNoteId(null)
-                                })
-                            }}>Save</button>
-                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingImpactNoteId(null)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ background: '#FDF8EC', borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 }}
-                          onClick={() => { setEditingImpactNoteId(selectedDonation.id); setImpactNoteText(selectedDonation.impact_note || '') }}>
-                          {selectedDonation.impact_note
-                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {selectedDonation.impact_note}</div>
-                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Click to describe what this gift funded...</div>
-                          }
-                        </div>
-                      )}
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
