@@ -120,7 +120,7 @@ export default function App() {
   const [bulkEditMode, setBulkEditMode] = useState(false)
   
   const [showManualForm, setShowManualForm] = useState(false)
-  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '' })
+  const [manualForm, setManualForm] = useState({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false })
   const [manualError, setManualError] = useState('')
   const [savingManual, setSavingManual] = useState(false)
   const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
@@ -133,6 +133,8 @@ export default function App() {
   const [newNoteType, setNewNoteType] = useState('note')
   const [savingNote, setSavingNote] = useState(false)
   const [donorTagsMap, setDonorTagsMap] = useState({})
+  const [donorReceiptNameOverrides, setDonorReceiptNameOverrides] = useState({})
+  const [householdLinkSearch, setHouseholdLinkSearch] = useState('')
   const [newTagInput, setNewTagInput] = useState('')
   const [savingTag, setSavingTag] = useState(false) 
   const [filterDonorTag, setFilterDonorTag] = useState('All')
@@ -204,7 +206,8 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
-  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
+  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
+  const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
@@ -292,6 +295,14 @@ export default function App() {
       .order('created_at', { ascending: false })
     if (error) { console.error('Could not load donor contacts:', error); return }
     setDonorContacts(data || [])
+    const overrideMap = {}
+    ;(data || []).forEach(c => {
+      if (c.receipt_name_override?.trim()) {
+        const key = c.email?.trim() || c.full_name
+        overrideMap[key] = c.receipt_name_override.trim()
+      }
+    })
+    setDonorReceiptNameOverrides(overrideMap)
   }
   const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
 
@@ -504,7 +515,7 @@ export default function App() {
   const [auditDateFilter, setAuditDateFilter] = useState('30')
   const [myCauses, setMyCauses] = useState([])
   const [showCauseForm, setShowCauseForm] = useState(false)
-  const [causeForm, setCauseForm] = useState({ title: '', description: '', target_amount: '', end_date: '' })
+  const [causeForm, setCauseForm] = useState({ title: '', description: '', target_amount: '', end_date: '', cost: '' })
   const [causeError, setCauseError] = useState('')
   const [savingCause, setSavingCause] = useState(false)
   const [showSponsoredForm, setShowSponsoredForm] = useState(false)
@@ -578,6 +589,7 @@ export default function App() {
       loadMassAppeals(session)
       loadLapsedReminders(session)
       loadDonorContacts(session)
+      loadPledgeInstalments()
       loadGivingChangeAcks(session)
     }
   }, [session])
@@ -745,26 +757,51 @@ export default function App() {
     if (!pledgeForm.amount || parseFloat(pledgeForm.amount) <= 0) { setPledgeError('Please enter a valid amount'); return }
     if (!pledgeForm.expected_date) { setPledgeError('Expected date is required'); return }
     if (new Date(pledgeForm.expected_date) < new Date(new Date().setHours(0,0,0,0))) { setPledgeError('Expected date cannot be in the past'); return }
+    if (pledgeForm.is_multi_year && (!pledgeForm.total_years || parseInt(pledgeForm.total_years) < 2)) { setPledgeError('Multi-year pledges need at least 2 years'); return }
     setSavingPledge(true)
     setPledgeError('')
     const donorKey = pledgeForm.donor_email?.trim() || pledgeForm.donor_name.trim()
+    const perYearAmount = parseFloat(pledgeForm.amount)
+    const years = pledgeForm.is_multi_year ? parseInt(pledgeForm.total_years) : 1
     const { data, error } = await supabase.from('pledges').insert([{
       charity_uen: charityUen,
       donor_name: pledgeForm.donor_name.trim(),
       donor_email: pledgeForm.donor_email?.trim() || null,
       donor_key: donorKey,
-      amount: parseFloat(pledgeForm.amount),
+      amount: perYearAmount * years,
       expected_date: pledgeForm.expected_date,
       notes: pledgeForm.notes?.trim() || null,
       status: 'pending',
       created_by: session.user.email,
+      is_multi_year: pledgeForm.is_multi_year || false,
+      total_years: pledgeForm.is_multi_year ? years : null,
     }]).select()
     setSavingPledge(false)
     if (error) { setPledgeError(`Error: ${error.message}`); return }
+
+    if (pledgeForm.is_multi_year) {
+      const instalments = Array.from({ length: years }, (_, i) => ({
+        pledge_id: data[0].id,
+        year_number: i + 1,
+        expected_date: new Date(new Date(pledgeForm.expected_date).setFullYear(new Date(pledgeForm.expected_date).getFullYear() + i)).toISOString().split('T')[0],
+        amount: perYearAmount,
+      }))
+      const { error: instalmentError } = await supabase.from('pledge_instalments').insert(instalments)
+      if (instalmentError) console.error('Error creating instalments:', instalmentError)
+    }
+
     setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
-    setPledgeForm({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '' })
+    setPledgeForm({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
     setShowPledgeForm(false)
-    showToast('Pledge recorded ✓')
+    showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
+    loadPledgeInstalments()
+  }
+
+  async function loadPledgeInstalments() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data } = await supabase.from('pledge_instalments').select('*, pledges!inner(charity_uen)').eq('pledges.charity_uen', uen)
+    setPledgeInstalments(data || [])
   }
 
   async function confirmReschedule() {
@@ -831,6 +868,13 @@ export default function App() {
       if (isBlocked) {
         console.warn(`Email blocked: ${body.donor_name || targetEmail} is marked Do Not Contact`)
         return { data: null, error: { message: 'This donor is marked as Do Not Contact — email was not sent.' } }
+      }
+      const isDeceased = donations.some(d =>
+        (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey && d.donor_deceased
+      )
+      if (isDeceased) {
+        console.warn(`Email blocked: ${body.donor_name || targetEmail} is marked deceased`)
+        return { data: null, error: { message: 'This donor is marked as deceased — email was not sent.' } }
       }
     }
     return supabase.functions.invoke('send-thank-you', {
@@ -1642,6 +1686,7 @@ export default function App() {
       charity_uen: charityUen,
       target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
       end_date: causeForm.end_date || null,
+      cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
       type: 'campaign',
       status: 'approved',
       active: true,
@@ -1993,28 +2038,33 @@ export default function App() {
     if (!massAppealForm.amount || parseFloat(massAppealForm.amount) <= 0) {
       showToast('Please enter a default amount', 'error'); return
     }
-    const targetDonors = donorList.filter(d => !d.deactivated && d.email?.trim())
+    const targetDonors = donorList.filter(d => {
+      if (d.deactivated || !d.email?.trim()) return false
+      if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
+        const donorKey45 = d.email?.trim() || d.name
+        const tags45 = donorTagsMap[donorKey45] || []
+        return tags45.some(t => t.tag === massAppealForm.targetTag)
+      }
+      return true
+    })
     if (targetDonors.length === 0) {
       showToast('No donors with email addresses found', 'error'); return
     }
-    const refs = targetDonors.map(donor => ({
-      donor_name: donor.name,
-      donor_email: donor.email,
-      ref: generateAppealRef(donor.name, massAppealForm.cause_id),
-      amount: parseFloat(massAppealForm.amount),
-      qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${generateAppealRef(donor.name, massAppealForm.cause_id)}`,
-      selected: true,
-    }))
     // Regenerate with consistent refs
     const finalRefs = targetDonors.map(donor => {
       const ref = generateAppealRef(donor.name, massAppealForm.cause_id)
+      const donorKey44b = donor.email?.trim() || donor.name
+      const contact44b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44b)
+      const restrictions44b = contact44b?.communication_restrictions?.toLowerCase() || ''
+      const flaggedRestricted = /no mass|no appeal|do not send appeal|no bulk/.test(restrictions44b)
       return {
         donor_name: donor.name,
         donor_email: donor.email,
         ref,
         amount: parseFloat(massAppealForm.amount),
         qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${ref}`,
-        selected: true,
+        selected: !flaggedRestricted,
+        restrictionNote: flaggedRestricted ? contact44b.communication_restrictions : null,
       }
     })
     setMassAppealRefs(finalRefs)
@@ -2118,23 +2168,44 @@ export default function App() {
     const zip = new JSZip()
     const causeName = massAppealForm.cause_id ? (myCauses.find(c => c.id === massAppealForm.cause_id)?.title || 'General Appeal') : (massAppealForm.customLabel?.trim() || 'General Appeal')
 
+    // Render a temporary offscreen container so QRCodeSVG can mount and produce real SVG markup
+    const offscreen = document.createElement('div')
+    offscreen.style.position = 'fixed'
+    offscreen.style.left = '-9999px'
+    document.body.appendChild(offscreen)
+    const ReactDOMClient = await import('react-dom/client')
+    const root = ReactDOMClient.createRoot(offscreen)
+
+    const svgToPngDataUrl = (svgString, size = 300) => new Promise((resolve) => {
+      const img = new Image()
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(svgBlob)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, size, size)
+        ctx.drawImage(img, 20, 20, size - 40, size - 40)
+        URL.revokeObjectURL(url)
+        resolve(canvas.toDataURL('image/png'))
+      }
+      img.src = url
+    })
+
     for (const donor of selected) {
-      // Render QR to canvas via a temporary DOM element
-      const canvas = document.createElement('canvas')
-      canvas.width = 300
-      canvas.height = 300
-      const ctx = canvas.getContext('2d')
+      await new Promise(resolve => {
+        root.render(React.createElement(QRCodeSVG, { value: donor.qrValue, size: 260, level: 'H' }))
+        setTimeout(resolve, 50)
+      })
+      const svgEl = offscreen.querySelector('svg')
+      const svgString = new XMLSerializer().serializeToString(svgEl)
+      const pngDataUrl = await svgToPngDataUrl(svgString, 300)
+      const base64Data = pngDataUrl.split(',')[1]
+      zip.file(`${donor.donor_name.replace(/[^a-zA-Z0-9]/g, '_')}_${donor.ref}.png`, base64Data, { base64: true })
 
-      // White background
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, 300, 300)
-
-      // We'll use a data URL approach — create SVG string for QR
-      const svgEl = document.createElement('div')
-      svgEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260"></svg>`
-
-      // Simple approach: encode as text file with donor info + ref for manual QR generation
-      const content = [
+      const infoContent = [
         `Donor: ${donor.donor_name}`,
         `Email: ${donor.donor_email}`,
         `Amount: SGD $${donor.amount}`,
@@ -2143,8 +2214,11 @@ export default function App() {
         `Campaign: ${causeName}`,
         `Charity: ${charityName} (UEN: ${charityUen})`,
       ].join('\n')
-      zip.file(`${donor.donor_name.replace(/[^a-zA-Z0-9]/g, '_')}_${donor.ref}.txt`, content)
+      zip.file(`${donor.donor_name.replace(/[^a-zA-Z0-9]/g, '_')}_${donor.ref}_info.txt`, infoContent)
     }
+
+    root.unmount()
+    document.body.removeChild(offscreen)
 
     // Also add a summary CSV
     const csvLines = [
@@ -2311,6 +2385,8 @@ export default function App() {
     setPledgeCompletionCandidate(null)
   }
 
+  const [duplicateDonationWarning, setDuplicateDonationWarning] = useState(null)
+
   async function confirmPaymentFlow(donation) {
     const { data: freshData, error: freshError } = await supabase
       .from('donations')
@@ -2328,6 +2404,21 @@ export default function App() {
       setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
       setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
       return
+    }
+
+    if (!donation.duplicateConfirmed) {
+      const donorKey22 = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
+      const fiveMinWindow = 5 * 60 * 1000
+      const possibleDupe = donations.find(d =>
+        d.id !== donation.id &&
+        (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey22 &&
+        Number(d.amount) === Number(donation.amount) &&
+        Math.abs(new Date(d.created_at) - new Date(donation.created_at)) <= fiveMinWindow
+      )
+      if (possibleDupe) {
+        setDuplicateDonationWarning({ donation, possibleDupe })
+        return
+      }
     }
 
     let autoTaggedCauseId = null
@@ -2377,6 +2468,9 @@ export default function App() {
       return
     }
 
+    let receiptAttachmentB64 = null
+    try { receiptAttachmentB64 = getReceiptPDFBase64(donation) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
+
     const { error: emailError } = await sendCharityEmail({
       donor_name: donation.donor_name,
       donor_email: donation.donor_email,
@@ -2387,6 +2481,8 @@ export default function App() {
       payment_ref: donation.payment_ref,
       notes: donation.notes,
       cause_title: causeNameForDonation(donation),
+      receipt_pdf_base64: receiptAttachmentB64,
+      receipt_filename: `Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`,
     })
     if (!emailError) {
       await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -2401,6 +2497,9 @@ export default function App() {
   async function sendThankYouEmail(donation) {
     if (sendingThankYouId === donation.id) return
     setSendingThankYouId(donation.id)
+    let receiptAttachmentB64b = null
+    try { receiptAttachmentB64b = getReceiptPDFBase64(donation) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
+
     const { error } = await sendCharityEmail({
       donor_name: donation.donor_name,
       donor_email: donation.donor_email,
@@ -2411,6 +2510,8 @@ export default function App() {
       payment_ref: donation.payment_ref,
       notes: donation.notes,
       cause_title: causeNameForDonation(donation),
+      receipt_pdf_base64: receiptAttachmentB64b,
+      receipt_filename: `Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`,
     })
     if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -2420,7 +2521,7 @@ export default function App() {
     showToast(`Email sent to ${donation.donor_email}`)
   }
 
-  async function issueReceipt(donation, skipLog = false) {
+  async function issueReceipt(donation, skipLog = false, sendEmail = false) {
     setIssuing(donation.id)
     const { error } = await supabase
       .from('donations')
@@ -2437,6 +2538,27 @@ export default function App() {
       })
     }
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, receipt_issued: true } : d))
+    if (sendEmail && donation.donor_email?.trim() && !donation.thank_you_sent) {
+      let receiptB64 = null
+      try { receiptB64 = getReceiptPDFBase64({ ...donation, receipt_issued: true }) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
+      const { error: emailError } = await sendCharityEmail({
+        donor_name: donation.donor_name,
+        donor_email: donation.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: donation.amount,
+        date: new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+        payment_ref: donation.payment_ref,
+        notes: donation.notes,
+        cause_title: causeNameForDonation(donation),
+        receipt_pdf_base64: receiptB64,
+        receipt_filename: `Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`,
+      })
+      if (!emailError) {
+        await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
+        setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, thank_you_sent: true } : d))
+      }
+    }
     setIssuing(null)
   }
 
@@ -2643,8 +2765,69 @@ export default function App() {
     if (hadActiveFilters) showToast('Filters cleared to show this donation')
   }
 
+  async function ensureDonorContact(donor) {
+    const key = donor.email?.trim() || donor.name
+    let contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === key)
+    if (!contact) {
+      const { data, error } = await supabase.from('charity_donor_contacts').insert({
+        charity_uen: charityUen,
+        full_name: donor.name,
+        email: donor.email || null,
+        created_by: session.user.email,
+      }).select().single()
+      if (error) return null
+      contact = data
+      setDonorContacts(prev => [contact, ...prev])
+    }
+    return contact
+  }
+
+  async function linkDonorToHousehold(donorA, donorB) {
+    const contactA = await ensureDonorContact(donorA)
+    const contactB = await ensureDonorContact(donorB)
+    if (!contactA || !contactB) { showToast('Error linking donors', 'error'); return }
+
+    const householdId = contactA.household_id || contactB.household_id || crypto.randomUUID()
+    await supabase.from('charity_donor_contacts').update({ household_id: householdId }).eq('id', contactA.id)
+    await supabase.from('charity_donor_contacts').update({ household_id: householdId }).eq('id', contactB.id)
+
+    showToast(`Linked ${donorA.name} and ${donorB.name} as a household ✓`)
+    await loadDonorContacts()
+  }
+
+  async function unlinkFromHousehold(donor) {
+    const key = donor.email?.trim() || donor.name
+    const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === key)
+    if (!contact) return
+    await supabase.from('charity_donor_contacts').update({ household_id: null }).eq('id', contact.id)
+    showToast('Removed from household')
+    await loadDonorContacts()
+  }
+
+  async function mergeDonorInto(sourceDonor, targetDonorKey) {
+    const sourceKey = sourceDonor.email?.trim() || sourceDonor.name
+    const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
+    if (!targetDonorRow) { showToast('Target donor not found', 'error'); return }
+
+    const { error } = await supabase.from('donations')
+      .update({ donor_name: targetDonorRow.name, donor_email: targetDonorRow.email || null })
+      .or(sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`)
+    if (error) { showToast('Error merging donors', 'error'); return }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donors_merged',
+      details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name },
+    })
+
+    showToast(`Merged ${sourceDonor.name} into ${targetDonorRow.name} ✓`)
+    setSelectedDonor(null)
+    await loadDonations()
+  }
+
   async function saveManualEntry() {
-  if (!manualForm.donor_name) { setManualError('Donor name is required'); return }
+  if (!manualForm.is_anonymous && !manualForm.donor_name) { setManualError('Donor name is required'); return }
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
   if (new Date(manualForm.date) < new Date('2020-01-01')) { setManualError('Donation date seems too far in the past — please check it'); return }
@@ -2652,7 +2835,7 @@ export default function App() {
   if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
 
   // Duplicate detection — fuzzy name match against existing donors
-  if (!manualForm.duplicateConfirmed) {
+  if (!manualForm.is_anonymous && !manualForm.duplicateConfirmed) {
     const enteredName = manualForm.donor_name.trim().toLowerCase()
     const similarDonors = donorList.filter(d => {
       const existing = d.name.trim().toLowerCase()
@@ -2691,7 +2874,7 @@ export default function App() {
     }, 0)
     const receiptNumber = `MR-${entryYear}-${String(maxSeq + 1).padStart(6, '0')}`
     let { data, error } = await supabase.from('donations').insert([{
-      donor_name: manualForm.donor_name,
+      donor_name: manualForm.is_anonymous ? 'Anonymous' : manualForm.donor_name,
       donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
       charity_name: charityName,
       charity_uen: charityUen,
@@ -2703,10 +2886,11 @@ export default function App() {
       source: 'manual',
       payment_method: manualForm.payment_method,
       notes: manualForm.notes,
-      donor_email: manualForm.donor_email,
+      donor_email: manualForm.is_anonymous ? null : manualForm.donor_email,
       created_at: manualForm.date,
       receipt_number: receiptNumber,
       receipt_name: manualForm.receipt_name?.trim() || null,
+      is_anonymous: manualForm.is_anonymous || false,
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
@@ -2971,7 +3155,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { donationBadgeInfo, donorBadgeMap }
   }, [donations])
   const donorMap = {}
-  donations.forEach(d => {
+  donations.filter(d => !d.is_anonymous).forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!donorMap[key]) {
       donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false }
@@ -3058,6 +3242,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         count: stats.count,
         avg: stats.total / stats.count,
         donors: stats.donors.size,
+        cost: cause?.cost || 0,
       }
     }).sort((a, b) => b.total - a.total)
     if (generalCount > 0) {
@@ -3071,6 +3256,39 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const confirmedDonations = donations.filter(d => d.payment_status === 'confirmed')
 
+  const giroMissedCycles = (() => {
+    const now26 = new Date()
+    return recurringGifts.filter(g => g.status === 'active').map(g => {
+      const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'yearly' || g.frequency === 'annual' ? 365 : 30
+      const daysLate = Math.floor((now26 - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24))
+      if (daysLate <= 7) return null
+      const missedCycles = Math.floor(daysLate / gapDays) + 1
+      return { donor_name: g.donor_name, donor_email: g.donor_email, missedCycles, gift_id: g.id, type: g.type }
+    }).filter(Boolean)
+  })()
+  const recurringPatternSuggestions = (() => {
+    const alreadyRecurring = new Set(recurringGifts.map(g => g.donor_email?.trim() || g.donor_name))
+    const donorGifts = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorGifts[key]) donorGifts[key] = { name: d.donor_name, email: d.donor_email, gifts: [] }
+      donorGifts[key].gifts.push({ amount: d.amount, date: d.created_at })
+    })
+    return Object.entries(donorGifts).filter(([key]) => !alreadyRecurring.has(key)).map(([key, info]) => {
+      const sorted = [...info.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
+      if (sorted.length < 3) return null
+      const last3 = sorted.slice(-3)
+      const amounts = last3.map(g => g.amount)
+      const similarAmounts = Math.max(...amounts) - Math.min(...amounts) <= Math.max(...amounts) * 0.1
+      const gap1 = (new Date(last3[1].date) - new Date(last3[0].date)) / (1000 * 60 * 60 * 24)
+      const gap2 = (new Date(last3[2].date) - new Date(last3[1].date)) / (1000 * 60 * 60 * 24)
+      const similarGaps = Math.abs(gap1 - gap2) <= 10
+      if (similarAmounts && similarGaps && gap1 >= 20) {
+        return { name: info.name, email: info.email, avgAmount: Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length), avgGapDays: Math.round((gap1 + gap2) / 2), key }
+      }
+      return null
+    }).filter(Boolean)
+  })()
   const recurringTrendFlags = (() => {
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const cycles = donations
@@ -3189,6 +3407,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
+      || (filterType === 'Physical Mailing' && d.needs_physical_receipt)
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All'
@@ -3241,7 +3460,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     let issuedCount = 0
     for (const d of selected) {
       if (bulkCancelRef.current) break
-      await issueReceipt(d, true)
+      await issueReceipt(d, true, true)
       issuedCount++
       setBulkProgress({ done: issuedCount, total: selected.length })
     }
@@ -3673,6 +3892,81 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.xlsx`)
   }
 
+  function exportWeeklySnapshotPDF() {
+    const doc = new jsPDF()
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Weekly Snapshot', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`${charityName}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${new Date().toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    const weekAgo13 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const weekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= weekAgo13)
+    const weekTotal = weekDonations.reduce((s, d) => s + d.amount, 0)
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Donations This Week', 14, 56)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`SGD $${weekTotal.toLocaleString()} across ${weekDonations.length} donation${weekDonations.length !== 1 ? 's' : ''}`, 14, 66)
+
+    let y13 = 82
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Lapsed Donors', 14, y13)
+    y13 += 8
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    if (allGivingChangeFlags.length === 0) {
+      doc.text('No notable lapsed donors flagged right now.', 14, y13)
+      y13 += 8
+    } else {
+      autoTable(doc, {
+        startY: y13,
+        head: [['Donor', 'Change']],
+        body: allGivingChangeFlags.slice(0, 10).map(f => [f.name, `${f.changePct > 0 ? '+' : ''}${f.changePct}%`]),
+        margin: { left: 14 },
+      })
+      y13 = doc.lastAutoTable.finalY + 10
+    }
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Pledges Overdue', 14, y13)
+    y13 += 8
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    const overduePledges13 = pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < new Date())
+    if (overduePledges13.length === 0) {
+      doc.text('No overdue pledges.', 14, y13)
+      y13 += 8
+    } else {
+      autoTable(doc, {
+        startY: y13,
+        head: [['Donor', 'Amount', 'Expected']],
+        body: overduePledges13.slice(0, 10).map(p => [p.donor_name, `$${Number(p.amount).toLocaleString()}`, new Date(p.expected_date).toLocaleDateString('en-SG')]),
+        margin: { left: 14 },
+      })
+      y13 = doc.lastAutoTable.finalY + 10
+    }
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Upcoming Milestones', 14, y13)
+    y13 += 8
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    const milestonesThisWeek13 = weekDonations.filter(d => {
+      const b = donationBadgeInfo[d.id]
+      return b && (b.isFirstTime || b.isBiggestYet)
+    })
+    if (milestonesThisWeek13.length === 0) {
+      doc.text('No milestones this week.', 14, y13)
+    } else {
+      doc.text(`${milestonesThisWeek13.length} donor milestone${milestonesThisWeek13.length !== 1 ? 's' : ''} this week (new donors and biggest-yet gifts).`, 14, y13)
+    }
+
+    doc.save(`weekly-snapshot-${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   function exportAnalyticsPDF() {
     const doc = new jsPDF()
     doc.setFillColor(27, 67, 50)
@@ -3848,7 +4142,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.save(`GivingTree-Report-${charityName}-${filterYear}.pdf`)
   }
 
-  function exportSingleReceiptPDF(donation) {
+  function generateReceiptPDFDoc(donation) {
     const doc = new jsPDF()
     const isIpc = charityIsIpc
     const pageWidth = 210
@@ -3880,7 +4174,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     y += 7
     doc.setFontSize(13)
     doc.setTextColor(...darkText)
-    doc.text(donation.receipt_name || donation.donor_name || '', margin, y)
+    doc.text(donation.receipt_name || donorReceiptNameOverrides[donation.donor_email?.trim() || donation.donor_name] || donation.donor_name || '', margin, y)
     doc.setFontSize(10)
     doc.text(donation.payment_ref || donation.receipt_number || 'N/A', pageWidth - margin, y, { align: 'right' })
     y += 6
@@ -3977,7 +4271,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setTextColor(180, 178, 167)
     doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, y, { align: 'center', maxWidth: contentWidth })
 
+    return doc
+  }
+
+  function exportSingleReceiptPDF(donation) {
+    const doc = generateReceiptPDFDoc(donation)
     doc.save(`Receipt-${donation.payment_ref || donation.receipt_number || donation.id}.pdf`)
+  }
+
+  function getReceiptPDFBase64(donation) {
+    const doc = generateReceiptPDFDoc(donation)
+    return doc.output('datauristring').split(',')[1]
   }
 
   function exportYearEndSummary() {
@@ -4306,7 +4610,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return daysSinceLastReminder < 7
               }
               const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
-              if (overdueRecurring.length > 0) items.push({ icon: '🔁', label: `${overdueRecurring.length} recurring gift${overdueRecurring.length > 1 ? 's' : ''} overdue by 7+ days — ${overdueRecurring.slice(0, 2).map(g => g.donor_name).join(', ')}${overdueRecurring.length > 2 ? ` +${overdueRecurring.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+              const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
+              const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
+              if (singleMissGiro.length > 0) items.push({ icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+              if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
 
               const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
                 if (d.count < lapsedMinGifts) return false
@@ -4331,6 +4638,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent)
               if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
+
+              if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', tab: 'recurring' })
 
               const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
               const milestonesThisWeek = donations.filter(d => {
@@ -4429,7 +4738,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               // New donors this month — first-ever donation falls within MTD
               const donorFirstGift = {}
-              confirmedDonations.forEach(d => {
+              confirmedDonations.filter(d => !d.is_anonymous).forEach(d => {
                 const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                 if (!donorFirstGift[key] || new Date(d.created_at) < new Date(donorFirstGift[key])) {
                   donorFirstGift[key] = d.created_at
@@ -5028,6 +5337,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                               amount: d.amount,
                                               reference: d.payment_ref || d.receipt_number,
                                               steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                              receiptPreviewDonation: d,
                                               confirmLabel: 'Confirm payment',
                                               onConfirm: () => confirmPaymentFlow(d),
                                             })
@@ -5316,6 +5626,281 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
+                  {(() => {
+                    const enteredName39 = selectedDonor.name.trim().toLowerCase()
+                    const similarDonors39 = combinedDonorList.filter(d => {
+                      if ((d.email?.trim() || d.name) === (selectedDonor.email?.trim() || selectedDonor.name)) return false
+                      const existing = d.name.trim().toLowerCase()
+                      if (existing === enteredName39) return true
+                      if (existing.includes(enteredName39) || enteredName39.includes(existing)) return true
+                      const longer = existing.length > enteredName39.length ? existing : enteredName39
+                      const shorter = existing.length > enteredName39.length ? enteredName39 : existing
+                      let matches = 0
+                      for (const char of shorter) { if (longer.includes(char)) matches++ }
+                      return (matches / longer.length) >= 0.8 && Math.abs(existing.length - enteredName39.length) <= 4
+                    })
+                    if (similarDonors39.length === 0) return <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No similar donor names found.</div>
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {similarDonors39.slice(0, 3).map((d, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
+                            <span style={{ fontSize: 12.5, color: C.forest }}><strong>{d.name}</strong> — {d.count} gift{d.count !== 1 ? 's' : ''}, ${d.total.toLocaleString()}</span>
+                            <button
+                              style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }}
+                              onClick={() => {
+                                setConfirmModal({
+                                  title: `Merge ${selectedDonor.name} into ${d.name}?`,
+                                  subtitle: `All of ${selectedDonor.name}'s donations will be reassigned to ${d.name}. This cannot be undone.`,
+                                  confirmLabel: 'Merge donors',
+                                  onConfirm: () => mergeDonorInto(selectedDonor, d.email?.trim() || d.name),
+                                })
+                              }}
+                            >Merge into this donor</button>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Communication Preferences</div>
+                  {(() => {
+                    const donorKey44 = selectedDonor.email?.trim() || selectedDonor.name
+                    const contact44 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44)
+                    return (
+                      <div>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Preferred channel</div>
+                          <select style={s.formInput} defaultValue={contact44?.preferred_channel || ''} id={`pref-channel-${donorKey44}`}>
+                            <option value="">No preference set</option>
+                            <option value="email">Email</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="phone">Phone</option>
+                            <option value="post">Post</option>
+                          </select>
+                        </div>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Preferred timing</div>
+                          <input style={s.formInput} placeholder="e.g. weekday mornings, not evenings" defaultValue={contact44?.preferred_timing || ''} id={`pref-timing-${donorKey44}`} />
+                        </div>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Restrictions</div>
+                          <textarea style={{ ...s.formInput, minHeight: 50, resize: 'vertical' }} placeholder="e.g. no calls at work, appeals only, no event invites" defaultValue={contact44?.communication_restrictions || ''} id={`pref-restrictions-${donorKey44}`} />
+                        </div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={async () => {
+                          const channel = document.getElementById(`pref-channel-${donorKey44}`).value
+                          const timing = document.getElementById(`pref-timing-${donorKey44}`).value.trim()
+                          const restrictions = document.getElementById(`pref-restrictions-${donorKey44}`).value.trim()
+                          if (contact44) {
+                            await supabase.from('charity_donor_contacts').update({ preferred_channel: channel || null, preferred_timing: timing || null, communication_restrictions: restrictions || null }).eq('id', contact44.id)
+                          } else {
+                            await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, preferred_channel: channel || null, preferred_timing: timing || null, communication_restrictions: restrictions || null, created_by: session.user.email })
+                          }
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save Preferences</button>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Household</div>
+                  {(() => {
+                    const donorKey43 = selectedDonor.email?.trim() || selectedDonor.name
+                    const myContact43 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey43)
+                    const householdMembers43 = myContact43?.household_id
+                      ? donorContacts.filter(c => c.household_id === myContact43.household_id && c.id !== myContact43.id)
+                      : []
+                    if (myContact43?.household_id && householdMembers43.length > 0) {
+                      const householdTotal43 = combinedDonorList
+                        .filter(d => [selectedDonor, ...householdMembers43.map(m => ({ name: m.full_name, email: m.email }))]
+                          .some(m => (m.email?.trim() || m.name) === (d.email?.trim() || d.name)))
+                        .reduce((s, d) => s + (d.total || 0), 0)
+                      return (
+                        <div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Combined household giving: <strong style={{ color: C.forest }}>${householdTotal43.toLocaleString()}</strong></div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {householdMembers43.map(m => (
+                              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
+                                <span style={{ fontSize: 12.5, color: C.forest }}>{m.full_name}</span>
+                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => unlinkFromHousehold({ name: m.full_name, email: m.email })}>Unlink</button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Link this donor to a spouse or family member to see combined household giving.</div>
+                        <input
+                          style={{ ...s.formInput, marginBottom: 8 }}
+                          placeholder="Search donor by name..."
+                          value={householdLinkSearch}
+                          onChange={e => setHouseholdLinkSearch(e.target.value)}
+                        />
+                        {householdLinkSearch.trim() && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                            {combinedDonorList.filter(d =>
+                              (d.email?.trim() || d.name) !== donorKey43 &&
+                              d.name.toLowerCase().includes(householdLinkSearch.toLowerCase())
+                            ).slice(0, 5).map((d, i) => (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
+                                <span style={{ fontSize: 12.5, color: C.forest }}>{d.name}</span>
+                                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={async () => { await linkDonorToHousehold(selectedDonor, d); setHouseholdLinkSearch('') }}>Link</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Receipt Name Override</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this donor's receipts should show a different name (e.g. a spouse or company), set it once here — it'll apply to all future receipts automatically.</div>
+                  {(() => {
+                    const donorKey31 = selectedDonor.email?.trim() || selectedDonor.name
+                    const existingContact = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey31)
+                    const [localOverride, setLocalOverride] = [donorReceiptNameOverrides[donorKey31] || '', null]
+                    return (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          style={{ ...s.formInput, flex: 1 }}
+                          placeholder="Leave blank to use donor name"
+                          defaultValue={localOverride}
+                          id={`receipt-override-${donorKey31}`}
+                        />
+                        <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={async () => {
+                          const inputEl = document.getElementById(`receipt-override-${donorKey31}`)
+                          const value = inputEl.value.trim()
+                          if (existingContact) {
+                            const { error } = await supabase.from('charity_donor_contacts').update({ receipt_name_override: value || null }).eq('id', existingContact.id)
+                            if (error) { showToast('Error saving', 'error'); return }
+                          } else {
+                            const { error } = await supabase.from('charity_donor_contacts').insert({
+                              charity_uen: charityUen,
+                              full_name: selectedDonor.name,
+                              email: selectedDonor.email || null,
+                              receipt_name_override: value || null,
+                              created_by: session.user.email,
+                            })
+                            if (error) { showToast('Error saving', 'error'); return }
+                          }
+                          setDonorReceiptNameOverrides(prev => ({ ...prev, [donorKey31]: value }))
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save</button>
+                      </div>
+                    )
+                  })()}
+                  {selectedDonor.deceased && (() => {
+                    const donorKey41b = selectedDonor.email?.trim() || selectedDonor.name
+                    const existingContact41b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey41b)
+                    return (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${C.border}` }}>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Family member / estate executor contact (optional)</div>
+                        <input
+                          style={{ ...s.formInput, fontSize: 12 }}
+                          placeholder="Name and contact info"
+                          defaultValue={existingContact41b?.linked_family_contact || ''}
+                          id={`family-contact-${donorKey41b}`}
+                        />
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} onClick={async () => {
+                          const value = document.getElementById(`family-contact-${donorKey41b}`).value.trim()
+                          if (existingContact41b) {
+                            await supabase.from('charity_donor_contacts').update({ linked_family_contact: value || null }).eq('id', existingContact41b.id)
+                          } else {
+                            await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, linked_family_contact: value || null, created_by: session.user.email })
+                          }
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save</button>
+                      </div>
+                    )
+                  })()}
+                  {(() => {
+                    const donorKey48 = selectedDonor.email?.trim() || selectedDonor.name
+                    const existingContact48 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey48)
+                    return (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Tax residency country (informational — for donors requesting specific documentation formats)</div>
+                        <input
+                          style={{ ...s.formInput, fontSize: 12 }}
+                          placeholder="e.g. Singapore, Malaysia, Australia"
+                          defaultValue={existingContact48?.tax_residency_country || ''}
+                          id={`tax-residency-${donorKey48}`}
+                        />
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} onClick={async () => {
+                          const value = document.getElementById(`tax-residency-${donorKey48}`).value.trim()
+                          if (existingContact48) {
+                            await supabase.from('charity_donor_contacts').update({ tax_residency_country: value || null }).eq('id', existingContact48.id)
+                          } else {
+                            await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, tax_residency_country: value || null, created_by: session.user.email })
+                          }
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save</button>
+                      </div>
+                    )
+                  })()}
+                  {(() => {
+                    const donorKey31b = selectedDonor.email?.trim() || selectedDonor.name
+                    const existingContact31b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey31b)
+                    return (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Mailing address (for donors who want a physical copy)</div>
+                        <textarea
+                          style={{ ...s.formInput, minHeight: 60, resize: 'vertical', fontSize: 12 }}
+                          placeholder="Optional — only needed if this donor wants receipts mailed"
+                          defaultValue={existingContact31b?.mailing_address || ''}
+                          id={`mailing-address-${donorKey31b}`}
+                        />
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} onClick={async () => {
+                          const value = document.getElementById(`mailing-address-${donorKey31b}`).value.trim()
+                          if (existingContact31b) {
+                            await supabase.from('charity_donor_contacts').update({ mailing_address: value || null }).eq('id', existingContact31b.id)
+                          } else {
+                            await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, mailing_address: value || null, created_by: session.user.email })
+                          }
+                          showToast('Saved ✓')
+                          loadDonorContacts()
+                        }}>Save Address</button>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Personal PayNow QR</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>A standing code for this donor to use anytime — not tied to any campaign or amount. Print and mail once.</div>
+                  {(() => {
+                    const donorKey16 = selectedDonor.email?.trim() || selectedDonor.name
+                    let hash16 = 0
+                    for (let i = 0; i < donorKey16.length; i++) { hash16 = (hash16 * 31 + donorKey16.charCodeAt(i)) >>> 0 }
+                    const personalRef16 = `D${hash16.toString(36).toUpperCase().slice(0, 8)}`
+                    const personalQrValue = `https://www.paynow.com.sg/pay?uen=${charityUen}&ref=${personalRef16}`
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                        <div style={{ background: 'white', padding: 12, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                          <QRCodeSVG value={personalQrValue} size={160} level="H" />
+                        </div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 12, color: C.muted }}>Ref: {personalRef16}</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => {
+                          const svgEl = document.querySelector('#personal-qr-' + personalRef16 + ' svg') || document.querySelector('svg')
+                          showToast('Right-click the QR above to save the image, or use Print (Ctrl/Cmd+P)')
+                        }}>ℹ️ How to print/mail this</button>
+                      </div>
+                    )
+                  })()}
                 </div>
                 {(() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
@@ -5632,6 +6217,39 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })
                     }}
                   >{selectedDonor.doNotContact ? '✓ Allow Contact' : '🚫 Do Not Contact'}</button>
+                  <button style={s.viewBtn} onClick={() => {
+                    const isDeceased41 = selectedDonor.deceased
+                    setConfirmModal({
+                      title: isDeceased41 ? 'Unmark as deceased?' : 'Mark this donor as deceased?',
+                      subtitle: isDeceased41
+                        ? 'This donor will become eligible for communications again.'
+                        : 'This immediately halts all outgoing communication to this donor — thank-yous, appeals, reminders, everything. Their donation history and receipts stay intact.',
+                      confirmLabel: isDeceased41 ? 'Unmark' : 'Mark Deceased',
+                      onConfirm: async () => {
+                        const newVal41 = !isDeceased41
+                        const donorKey41 = selectedDonor.email?.trim() || selectedDonor.name
+                        const donorDonationIds41 = donations
+                          .filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey41)
+                          .map(d => d.id)
+                        const { error } = await supabase
+                          .from('donations')
+                          .update({ donor_deceased: newVal41 })
+                          .in('id', donorDonationIds41)
+                        if (error) { showToast('Error updating donor status', 'error'); return }
+                        await supabase.from('audit_log').insert({
+                          actor_type: 'charity',
+                          actor_email: session.user.email,
+                          action: newVal41 ? 'donor_marked_deceased' : 'donor_deceased_unmarked',
+                          details: { donor_name: selectedDonor.name },
+                        })
+                        setDonations(prev => prev.map(d =>
+                          donorDonationIds41.includes(d.id) ? { ...d, donor_deceased: newVal41 } : d
+                        ))
+                        setSelectedDonor(prev => ({ ...prev, deceased: newVal41 }))
+                        showToast(newVal41 ? `${selectedDonor.name} marked as deceased` : `${selectedDonor.name} unmarked`)
+                      },
+                    })
+                  }}>{selectedDonor.deceased ? '✓ Unmark Deceased' : '🕊️ Mark Deceased'}</button>
                   <button style={(issuing || bulkActionInProgress) ? s.issuingBtn : s.btnForest} disabled={!!issuing || bulkActionInProgress} onClick={async () => {
                     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
                     setBulkActionInProgress(true)
@@ -5727,7 +6345,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )}
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                    <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} placeholder="Full name" value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={s.formLabel}>{manualForm.is_anonymous ? 'Donor Name (optional)' : 'Donor Name *'}</div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.muted, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={manualForm.is_anonymous} onChange={e => setManualForm(f => ({ ...f, is_anonymous: e.target.checked }))} /> Anonymous
+                        </label>
+                      </div>
+                      <input style={s.formInput} placeholder={manualForm.is_anonymous ? 'Leave blank, or add a private note' : 'Full name'} value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} />
+                    </div>
                     {charityIsIpc && (
                       <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
                     )}
@@ -5804,7 +6430,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder={charityIsIpc ? "🔍 Search name, email, NRIC, ref, or notes..." : "🔍 Search name, email, ref, or notes..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
+                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option><option>Physical Mailing</option>
               </select>
               {charityIsIpc && (
                 <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
@@ -5966,6 +6592,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                         amount: d.amount,
                                         reference: d.payment_ref || d.receipt_number,
                                         steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                        receiptPreviewDonation: d,
                                         confirmLabel: 'Confirm payment',
                                         onConfirm: () => confirmPaymentFlow(d),
                                       })
@@ -6075,6 +6702,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                               amount: d.amount,
                                               reference: d.payment_ref || d.receipt_number,
                                               steps: ['Mark payment as confirmed', 'Issue a receipt', ...(d.donor_email ? ['Send a thank-you email'] : [])],
+                                              receiptPreviewDonation: d,
                                               confirmLabel: 'Confirm payment',
                                               onConfirm: () => confirmPaymentFlow(d),
                                             })
@@ -6390,7 +7018,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {selectedDonation.receipt_issued && (
-                          <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
+                          <>
+                            <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
+                            <button
+                              style={{ ...s.viewBtn, justifyContent: 'center', ...(selectedDonation.needs_physical_receipt ? { background: C.warningBg, borderColor: C.warningBorder, color: C.warning } : {}) }}
+                              onClick={async () => {
+                                const next = !selectedDonation.needs_physical_receipt
+                                await supabase.from('donations').update({ needs_physical_receipt: next }).eq('id', selectedDonation.id)
+                                setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, needs_physical_receipt: next } : x))
+                                setSelectedDonation(prev => ({ ...prev, needs_physical_receipt: next }))
+                                showToast(next ? 'Flagged for physical mailing' : 'Unflagged')
+                              }}
+                            >{selectedDonation.needs_physical_receipt ? '📮 Flagged for Mailing' : '📮 Mark for Physical Mailing'}</button>
+                          </>
                         )}
                         {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
                           <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
@@ -6463,6 +7103,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               amount: selectedDonation.amount,
                               reference: refToShow,
                               steps: ['Mark payment as confirmed', 'Issue a receipt', ...(selectedDonation.donor_email ? ['Send a thank-you email'] : [])],
+                              receiptPreviewDonation: selectedDonation,
                               confirmLabel: 'Confirm payment',
                               onConfirm: () => confirmPaymentFlow(selectedDonation),
                             })
@@ -6872,6 +7513,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {row.title}</div>
                           <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          {row.cost > 0 && (
+                            <div style={{ fontSize: 11, color: row.total >= row.cost ? C.sage : C.red, marginTop: 2, fontWeight: 500 }}>
+                              Cost ${row.cost.toLocaleString()} · ROI {(row.total / row.cost).toFixed(1)}×
+                            </div>
+                          )}
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
                       </div>
@@ -8039,6 +8685,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
                     </div>
                   </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={s.formLabel}>Campaign Cost (SGD)</div>
+                    <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue — optional" value={causeForm.cost} onChange={e => setCauseForm(f => ({ ...f, cost: e.target.value }))} />
+                  </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => { await submitCause(); setShowCampaignModal(false) }} disabled={savingCause}>{savingCause ? 'Saving...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Create Campaign')}</button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
@@ -8474,14 +9124,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.formLabel}>Donor Email</div>
                     <input style={s.formInput} placeholder="donor@email.com" value={pledgeForm.donor_email} onChange={e => setPledgeForm(f => ({ ...f, donor_email: e.target.value }))} />
                   </div>
+                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={pledgeForm.is_multi_year} onChange={e => setPledgeForm(f => ({ ...f, is_multi_year: e.target.checked }))} />
+                      This is a multi-year pledge (e.g. $10K/year for 3 years)
+                    </label>
+                  </div>
                   <div>
-                    <div style={s.formLabel}>Pledged Amount (SGD) *</div>
+                    <div style={s.formLabel}>{pledgeForm.is_multi_year ? 'Amount Per Year (SGD) *' : 'Pledged Amount (SGD) *'}</div>
                     <input style={s.formInput} type="number" placeholder="0.00" value={pledgeForm.amount} onChange={e => setPledgeForm(f => ({ ...f, amount: e.target.value }))} />
                   </div>
+                  {pledgeForm.is_multi_year && (
+                    <div>
+                      <div style={s.formLabel}>Number of Years *</div>
+                      <input style={s.formInput} type="number" min="2" placeholder="3" value={pledgeForm.total_years} onChange={e => setPledgeForm(f => ({ ...f, total_years: e.target.value }))} />
+                    </div>
+                  )}
                   <div>
-                    <div style={s.formLabel}>Expected By *</div>
+                    <div style={s.formLabel}>{pledgeForm.is_multi_year ? 'First Instalment Due *' : 'Expected By *'}</div>
                     <input style={s.formInput} type="date" min={new Date().toISOString().split('T')[0]} value={pledgeForm.expected_date} onChange={e => setPledgeForm(f => ({ ...f, expected_date: e.target.value }))} />
                   </div>
+                  {pledgeForm.is_multi_year && pledgeForm.amount && pledgeForm.total_years && (
+                    <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1', background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 10, fontSize: 12, color: C.forest }}>
+                      Total commitment: <strong>${(parseFloat(pledgeForm.amount) * parseInt(pledgeForm.total_years)).toLocaleString()}</strong> over {pledgeForm.total_years} years
+                    </div>
+                  )}
                   <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                     <div style={s.formLabel}>Notes</div>
                     <input style={s.formInput} placeholder="e.g. Verbally committed at gala dinner" value={pledgeForm.notes} onChange={e => setPledgeForm(f => ({ ...f, notes: e.target.value }))} />
@@ -8511,6 +9178,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${pledgedAmount.toLocaleString()}</div>
                     </div>
                     {p.donor_email && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{p.donor_email}</div>}
+
+                    {p.is_multi_year && (() => {
+                      const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id).sort((a, b) => a.year_number - b.year_number)
+                      const nextDue = myInstalments.find(i => !i.received)
+                      return (
+                        <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 12px', marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, marginBottom: 6 }}>{p.total_years}-year commitment · ${(Number(p.amount) / p.total_years).toLocaleString()}/year</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {myInstalments.map(i => (
+                              <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.white), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
+                                Year {i.year_number}{i.received ? ' ✓' : ` · ${new Date(i.expected_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}`}
+                              </span>
+                            ))}
+                          </div>
+                          {nextDue && <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Next instalment due {new Date(nextDue.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+                        </div>
+                      )
+                    })()}
 
                     {p.status === 'pending' && (() => {
                       const progressColor = (() => {
@@ -8829,9 +9514,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <textarea style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }} placeholder="e.g. Hi [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
                         <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code. Type <strong>[name]</strong> anywhere to insert each donor's first name automatically.</div>
                       </div>
+                      <div>
+                        <div style={s.formLabel}>Send only to donors tagged (Optional)</div>
+                        <select style={s.formInput} value={massAppealForm.targetTag || 'All'} onChange={e => setMassAppealForm(f => ({ ...f, targetTag: e.target.value }))}>
+                          <option value="All">Everyone with email on file</option>
+                          {[...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort().map(tag => (
+                            <option key={tag} value={tag}>{tag}</option>
+                          ))}
+                        </select>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Use this to send targeted updates — e.g. tag donors by programme interest and reach just that group instead of everyone.</div>
+                      </div>
                       <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
-                        <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => !d.deactivated && d.email?.trim()).length}</strong> donors with email on file</div>
+                        <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => {
+                          if (d.deactivated || !d.email?.trim()) return false
+                          if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
+                            const dk45 = d.email?.trim() || d.name
+                            return (donorTagsMap[dk45] || []).some(t => t.tag === massAppealForm.targetTag)
+                          }
+                          return true
+                        }).length}</strong> donor{(donorList.filter(d => {
+                          if (d.deactivated || !d.email?.trim()) return false
+                          if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
+                            const dk45b = d.email?.trim() || d.name
+                            return (donorTagsMap[dk45b] || []).some(t => t.tag === massAppealForm.targetTag)
+                          }
+                          return true
+                        }).length) !== 1 ? 's' : ''} with email on file{massAppealForm.targetTag && massAppealForm.targetTag !== 'All' ? ` tagged "${massAppealForm.targetTag}"` : ''}</div>
                         {donorList.filter(d => !d.deactivated && !d.email?.trim()).length > 0 && (
                           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{donorList.filter(d => !d.deactivated && !d.email?.trim()).length} donors without email excluded — downloadable via QR ZIP</div>
                         )}
@@ -8854,6 +9563,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email} · Ref: {r.ref}</div>
+                              {r.restrictionNote && <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>⚠ Deselected — restriction on file: "{r.restrictionNote}"</div>}
                             </div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${r.amount}</div>
                           </div>
@@ -8972,6 +9682,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 A full analytics snapshot formatted for your board meeting — financial summary, donor insights, campaign performance, and health check.
               </div>
               <button style={s.btnForest} onClick={exportAnalyticsPDF}>📄 Download Board Packet PDF</button>
+            </div>
+
+            {/* Weekly Snapshot */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>🗓️ Weekly Snapshot</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                A quick one-page pulse for the ED — this week's donations, lapsed donors, overdue pledges, and milestones. Review before forwarding.
+              </div>
+              <button style={s.btnForest} onClick={exportWeeklySnapshotPDF}>📄 Download Weekly Snapshot PDF</button>
             </div>
 
             {/* Donor Summary */}
@@ -9877,6 +10596,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
+      {duplicateDonationWarning && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDuplicateDonationWarning(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.warningBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 18, color: C.warning }}>⚠</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 6 }}>Possible duplicate payment</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
+              {duplicateDonationWarning.donation.donor_name} already has a donation of the same amount within the last 5 minutes. This can happen if a PayNow QR was scanned twice.
+            </div>
+            <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: C.forest }}>
+              Existing: ${Number(duplicateDonationWarning.possibleDupe.amount).toLocaleString()} on {new Date(duplicateDonationWarning.possibleDupe.created_at).toLocaleString('en-SG')}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                style={{ ...s.btnForest, flex: 1, justifyContent: 'center', fontSize: 13 }}
+                onClick={() => { const d = duplicateDonationWarning.donation; setDuplicateDonationWarning(null); confirmPaymentFlow({ ...d, duplicateConfirmed: true }) }}
+              >This is a separate gift — confirm anyway</button>
+              <button
+                style={{ ...s.viewBtn, flex: 1, justifyContent: 'center', fontSize: 13 }}
+                onClick={() => setDuplicateDonationWarning(null)}
+              >Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 400, width: '90%' }} onClick={e => e.stopPropagation()}>
@@ -9921,6 +10667,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 ))}
               </div>
             )}
+            {confirmModal.receiptPreviewDonation && (() => {
+              const rd = confirmModal.receiptPreviewDonation
+              return (
+                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Receipt Preview</div>
+                  <div style={{ background: C.white, borderRadius: 6, border: `1px solid ${C.border}`, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 2 }}>{charityName}</div>
+                    <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 10 }}>UEN {charityUen}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: C.muted }}>Issued to</span>
+                      <span style={{ fontWeight: 600, color: C.forest }}>{rd.receipt_name || rd.donor_name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: C.muted }}>Amount</span>
+                      <span style={{ fontWeight: 600, color: C.forest }}>SGD ${Number(rd.amount).toLocaleString()}.00</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span style={{ color: C.muted }}>Date</span>
+                      <span style={{ fontWeight: 600, color: C.forest }}>{new Date(rd.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: causeNameForDonation(rd) ? 4 : 0 }}>
+                      <span style={{ color: C.muted }}>Payment method</span>
+                      <span style={{ fontWeight: 600, color: C.forest }}>{rd.source === 'manual' ? (rd.payment_method || 'Manual') : 'PayNow'}</span>
+                    </div>
+                    {causeNameForDonation(rd) && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <span style={{ color: C.muted }}>Cause</span>
+                        <span style={{ fontWeight: 600, color: C.gold }}>🎯 {causeNameForDonation(rd)}</span>
+                      </div>
+                    )}
+                    <div style={{ borderTop: `1px dashed ${C.border}`, marginTop: 10, paddingTop: 8, fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>
+                      {charityIsIpc ? '250% tax deductible receipt' : 'This charity is registered but not an IPC. Not tax deductible.'}
+                    </div>
+                  </div>
+                  {rd.donor_email && (
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>Will be emailed to {rd.donor_email} as a PDF attachment along with the thank-you note.</div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setConfirmModal(null)}>Cancel</button>
               <button style={{ flex: 1, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { const action = confirmModal.onConfirm; setConfirmModal(null); action() }}>{confirmModal.confirmLabel || 'Confirm'}</button>
