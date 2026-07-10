@@ -8081,7 +8081,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && donations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
+                const yearScopedDonations = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+                const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && yearScopedDonations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
                 if (scopedCampaigns.length === 0) return null
                 const donorFirstSeenDate = {}
                 ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
@@ -8089,7 +8090,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   if (!donorFirstSeenDate[key]) donorFirstSeenDate[key] = d.created_at
                 })
                 const rows = scopedCampaigns.map(c => {
-                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
+                  const campDonations = yearScopedDonations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
                   const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
                   let brandNewCount = 0
                   donorKeys.forEach(key => {
@@ -8102,7 +8103,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).sort((a, b) => b.newPct - a.newPct)
                 return (
                   <div style={s.card}>
-                    <div style={s.cardTitle}>🌱 New vs Existing Donors per Campaign</div>
+                    <div style={s.cardTitle}>🌱 New vs Existing Donors per Campaign — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {rows.map((r, i) => (
@@ -8126,38 +8127,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              {(() => {
-                const campaignsWithGifts = myCauses.filter(c => c.type === 'campaign' && causeRaisedMap[c.id])
-                if (campaignsWithGifts.length < 2) return null
-                const donorsByCampaign = {}
-                campaignsWithGifts.forEach(c => {
-                  donorsByCampaign[c.id] = new Set(donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                })
-                const pairs = []
-                for (let i = 0; i < campaignsWithGifts.length; i++) {
-                  for (let j = i + 1; j < campaignsWithGifts.length; j++) {
-                    const a = campaignsWithGifts[i], b = campaignsWithGifts[j]
-                    const setA = donorsByCampaign[a.id], setB = donorsByCampaign[b.id]
-                    const overlap = [...setA].filter(k => setB.has(k)).length
-                    const pct = setB.size > 0 ? Math.round((overlap / setB.size) * 100) : 0
-                    if (setA.size > 0 && setB.size > 0) pairs.push({ a: a.title, b: b.title, pct, overlap })
-                  }
-                }
-                if (pairs.length === 0) return null
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>🔗 Campaign Donor Overlap</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>How much your campaigns draw from the same supporters vs. reaching new people.</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {pairs.map((p, i) => (
-                        <div key={i} style={{ fontSize: 13, color: C.text, padding: '8px 12px', background: C.ivory, borderRadius: 8, border: `1px solid ${C.border}` }}>
-                          <strong style={{ color: C.forest }}>{p.pct}%</strong> of donors to "{p.b}" also gave to "{p.a}"
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
+              
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
