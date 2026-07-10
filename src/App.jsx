@@ -9484,6 +9484,183 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                <div style={s.card}>
+                  <div style={s.cardTitle}>📈 Number of Donations per Month</div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} />
+                      <Line type="monotone" dataKey="count" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={s.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
+                    <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {donorList.slice(0, 5).map((d, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: [C.gold, C.sage, C.teal, C.forest, C.muted][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''}</div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.forest }}>${d.total.toLocaleString()}</div>
+                      </div>
+                    ))}
+                    {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
+                  </div>
+                </div>
+              </div>
+
+              {causePerformanceThisYear.length > 0 && (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
+                  {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {row.title}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            {row.cost > 0 && (
+                              <div style={{ fontSize: 11, color: row.total >= row.cost ? C.sage : C.red, marginTop: 2, fontWeight: 500 }}>
+                                Cost ${row.cost.toLocaleString()} · ROI {(row.total / row.cost).toFixed(1)}×
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {causePerformanceThisYear.find(r => r.isGeneral) && (() => {
+                    const g = causePerformanceThisYear.find(r => r.isGeneral)
+                    return (
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, color: C.muted }}>💚 Untagged / General Giving — {g.count} donation{g.count > 1 ? 's' : ''}, avg ${g.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, flexShrink: 0 }}>${g.total.toLocaleString()}</div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {(() => {
+                const now6 = new Date()
+                const liveCampaigns = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now6))
+                if (liveCampaigns.length === 0) return null
+                const rows = liveCampaigns.map(c => {
+                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
+                  const thisWeekStart = new Date(now6.getTime() - 7 * 24 * 60 * 60 * 1000)
+                  const lastWeekStart = new Date(now6.getTime() - 14 * 24 * 60 * 60 * 1000)
+                  const thisWeek = campDonations.filter(d => new Date(d.created_at) >= thisWeekStart).reduce((s, d) => s + d.amount, 0)
+                  const lastWeek = campDonations.filter(d => new Date(d.created_at) >= lastWeekStart && new Date(d.created_at) < thisWeekStart).reduce((s, d) => s + d.amount, 0)
+                  const daysSinceLastGift = campDonations.length > 0 ? Math.floor((now6 - new Date([...campDonations].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at)) / (1000 * 60 * 60 * 24)) : null
+                  let status = 'new'
+                  let changePct = null
+                  if (lastWeek > 0) {
+                    changePct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100)
+                    status = changePct >= 10 ? 'up' : changePct <= -25 ? 'down' : 'flat'
+                  } else if (thisWeek > 0) {
+                    status = 'up'
+                  } else if (daysSinceLastGift !== null && daysSinceLastGift > 14) {
+                    status = 'stalled'
+                  } else if (campDonations.length === 0) {
+                    status = 'quiet'
+                  }
+                  return { title: c.title, thisWeek, lastWeek, changePct, daysSinceLastGift, status }
+                })
+                const statusMeta = {
+                  up: { label: 'Picking up', color: C.sage, bg: C.successBg, icon: '📈' },
+                  flat: { label: 'Steady', color: C.muted, bg: C.ivory, icon: '➡️' },
+                  down: { label: 'Slowing down', color: C.warning, bg: C.warningBg, icon: '📉' },
+                  stalled: { label: 'Stalled — no gifts in 2+ weeks', color: C.red, bg: '#FBE9E7', icon: '⚠️' },
+                  quiet: { label: 'No gifts yet', color: C.muted, bg: C.ivory, icon: '🌱' },
+                  new: { label: 'Just getting started', color: C.gold, bg: '#FDF8EC', icon: '✨' },
+                }
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>🚦 Campaign Momentum</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>This week vs. last week, for your currently live campaigns — tells you where to focus your next push.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows.map((r, i) => {
+                        const m = statusMeta[r.status]
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: m.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ fontSize: 18, flexShrink: 0 }}>{m.icon}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</div>
+                              <div style={{ fontSize: 11, color: m.color, fontWeight: 500, marginTop: 2 }}>
+                                {m.label}{r.changePct !== null ? ` · ${r.changePct >= 0 ? '+' : ''}${r.changePct}% vs last week` : ''}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>${r.thisWeek.toLocaleString()}</div>
+                              <div style={{ fontSize: 10, color: C.muted }}>this week</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && donations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
+                if (scopedCampaigns.length === 0) return null
+                const donorFirstSeenDate = {}
+                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorFirstSeenDate[key]) donorFirstSeenDate[key] = d.created_at
+                })
+                const rows = scopedCampaigns.map(c => {
+                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
+                  const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                  let brandNewCount = 0
+                  donorKeys.forEach(key => {
+                    const firstGiftToCampaign = campDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]
+                    if (donorFirstSeenDate[key] === firstGiftToCampaign.created_at) brandNewCount++
+                  })
+                  const total = campDonations.reduce((s, d) => s + d.amount, 0)
+                  const newPct = donorKeys.size > 0 ? Math.round((brandNewCount / donorKeys.size) * 100) : 0
+                  return { title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total, avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0 }
+                }).sort((a, b) => b.newPct - a.newPct)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>🌱 New vs Existing Donors per Campaign</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {rows.map((r, i) => (
+                        <div key={i} style={{ padding: '12px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{r.title}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: r.newPct >= 50 ? C.sage : C.warning }}>{r.newPct}% new donors</div>
+                          </div>
+                          <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                            <div style={{ width: `${r.newPct}%`, background: C.sage }} />
+                            <div style={{ width: `${100 - r.newPct}%`, background: C.border }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted }}>
+                            {r.newCount} new donor{r.newCount !== 1 ? 's' : ''} · {r.existingCount} existing donor{r.existingCount !== 1 ? 's' : ''} · avg ${r.avgPerDonor.toLocaleString(undefined, { maximumFractionDigits: 0 })}/donor
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
           </div>
