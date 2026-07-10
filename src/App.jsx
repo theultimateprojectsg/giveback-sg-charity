@@ -8237,16 +8237,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                             <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
-                            <span style={{ fontSize: 12, color: C.muted }}>{onTimeGroup.length} · ${onTimeGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.sage }}>{fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0}% · {onTimeGroup.length} · ${onTimeGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                             <span style={{ fontSize: 12, color: C.text }}>1–14 days late</span>
-                            <span style={{ fontSize: 12, color: C.muted }}>{slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0}% · {slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                           </div>
                           {veryLateGroup.length > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
                               <span style={{ fontSize: 12, color: C.warning }}>15+ days late</span>
-                              <span style={{ fontSize: 12, color: C.warning }}>{veryLateGroup.length} · ${veryLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.warning }}>{Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100)}% · {veryLateGroup.length} · ${veryLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                             </div>
                           )}
                         </div>
@@ -8257,7 +8257,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
-                        <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen) }}>
+                        <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={async e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); const { error } = await supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen); if (error) { console.error('Failed to save pledge watch threshold:', error); showToast('Could not save this setting — please try again', 'error') } }}>
                           <option value={1}>1 broken pledge</option>
                           <option value={2}>2 broken pledges</option>
                           <option value={3}>3 broken pledges</option>
