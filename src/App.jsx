@@ -5235,8 +5235,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const newDonorsSameMonthLY = Object.values(donorFirstGift).filter(date => new Date(date) >= samePeriodLastYearStart && new Date(date) <= samePeriodLastYearEnd).length
               const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
 
+              const donorTotalsFH = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorTotalsFH[key]) donorTotalsFH[key] = 0
+                donorTotalsFH[key] += d.amount
+              })
+              const sortedFH = Object.values(donorTotalsFH).sort((a, b) => b - a)
+              const grandTotalFH = sortedFH.reduce((s, t) => s + t, 0)
+              const top3TotalFH = sortedFH.slice(0, 3).reduce((s, t) => s + t, 0)
+              const concentrationPctFH = grandTotalFH > 0 ? Math.round((top3TotalFH / grandTotalFH) * 100) : 0
+              const concentrationHighRiskFH = concentrationPctFH >= 70
+              const concentrationMedRiskFH = concentrationPctFH >= 50
+
+              const thisYearNumFH = now.getFullYear()
+              const lastYearNumFH = thisYearNumFH - 1
+              const donorsLastYearFH = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const donorsThisYearFH = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
+              const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
+
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
                   {/* MTD donations */}
                   <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
@@ -5290,6 +5310,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
                       {totalMRR === 0 && <span>None set up yet</span>}
                     </div>
+                  </div>
+
+                  {/* Donor concentration */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: concentrationHighRiskFH ? C.red : concentrationMedRiskFH ? C.gold : C.forest, lineHeight: 1 }}>{concentrationPctFH}%</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>from your top 3 donors</div>
+                  </div>
+
+                  {/* Donor retention */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
                   </div>
                 </div>
               )
