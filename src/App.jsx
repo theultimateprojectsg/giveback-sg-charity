@@ -10869,18 +10869,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Charity & Account</div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Charity Details</div>
-                {[
-                  { label: 'Charity Name', value: charityName },
-                  { label: 'UEN', value: charityUen },
-                  { label: 'IPC Status', value: charityIsIpc ? '✓ Registered IPC' : 'Not an IPC' },
-                  { label: 'Logged in as', value: session?.user?.email },
-                ].map((item, i) => (
-                  <div key={i} style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>{item.value}</div>
-                  </div>
-                ))}
-                <button style={{ ...s.btnForest, background: C.red, marginTop: 8 }} onClick={() => supabase.auth.signOut()}>🚪 Sign Out</button>
+                <div style={{ background: C.ivory, borderRadius: 8, border: `1px solid ${C.border}`, padding: '4px 14px', marginBottom: 12 }}>
+                  {[
+                    { label: 'Charity Name', value: charityName },
+                    { label: 'UEN', value: charityUen },
+                    { label: 'IPC Status', value: charityIsIpc ? '✓ Registered IPC' : 'Not an IPC' },
+                    { label: 'Logged in as', value: session?.user?.email },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: i < 3 ? `1px solid ${C.border}` : 'none' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>{item.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: C.forest, textAlign: 'right' }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, width: '100%', justifyContent: 'center' }} onClick={() => supabase.auth.signOut()}>🚪 Sign Out</button>
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
@@ -10915,6 +10917,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>Account</div>
+                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 500 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
+                </div>
+                <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
+                  style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
+                  🗑️ Request Account Deletion
+                </a>
+              </div>
+              </div>
+
+              <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Operations</div>
+              <div style={{ ...s.card, marginTop: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingFyEnd ? 12 : 0 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
                   {!editingFyEnd && (
@@ -10945,20 +10961,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={s.cardTitle}>Account</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                  To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 500 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
-                </div>
-                <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
-                  style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
-                  🗑️ Request Account Deletion
-                </a>
-              </div>
-              </div>
-
-              <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Operations</div>
-              <div style={{ ...s.card, marginTop: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
                   {!editingExpenses && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(monthlyExpenses?.toString() || ''); setEditingExpenses(true) }}>Edit</button>}
