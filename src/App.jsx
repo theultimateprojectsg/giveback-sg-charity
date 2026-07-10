@@ -10118,6 +10118,168 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              {(() => {
+                const referrals78 = donations.filter(d => d.referred_by_donor_key)
+                if (referrals78.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Top Connectors</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
+                  </div>
+                )
+                const byReferrer78 = {}
+                referrals78.forEach(d => {
+                  const referrerKey = d.referred_by_donor_key
+                  const referredKey = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!byReferrer78[referrerKey]) byReferrer78[referrerKey] = { referredDonors: {} }
+                  if (!byReferrer78[referrerKey].referredDonors[referredKey]) byReferrer78[referrerKey].referredDonors[referredKey] = 0
+                  byReferrer78[referrerKey].referredDonors[referredKey]++
+                })
+                const rows78 = Object.entries(byReferrer78).map(([referrerKey, info]) => {
+                  const referrer = donorList.find(d => (d.email?.trim() || d.name) === referrerKey)
+                  const referredCount = Object.keys(info.referredDonors).length
+                  const sustainedCount = Object.values(info.referredDonors).filter(c => c > 1).length
+                  return { name: referrer?.name || referrerKey, referredCount, sustainedCount }
+                }).sort((a, b) => b.sustainedCount - a.sustainedCount || b.referredCount - a.referredCount)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Top Connectors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows78.slice(0, 8).map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.name}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.referredCount} referred · {r.sustainedCount} became repeat givers</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Forecasting and composition</span>
+              </div>
+
+              {(() => {
+                const now79 = new Date()
+                const currentMonth79 = now79.getMonth()
+                const years79 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now79.getFullYear() || (y === now79.getFullYear() && false))
+                const historicalMonthTotals79 = years79.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === currentMonth79 }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+
+                if (historicalMonthTotals79.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Monthly Forecast</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>Needs at least one prior year of data for this month to build a forecast.</div>
+                  </div>
+                )
+
+                const avgHistorical79 = historicalMonthTotals79.reduce((s, t) => s + t, 0) / historicalMonthTotals79.length
+                const lowRange79 = Math.round(avgHistorical79 * 0.85)
+                const highRange79 = Math.round(avgHistorical79 * 1.15)
+
+                const activeRecurring79 = recurringGifts.filter(g => g.status === 'active')
+                const confirmedRecurringThisMonth79 = activeRecurring79.reduce((s, g) => {
+                  const amt = Number(g.amount) || 0
+                  if (g.frequency === 'weekly') return s + amt * 4.33
+                  if (g.frequency === 'quarterly') return s + amt / 3
+                  if (g.frequency === 'yearly' || g.frequency === 'annual') return s + amt / 12
+                  return s + amt
+                }, 0)
+
+                const neededLow79 = Math.max(0, Math.round(lowRange79 - confirmedRecurringThisMonth79))
+                const neededHigh79 = Math.max(0, Math.round(highRange79 - confirmedRecurringThisMonth79))
+                const monthName79 = now79.toLocaleDateString('en-SG', { month: 'long' })
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Monthly Forecast</div>
+                    <div style={{ fontSize: 13, color: C.forest, marginBottom: 10, lineHeight: 1.6 }}>
+                      You typically receive <strong>${lowRange79.toLocaleString()}–${highRange79.toLocaleString()}</strong> in {monthName79}.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: C.muted }}>Confirmed recurring covers</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(confirmedRecurringThisMonth79).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: C.muted }}>You'd need from one-off gifts</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${neededLow79.toLocaleString()}–${neededHigh79.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Based on {historicalMonthTotals79.length} prior year{historicalMonthTotals79.length !== 1 ? 's' : ''} of {monthName79} data.</div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
+                if (years58.length < 2) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Seasonality Trend</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
+                  </div>
+                )
+                const byMonth58 = monthNames58.map((name, i) => {
+                  const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
+                  const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
+                  const avg = nonZeroTotals.length > 0 ? totalsAcrossYears.reduce((s, t) => s + t, 0) / years58.length : 0
+                  return { name, avg }
+                })
+                const overallAvg58 = byMonth58.reduce((s, m) => s + m.avg, 0) / 12
+                const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Seasonality Trend</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100, marginBottom: 8 }}>
+                      {byMonth58.map((m, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
+                          <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
+                      <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
+                      <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const categoryLabels62 = { unknown: 'Unknown', financial_difficulty: 'Financial difficulty', moved_overseas: 'Moved overseas', switched_cause: 'Switched to another cause', deceased: 'Deceased', asked_to_stop: 'Asked to stop', other: 'Other' }
+                const dismissalsList62 = Object.values(lapsedDismissals).filter(d => d.reason_category)
+                if (dismissalsList62.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Why Donors Lapse</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No lapsed donors marked with a reason yet.</div>
+                  </div>
+                )
+                const counts62 = {}
+                dismissalsList62.forEach(d => { counts62[d.reason_category] = (counts62[d.reason_category] || 0) + 1 })
+                const rows62 = Object.entries(counts62).map(([cat, count]) => ({ label: categoryLabels62[cat] || cat, count })).sort((a, b) => b.count - a.count)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Why Donors Lapse</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Based on {dismissalsList62.length} donor{dismissalsList62.length !== 1 ? 's' : ''} marked not interested.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows62.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest }}>{r.label}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.count} donor{r.count !== 1 ? 's' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
           </div>
