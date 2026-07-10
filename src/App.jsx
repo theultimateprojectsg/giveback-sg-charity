@@ -11034,7 +11034,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeGrants.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
                         {activeGrants.map(renderGrantCard)}
                       </div>
                     )}
@@ -11050,7 +11050,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Completed / Closed Grants ({pastGrants.length})
                       </div>
                       {showPastGrants && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
                           {pastGrants.map(renderGrantCard)}
                         </div>
                       )}
