@@ -11057,8 +11057,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ))}
                   </div>
+                  <input style={{ ...s.formInput, fontSize: 13, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} />
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input style={{ ...s.formInput, fontSize: 13, flex: 2 }} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} />
                     <select style={{ ...s.formInput, fontSize: 13, flex: 1 }} id="new-role-select">
                       <option value="ed">Executive Director</option>
                       <option value="board">Board Member</option>
