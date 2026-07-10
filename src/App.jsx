@@ -7992,8 +7992,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
 
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {causePerformanceThisYear.length > 0 && (
-                <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={s.card}>
                   <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
                   {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
@@ -8063,7 +8064,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   new: { label: 'Just getting started', color: C.gold, bg: '#FDF8EC', icon: '✨' },
                 }
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={s.cardTitle}>🚦 Campaign Momentum</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>This week vs. last week, for your currently live campaigns — tells you where to focus your next push.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -8089,6 +8090,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
 
               {(() => {
                 const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && donations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
