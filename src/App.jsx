@@ -5514,45 +5514,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20, alignItems: 'start' }}>
                   {/* Concentration */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
-                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
-                        <option value={5}>Top 5</option>
-                        <option value={10}>Top 10</option>
-                        <option value={20}>Top 20</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
-                      {concentrationTrend !== null && (
-                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
-                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
-                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
-                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
-                    </div>
-                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
-                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
-                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {sorted.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
-                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
-                      </button>
-                    )}
-                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Donor concentration</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4, lineHeight: 1 }}>{concentrationPct}%</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>from your top {concentrationTopN} donors</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
                   </div>
 
                   {/* Lapsed Donors */}
@@ -8646,33 +8611,77 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (scoped.length === 0) return null
-                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
-                const byDonor = {}
-                scoped.forEach(d => {
+                const donorTotals = {}
+                confirmedDonations.forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!byDonor[key]) byDonor[key] = { name: d.donor_name, total: 0 }
-                  byDonor[key].total += d.amount
+                  if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
+                  donorTotals[key].total += d.amount
+                  donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
                 })
-                const sorted = Object.values(byDonor).sort((a, b) => b.total - a.total)
-                const top3Total = sorted.slice(0, 3).reduce((s, d) => s + d.total, 0)
-                const top3Pct = totalAmt > 0 ? Math.round((top3Total / totalAmt) * 100) : 0
-                const highRisk = top3Pct >= 50
+                const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
+                const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
+                const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
+                const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
+                const tooFewDonors = sorted.length < concentrationTopN * 3
+                const highRisk = !tooFewDonors && concentrationPct >= 70
+                const medRisk = !tooFewDonors && concentrationPct >= 50
+                const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
+
+                const quarterAgo = new Date()
+                quarterAgo.setDate(quarterAgo.getDate() - 90)
+                const priorDonorTotals = {}
+                confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
+                  priorDonorTotals[key] += d.amount
+                })
+                const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
+                const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
+                const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
+                const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
+                const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
+
                 return (
-                  <div style={{ ...s.card, marginBottom: 24, background: highRisk ? C.warningBg : C.white, border: `1px solid ${highRisk ? C.warningBorder : C.border}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ ...s.cardTitle, marginBottom: 0 }}>⚖️ Funding Concentration</div>
-                      <span style={{ fontSize: 11, color: C.sage, fontWeight: 700, cursor: 'pointer', border: `1px solid ${C.sage}`, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExplainerOpen(explainerOpen === 'concentration_2' ? null : 'concentration_2')}>?</span>
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
+                        <option value={5}>Top 5</option>
+                        <option value={10}>Top 10</option>
+                        <option value={20}>Top 20</option>
+                      </select>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: highRisk ? C.warning : C.forest, marginTop: 6, marginBottom: 6 }}>{top3Pct}%</div>
-                    <div style={{ fontSize: 13, color: highRisk ? C.warning : C.text }}>Your top 3 donors ({sorted.slice(0, 3).map(d => d.name).join(', ')}) account for {top3Pct}% of total giving{filterYear !== 'All' ? ` in ${filterYear}` : ''}.</div>
-                    {highRisk && <div style={{ fontSize: 12, color: C.warning, marginTop: 8, fontWeight: 500 }}>⚠️ High concentration — if one of these donors stops giving, it could significantly impact your funding. Consider building a broader base of smaller regular donors.</div>}
-                    {explainerOpen === 'concentration_2' && (
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.ivoryDark}`, lineHeight: 1.5 }}>
-                        This measures how dependent you are on a small number of donors. Under 40% is considered healthy diversification — if it's much higher, losing even one major donor could meaningfully hurt your funding. It doesn't mean anything is wrong today, just something worth keeping an eye on as you grow.
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                      {concentrationTrend !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
+                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
+                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {sorted.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
+                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
+                      </button>
                     )}
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
                   </div>
                 )
               })()}
