@@ -3345,6 +3345,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return !activeDonorList.some(d => (d.email?.trim() || d.name) === contactKey)
     })
     .map(c => ({
+      id: c.id,
       name: c.full_name,
       email: c.email,
       nric: c.nric,
@@ -6736,6 +6737,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ))}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {selectedDonor.isContactOnly && (
+                    <button
+                      style={{ ...s.viewBtn, color: C.red, borderColor: C.red }}
+                      onClick={() => {
+                        setConfirmModal({
+                          title: 'Delete this prospect?',
+                          description: 'This permanently removes the prospect record. This cannot be undone. This only applies to prospects with no donations — donors with donation history should be deactivated instead.',
+                          confirmLabel: 'Delete Prospect',
+                          onConfirm: async () => {
+                            const { error } = await supabase.from('charity_donor_contacts').delete().eq('id', selectedDonor.id)
+                            if (error) { showToast('Error deleting prospect', 'error'); return }
+                            await supabase.from('audit_log').insert({
+                              actor_type: 'charity',
+                              actor_email: session.user.email,
+                              action: 'prospect_deleted',
+                              details: { donor_name: selectedDonor.name },
+                            })
+                            setDonorContacts(prev => prev.filter(c => c.id !== selectedDonor.id))
+                            setSelectedDonor(null)
+                            showToast(`${selectedDonor.name} deleted`)
+                          },
+                        })
+                      }}
+                    >🗑️ Delete Prospect</button>
+                  )}
+                  {!selectedDonor.isContactOnly && (
                   <button
                     style={{ ...s.viewBtn, color: selectedDonor.deactivated ? C.sage : C.warning, borderColor: selectedDonor.deactivated ? C.sage : C.warning }}
                     onClick={() => {
@@ -6772,6 +6799,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })
                     }}
                   >{selectedDonor.deactivated ? '✓ Reactivate Donor' : '⊘ Deactivate Donor'}</button>
+                  )}
                   <button
                     style={{ ...s.viewBtn, color: selectedDonor.doNotContact ? C.sage : C.red, borderColor: selectedDonor.doNotContact ? C.sage : C.red }}
                     onClick={() => {
