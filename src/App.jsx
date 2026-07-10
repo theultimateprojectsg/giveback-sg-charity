@@ -5566,15 +5566,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Campaigns</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${campaignRevenue.toLocaleString()} raised so far</div>
                     {behindPaceCampaigns.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 8 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
+                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
                     ) : liveCampaignsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginBottom: 8 }}>✓ On pace</div>
-                    ) : (
-                      <div style={{ marginBottom: 8 }} />
-                    )}
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ On pace</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${campaignRevenue.toLocaleString()}</div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
                       </div>
