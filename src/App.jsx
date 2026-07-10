@@ -8001,7 +8001,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {row.title}</div>
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
@@ -8011,7 +8011,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )}
                           </div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
                         </div>
                       ))}
                     </div>
@@ -8060,7 +8060,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {rows.map((r, i) => {
                         const m = statusMeta[r.status]
                         return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: m.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: m.bg, borderRadius: 4, border: `1px solid ${C.border}` }}>
                             <div style={{ fontSize: 18, flexShrink: 0 }}>{m.icon}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</div>
@@ -8069,7 +8069,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>${r.thisWeek.toLocaleString()}</div>
+                              <div style={{ fontFamily: C.fontVoice, fontSize: 13, fontWeight: 500, color: C.forest }}>${r.thisWeek.toLocaleString()}</div>
                               <div style={{ fontSize: 10, color: C.muted }}>this week</div>
                             </div>
                           </div>
@@ -8107,12 +8107,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {rows.map((r, i) => (
-                        <div key={i} style={{ padding: '12px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                        <div key={i} style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{r.title}</div>
                             <div style={{ fontSize: 12, fontWeight: 700, color: r.newPct >= 50 ? C.sage : C.warning }}>{r.newPct}% new donors</div>
                           </div>
-                          <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
                             <div style={{ width: `${r.newPct}%`, background: C.sage }} />
                             <div style={{ width: `${100 - r.newPct}%`, background: C.border }} />
                           </div>
