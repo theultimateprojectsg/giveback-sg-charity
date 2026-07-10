@@ -2452,7 +2452,7 @@ export default function App() {
 
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', resolution_notes: autoNote } : p))
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
 
     const { error: emailError } = await sendCharityEmail({
       type: 'pledge_thank_you',
@@ -2484,7 +2484,7 @@ export default function App() {
 
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); return }
-    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', resolution_notes: autoNote } : p))
+    setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
 
     showToast('Pledge marked fulfilled')
     setShowPledgeThankYouModal(false)
@@ -8214,8 +8214,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Amount pledged</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>${totalPledged.toLocaleString()}</div>
-                        {totalDiffPct !== null && <div style={{ fontSize: 10.5, fontWeight: 500, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}%</div>}
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>${totalPledged.toLocaleString()}</span>
+                          {totalDiffPct !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'}{Math.abs(totalDiffPct)}%</span>}
+                        </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Fulfilled on time</div>
