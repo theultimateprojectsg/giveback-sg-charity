@@ -4810,7 +4810,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {/* ── SIDEBAR (desktop, collapsible) ── */}
       {screenSize === 'desktop' && (
-      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 208, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
+      <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 232, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
 
         {/* Logo */}
         <div style={{ ...s.sidebarLogo, display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between' }}>
@@ -4953,7 +4953,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {/* ── MAIN ── */}
-      <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 208, width: `calc(100vw - ${sidebarCollapsed ? 64 : 208}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
+      <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 232, width: `calc(100vw - ${sidebarCollapsed ? 64 : 232}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
 
         {/* ── DASHBOARD ── */}
         {activeTab === 'dashboard' && (
@@ -12077,7 +12077,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
 const s = {
   page: { display: 'flex', minHeight: '100vh', background: C.ivory, fontFamily: "'Segoe UI', sans-serif", color: C.text, overflowX: 'hidden' },
-  sidebar: { width: 208, background: C.forest, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10 },
+  sidebar: { width: 232, background: C.forest, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10 },
   sidebarLogo: { padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' },
   logoText: { fontSize: 18, fontWeight: 800, color: 'white' },
   logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
@@ -12094,7 +12094,7 @@ const s = {
   footerAvatar: { width: 32, height: 32, background: C.sage, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'white', flexShrink: 0 },
   footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
   footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
-  main: { marginLeft: 208, flex: 1, minWidth: 0, overflowX: 'hidden', width: 'calc(100vw - 208px)', boxSizing: 'border-box' },
+  main: { marginLeft: 232, flex: 1, minWidth: 0, overflowX: 'hidden', width: 'calc(100vw - 232px)', boxSizing: 'border-box' },
   mainTablet: { marginLeft: 72, flex: 1, minWidth: 0 },
   sidebarTablet: { width: 72, background: C.forest, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10, paddingTop: 16, paddingBottom: 16 },
   sidebarTabletLogo: { marginBottom: 20 },
