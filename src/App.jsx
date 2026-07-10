@@ -195,6 +195,8 @@ export default function App() {
   const [volunteerInput, setVolunteerInput] = useState('')
   const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false)
   const [newTeamMemberRole, setNewTeamMemberRole] = useState('ed')
+  const [volunteerEditEntry, setVolunteerEditEntry] = useState(null)
+  const [volunteerEditForm, setVolunteerEditForm] = useState({ donor_name: '', amount: '', date: '', notes: '' })
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [localEds, setLocalEds] = useState([])
@@ -3063,6 +3065,7 @@ export default function App() {
       is_anonymous: manualForm.is_anonymous || false,
       acquisition_source: manualForm.acquisition_source || null,
       referred_by_donor_key: manualForm.referred_by_donor_key || null,
+      created_by: session.user.email,
     }]).select()
     if (error && error.code === '23505') {
       // Receipt number collision (concurrent entry) — retry once with next sequence number
@@ -4913,7 +4916,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
-            {userRole === 'staff' && (
+            {(userRole === 'staff' || userRole === 'ed') && (
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Campaigns</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
@@ -6900,7 +6903,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageSub}>{userRole === 'volunteer' ? 'Log a new donation below' : `${donations.length} total · ${donations.filter(d => d.source === 'manual').length} manual entries`}</div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {userRole === 'staff' && pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCountForYear})`}</button>}
+                {(userRole === 'staff' || userRole === 'ed') && pendingCountForYear > 0 && <button style={s.btnForest} onClick={issueAllReceipts} disabled={bulkActionInProgress}>{bulkActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingCountForYear})`}</button>}
                 <button style={s.btnGold} onClick={() => setShowManualForm(true)}>+ Manual Entry</button>
               </div>
             </div>
@@ -7146,11 +7149,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 24 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {userRole === 'volunteer' ? (
-                  <div style={{ ...s.tableCard }}>
-                    <div style={s.empty}>Your manual entries have been saved. A staff member can review them in the full donations list.</div>
-                  </div>
-                ) : <div style={s.tableCard}>
+                {userRole === 'volunteer' ? (() => {
+                  const myEntries = donations.filter(d => d.created_by === session?.user?.email).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  return (
+                    <div style={{ ...s.tableCard }}>
+                      <div style={s.tableHeader}>
+                        <div style={s.tableTitle}>Your Entries</div>
+                        <div style={s.tableCount}>{myEntries.length} record{myEntries.length !== 1 ? 's' : ''}</div>
+                      </div>
+                      {myEntries.length === 0 ? (
+                        <div style={s.empty}>No entries yet — use "+ Manual Entry" above to log a donation.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {myEntries.map(d => (
+                            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setVolunteerEditEntry(d); setVolunteerEditForm({ donor_name: d.donor_name || '', amount: d.amount?.toString() || '', date: d.created_at?.split('T')[0] || '', notes: d.notes || '' }) }}>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.donor_name}</div>
+                                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                                <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: d.payment_status === 'confirmed' ? C.successBg : C.warningBg, color: d.payment_status === 'confirmed' ? C.sage : C.warning }}>{d.payment_status === 'confirmed' ? 'Confirmed' : 'Pending review'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })() : <div style={s.tableCard}>
                   <div style={s.tableHeader}>
                     <div style={s.tableTitle}>All Donations</div>
                     <div style={s.tableCount}>{filteredDonations.length > donationsPerPage ? `${paginatedDonations.length} of ${filteredDonations.length} records` : `${filteredDonations.length} records`}</div>
@@ -7365,7 +7392,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>}
               </div>
 
-              {userRole === 'staff' && selectedDonation && (
+              {(userRole === 'staff' || userRole === 'ed') && selectedDonation && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
                 <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
                   <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.white, borderRadius: 8, overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 24 }}>
@@ -11786,6 +11813,57 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )
       })()}
+
+      {volunteerEditEntry && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setVolunteerEditEntry(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 440, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Your Entry</div>
+              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
+            </div>
+            {volunteerEditEntry.payment_status === 'confirmed' ? (
+              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                This entry has already been confirmed and receipted by staff, so it can no longer be edited here. If something needs to change, please contact a staff member.
+              </div>
+            ) : (
+              <div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={s.formLabel}>Donor Name</div>
+                  <input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={s.formLabel}>Amount (SGD)</div>
+                  <input style={s.formInput} type="number" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={s.formLabel}>Date</div>
+                  <input style={s.formInput} type="date" value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={s.formLabel}>Notes</div>
+                  <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => {
+                    if (!volunteerEditForm.donor_name.trim() || !volunteerEditForm.amount) { showToast('Name and amount are required', 'error'); return }
+                    const { error } = await supabase.from('donations').update({
+                      donor_name: volunteerEditForm.donor_name.trim(),
+                      amount: parseFloat(volunteerEditForm.amount),
+                      created_at: volunteerEditForm.date,
+                      notes: volunteerEditForm.notes,
+                    }).eq('id', volunteerEditEntry.id)
+                    if (error) { showToast('Error saving', 'error'); return }
+                    setDonations(prev => prev.map(d => d.id === volunteerEditEntry.id ? { ...d, donor_name: volunteerEditForm.donor_name.trim(), amount: parseFloat(volunteerEditForm.amount), created_at: volunteerEditForm.date, notes: volunteerEditForm.notes } : d))
+                    setVolunteerEditEntry(null)
+                    showToast('Updated ✓')
+                  }}>Save</button>
+                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setVolunteerEditEntry(null)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showAddTeamMemberModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowAddTeamMemberModal(false)}>
