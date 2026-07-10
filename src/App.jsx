@@ -3573,7 +3573,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
-      || (filterType === 'Physical Mailing' && d.needs_physical_receipt)
+      
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All'
@@ -7044,7 +7044,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder={charityIsIpc ? "🔍 Search name, email, NRIC, ref, or notes..." : "🔍 Search name, email, ref, or notes..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option><option>Physical Mailing</option>
+                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
               </select>
               {charityIsIpc && (
                 <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
@@ -7679,20 +7679,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {selectedDonation.donor_email?.trim() && (
+                          <button
+                            style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
+                            disabled={sendingThankYouId === selectedDonation.id}
+                            onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
+                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
+                        )}
                         {selectedDonation.receipt_issued && (
                           <>
                             <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
-                            <button
-                              style={{ ...s.viewBtn, justifyContent: 'center', ...(selectedDonation.needs_physical_receipt ? { background: C.warningBg, borderColor: C.warningBorder, color: C.warning } : {}) }}
-                              onClick={async () => {
-                                const next = !selectedDonation.needs_physical_receipt
-                                await supabase.from('donations').update({ needs_physical_receipt: next }).eq('id', selectedDonation.id)
-                                setDonations(prev => prev.map(x => x.id === selectedDonation.id ? { ...x, needs_physical_receipt: next } : x))
-                                setSelectedDonation(prev => ({ ...prev, needs_physical_receipt: next }))
-                                showToast(next ? 'Flagged for physical mailing' : 'Unflagged')
-                              }}
-                            >{selectedDonation.needs_physical_receipt ? '📮 Flagged for Mailing' : '📮 Mark for Physical Mailing'}</button>
+                            
                           </>
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
+                          <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
+                            ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
+                          </div>
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
+                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
                         )}
                         {selectedDonation.payment_status === 'confirmed' && (() => {
                           const myRefunds119 = refunds.filter(r => r.donation_id === selectedDonation.id)
@@ -7728,14 +7734,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           )
                         })()}
-                        {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
-                          <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
-                            ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
-                          </div>
-                        )}
-                        {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
-                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
-                        )}
                         {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && (
                           <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
                         )}
@@ -7841,13 +7839,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             }}>✓ Save Changes</button>
                             <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => { setEditingManual(false); setEditForm({}) }}>Cancel</button>
                           </div>
-                        )}
-                        {selectedDonation.donor_email?.trim() && (
-                          <button
-                            style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
-                            disabled={sendingThankYouId === selectedDonation.id}
-                            onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
-                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
