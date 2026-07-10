@@ -5775,7 +5775,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
                           <div style={s.donationCardTop}>
                             <div style={s.donationCardDonor}>
-                              <div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage }}>{d.donor_name?.charAt(0)}</div>
                               <div>
                                 <div style={s.donationCardName}>{d.donor_name}</div>
                                 <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -5799,10 +5799,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </thead>
                       <tbody>
                         {pageDonations.map(d => {
-                          const railColor = d.payment_status !== 'confirmed' ? C.red : !d.receipt_issued ? C.gold : C.sage
+                          const railColor = d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage
                           return (
                           <tr key={d.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                             {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                             {isTablet ? (
@@ -7183,9 +7183,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div>
                       {paginatedDonations.map(d => {
                         const isPaid = d.payment_status === 'confirmed'
-                        const isReceipted = d.receipt_issued
-                        const needsThanking = isPaid && isReceipted && d.donor_email?.trim() && !d.thank_you_sent
-                        const railColor = !isPaid ? C.red : (!isReceipted || needsThanking) ? C.gold : C.sage
+                        const railColor = !isPaid ? C.red : !d.thank_you_sent ? C.gold : C.sage
                         return (
                         <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={{ width: 4, borderRadius: 4, background: railColor, alignSelf: 'stretch', flexShrink: 0 }} />
@@ -7281,8 +7279,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <tbody>
                         {paginatedDonations.map(d => {
                           const isPaid = d.payment_status === 'confirmed'
-                          const isReceipted = d.receipt_issued
-                          const railColor = !isPaid ? C.red : !isReceipted ? C.gold : C.sage
+                          const railColor = !isPaid ? C.red : !d.thank_you_sent ? C.gold : C.sage
                           const rowBg = selectedDonation?.id === d.id ? C.successBg : selectedDonationIds.includes(d.id) ? C.warningBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                           return (
                           <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => { if (bulkEditMode) { toggleDonationSelected(d.id) } else { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') } }}>
@@ -7291,7 +7288,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <input type="checkbox" checked={selectedDonationIds.includes(d.id)} onChange={() => toggleDonationSelected(d.id)} />
                               </td>
                             )}
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: colorForDonor(d.donor_email || d.donor_name, [C.sage, C.gold, C.forest, C.red, C.borderStrong]) }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                             {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                             {isTablet ? (
