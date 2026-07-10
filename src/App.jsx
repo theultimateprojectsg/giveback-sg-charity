@@ -199,8 +199,7 @@ export default function App() {
   const [showAddTask, setShowAddTask] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', date: '' })
   const [showAddObligation, setShowAddObligation] = useState(false)
-  const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
-  
+  const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
@@ -5221,6 +5220,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   return days >= 0 && days <= 180
                 })
                 return (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
@@ -5279,6 +5279,64 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })}
                     </div>
                   )}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Tasks and Reminders <InfoTip text="Informal to-dos, like scheduling a call or following up with someone. Nothing here is a fixed deadline." /></div>
+                    <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(v => !v)}>+ Add</button>
+                  </div>
+                  {showAddTask && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <div>
+                          <div style={s.formLabel}>Task</div>
+                          <input style={s.formInput} placeholder="e.g. Call Mrs Tan back" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div>
+                          <div style={s.formLabel}>Date (optional)</div>
+                          <input style={s.formInput} type="date" value={taskForm.date} onChange={e => setTaskForm(f => ({ ...f, date: e.target.value }))} />
+                        </div>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!taskForm.title.trim()) return
+                          const updated = [...(customTasks || []), { title: taskForm.title.trim(), date: taskForm.date || null, done: false }]
+                          const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomTasks(updated)
+                          setTaskForm({ title: '', date: '' })
+                          setShowAddTask(false)
+                          showToast('Task added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {(customTasks || []).filter(t => !t.done).length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No open tasks right now.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(customTasks || []).filter(t => !t.done).map((t, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input type="checkbox" checked={false} onChange={async () => {
+                              const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x)
+                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                              if (!error) { setCustomTasks(updated); showToast('Task done ✓') }
+                            }} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{t.title}</div>
+                              {t.date && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(t.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                            const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
+                            const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                            if (!error) { setCustomTasks(updated); showToast('Removed') }
+                          }}>✕</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 </div>
               )
             })()}
