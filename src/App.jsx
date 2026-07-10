@@ -217,6 +217,7 @@ export default function App() {
   const [grantExpenses, setGrantExpenses] = useState([])
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
+  const [highlightedGrantId, setHighlightedGrantId] = useState(null)
   const [grantUrgencyFilter, setGrantUrgencyFilter] = useState('All')
   const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
   const [pledgeError, setPledgeError] = useState('')
@@ -255,6 +256,7 @@ export default function App() {
   const [showCampaignModal, setShowCampaignModal] = useState(false)
   const [campaignSearchTerm, setCampaignSearchTerm] = useState('')
   const [showPastCampaigns, setShowPastCampaigns] = useState(false)
+  const [showPastGrants, setShowPastGrants] = useState(false)
   const [campaignYearFilter, setCampaignYearFilter] = useState('All')
   const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
@@ -8324,7 +8326,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
                             }
                             return (
-                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
+                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => { document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 100); setTimeout(() => setHighlightedGrantId(null), 3000) }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 500, color: overdue || behind ? C.red : C.forest }}>{g.funder_name}</span>
                                   <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
@@ -10864,72 +10866,129 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   || (grantUrgencyFilter === 'Healthy' && (days === null || days > 60))
                 return matchesSearch && matchesUrgency
               })
-              return filteredGrants.length === 0 ? (
-                <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{grants.length === 0 ? 'No grants recorded yet.' : 'No grants match your filters.'}</div>
-              ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
-                {filteredGrants.map(g => {
-                  const daysToReport83 = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
-                  const isReportSoon83 = daysToReport83 !== null && daysToReport83 <= 60 && daysToReport83 >= 0
-                  const isReportOverdue83 = daysToReport83 !== null && daysToReport83 < 0
-                  return (
-                    <div key={g.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+
+              const activeGrants = filteredGrants.filter(g => g.status === 'active')
+              const pastGrants = filteredGrants.filter(g => g.status !== 'active')
+
+              const statusBadge = (status) => {
+                const map = {
+                  active: { bg: '#EAF3DE', color: '#27500A', label: 'Active' },
+                  completed: { bg: C.ivory, color: C.muted, label: 'Completed' },
+                  closed: { bg: C.ivory, color: C.muted, label: 'Closed' },
+                }
+                const m = map[status] || { bg: C.ivory, color: C.muted, label: status }
+                return <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: m.bg, color: m.color }}>{m.label}</span>
+              }
+
+              const renderGrantCard = (g) => {
+                const daysToReport83 = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+                const isReportSoon83 = daysToReport83 !== null && daysToReport83 <= 60 && daysToReport83 >= 0
+                const isReportOverdue83 = daysToReport83 !== null && daysToReport83 < 0
+                const isHighlighted = highlightedGrantId === g.id
+                const myExpenses84 = grantExpenses.filter(e => e.grant_id === g.id)
+                const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
+                const remaining84 = Number(g.amount) - spent84
+                const pctUtilized = Number(g.amount) > 0 ? Math.min(100, Math.round((spent84 / Number(g.amount)) * 100)) : 0
+                const isExpanded84 = expandedGrantId === g.id
+                return (
+                  <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, padding: '16px 18px', transition: 'background 0.3s, border-color 0.3s' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{g.funder_name}</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</div>
+                        {statusBadge(g.status)}
                       </div>
-                      {g.disbursement_schedule && <div style={{ fontSize: 12, color: C.text, marginBottom: 4 }}>📅 {g.disbursement_schedule}</div>}
-                      {g.purpose_restriction && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.purpose_restriction}</div>}
-                      {g.report_due_date && (
-                        <div style={{ fontSize: 11.5, padding: '4px 8px', borderRadius: 4, display: 'inline-block', background: isReportOverdue83 ? '#FBEEE9' : isReportSoon83 ? C.warningBg : C.ivory, color: isReportOverdue83 ? C.red : isReportSoon83 ? C.warning : C.muted, border: `1px solid ${isReportOverdue83 ? '#E0BBA9' : isReportSoon83 ? C.warningBorder : C.border}` }}>
-                          {isReportOverdue83 ? `⚠ Report overdue` : `Report due ${new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                        </div>
-                      )}
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginTop: 8 }} onClick={() => exportGrantReportPDF(g)}>📄 Export Report for Funder</button>
-                      {(() => {
-                        const myExpenses84 = grantExpenses.filter(e => e.grant_id === g.id)
-                        const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
-                        const remaining84 = Number(g.amount) - spent84
-                        const isExpanded84 = expandedGrantId === g.id
-                        return (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>
-                              <span style={{ fontSize: 12, color: C.muted }}>Spent ${spent84.toLocaleString()} · Remaining ${remaining84.toLocaleString()}</span>
-                              <span style={{ fontSize: 11, color: C.forest }}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</span>
-                            </div>
-                            <div style={{ width: '100%', height: 6, background: C.ivory, borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
-                              <div style={{ width: `${Math.min(100, Math.round((spent84 / Number(g.amount)) * 100))}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage }} />
-                            </div>
-                            {isExpanded84 && (
-                              <div style={{ marginTop: 12 }}>
-                                {myExpenses84.length > 0 && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                                    {myExpenses84.map(e => (
-                                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                        <span style={{ color: C.text }}>{e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span></span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                          <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
-                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantExpense(e.id)}>✕</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
-                                  <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
-                                  <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
-                                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</div>
+                    </div>
+                    {g.disbursement_schedule && <div style={{ fontSize: 12, color: C.text, marginBottom: 4 }}>{g.disbursement_schedule}</div>}
+                    {g.purpose_restriction && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>{g.purpose_restriction}</div>}
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Start date</div>
+                        <div style={{ fontSize: 12.5, color: C.text }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Report due</div>
+                        {g.report_due_date ? (
+                          <div style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: isReportOverdue83 ? '#FBEEE9' : isReportSoon83 ? C.warningBg : C.ivory, color: isReportOverdue83 ? C.red : isReportSoon83 ? C.warning : C.muted, border: `1px solid ${isReportOverdue83 ? '#E0BBA9' : isReportSoon83 ? C.warningBorder : C.border}` }}>
+                            {isReportOverdue83 ? `⚠ Overdue since ${new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        ) : <div style={{ fontSize: 12.5, color: C.muted }}>—</div>}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: C.muted }}>${spent84.toLocaleString()} utilized</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: C.text }}>{pctUtilized}%</span>
+                      </div>
+                      <div style={{ background: C.ivory, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                        <div style={{ width: `${pctUtilized}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
+                    </div>
+                    {isExpanded84 && (
+                      <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
+                        {myExpenses84.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                            {myExpenses84.map(e => (
+                              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                                <span style={{ color: C.text }}>{e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span></span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantExpense(e.id)}>✕</span>
                                 </div>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        )
-                      })()}
+                        )}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              if (filteredGrants.length === 0) {
+                return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{grants.length === 0 ? 'No grants recorded yet.' : 'No grants match your filters.'}</div>
+              }
+
+              return (
+                <>
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Active Grants ({activeGrants.length})</div>
+                    {activeGrants.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
+                        {activeGrants.map(renderGrantCard)}
+                      </div>
+                    )}
+                  </div>
+
+                  {pastGrants.length > 0 && (
+                    <div>
+                      <div
+                        style={{ fontSize: 13, fontWeight: 500, color: C.muted, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => setShowPastGrants(v => !v)}
+                      >
+                        <span style={{ fontSize: 11, color: C.muted }}>{showPastGrants ? '▾' : '▸'}</span>
+                        Completed / Closed Grants ({pastGrants.length})
+                      </div>
+                      {showPastGrants && (
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
+                          {pastGrants.map(renderGrantCard)}
+                        </div>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
+                  )}
+                </>
               )
             })()}
           </div>
