@@ -5516,6 +5516,64 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
             {(() => {
+              const goalYear = new Date().getFullYear()
+              const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              return (
+                <div style={{ ...s.card, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 0 }}>
+                    <div style={{ ...s.cardTitle, marginBottom: 0 }}>🎯 Annual Fundraising Goal — {goalYear}</div>
+                    {!editingGoal && (
+                      <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
+                        {annualGoal ? 'Edit' : '+ Set Goal'}
+                      </span>
+                    )}
+                  </div>
+                  {editingGoal ? (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
+                      <button style={{ ...s.issueBtn, flexShrink: 0 }} onClick={saveAnnualGoal}>Save</button>
+                      <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setEditingGoal(false)}>Cancel</button>
+                    </div>
+                  ) : annualGoal ? (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 22, fontWeight: 800, color: C.forest }}>${totalThisGoalYear.toLocaleString()}</span>
+                        <span style={{ fontSize: 13, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
+                      </div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(100, Math.round((totalThisGoalYear / annualGoal) * 100))}%`, height: '100%', background: totalThisGoalYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
+                      </div>
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
+                      {(() => {
+                        const yearStart = new Date(goalYear, 0, 1)
+                        const now5 = new Date()
+                        const yearEnd = new Date(goalYear, 11, 31)
+                        const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
+                        const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
+                        const dailyRate = totalThisGoalYear / daysElapsed
+                        const projectedTotal = Math.round(dailyRate * totalDaysInYear)
+                        const onTrack = projectedTotal >= annualGoal
+                        const gap = Math.abs(annualGoal - projectedTotal)
+                        return (
+                          <div style={{ marginTop: 12, padding: '10px 14px', background: onTrack ? C.successBg : C.warningBg, borderRadius: 10, border: `1px solid ${onTrack ? C.sage : C.warningBorder}` }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: onTrack ? C.forest : C.warning }}>
+                              {onTrack
+                                ? `On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
+                                : `On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
+                            </div>
+                            <div style={{ fontSize: 11, color: onTrack ? C.sage : C.warning, marginTop: 2 }}>Based on your average of ${dailyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}/day so far this year</div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: C.muted }}>No goal set for this year yet.</div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {(() => {
               const now03 = new Date()
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
               const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
