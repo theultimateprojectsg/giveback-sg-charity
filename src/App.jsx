@@ -7976,7 +7976,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
                 <div style={s.card}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Number of Donations per Month</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Number of Donations per Month</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -7992,7 +7992,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
                 <div style={s.card}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Campaign Performance — {filterYear}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Campaign Performance — {filterYear}</div>
                   {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                   ) : (
@@ -8051,8 +8051,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Campaign Momentum</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>This week vs. last week, for your currently live campaigns — tells you where to focus your next push.</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Momentum <InfoTip text="This week vs. last week, for your currently live campaigns — tells you where to focus your next push." /></div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows.map((r, i) => {
                         const m = statusMeta[r.status]
@@ -8100,8 +8099,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).sort((a, b) => b.newPct - a.newPct)
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>New vs Existing Donors per Campaign — {filterYear}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>New vs Existing Donors per Campaign — {filterYear} <InfoTip text="Campaigns with a high &quot;new&quot; share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you." /></div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {rows.map((r, i) => (
                         <div key={i} style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
