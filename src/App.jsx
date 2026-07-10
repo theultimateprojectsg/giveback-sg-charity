@@ -210,7 +210,11 @@ export default function App() {
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebarCollapsed') === 'true'
+    } catch { return false }
+  })
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
