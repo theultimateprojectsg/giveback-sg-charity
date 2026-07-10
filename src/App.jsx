@@ -5546,8 +5546,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
               const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
 
+              const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
+              const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
+                const amt = Number(g.amount) || 0
+                if (g.frequency === 'weekly') return s + amt * 4.33
+                if (g.frequency === 'quarterly') return s + amt / 3
+                if (g.frequency === 'yearly' || g.frequency === 'annual') return s + amt / 12
+                return s + amt
+              }, 0)
+              const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
+
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Campaigns</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
@@ -5587,6 +5597,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>this year</div>
                     {daysSinceLastAppeal !== null ? (
                       <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
+                    ) : null}
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recurring Giving</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeRecurringList.length}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}/mo expected</div>
+                    {escalatedGiroList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
+                    ) : activeRecurringList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500 }}>✓ All on schedule</div>
                     ) : null}
                   </div>
                 </div>
