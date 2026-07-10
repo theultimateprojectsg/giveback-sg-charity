@@ -9696,6 +9696,430 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
             </div>
 
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor behavior</span>
+              </div>
+
+              {(() => {
+                const currentYearNum = new Date().getFullYear()
+                const donorLastGift = {}
+                donations.filter(d => d.payment_status === 'confirmed').forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  const year = new Date(d.created_at).getFullYear()
+                  if (!donorLastGift[key] || year > donorLastGift[key].year) {
+                    donorLastGift[key] = { name: d.donor_name, email: d.donor_email, year, amount: d.amount, date: d.created_at }
+                  }
+                  if (donorLastGift[key].year === year) {
+                    donorLastGift[key].totalThatYear = (donorLastGift[key].totalThatYear || 0) + d.amount
+                  }
+                })
+                const lapsed = Object.values(donorLastGift)
+                  .filter(d => d.year < currentYearNum)
+                  .sort((a, b) => (b.totalThatYear || b.amount) - (a.totalThatYear || a.amount))
+                  .slice(0, 10)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>📞 Donors to Re-engage</div>
+                    {lapsed.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No lapsed donors — everyone who gave before has given again this year.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Gave in a previous year but haven't given in {currentYearNum} yet — sorted by their last year's total.</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {lapsed.map((d, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                              <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                                <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Last gave in {d.year}{d.email ? ` · ${d.email}` : ''}</div>
+                              </div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.forest, flexShrink: 0 }}>${(d.totalThatYear || d.amount).toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yearScopedConfirmed = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (yearScopedConfirmed.length === 0) return null
+
+                const byDonorTotal = {}
+                yearScopedConfirmed.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!byDonorTotal[key]) byDonorTotal[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, firstYear: null }
+                  byDonorTotal[key].total += d.amount
+                  byDonorTotal[key].count += 1
+                })
+                const topDonor = Object.values(byDonorTotal).sort((a, b) => b.total - a.total)[0]
+                const mostFrequent = Object.values(byDonorTotal).sort((a, b) => b.count - a.count)[0]
+                const largestGift = [...yearScopedConfirmed].sort((a, b) => b.amount - a.amount)[0]
+
+                const donorFirstEverYear = {}
+                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorFirstEverYear[key]) donorFirstEverYear[key] = new Date(d.created_at).getFullYear()
+                })
+                const firstTimeGiftsThisPeriod = yearScopedConfirmed.filter(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  return donorFirstEverYear[key] === new Date(d.created_at).getFullYear()
+                })
+                const standoutNewDonor = [...firstTimeGiftsThisPeriod].sort((a, b) => b.amount - a.amount)[0]
+
+                const cards = [
+                  topDonor && { icon: '🏆', label: 'Top donor', name: topDonor.name, sub: `$${topDonor.total.toLocaleString()} across ${topDonor.count} gift${topDonor.count > 1 ? 's' : ''}`, donor: { name: topDonor.name, email: topDonor.email, total: topDonor.total, count: topDonor.count } },
+                  largestGift && { icon: '💎', label: 'Largest single gift', name: largestGift.donor_name, sub: `$${Number(largestGift.amount).toLocaleString()} on ${new Date(largestGift.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}`, donor: { name: largestGift.donor_name, email: largestGift.donor_email, total: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.total || largestGift.amount, count: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.count || 1 } },
+                  mostFrequent && { icon: '🔁', label: 'Most frequent giver', name: mostFrequent.name, sub: `${mostFrequent.count} donations, $${mostFrequent.total.toLocaleString()} total`, donor: { name: mostFrequent.name, email: mostFrequent.email, total: mostFrequent.total, count: mostFrequent.count } },
+                  standoutNewDonor && { icon: '✨', label: 'Standout new supporter', name: standoutNewDonor.donor_name, sub: `First gift: $${Number(standoutNewDonor.amount).toLocaleString()}`, donor: { name: standoutNewDonor.donor_name, email: standoutNewDonor.donor_email, total: standoutNewDonor.amount, count: 1 } },
+                ].filter(Boolean)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>🌟 Donor Highlights — {filterYear}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
+                      {cards.map((c, i) => (
+                        <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>{c.icon}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</span>
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{c.name}</div>
+                          <div style={{ fontSize: 12, color: C.muted }}>{c.sub}</div>
+                          {c.donor.email?.trim() && (
+                            <button
+                              style={{ ...s.btnGold, justifyContent: 'center', fontSize: 12, padding: '8px 14px', marginTop: 4 }}
+                              onClick={() => generateThankYouNote(c.donor, { unackedBigGift: true })}
+                            >✍️ Draft thank-you</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (scoped.length === 0) return null
+                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+                const byMethod = {}
+                scoped.forEach(d => {
+                  const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+                  if (!byMethod[label]) byMethod[label] = 0
+                  byMethod[label] += d.amount
+                })
+                const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
+                const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
+
+                const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
+                const allMethods61 = [...new Set(rows.map(r => r.label))]
+                const yearlyMix61 = allYears61.map(y => {
+                  const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                  const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
+                  const mix = {}
+                  allMethods61.forEach(m => { mix[m] = 0 })
+                  yearDons.forEach(d => {
+                    const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+                    mix[label] = (mix[label] || 0) + d.amount
+                  })
+                  return { year: y, mix, total: yearTotal }
+                })
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>💳 How Donors Are Paying — {filterYear}</div>
+                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                      {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
+                      {rows.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {allYears61.length > 1 && (
+                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
+                        {allMethods61.map((method, mi) => {
+                          const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                          const firstPct = series[0]
+                          const lastPct = series[series.length - 1]
+                          const delta = lastPct - firstPct
+                          return (
+                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
+                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                                {yearlyMix61.map((y, yi) => (
+                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
+                                ))}
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (scoped.length === 0) return null
+
+                const firstDonationDate = donations.length > 0 ? new Date([...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0].created_at) : new Date()
+                const daysSinceStart = Math.max(1, Math.ceil((new Date() - firstDonationDate) / (1000 * 60 * 60 * 24)))
+                const allConfirmed = donations.filter(d => d.payment_status === 'confirmed')
+                const allDonorKeys = new Set(allConfirmed.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                const avgPerDay = (allConfirmed.reduce((s, d) => s + d.amount, 0) / daysSinceStart).toLocaleString(undefined, { maximumFractionDigits: 0 })
+                const avgDonorsPerDay = (allDonorKeys.size / daysSinceStart).toFixed(1)
+
+                const donorGiftCounts = {}
+                allConfirmed.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  donorGiftCounts[key] = (donorGiftCounts[key] || 0) + 1
+                })
+                const oneTimeDonors = Object.values(donorGiftCounts).filter(c => c === 1).length
+                const oneTimePct = Object.keys(donorGiftCounts).length > 0 ? Math.round((oneTimeDonors / Object.keys(donorGiftCounts).length) * 100) : 0
+
+                const byDay = {}
+                scoped.forEach(d => {
+                  const dayKey = new Date(d.created_at).toLocaleDateString('en-SG')
+                  if (!byDay[dayKey]) byDay[dayKey] = { total: 0, count: 0 }
+                  byDay[dayKey].total += d.amount
+                  byDay[dayKey].count += 1
+                })
+                const bestDay = Object.entries(byDay).sort((a, b) => b[1].total - a[1].total)[0]
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>💡 Fun Facts</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ fontSize: 13, color: C.text }}>On an average day, you bring in <strong style={{ color: C.forest }}>${avgPerDay}</strong> from about <strong style={{ color: C.forest }}>{avgDonorsPerDay}</strong> donors.</div>
+                      <div style={{ fontSize: 13, color: C.text }}><strong style={{ color: C.forest }}>{oneTimePct}%</strong> of your donors have given exactly once — worth thinking about how to turn them into repeat supporters.</div>
+                      {bestDay && (
+                        <div style={{ fontSize: 13, color: C.text }}>Your best day{filterYear !== 'All' ? ` in ${filterYear}` : ''} was <strong style={{ color: C.forest }}>{bestDay[0]}</strong>, raising <strong style={{ color: C.forest }}>${bestDay[1].total.toLocaleString()}</strong> from {bestDay[1].count} donation{bestDay[1].count > 1 ? 's' : ''}.</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (scoped.length === 0) return null
+                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+                const byDonor = {}
+                scoped.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!byDonor[key]) byDonor[key] = { name: d.donor_name, total: 0 }
+                  byDonor[key].total += d.amount
+                })
+                const sorted = Object.values(byDonor).sort((a, b) => b.total - a.total)
+                const top3Total = sorted.slice(0, 3).reduce((s, d) => s + d.total, 0)
+                const top3Pct = totalAmt > 0 ? Math.round((top3Total / totalAmt) * 100) : 0
+                const highRisk = top3Pct >= 50
+                return (
+                  <div style={{ ...s.card, marginBottom: 24, background: highRisk ? C.warningBg : C.white, border: `1px solid ${highRisk ? C.warningBorder : C.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ ...s.cardTitle, marginBottom: 0 }}>⚖️ Funding Concentration</div>
+                      <span style={{ fontSize: 11, color: C.sage, fontWeight: 700, cursor: 'pointer', border: `1px solid ${C.sage}`, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExplainerOpen(explainerOpen === 'concentration_2' ? null : 'concentration_2')}>?</span>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: highRisk ? C.warning : C.forest, marginTop: 6, marginBottom: 6 }}>{top3Pct}%</div>
+                    <div style={{ fontSize: 13, color: highRisk ? C.warning : C.text }}>Your top 3 donors ({sorted.slice(0, 3).map(d => d.name).join(', ')}) account for {top3Pct}% of total giving{filterYear !== 'All' ? ` in ${filterYear}` : ''}.</div>
+                    {highRisk && <div style={{ fontSize: 12, color: C.warning, marginTop: 8, fontWeight: 500 }}>⚠️ High concentration — if one of these donors stops giving, it could significantly impact your funding. Consider building a broader base of smaller regular donors.</div>}
+                    {explainerOpen === 'concentration_2' && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.ivoryDark}`, lineHeight: 1.5 }}>
+                        This measures how dependent you are on a small number of donors. Under 40% is considered healthy diversification — if it's much higher, losing even one major donor could meaningfully hurt your funding. It doesn't mean anything is wrong today, just something worth keeping an eye on as you grow.
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                const byDonor = {}
+                scoped.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!byDonor[key]) byDonor[key] = 0
+                  byDonor[key] += d.amount
+                })
+                const smallDonors = Object.values(byDonor).filter(total => total < 20)
+                if (smallDonors.length === 0) return null
+                const potentialExtra = smallDonors.length * 5
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>💡 The Power of Small Asks</div>
+                    <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+                      You have <strong style={{ color: C.forest }}>{smallDonors.length} donor{smallDonors.length > 1 ? 's' : ''}</strong> who gave under $20{filterYear !== 'All' ? ` in ${filterYear}` : ''}. If each gave just $5 more, that's an extra <strong style={{ color: C.forest }}>${potentialExtra.toLocaleString()}</strong> — worth a gentle nudge in your next appeal.
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent)
+                const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
+                if (owedDonations.length === 0) return null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}` }}>
+                    <div style={s.cardTitle}>💌 Silent Thank-You Debt</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
+                    <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
+                const byDonorMonths = {}
+                confirmedAll.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  const dt = new Date(d.created_at)
+                  const monthKey = `${dt.getFullYear()}-${dt.getMonth()}`
+                  if (!byDonorMonths[key]) byDonorMonths[key] = { name: d.donor_name, email: d.donor_email, months: new Set() }
+                  byDonorMonths[key].months.add(monthKey)
+                })
+                const now3 = new Date()
+                const streaks = Object.values(byDonorMonths).map(donor => {
+                  const sortedMonths = [...donor.months].map(m => { const [y, mo] = m.split('-').map(Number); return y * 12 + mo }).sort((a, b) => b - a)
+                  const currentMonthIdx = now3.getFullYear() * 12 + now3.getMonth()
+                  if (sortedMonths[0] < currentMonthIdx - 1) return { ...donor, streak: 0 }
+                  let streak = 1
+                  for (let i = 0; i < sortedMonths.length - 1; i++) {
+                    if (sortedMonths[i] - sortedMonths[i + 1] === 1) streak++
+                    else break
+                  }
+                  return { ...donor, streak }
+                }).filter(d => d.streak >= 3).sort((a, b) => b.streak - a.streak).slice(0, 8)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>🔥 Giving Streaks</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors who've given in 3 or more consecutive months — your most dependable supporters, regardless of gift size.</div>
+                    {streaks.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {streaks.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gold, color: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{d.email || 'No email on file'}</div>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, flexShrink: 0 }}>🔥 {d.streak} mo</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yearAgo75 = new Date()
+                yearAgo75.setFullYear(yearAgo75.getFullYear() - 1)
+                const activeRecurringDonors75 = recurringGifts.filter(g => g.status === 'active')
+                const quietlyPaying75 = activeRecurringDonors75.map(g => {
+                  const donorKey75 = g.donor_email?.trim() || g.donor_name
+                  const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  const lastContact75 = myNotes75[0]?.created_at || null
+                  const isQuiet75 = !lastContact75 || new Date(lastContact75) < yearAgo75
+                  if (!isQuiet75) return null
+                  return {
+                    name: g.donor_name,
+                    email: g.donor_email,
+                    amount: g.amount,
+                    frequency: g.frequency,
+                    lastContact: lastContact75,
+                  }
+                }).filter(Boolean)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Quietly Paying Donors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
+                    {quietlyPaying75.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {quietlyPaying75.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.forest, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>${d.amount}/{d.frequency} · {d.lastContact ? `last contact ${Math.floor((new Date() - new Date(d.lastContact)) / (1000 * 60 * 60 * 24 * 30))}mo ago` : 'no contact ever logged'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
+                const byDonor = {}
+                confirmedAll.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!byDonor[key]) byDonor[key] = { name: d.donor_name, email: d.donor_email, dates: [] }
+                  byDonor[key].dates.push(new Date(d.created_at))
+                })
+                const now4 = new Date()
+                const quiet = Object.values(byDonor).map(donor => {
+                  const sorted = donor.dates.sort((a, b) => a - b)
+                  if (sorted.length < 3) return null
+                  const gaps = []
+                  for (let i = 1; i < sorted.length; i++) {
+                    gaps.push((sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24))
+                  }
+                  const avgGapDays = gaps.reduce((s, g) => s + g, 0) / gaps.length
+                  const daysSinceLast = (now4 - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
+                  if (avgGapDays > 0 && avgGapDays < 60 && daysSinceLast > avgGapDays * 2 && daysSinceLast < 365) {
+                    return { name: donor.name, email: donor.email, avgGapDays: Math.round(avgGapDays), daysSinceLast: Math.round(daysSinceLast), lastGift: sorted[sorted.length - 1] }
+                  }
+                  return null
+                }).filter(Boolean).sort((a, b) => b.daysSinceLast - a.daysSinceLast).slice(0, 8)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>🤫 Quiet Donors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
+                    {quiet.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {quiet.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.warningBg, borderRadius: 10, border: `1px solid ${C.warningBorder}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.warning, marginTop: 1 }}>Usually gives every ~{d.avgGapDays}d · it's been {d.daysSinceLast}d</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+
           </div>
         )}
 
