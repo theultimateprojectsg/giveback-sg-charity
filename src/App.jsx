@@ -207,7 +207,7 @@ export default function App() {
   const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [grants, setGrants] = useState([])
   const [showGrantForm, setShowGrantForm] = useState(false)
-  const [grantForm, setGrantForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', report_due_date: '' })
+  const [grantForm, setGrantForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
   const [recurringExpenses, setRecurringExpenses] = useState([])
   const monthlyExpenses = recurringExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
@@ -929,13 +929,14 @@ export default function App() {
       amount: parseFloat(grantForm.amount),
       purpose_restriction: grantForm.purpose_restriction?.trim() || null,
       disbursement_schedule: grantForm.disbursement_schedule?.trim() || null,
+      start_date: grantForm.start_date || null,
       report_due_date: grantForm.report_due_date || null,
       status: 'active',
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving grant', 'error'); return }
     setGrants(prev => [...prev, data].sort((a, b) => new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')))
-    setGrantForm({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', report_due_date: '' })
+    setGrantForm({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
     setShowGrantForm(false)
     showToast('Grant recorded ✓')
   }
@@ -8251,6 +8252,99 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
+
+              {(() => {
+                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const thisYearGrants = grants.filter(g => grantYearOf(g) === yearNum)
+                const lastYearGrants = grants.filter(g => grantYearOf(g) === yearNum - 1)
+                const thisYearTotal = thisYearGrants.reduce((s, g) => s + Number(g.amount), 0)
+                const lastYearTotal = lastYearGrants.reduce((s, g) => s + Number(g.amount), 0)
+                const countDiff = thisYearGrants.length - lastYearGrants.length
+                const totalDiffPct = lastYearTotal > 0 ? Math.round(((thisYearTotal - lastYearTotal) / lastYearTotal) * 100) : null
+
+                const activeGrants = grants.filter(g => g.status === 'active')
+                const today = new Date()
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>{thisYearGrants.length}</span>
+                          {lastYearGrants.length > 0 && (
+                            <span style={{ fontSize: 11, fontWeight: 500, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${thisYearTotal.toLocaleString()}</span>
+                          {totalDiffPct !== null && (
+                            <span style={{ fontSize: 11, fontWeight: 500, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}%</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {lastYearGrants.length > 0 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearGrants.length} grant{lastYearGrants.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} secured</div>
+                    )}
+
+                    {activeGrants.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Pace vs report deadline</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeGrants.map((g, i) => {
+                            const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+                            const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
+                            const start = new Date(g.start_date || g.created_at)
+                            const due = g.report_due_date ? new Date(g.report_due_date) : null
+                            const daysToReport = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null
+                            const overdue = daysToReport !== null && daysToReport < 0
+                            let pctElapsed = null
+                            if (due) {
+                              const totalSpan = due - start
+                              const elapsed = today - start
+                              pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
+                            }
+                            const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
+                            const behind = gap !== null && gap >= 20
+                            const slightlyBehind = gap !== null && gap >= 8 && gap < 20
+                            const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
+                            const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
+                            const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
+                            let verdict = 'Not enough data to assess pace'
+                            if (pctElapsed !== null) {
+                              verdict = `${pctElapsed}% of timeline elapsed — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
+                            }
+                            return (
+                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: overdue || behind ? C.red : C.forest }}>{g.funder_name}</span>
+                                  <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
+                                  </div>
+                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>{pctSpent}% spent</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
@@ -10724,6 +10818,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div>
                     <div style={s.formLabel}>Disbursement Schedule</div>
                     <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={grantForm.disbursement_schedule} onChange={e => setGrantForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Grant Start Date</div>
+                    <input style={s.formInput} type="date" value={grantForm.start_date} onChange={e => setGrantForm(f => ({ ...f, start_date: e.target.value }))} />
                   </div>
                   <div>
                     <div style={s.formLabel}>Report Due Date</div>
