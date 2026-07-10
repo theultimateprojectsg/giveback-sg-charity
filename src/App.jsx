@@ -382,6 +382,7 @@ export default function App() {
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
   const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
   const [concentrationTopN, setConcentrationTopN] = useState(10)
+  const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
 
   const [lapsedMinGifts, setLapsedMinGifts] = useState(2)
   const [lapsedMinDays, setLapsedMinDays] = useState(60)
@@ -653,7 +654,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -697,6 +698,7 @@ export default function App() {
     setGivingChangeMinGifts(data?.giving_change_min_gifts ?? 3)
     setGivingChangeMinPct(data?.giving_change_min_pct ?? 30)
     setConcentrationTopN(data?.concentration_top_n ?? 10)
+    setPledgeWatchThreshold(data?.pledge_watch_threshold ?? 2)
     setLapsedMinGifts(data?.lapsed_min_gifts ?? 2)
     setLapsedMinDays(data?.lapsed_min_days ?? 60)
     setRoleLoaded(true)
@@ -8153,135 +8155,133 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              <div style={isMobile ? s.threeColMobile : s.threeCol}>
-                {(() => {
-                  const scopedPledges = filterYear === 'All' ? pledges : pledges.filter(p => new Date(p.expected_date).getFullYear() === parseInt(filterYear))
-                  const totalPledged = scopedPledges.reduce((s, p) => s + Number(p.amount), 0)
-                  const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled')
-                  const fulfilledTotal = fulfilled.reduce((s, p) => s + Number(p.amount), 0)
-                  const outstanding = scopedPledges.filter(p => p.status === 'pending')
-                  const outstandingTotal = outstanding.reduce((s, p) => s + Number(p.amount), 0)
-                  const today = new Date()
-                  const overdue = outstanding.filter(p => new Date(p.expected_date) < today)
-                  const onTrack = outstanding.filter(p => new Date(p.expected_date) >= today)
-                  const fulfillmentRate = scopedPledges.length > 0 ? Math.round((fulfilled.length / scopedPledges.length) * 100) : 0
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Performance — {filterYear} <InfoTip text="Total pledged, fulfilled, and outstanding for pledges expected this year, plus a breakdown by status." /></div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Total pledged</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${totalPledged.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Fulfillment rate</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: fulfillmentRate >= 70 ? C.sage : fulfillmentRate >= 40 ? C.gold : C.red }}>{fulfillmentRate}%</div>
+              {(() => {
+                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const scopedPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum)
+                const lastYearPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum - 1)
+                const totalPledged = scopedPledges.reduce((s, p) => s + Number(p.amount), 0)
+                const lastYearTotal = lastYearPledges.reduce((s, p) => s + Number(p.amount), 0)
+                const countDiff = scopedPledges.length - lastYearPledges.length
+                const totalDiffPct = lastYearTotal > 0 ? Math.round(((totalPledged - lastYearTotal) / lastYearTotal) * 100) : null
+
+                const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+                const fulfilledWithDates = fulfilled.map(p => {
+                  const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+                  if (!donation) return null
+                  const daysLate = Math.ceil((new Date(donation.created_at) - new Date(p.expected_date)) / (1000 * 60 * 60 * 24))
+                  return { pledge: p, daysLate }
+                }).filter(Boolean)
+
+                const onTimeGroup = fulfilledWithDates.filter(f => f.daysLate <= 0)
+                const slightlyLateGroup = fulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
+                const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
+                const onTimeRate = scopedPledges.length > 0 ? Math.round((onTimeGroup.length / scopedPledges.length) * 100) : 0
+
+                const lastYearFulfilled = lastYearPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+                const lastYearOnTime = lastYearFulfilled.filter(p => {
+                  const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+                  if (!donation) return false
+                  return new Date(donation.created_at) <= new Date(p.expected_date)
+                }).length
+                const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTime / lastYearPledges.length) * 100) : null
+                const onTimeRateDiff = lastYearOnTimeRate !== null ? onTimeRate - lastYearOnTimeRate : null
+
+                const today = new Date()
+                const donorKey = (p) => p.donor_email?.trim() || p.donor_name
+                const byDonor = {}
+                pledges.forEach(p => {
+                  const key = donorKey(p)
+                  if (!byDonor[key]) byDonor[key] = { name: p.donor_name, pledges: [] }
+                  byDonor[key].pledges.push(p)
+                })
+                const watchList = Object.values(byDonor).map(d => {
+                  const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today))
+                  const rescheduled = d.pledges.filter(p => p.status === 'pending')
+                  return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
+                }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pledges made</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>{scopedPledges.length}</span>
+                          {lastYearPledges.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑${countDiff}` : `↓${Math.abs(countDiff)}`}</span>}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.text }}>Fulfilled</span>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>{fulfilled.length} · ${fulfilledTotal.toLocaleString()}</span>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Amount pledged</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>${totalPledged.toLocaleString()}</div>
+                        {totalDiffPct !== null && <div style={{ fontSize: 10.5, fontWeight: 500, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}%</div>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Fulfilled on time</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.sage }}>{onTimeRate}%</span>
+                          {onTimeRateDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: onTimeRateDiff >= 0 ? C.sage : C.red }}>{onTimeRateDiff === 0 ? '—' : onTimeRateDiff > 0 ? `↑${onTimeRateDiff}pt` : `↓${Math.abs(onTimeRateDiff)}pt`}</span>}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.text }}>Pending, on track</span>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>{onTrack.length} · ${onTrack.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
-                        </div>
-                        {overdue.length > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
-                            <span style={{ fontSize: 12, color: C.red }}>Overdue</span>
-                            <span style={{ fontSize: 11.5, color: C.red }}>{overdue.length} · ${overdue.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    {lastYearPledges.length > 0 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearPledges.length} pledge{lastYearPledges.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} pledged{lastYearOnTimeRate !== null ? ` · ${lastYearOnTimeRate}% fulfilled on time` : ''}</div>
+                    )}
+
+                    {fulfilledWithDates.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Fulfilled pledges: how late did they run?</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
+                            <span style={{ fontSize: 12, color: C.muted }}>{onTimeGroup.length} · ${onTimeGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {(() => {
-                  const activeGrants = grants.filter(g => g.status === 'active')
-                  if (activeGrants.length === 0) return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Grant Funding</div>
-                      <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>No active grants yet.</div>
-                    </div>
-                  )
-                  const totalSecured = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
-                  const today = new Date()
-                  const dueSoon = activeGrants.filter(g => {
-                    const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
-                    return days <= 60
-                  })
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding <InfoTip text="Active grants, total secured, how much has been utilized against grant expenses, and report deadlines coming up in the next 60 days." /></div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Active grants</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{activeGrants.length}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Total secured</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${totalSecured.toLocaleString()}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {activeGrants.slice(0, 4).map((g, i) => {
-                          const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
-                          const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
-                          const overdue = days < 0
-                          return (
-                            <div key={i} style={{ padding: '8px 10px', background: overdue ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 12, fontWeight: 500, color: overdue ? C.red : C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{g.funder_name}</span>
-                                <span style={{ fontSize: 11.5, color: overdue ? C.red : C.muted }}>${Number(g.amount).toLocaleString()}</span>
-                              </div>
-                              <div style={{ fontSize: 10.5, color: overdue ? C.red : C.muted, marginTop: 2 }}>
-                                ${utilized.toLocaleString()} utilized · report {overdue ? `overdue` : days <= 60 ? `in ${days}d` : new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
-                              </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.text }}>1–14 days late</span>
+                            <span style={{ fontSize: 12, color: C.muted }}>{slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                          </div>
+                          {veryLateGroup.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12, color: C.warning }}>15+ days late</span>
+                              <span style={{ fontSize: 12, color: C.warning }}>{veryLateGroup.length} · ${veryLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })()}
+                          )}
+                        </div>
+                      </>
+                    )}
 
-                {(() => {
-                  const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                  const yearStart = new Date(yearNum, 0, 1)
-                  const yearEnd = new Date(yearNum, 11, 31, 23, 59, 59)
-                  const newSignups = recurringGifts.filter(g => new Date(g.created_at) >= yearStart && new Date(g.created_at) <= yearEnd)
-                  const cancellations = recurringGifts.filter(g => g.status === 'cancelled' && new Date(g.created_at) >= yearStart && new Date(g.created_at) <= yearEnd)
-                  const netChange = newSignups.length - cancellations.length
-                  const mrrChange = newSignups.reduce((s, g) => s + Number(g.amount), 0) - cancellations.reduce((s, g) => s + Number(g.amount), 0)
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Gift Growth — {filterYear} <InfoTip text="New recurring gift sign-ups vs cancellations this year, and the resulting change to your monthly recurring revenue." /></div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>New sign-ups</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.sage }}>+{newSignups.length}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Cancellations</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.red }}>-{cancellations.length}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.text }}>Net change</span>
-                          <span style={{ fontSize: 11.5, color: netChange >= 0 ? C.sage : C.red, fontWeight: 500 }}>{netChange >= 0 ? '+' : ''}{netChange}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.text }}>MRR change</span>
-                          <span style={{ fontSize: 11.5, color: mrrChange >= 0 ? C.sage : C.red, fontWeight: 500 }}>{mrrChange >= 0 ? '+' : '-'}${Math.abs(mrrChange).toLocaleString()}</span>
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                      <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                        <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen) }}>
+                          <option value={1}>1 broken pledge</option>
+                          <option value={2}>2 broken pledges</option>
+                          <option value={3}>3 broken pledges</option>
+                        </select>
                       </div>
                     </div>
-                  )
-                })()}
-              </div>
+                    {watchList.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No donors currently meet this threshold.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {watchList.slice(0, 5).map((d, i) => (
+                          <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: d.overdueNow.length > 0 ? C.red : C.forest }}>{d.name}</span>
+                              <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                            </div>
+                            {d.overdueNow.length > 0 && (
+                              <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>{d.overdueNow.length} currently overdue (${d.overdueNow.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()})</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -10960,11 +10960,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const isExpanded84 = expandedGrantId === g.id
                 return (
                   <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, padding: '16px 18px', transition: 'background 0.3s, border-color 0.3s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{g.funder_name}</div>
-                        {statusBadge(g.status)}
-                      </div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, marginBottom: 6 }}>{g.funder_name}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      {statusBadge(g.status)}
                       <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</div>
                     </div>
                     {g.disbursement_schedule && <div style={{ fontSize: 12, color: C.text, marginBottom: 4 }}>{g.disbursement_schedule}</div>}
