@@ -7843,7 +7843,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
                             disabled={sendingThankYouId === selectedDonation.id}
                             onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
-                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You Email'}</button>
+                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
