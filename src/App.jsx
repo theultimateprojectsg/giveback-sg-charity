@@ -95,15 +95,16 @@ export default function App() {
   const [issuing, setIssuing] = useState(null)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('giveback_charity_tab') || 'dashboard')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedDonor, setSelectedDonor] = useState(null)
-  const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(() => localStorage.getItem('giveback_charity_selected_donor') || null)
+  const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
 
   useEffect(() => {
+    if (!session) return
     if (selectedDonor) {
-      localStorage.setItem('giveback_charity_selected_donor', selectedDonor.email?.trim() || selectedDonor.name)
+      supabase.auth.updateUser({ data: { last_selected_donor: selectedDonor.email?.trim() || selectedDonor.name } })
     } else {
-      localStorage.removeItem('giveback_charity_selected_donor')
+      supabase.auth.updateUser({ data: { last_selected_donor: null } })
     }
   }, [selectedDonor])
   const [searchTerm, setSearchTerm] = useState('')
@@ -150,17 +151,12 @@ export default function App() {
     { key: 'warmth', label: 'Relationship Warmth' },
   ]
   const DONOR_COLUMN_DEFAULTS = ['total', 'count', 'avg', 'lastDate', 'tags']
-  const [selectedDonorColumns, setSelectedDonorColumns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('donorTableColumns')
-      return saved ? JSON.parse(saved) : DONOR_COLUMN_DEFAULTS
-    } catch { return DONOR_COLUMN_DEFAULTS }
-  })
+  const [selectedDonorColumns, setSelectedDonorColumns] = useState(DONOR_COLUMN_DEFAULTS)
   const [showColumnPicker, setShowColumnPicker] = useState(false)
   const toggleDonorColumn = (key) => {
     setSelectedDonorColumns(prev => {
       const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-      localStorage.setItem('donorTableColumns', JSON.stringify(next))
+      supabase.auth.updateUser({ data: { donor_table_columns: next } })
       return next
     })
   }
@@ -176,17 +172,12 @@ export default function App() {
     { key: 'thankYou', label: 'Thank You' },
   ]
   const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
-  const [selectedDonationColumns, setSelectedDonationColumns] = useState(() => {
-    try {
-      const saved = localStorage.getItem('donationTableColumns')
-      return saved ? JSON.parse(saved) : DONATION_COLUMN_DEFAULTS
-    } catch { return DONATION_COLUMN_DEFAULTS }
-  })
+  const [selectedDonationColumns, setSelectedDonationColumns] = useState(DONATION_COLUMN_DEFAULTS)
   const [showDonationColumnPicker, setShowDonationColumnPicker] = useState(false)
   const toggleDonationColumn = (key) => {
     setSelectedDonationColumns(prev => {
       const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-      localStorage.setItem('donationTableColumns', JSON.stringify(next))
+      supabase.auth.updateUser({ data: { donation_table_columns: next } })
       return next
     })
   }
@@ -210,11 +201,7 @@ export default function App() {
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem('sidebarCollapsed') === 'true'
-    } catch { return false }
-  })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
@@ -344,14 +331,8 @@ export default function App() {
     setAppealRecipients(data || [])
     setLoadingAppealDetail(false)
   }
-  const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(() => {
-    const saved = localStorage.getItem('gt_giving_change_min_gifts')
-    return saved ? Number(saved) : 3
-  })
-  const [givingChangeMinPct, setGivingChangeMinPct] = useState(() => {
-    const saved = localStorage.getItem('gt_giving_change_min_pct')
-    return saved ? Number(saved) : 30
-  })
+  const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(3)
+  const [givingChangeMinPct, setGivingChangeMinPct] = useState(30)
   const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
   const [givingChangeAckHistory, setGivingChangeAckHistory] = useState({})
 
@@ -368,13 +349,7 @@ export default function App() {
     return lines.join('\n')
   }
 
-  useEffect(() => {
-    localStorage.setItem('gt_giving_change_min_gifts', String(givingChangeMinGifts))
-  }, [givingChangeMinGifts])
-
-  useEffect(() => {
-    localStorage.setItem('gt_giving_change_min_pct', String(givingChangeMinPct))
-  }, [givingChangeMinPct])
+  
 
   useEffect(() => {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
@@ -403,31 +378,10 @@ export default function App() {
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
   const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
-  const [concentrationTopN, setConcentrationTopN] = useState(() => {
-    const saved = localStorage.getItem('gt_concentration_top_n')
-    return saved ? Number(saved) : 10
-  })
+  const [concentrationTopN, setConcentrationTopN] = useState(10)
 
-  useEffect(() => {
-    localStorage.setItem('gt_concentration_top_n', String(concentrationTopN))
-  }, [concentrationTopN])
-
-  const [lapsedMinGifts, setLapsedMinGifts] = useState(() => {
-    const saved = localStorage.getItem('gt_lapsed_min_gifts')
-    return saved ? Number(saved) : 2
-  })
-  const [lapsedMinDays, setLapsedMinDays] = useState(() => {
-    const saved = localStorage.getItem('gt_lapsed_min_days')
-    return saved ? Number(saved) : 60
-  })
-
-  useEffect(() => {
-    localStorage.setItem('gt_lapsed_min_gifts', String(lapsedMinGifts))
-  }, [lapsedMinGifts])
-
-  useEffect(() => {
-    localStorage.setItem('gt_lapsed_min_days', String(lapsedMinDays))
-  }, [lapsedMinDays])
+  const [lapsedMinGifts, setLapsedMinGifts] = useState(2)
+  const [lapsedMinDays, setLapsedMinDays] = useState(60)
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
@@ -608,6 +562,24 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (session?.user?.user_metadata?.sidebar_collapsed !== undefined) {
+      setSidebarCollapsed(session.user.user_metadata.sidebar_collapsed)
+    }
+    if (session?.user?.user_metadata?.last_active_tab) {
+      setActiveTab(session.user.user_metadata.last_active_tab)
+    }
+    if (session?.user?.user_metadata?.last_selected_donor) {
+      setPendingSelectedDonorKey(session.user.user_metadata.last_selected_donor)
+    }
+    if (session?.user?.user_metadata?.donor_table_columns) {
+      setSelectedDonorColumns(session.user.user_metadata.donor_table_columns)
+    }
+    if (session?.user?.user_metadata?.donation_table_columns) {
+      setSelectedDonationColumns(session.user.user_metadata.donation_table_columns)
+    }
+  }, [session?.user?.id])
+
+  useEffect(() => {
     if (session) {
       loadDonations(session)
       loadMyCauses()
@@ -676,7 +648,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -717,6 +689,11 @@ export default function App() {
     setSenderDomainStatus(data?.sender_domain_status || 'none')
     setSenderDomain(data?.sender_domain || '')
     setSenderEmailLocalPart(data?.sender_email_local_part || 'hello')
+    setGivingChangeMinGifts(data?.giving_change_min_gifts ?? 3)
+    setGivingChangeMinPct(data?.giving_change_min_pct ?? 30)
+    setConcentrationTopN(data?.concentration_top_n ?? 10)
+    setLapsedMinGifts(data?.lapsed_min_gifts ?? 2)
+    setLapsedMinDays(data?.lapsed_min_days ?? 60)
     setRoleLoaded(true)
   }
 
@@ -1859,7 +1836,7 @@ export default function App() {
   useEffect(() => {
     if (session && (activeTab === 'activity' || activeTab === 'dashboard')) loadAuditLog()
     setShowMobileMenu(false)
-    localStorage.setItem('giveback_charity_tab', activeTab)
+    if (session) supabase.auth.updateUser({ data: { last_active_tab: activeTab } })
   }, [session, activeTab])
 
   useEffect(() => {
@@ -4828,7 +4805,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
           </div>
           <button
-            onClick={() => setSidebarCollapsed(v => !v)}
+            onClick={async () => {
+              const next = !sidebarCollapsed
+              setSidebarCollapsed(next)
+              await supabase.auth.updateUser({ data: { sidebar_collapsed: next } })
+            }}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'rgba(255,255,255,0.6)', width: 24, height: 24, borderRadius: 6, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: sidebarCollapsed ? 0 : 8 }}
           >{sidebarCollapsed ? '→' : '←'}</button>
@@ -5465,7 +5446,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
-                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => setConcentrationTopN(Number(e.target.value))}>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
                         <option value={5}>Top 5</option>
                         <option value={10}>Top 10</option>
                         <option value={20}>Top 20</option>
@@ -5509,9 +5490,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
-                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => setLapsedMinGifts(Math.max(1, Number(e.target.value) || 1))} />
+                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); supabase.from('charity_contacts').update({ lapsed_min_gifts: v }).eq('charity_uen', charityUen) }} />
                       <span style={{ fontSize: 11.5, color: C.muted }}>+ times but haven't donated in</span>
-                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => setLapsedMinDays(Math.max(1, Number(e.target.value) || 1))} />
+                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); supabase.from('charity_contacts').update({ lapsed_min_days: v }).eq('charity_uen', charityUen) }} />
                       <span style={{ fontSize: 11.5, color: C.muted }}>+ days</span>
                     </div>
                     {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
@@ -5587,9 +5568,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
-                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => setGivingChangeMinGifts(Math.max(2, Number(e.target.value) || 2))} />
+                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
                       <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
-                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => setGivingChangeMinPct(Math.max(1, Number(e.target.value) || 1))} />
+                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); supabase.from('charity_contacts').update({ giving_change_min_pct: v }).eq('charity_uen', charityUen) }} />
                       <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
                     </div>
                     {flags.length === 0 ? (
