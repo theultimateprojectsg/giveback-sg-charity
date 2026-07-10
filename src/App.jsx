@@ -217,6 +217,8 @@ export default function App() {
   const [grantExpenses, setGrantExpenses] = useState([])
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
+  const [grantYearFilter, setGrantYearFilter] = useState('All')
+  const [grantAmountFilter, setGrantAmountFilter] = useState('All')
   const [highlightedGrantId, setHighlightedGrantId] = useState(null)
   const [grantUrgencyFilter, setGrantUrgencyFilter] = useState('All')
   const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
@@ -10850,8 +10852,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="Due Soon">Report due soon (60d)</option>
                 <option value="Healthy">No urgent report</option>
               </select>
-              {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All') && (
-                <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={grantAmountFilter} onChange={e => setGrantAmountFilter(e.target.value)}>
+                <option value="All">All amounts</option>
+                <option value="Under 20000">Under $20,000</option>
+                <option value="20000-100000">$20,000 – $100,000</option>
+                <option value="100000-250000">$100,000 – $250,000</option>
+                <option value="Over 250000">Over $250,000</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={grantYearFilter} onChange={e => setGrantYearFilter(e.target.value)}>
+                <option value="All">All years</option>
+                {[...new Set(grants.map(g => new Date(g.start_date || g.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All' || grantAmountFilter !== 'All' || grantYearFilter !== 'All') && (
+                <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All') }}>✕ Clear Filters</button>
               )}
             </div>
 
@@ -10864,7 +10879,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
                   || (grantUrgencyFilter === 'Due Soon' && days !== null && days >= 0 && days <= 60)
                   || (grantUrgencyFilter === 'Healthy' && (days === null || days > 60))
-                return matchesSearch && matchesUrgency
+                const amt = Number(g.amount)
+                const matchesAmount = grantAmountFilter === 'All'
+                  || (grantAmountFilter === 'Under 20000' && amt < 20000)
+                  || (grantAmountFilter === '20000-100000' && amt >= 20000 && amt <= 100000)
+                  || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
+                  || (grantAmountFilter === 'Over 250000' && amt > 250000)
+                const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
+                return matchesSearch && matchesUrgency && matchesAmount && matchesYear
               })
 
               const activeGrants = filteredGrants.filter(g => g.status === 'active')
