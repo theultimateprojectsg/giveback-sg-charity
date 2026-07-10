@@ -2571,7 +2571,7 @@ export default function App() {
     const causeTitle = causeNameForDonation(donation)
     const dateStr = new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
     const customBlock = customMessage?.trim()
-      ? `<p style="font-size:13px;color:#1C1C1C;line-height:1.6;background:#FAF7F2;border-radius:10px;padding:12px;border-left:3px solid #D4A017;font-style:italic;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      ? `<p style="font-size:13px;color:#1C1C1C;line-height:1.6;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
       : ''
 
     if (templateType === 'major_gift') {
@@ -2595,7 +2595,7 @@ export default function App() {
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${charityName}</div>
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
-          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">This is the start of something good. We're so glad you're with us — here's what your first gift of <strong>SGD $${amount}</strong> supports.</p>
+          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
           ${causeTitle ? `<p style="font-size:13px;color:#1C1C1C;">Your gift went toward: <strong style="color:#D4A017;">🎯 ${causeTitle}</strong></p>` : ''}
         </div>`
@@ -2615,6 +2615,9 @@ export default function App() {
       <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
         <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${donation.donor_name}!</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your generosity makes a difference</div>
+      </div>
+      <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;margin-bottom:16px;">
+        <p style="font-size:13px;color:#1C1C1C;line-height:1.6;margin:0;">We don't say this often enough: thank you. Not just for this gift, but for choosing to keep giving. Consistent support like yours is what lets us plan further ahead and take on more than we could with one-off gifts alone.</p>
       </div>
       ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid #E2D9CC;margin-bottom:12px;">${customBlock}</div>` : ''}
       <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
