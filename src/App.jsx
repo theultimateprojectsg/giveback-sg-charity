@@ -10869,7 +10869,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {[
                   { label: 'Charity Name', value: charityName },
                   { label: 'UEN', value: charityUen },
-                  { label: 'Email', value: session?.user?.email },
+                  { label: 'IPC Status', value: charityIsIpc ? '✓ Registered IPC' : 'Not an IPC' },
+                  { label: 'Logged in as', value: session?.user?.email },
                 ].map((item, i) => (
                   <div key={i} style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 4 }}>{item.label}</div>
