@@ -9560,6 +9560,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                     </div>
+                    {c.cost > 0 && (
+                      <div style={{ fontSize: 11.5, color: raised >= c.cost ? C.sage : C.red, fontWeight: 500, marginBottom: 10 }}>
+                        Cost ${Number(c.cost).toLocaleString()} · ROI {(raised / c.cost).toFixed(1)}×
+                      </div>
+                    )}
                     {isActive && behindPace && (
                       <div style={{ fontSize: 11, color: C.gold, fontWeight: 500, marginBottom: 10 }}>⚠ Behind pace · {pct}% funded</div>
                     )}
