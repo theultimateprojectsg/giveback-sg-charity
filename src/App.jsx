@@ -190,7 +190,7 @@ export default function App() {
       return next
     })
   }
-  const [userRole, setUserRole] = useState('staff')
+  const [userRole, setUserRole] = useState('volunteer')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
@@ -689,14 +689,14 @@ export default function App() {
     const staffEmails = data?.staff_emails || []
     if (edEmails.includes(email)) {
       setUserRole('ed')
-    } else if (staffEmails.includes(email) || (!volunteerEmails.includes(email) && !boardEmails.includes(email))) {
+    } else if (staffEmails.includes(email)) {
       setUserRole('staff')
     } else if (boardEmails.includes(email)) {
       setUserRole('board')
     } else if (volunteerEmails.includes(email)) {
       setUserRole('volunteer')
     } else {
-      setUserRole('staff')
+      setUserRole('volunteer')
     }
     setLocalVolunteers(volunteerEmails)
     setLocalEds(edEmails)
