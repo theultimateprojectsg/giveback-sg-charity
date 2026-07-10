@@ -5255,6 +5255,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
               const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
 
+              const threeMoAgoFH = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+              const recentTotalFH = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgoFH).reduce((s, d) => s + d.amount, 0)
+              const trailingAvgMonthlyFH = recentTotalFH / 3
+              const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
+
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
                   {/* MTD donations */}
@@ -5288,22 +5293,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
 
-                  {/* New donors this month */}
+                  {/* Cash runway */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>New Donors <InfoTip text="Donors whose very first donation was this month." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{newDonorsThisMonth}</div>
-                    {newDonorsDiff !== null ? (
-                      <div style={{ fontSize: 11.5, color: newDonorsDiff >= 0 ? C.sage : C.red, marginTop: 6 }}>
-                        {newDonorsDiff >= 0 ? '↑' : '↓'} {Math.abs(newDonorsDiff)}% vs last year
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
+                    {runwayMonthsFH === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set →</button>
                       </div>
                     ) : (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>This month</div>
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: runwayMonthsFH >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonthsFH.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : '⚠ Worth a closer look'}
+                        </div>
+                      </>
                     )}
                   </div>
 
                   {/* MRR */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Donations<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
                       {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
@@ -5321,7 +5331,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Donor retention */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
                   </div>
