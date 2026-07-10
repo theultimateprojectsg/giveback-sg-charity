@@ -5433,7 +5433,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {coverageRatio === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set →</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
                       </div>
                     ) : (
                       <>
@@ -5451,7 +5451,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {runwayMonthsFH === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set →</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
                       </div>
                     ) : (
                       <>
@@ -9208,7 +9208,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {runwayMonths === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Set your monthly expenses in Settings to see this.</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set expenses →</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set expenses →</button>
                       </div>
                     ) : (
                       <>
@@ -11208,7 +11208,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
 
-              <div style={{ ...s.card, marginTop: 16 }}>
+              <div id="monthly-expenses-card" style={{ ...s.card, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
                 </div>
