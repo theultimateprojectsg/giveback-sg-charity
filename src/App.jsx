@@ -4813,7 +4813,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 232, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
 
         {/* Logo */}
-        <div style={{ ...s.sidebarLogo, display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between' }}>
+        <div style={{ ...s.sidebarLogo, display: 'flex', flexDirection: sidebarCollapsed ? 'column' : 'row', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: sidebarCollapsed ? 12 : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img src={logo} style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
             {!sidebarCollapsed && (
