@@ -8321,7 +8321,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
                             let verdict = 'Not enough data to assess pace'
                             if (pctElapsed !== null) {
-                              verdict = `${pctElapsed}% of timeline elapsed — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
+                              verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
                             }
                             return (
                               <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
@@ -8333,7 +8333,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
                                     <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
                                   </div>
-                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>{pctSpent}% spent</span>
+                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
                                 </div>
                                 <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
                               </div>
