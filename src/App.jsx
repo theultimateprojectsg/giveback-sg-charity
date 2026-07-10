@@ -2990,25 +2990,32 @@ export default function App() {
   if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
   if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
 
-  // Duplicate detection — fuzzy name match against existing donors
+  // Duplicate detection — match on email, NRIC, or (only when neither is present) exact name
   if (!manualForm.is_anonymous && !manualForm.duplicateConfirmed) {
+    const enteredEmail = manualForm.donor_email?.trim().toLowerCase()
+    const enteredNric = manualForm.donor_nric?.trim().toUpperCase()
     const enteredName = manualForm.donor_name.trim().toLowerCase()
-    const similarDonors = donorList.filter(d => {
-      const existing = d.name.trim().toLowerCase()
-      if (existing === enteredName) return true
-      // Check if one name contains the other (catches "John Tan" vs "John Tan Jr")
-      if (existing.includes(enteredName) || enteredName.includes(existing)) return true
-      // Simple character similarity — flag if 80%+ of characters match
-      const longer = existing.length > enteredName.length ? existing : enteredName
-      const shorter = existing.length > enteredName.length ? enteredName : existing
-      let matches = 0
-      for (const char of shorter) { if (longer.includes(char)) matches++ }
-      const similarity = matches / longer.length
-      return similarity >= 0.8 && Math.abs(existing.length - enteredName.length) <= 4
-    })
-    if (similarDonors.length > 0) {
+
+    let matchedDonors = []
+    let matchedOn = null
+
+    if (enteredEmail) {
+      matchedDonors = donorList.filter(d => d.email?.trim().toLowerCase() === enteredEmail)
+      if (matchedDonors.length > 0) matchedOn = 'email'
+    }
+    if (matchedDonors.length === 0 && enteredNric) {
+      matchedDonors = donorList.filter(d => d.nric?.trim().toUpperCase() === enteredNric)
+      if (matchedDonors.length > 0) matchedOn = 'NRIC'
+    }
+    // Backstop: no email and no NRIC entered — fall back to exact name match only
+    if (matchedDonors.length === 0 && !enteredEmail && !enteredNric) {
+      matchedDonors = donorList.filter(d => d.name.trim().toLowerCase() === enteredName)
+      if (matchedDonors.length > 0) matchedOn = 'name (exact)'
+    }
+
+    if (matchedDonors.length > 0) {
       setManualError('')
-      setManualDuplicateWarning(similarDonors)
+      setManualDuplicateWarning({ donors: matchedDonors, matchedOn })
       return
     }
   }
@@ -6908,9 +6915,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {manualDuplicateWarning && (
                     <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '12px 14px', marginBottom: 16 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.warning, marginBottom: 8 }}>⚠ Possible duplicate donor</div>
-                      <div style={{ fontSize: 12, color: C.warning, marginBottom: 10 }}>We found {manualDuplicateWarning.length} existing donor{manualDuplicateWarning.length > 1 ? 's' : ''} with a similar name. Is this the same person?</div>
+                      <div style={{ fontSize: 12, color: C.warning, marginBottom: 10 }}>We found {manualDuplicateWarning.donors.length} existing donor{manualDuplicateWarning.donors.length > 1 ? 's' : ''} matching this {manualDuplicateWarning.matchedOn}. Is this the same person?</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-                        {manualDuplicateWarning.slice(0, 3).map((d, i) => (
+                        {manualDuplicateWarning.donors.slice(0, 3).map((d, i) => (
                           <div key={i} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '8px 12px', fontSize: 12, color: C.forest }}>
                             <strong>{d.name}</strong> — {d.count} donation{d.count > 1 ? 's' : ''}, last gave ${d.total.toLocaleString()}
                           </div>
