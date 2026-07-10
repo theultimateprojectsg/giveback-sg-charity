@@ -4831,9 +4831,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
             { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board', 'volunteer'] },
+            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
-            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+            
           ].filter(item => item.roles.includes(userRole)).map(item => (
             <div key={item.id}
               title={item.label}
