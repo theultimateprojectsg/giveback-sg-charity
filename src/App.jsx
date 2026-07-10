@@ -8084,7 +8084,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaigns and growth</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
 
               <div style={{ ...s.card, marginBottom: 24 }}>
@@ -8324,7 +8324,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor behavior</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
               </div>
 
               {(() => {
@@ -8432,75 +8432,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
                 if (scoped.length === 0) return null
-                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
-                const byMethod = {}
-                scoped.forEach(d => {
-                  const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
-                  if (!byMethod[label]) byMethod[label] = 0
-                  byMethod[label] += d.amount
-                })
-                const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
-                const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
-
-                const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
-                const allMethods61 = [...new Set(rows.map(r => r.label))]
-                const yearlyMix61 = allYears61.map(y => {
-                  const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
-                  const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
-                  const mix = {}
-                  allMethods61.forEach(m => { mix[m] = 0 })
-                  yearDons.forEach(d => {
-                    const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
-                    mix[label] = (mix[label] || 0) + d.amount
-                  })
-                  return { year: y, mix, total: yearTotal }
-                })
-
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>💳 How Donors Are Paying — {filterYear}</div>
-                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                      {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
-                      {rows.map((r, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
-                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {allYears61.length > 1 && (
-                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
-                        {allMethods61.map((method, mi) => {
-                          const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
-                          const firstPct = series[0]
-                          const lastPct = series[series.length - 1]
-                          const delta = lastPct - firstPct
-                          return (
-                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
-                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
-                                {yearlyMix61.map((y, yi) => (
-                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
-                                ))}
-                              </div>
-                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (scoped.length === 0) return null
 
                 const firstDonationDate = donations.length > 0 ? new Date([...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0].created_at) : new Date()
                 const daysSinceStart = Math.max(1, Math.ceil((new Date() - firstDonationDate) / (1000 * 60 * 60 * 24)))
@@ -8536,82 +8467,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 13, color: C.text }}>Your best day{filterYear !== 'All' ? ` in ${filterYear}` : ''} was <strong style={{ color: C.forest }}>{bestDay[0]}</strong>, raising <strong style={{ color: C.forest }}>${bestDay[1].total.toLocaleString()}</strong> from {bestDay[1].count} donation{bestDay[1].count > 1 ? 's' : ''}.</div>
                       )}
                     </div>
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const donorTotals = {}
-                confirmedDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
-                  donorTotals[key].total += d.amount
-                  donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
-                })
-                const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
-                const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
-                const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
-                const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
-                const tooFewDonors = sorted.length < concentrationTopN * 3
-                const highRisk = !tooFewDonors && concentrationPct >= 70
-                const medRisk = !tooFewDonors && concentrationPct >= 50
-                const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
-
-                const quarterAgo = new Date()
-                quarterAgo.setDate(quarterAgo.getDate() - 90)
-                const priorDonorTotals = {}
-                confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
-                  priorDonorTotals[key] += d.amount
-                })
-                const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
-                const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
-                const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
-                const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
-                const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
-
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
-                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
-                        <option value={5}>Top 5</option>
-                        <option value={10}>Top 10</option>
-                        <option value={20}>Top 20</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
-                      {concentrationTrend !== null && (
-                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
-                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
-                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
-                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
-                    </div>
-                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
-                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
-                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {sorted.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
-                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
-                      </button>
-                    )}
-                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
                   </div>
                 )
               })()}
@@ -8998,6 +8853,160 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Composition & Sources</span>
+              </div>
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (scoped.length === 0) return null
+                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+                const byMethod = {}
+                scoped.forEach(d => {
+                  const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+                  if (!byMethod[label]) byMethod[label] = 0
+                  byMethod[label] += d.amount
+                })
+                const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
+                const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
+
+                const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
+                const allMethods61 = [...new Set(rows.map(r => r.label))]
+                const yearlyMix61 = allYears61.map(y => {
+                  const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                  const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
+                  const mix = {}
+                  allMethods61.forEach(m => { mix[m] = 0 })
+                  yearDons.forEach(d => {
+                    const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+                    mix[label] = (mix[label] || 0) + d.amount
+                  })
+                  return { year: y, mix, total: yearTotal }
+                })
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>💳 How Donors Are Paying — {filterYear}</div>
+                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                      {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
+                      {rows.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {allYears61.length > 1 && (
+                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
+                        {allMethods61.map((method, mi) => {
+                          const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                          const firstPct = series[0]
+                          const lastPct = series[series.length - 1]
+                          const delta = lastPct - firstPct
+                          return (
+                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
+                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                                {yearlyMix61.map((y, yi) => (
+                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
+                                ))}
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const donorTotals = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
+                  donorTotals[key].total += d.amount
+                  donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
+                })
+                const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
+                const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
+                const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
+                const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
+                const tooFewDonors = sorted.length < concentrationTopN * 3
+                const highRisk = !tooFewDonors && concentrationPct >= 70
+                const medRisk = !tooFewDonors && concentrationPct >= 50
+                const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
+
+                const quarterAgo = new Date()
+                quarterAgo.setDate(quarterAgo.getDate() - 90)
+                const priorDonorTotals = {}
+                confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
+                  priorDonorTotals[key] += d.amount
+                })
+                const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
+                const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
+                const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
+                const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
+                const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
+                        <option value={5}>Top 5</option>
+                        <option value={10}>Top 10</option>
+                        <option value={20}>Top 20</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                      {concentrationTrend !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
+                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
+                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.total, count: d.gifts.length, receipts: d.gifts.length }); setActiveTab('donors') }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {sorted.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
+                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
+                      </button>
+                    )}
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
+                  </div>
+                )
+              })()}
+
               {(() => {
                 const referrals78 = donations.filter(d => d.referred_by_donor_key)
                 if (referrals78.length === 0) return (
@@ -9035,6 +9044,71 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              {(() => {
+                const bySource57 = {}
+                donations.filter(d => d.acquisition_source).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
+                  if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
+                  bySource57[d.acquisition_source][key]++
+                })
+                const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+                const rows57 = Object.entries(bySource57).map(([source, donorCounts]) => {
+                  const donorKeys = Object.keys(donorCounts)
+                  const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
+                  return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
+                }).sort((a, b) => b.totalDonors - a.totalDonors)
+                if (rows57.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
+                  </div>
+                )
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows57.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={{ ...s.card, marginBottom: 0 }}>
+                <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
+                  {(() => {
+                    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
+                    return [
+                      { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
+                      { label: '$50 — $200', min: 50, max: 200, color: C.sage },
+                      { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
+                      { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
+                    ].map((bucket, i) => {
+                    const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
+                    const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
+                    const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
+                    return (
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{count}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{pct}% of donations · ${total.toLocaleString()}</div>
+                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
+                        </div>
+                      </div>
+                    )
+                    })
+                  })()}
+                </div>
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
@@ -9153,42 +9227,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                           <span style={{ fontSize: 13, color: C.forest }}>{r.label}</span>
                           <span style={{ fontSize: 12, color: C.muted }}>{r.count} donor{r.count !== 1 ? 's' : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const bySource57 = {}
-                donations.filter(d => d.acquisition_source).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
-                  if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
-                  bySource57[d.acquisition_source][key]++
-                })
-                const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
-                const rows57 = Object.entries(bySource57).map(([source, donorCounts]) => {
-                  const donorKeys = Object.keys(donorCounts)
-                  const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
-                  return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
-                }).sort((a, b) => b.totalDonors - a.totalDonors)
-                if (rows57.length === 0) return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
-                    <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
-                  </div>
-                )
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {rows57.map((r, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
-                          <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
                         </div>
                       ))}
                     </div>
@@ -9320,35 +9358,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-
-              <div style={{ ...s.card, marginBottom: 0 }}>
-                <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
-                  {(() => {
-                    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
-                    return [
-                      { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
-                      { label: '$50 — $200', min: 50, max: 200, color: C.sage },
-                      { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
-                      { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
-                    ].map((bucket, i) => {
-                    const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
-                    const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
-                    const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
-                    return (
-                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{count}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{pct}% of donations · ${total.toLocaleString()}</div>
-                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
-                        </div>
-                      </div>
-                    )
-                    })
-                  })()}
-                </div>
-              </div>
             </div>
 
           </div>
