@@ -5522,80 +5522,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Lapsed Donors */}
                   <div id="lapsed-donors-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', scrollMarginTop: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
-                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); supabase.from('charity_contacts').update({ lapsed_min_gifts: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>+ times but haven't donated in</span>
-                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); supabase.from('charity_contacts').update({ lapsed_min_days: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>+ days</span>
-                    </div>
-                    {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {lapsed.map((d, i) => {
-                        const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                        const donorKey = d.email?.trim() || d.name
-                        const reminderCount = (lapsedReminderHistory[donorKey] || []).length
-                        return (
-                          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
-                                <div style={{ fontSize: 10.5, color: C.muted }}>${d.total.toLocaleString()} lifetime</div>
-                              </div>
-                              <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.gold, flexShrink: 0 }}>{daysSince}d ago</span>
-                            </div>
-                            {reminderCount > 0 && (
-                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
-                                ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
-                              </div>
-                            )}
-                            {(() => {
-                              const isDeepRelationship74 = d.count >= 5 || d.total >= (thankYouThreshold || 500)
-                              const isRecent74 = daysSince <= 60
-                              const suggestion74 = isDeepRelationship74 && isRecent74
-                                ? { icon: '📞', text: 'Suggested: a personal call — this is a longtime supporter' }
-                                : isDeepRelationship74
-                                ? { icon: '✉️', text: 'Suggested: a personal note — they\'ve been with you a while' }
-                                : { icon: '📢', text: 'Suggested: include in your next mass appeal' }
-                              return (
-                                <div style={{ fontSize: 10.5, color: C.forest, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 8px' }}>
-                                  {suggestion74.icon} {suggestion74.text}
-                                </div>
-                              )
-                            })()}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {activeLapsed.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 8, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
-                        {showAllLapsedDonors ? 'Show fewer' : `Show all ${activeLapsed.length}`}
-                      </button>
-                    )}
-                    {dismissedLapsed.length > 0 && (
-                      <div>
-                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowDismissedLapsedDonors(v => !v)}>
-                          {showDismissedLapsedDonors ? 'Hide' : 'Show'} {dismissedLapsed.length} dismissed donor{dismissedLapsed.length !== 1 ? 's' : ''}
-                        </button>
-                        {showDismissedLapsedDonors && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                            {dismissedLapsed.map((d, i) => {
-                              const donorKey = d.email?.trim() || d.name
-                              return (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 500, color: C.muted }}>{d.name}</div>
-                                    {lapsedDismissals[donorKey]?.reason && <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>"{lapsedDismissals[donorKey].reason}"</div>}
-                                  </div>
-                                  <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => undismissLapsedDonor(donorKey)}>↺ Restore</button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Lapsed donors</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: activeLapsed.length > 0 ? C.gold : C.forest, marginBottom: 4, lineHeight: 1 }}>{activeLapsed.length}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{activeLapsed.length === 0 ? "haven't given in a while" : `haven't given in ${lapsedMinDays}+ days`}</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
                   </div>
 
                   {/* Giving Changes */}
@@ -8682,6 +8612,115 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </button>
                     )}
                     <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const lapsedToday = new Date()
+                const allLapsed = Object.values((() => {
+                  const map = {}
+                  confirmedDonations.forEach(d => {
+                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                    if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
+                      map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
+                    }
+                    map[key].count++
+                    map[key].total += d.amount
+                  })
+                  return map
+                })()).filter(d => {
+                  const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                  return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
+                }).map(d => ({ ...d, key: d.email?.trim() || d.name })).sort((a, b) => b.total - a.total)
+
+                const isInReachOutCooldown = (donorKey) => {
+                  const history = lapsedReminderHistory[donorKey]
+                  if (!history || history.length === 0) return false
+                  const daysSinceReminder = Math.floor((lapsedToday - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                  return daysSinceReminder < 30
+                }
+
+                const activeLapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key))
+                const lapsed = showAllLapsedDonors ? activeLapsed : activeLapsed.slice(0, 5)
+                const dismissedLapsed = allLapsed.filter(d => lapsedDismissals[d.key])
+
+                return (
+                  <div id="lapsed-donors-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
+                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); supabase.from('charity_contacts').update({ lapsed_min_gifts: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ times but haven't donated in</span>
+                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); supabase.from('charity_contacts').update({ lapsed_min_days: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ days</span>
+                    </div>
+                    {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {lapsed.map((d, i) => {
+                        const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                        const donorKey = d.email?.trim() || d.name
+                        const reminderCount = (lapsedReminderHistory[donorKey] || []).length
+                        return (
+                          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>${d.total.toLocaleString()} lifetime</div>
+                              </div>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.gold, flexShrink: 0 }}>{daysSince}d ago</span>
+                            </div>
+                            {reminderCount > 0 && (
+                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
+                                ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
+                              </div>
+                            )}
+                            {(() => {
+                              const isDeepRelationship74 = d.count >= 5 || d.total >= (thankYouThreshold || 500)
+                              const isRecent74 = daysSince <= 60
+                              const suggestion74 = isDeepRelationship74 && isRecent74
+                                ? { icon: '📞', text: 'Suggested: a personal call — this is a longtime supporter' }
+                                : isDeepRelationship74
+                                ? { icon: '✉️', text: 'Suggested: a personal note — they\'ve been with you a while' }
+                                : { icon: '📢', text: 'Suggested: include in your next mass appeal' }
+                              return (
+                                <div style={{ fontSize: 10.5, color: C.forest, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 8px' }}>
+                                  {suggestion74.icon} {suggestion74.text}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {activeLapsed.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 8, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
+                        {showAllLapsedDonors ? 'Show fewer' : `Show all ${activeLapsed.length}`}
+                      </button>
+                    )}
+                    {dismissedLapsed.length > 0 && (
+                      <div>
+                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowDismissedLapsedDonors(v => !v)}>
+                          {showDismissedLapsedDonors ? 'Hide' : 'Show'} {dismissedLapsed.length} dismissed donor{dismissedLapsed.length !== 1 ? 's' : ''}
+                        </button>
+                        {showDismissedLapsedDonors && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                            {dismissedLapsed.map((d, i) => {
+                              const donorKey = d.email?.trim() || d.name
+                              return (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 500, color: C.muted }}>{d.name}</div>
+                                    {lapsedDismissals[donorKey]?.reason && <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>"{lapsedDismissals[donorKey].reason}"</div>}
+                                  </div>
+                                  <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => undismissLapsedDonor(donorKey)}>↺ Restore</button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })()}
