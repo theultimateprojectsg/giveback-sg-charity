@@ -10892,7 +10892,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {senderDomainStatus === 'verified' ? (
                   <div>
                     <div style={{ fontSize: 13, color: C.sage, fontWeight: 500, marginBottom: 8 }}>✓ Verified</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
                       Your emails send from <strong style={{ color: C.forest }}>{senderEmailLocalPart}@{senderDomain}</strong>
                     </div>
                     <button style={s.viewBtn} onClick={() => { setSenderDomainInput(senderDomain); setShowDomainSetup(true) }}>Change domain</button>
@@ -10900,7 +10900,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 ) : senderDomainStatus === 'pending' ? (
                   <div>
                     <div style={{ fontSize: 13, color: C.gold, fontWeight: 500, marginBottom: 8 }}>⏳ Verification pending</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
                       We're waiting for DNS records to be added for <strong style={{ color: C.forest }}>{senderDomain}</strong>. Until this is verified, your emails will send from Giving Tree with replies going to your inbox.
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -10910,7 +10910,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
                       Right now, emails to your donors send from Giving Tree's address, with replies going to your inbox. If you have your own website domain, you can set up emails to send directly from your own address instead.
                     </div>
                     <button style={s.btnForest} onClick={() => setShowDomainSetup(true)}>Set up my own domain</button>
@@ -10920,7 +10920,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={{ ...s.card, marginTop: 16 }}>
                 <div style={s.cardTitle}>Account</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
                   To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 500 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
                 </div>
                 <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
@@ -10962,7 +10962,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
                     {['January','February','March','April','May','June','July','August','September','October','November','December'][fyEndMonth - 1]} {fyEndDay}
                   </div>
                 )}
@@ -10976,7 +10976,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {recurringExpenses.length > 0 ? `SGD $${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>}
                 </div>
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
                   {recurringExpenses.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                       {recurringExpenses.map(e => (
