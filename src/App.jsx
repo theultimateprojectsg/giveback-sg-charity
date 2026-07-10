@@ -5466,7 +5466,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Donor concentration */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: concentrationHighRiskFH ? C.red : concentrationMedRiskFH ? C.gold : C.forest, lineHeight: 1 }}>{concentrationPctFH}%</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>from your top 3 donors</div>
                   </div>
