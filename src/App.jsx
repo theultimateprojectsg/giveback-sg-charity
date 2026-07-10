@@ -5379,6 +5379,64 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {/* ── GRANTS SUMMARY ── */}
+            {grants.length > 0 && (() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const activeGrants = grants.filter(g => g.status === 'active')
+              const totalReceived = activeGrants.reduce((sum, g) => sum + Number(g.amount), 0)
+              const totalSpent = activeGrants.reduce((sum, g) => {
+                const spent = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+                return sum + spent
+              }, 0)
+              const remaining = totalReceived - totalSpent
+              const upcomingDeadlines = activeGrants
+                .filter(g => g.report_due_date)
+                .map(g => ({ ...g, days: Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24)) }))
+                .filter(g => g.days >= 0 && g.days <= 90)
+                .sort((a, b) => a.days - b.days)
+              return (
+                <div style={{ ...s.card, marginTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>🏛️ Grants <InfoTip text="Active grant funding received vs. spent, and upcoming funder report deadlines within 90 days." /></div>
+                    <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setActiveTab('grants')}>View all →</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: upcomingDeadlines.length > 0 ? 16 : 0 }}>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Active Grants</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeGrants.length}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Received</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalReceived.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Remaining</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: remaining >= 0 ? C.forest : C.red, lineHeight: 1 }}>${remaining.toLocaleString()}</div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>${totalSpent.toLocaleString()} spent</div>
+                    </div>
+                  </div>
+                  {upcomingDeadlines.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                      {upcomingDeadlines.map((g, i) => {
+                        const urgent = g.days <= 30
+                        const soon = g.days <= 60
+                        return (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>Report due to {g.funder_name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                            <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{g.days}d</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
