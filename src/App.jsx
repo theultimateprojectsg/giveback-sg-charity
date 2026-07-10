@@ -8016,18 +8016,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ))}
                     </div>
                   )}
-                  {causePerformanceThisYear.find(r => r.isGeneral) && (() => {
-                    const g = causePerformanceThisYear.find(r => r.isGeneral)
-                    return (
-                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, color: C.muted }}>💚 Untagged / General Giving — {g.count} donation{g.count > 1 ? 's' : ''}, avg ${g.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, flexShrink: 0 }}>${g.total.toLocaleString()}</div>
-                      </div>
-                    )
-                  })()}
-                </div>
+                  </div>
               )}
 
               {(() => {
