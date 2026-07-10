@@ -7966,7 +7966,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )}
                   </div>
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                       <XAxis dataKey="month" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
