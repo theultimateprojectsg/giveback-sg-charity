@@ -5561,7 +5561,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Donor concentration</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4, lineHeight: 1 }}>{concentrationPct}%</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>from your top {concentrationTopN} donors</div>
-                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>View in Analytics →</div>
                   </div>
 
                   {/* Lapsed Donors */}
@@ -5569,7 +5569,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Lapsed donors</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: activeLapsed.length > 0 ? C.gold : C.forest, marginBottom: 4, lineHeight: 1 }}>{activeLapsed.length}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{activeLapsed.length === 0 ? "haven't given in a while" : `haven't given in ${lapsedMinDays}+ days`}</div>
-                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>View in Analytics →</div>
                   </div>
 
                   {/* Giving Changes */}
@@ -5577,7 +5577,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Giving changes</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 4, lineHeight: 1 }}>{allFlags.length}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{allFlags.length === 0 ? 'no significant changes detected' : 'donors shifted recently'}</div>
-                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>View in Analytics →</div>
                   </div>
                 </div>
               )
@@ -5686,7 +5686,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Donor lifetime value</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 4, lineHeight: 1 }}>${avgLTV.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>average per donor</div>
-                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>View in Analytics →</div>
                   </div>
                 )
               })()}
