@@ -620,9 +620,10 @@ export default function App() {
     const uen = activeSession?.user?.user_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
-      .from('lapsed_donor_reminders')
+      .from('lapsed_donor_events')
       .select('donor_key, sent_at, sent_by')
       .eq('charity_uen', uen)
+      .eq('event_type', 'reminder')
       .order('sent_at', { ascending: false })
     if (error) { console.error('Could not load lapsed reminders:', error); return }
     const history = {}
@@ -633,9 +634,10 @@ export default function App() {
     setLapsedReminderHistory(history)
 
     const { data: dismissData, error: dismissError } = await supabase
-      .from('lapsed_donor_dismissals')
+      .from('lapsed_donor_events')
       .select('donor_key, reason, dismissed_at, dismissed_by')
       .eq('charity_uen', uen)
+      .eq('event_type', 'dismissal')
     if (dismissError) { console.error('Could not load lapsed dismissals:', dismissError); return }
     const dismissals = {}
     ;(dismissData || []).forEach(d => { dismissals[d.donor_key] = d })
@@ -1490,14 +1492,15 @@ export default function App() {
     const d = showLapsedDismissModal
     const donorKey = d.email?.trim() || d.name
 
-    const { data: inserted, error } = await supabase.from('lapsed_donor_dismissals').upsert({
+    const { data: inserted, error } = await supabase.from('lapsed_donor_events').upsert({
       charity_uen: charityUen,
       donor_key: donorKey,
+      event_type: 'dismissal',
       reason: lapsedDismissReason || null,
       reason_category: lapsedDismissCategory,
       dismissed_by: session.user.email,
       dismissed_at: new Date().toISOString(),
-    }, { onConflict: 'charity_uen,donor_key' }).select().single()
+    }, { onConflict: 'charity_uen,donor_key', ignoreDuplicates: false }).select().single()
 
     if (error) { showToast('Error dismissing donor', 'error'); setDismissingLapsed(false); return }
 
@@ -1509,7 +1512,7 @@ export default function App() {
   }
 
   async function undismissLapsedDonor(donorKey) {
-    const { error } = await supabase.from('lapsed_donor_dismissals').delete().eq('charity_uen', charityUen).eq('donor_key', donorKey)
+    const { error } = await supabase.from('lapsed_donor_events').delete().eq('charity_uen', charityUen).eq('donor_key', donorKey).eq('event_type', 'dismissal')
     if (error) { showToast('Error undoing dismissal', 'error'); return }
     setLapsedDismissals(prev => {
       const next = { ...prev }
@@ -1552,11 +1555,13 @@ export default function App() {
         setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
       }
     } else {
-      const { data: inserted } = await supabase.from('lapsed_donor_reminders').insert({
+      const { data: inserted } = await supabase.from('lapsed_donor_events').insert({
         charity_uen: charityUen,
         donor_key: donorKey,
+        event_type: 'reminder',
         subject: lapsedReminderSubject,
         message: lapsedReminderBody,
+        sent_at: new Date().toISOString(),
         sent_by: session.user.email,
       }).select().single()
       if (inserted) {
