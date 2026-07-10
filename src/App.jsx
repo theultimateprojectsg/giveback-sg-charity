@@ -199,6 +199,7 @@ export default function App() {
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [localEds, setLocalEds] = useState([])
   const [localBoardMembers, setLocalBoardMembers] = useState([])
+  const [localStaff, setLocalStaff] = useState([])
   const [monthlyExpensesRaw, setMonthlyExpensesRaw] = useState(0)
   const [customObligations, setCustomObligations] = useState([])
   const [customTasks, setCustomTasks] = useState([])
@@ -703,6 +704,7 @@ export default function App() {
     setLocalVolunteers(volunteerEmails)
     setLocalEds(edEmails)
     setLocalBoardMembers(boardEmails)
+    setLocalStaff(staffEmails)
     // monthlyExpenses is now derived from recurringExpenses — no separate load needed
     setCustomObligations(data?.custom_obligations || [])
     setCustomTasks(data?.custom_tasks || [])
@@ -11007,7 +11009,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <strong>Executive Director</strong> sees everything. <strong>Staff</strong> has full operational access. <strong>Board Member</strong> sees dashboard trends only, no individual donor records. <strong>Volunteer</strong> can log manual entries only.
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[...localEds.map(e => ({ email: e, role: 'ed' })), ...localBoardMembers.map(e => ({ email: e, role: 'board' })), ...localVolunteers.map(e => ({ email: e, role: 'volunteer' }))].length === 0 && (
+                  {[...localEds.map(e => ({ email: e, role: 'ed' })), ...localStaff.map(e => ({ email: e, role: 'staff' })), ...localBoardMembers.map(e => ({ email: e, role: 'board' })), ...localVolunteers.map(e => ({ email: e, role: 'volunteer' }))].length === 0 && (
                     <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No additional roles assigned yet — everyone else defaults to Staff.</div>
                   )}
                   {localEds.map(email => (
@@ -11018,6 +11020,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const { error } = await supabase.from('charity_contacts').update({ ed_emails: updated }).eq('charity_uen', charityUen)
                         if (error) { showToast('Error removing', 'error'); return }
                         setLocalEds(updated)
+                        showToast('Removed')
+                      }}>Remove</button>
+                    </div>
+                  ))}
+                  {localStaff.map(email => (
+                    <div key={`staff-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 13, color: C.forest }}>💼 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Staff</span></span>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                        const updated = localStaff.filter(e => e !== email)
+                        const { error } = await supabase.from('charity_contacts').update({ staff_emails: updated }).eq('charity_uen', charityUen)
+                        if (error) { showToast('Error removing', 'error'); return }
+                        setLocalStaff(updated)
                         showToast('Removed')
                       }}>Remove</button>
                     </div>
@@ -11788,6 +11802,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={s.formLabel}>Role</div>
               <select style={s.formInput} value={newTeamMemberRole} onChange={e => setNewTeamMemberRole(e.target.value)}>
                 <option value="ed">Executive Director</option>
+                <option value="staff">Staff</option>
                 <option value="board">Board Member</option>
                 <option value="volunteer">Volunteer</option>
               </select>
@@ -11797,14 +11812,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const email = volunteerInput.trim().toLowerCase()
                 const role = newTeamMemberRole
                 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
-                if ([...localEds, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
+                if ([...localEds, ...localStaff, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
                 setSavingVolunteer(true)
-                const columnMap = { ed: 'ed_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
-                const currentMap = { ed: localEds, board: localBoardMembers, volunteer: localVolunteers }
+                const columnMap = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+                const currentMap = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
                 const updated = [...currentMap[role], email]
                 const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
                 if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
                 if (role === 'ed') setLocalEds(updated)
+                else if (role === 'staff') setLocalStaff(updated)
                 else if (role === 'board') setLocalBoardMembers(updated)
                 else setLocalVolunteers(updated)
                 setVolunteerInput('')
