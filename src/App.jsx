@@ -4833,8 +4833,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board', 'volunteer'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
-            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
-            { id: 'analytics2', icon: '✨', label: 'Analytics 2.0', roles: ['ed', 'staff'] },
+            { id: 'analytics2', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
           ].filter(item => item.roles.includes(userRole)).map(item => (
             <div key={item.id}
               title={item.label}
@@ -9218,7 +9217,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics 2.0</div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics</div>
                 <div style={{ ...s.pageSub, marginTop: 4 }}>Rebuilt to match the rest of the app — work in progress</div>
               </div>
             </div>
