@@ -11897,6 +11897,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const updated = [...currentMap[role], email]
                 const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
                 if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
+
+                const { error: inviteError } = await supabase.functions.invoke('invite-team-member', {
+                  body: { email, charity_uen: charityUen, charity_name: charityName },
+                })
+
                 if (role === 'ed') setLocalEds(updated)
                 else if (role === 'staff') setLocalStaff(updated)
                 else if (role === 'board') setLocalBoardMembers(updated)
@@ -11904,7 +11909,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 setVolunteerInput('')
                 setSavingVolunteer(false)
                 setShowAddTeamMemberModal(false)
-                showToast(`${email} added ✓`)
+                if (inviteError) {
+                  showToast(`${email} added, but invite email failed — ask them to use "Forgot password" after you create their account manually`, 'error')
+                } else {
+                  showToast(`${email} added — invite email sent ✓`)
+                }
               }}>{savingVolunteer ? 'Adding...' : 'Add'}</button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowAddTeamMemberModal(false)}>Cancel</button>
             </div>
