@@ -8122,7 +8122,135 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              
+              <div style={isMobile ? s.threeColMobile : s.threeCol}>
+                {(() => {
+                  const scopedPledges = filterYear === 'All' ? pledges : pledges.filter(p => new Date(p.expected_date).getFullYear() === parseInt(filterYear))
+                  const totalPledged = scopedPledges.reduce((s, p) => s + Number(p.amount), 0)
+                  const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled')
+                  const fulfilledTotal = fulfilled.reduce((s, p) => s + Number(p.amount), 0)
+                  const outstanding = scopedPledges.filter(p => p.status === 'pending')
+                  const outstandingTotal = outstanding.reduce((s, p) => s + Number(p.amount), 0)
+                  const today = new Date()
+                  const overdue = outstanding.filter(p => new Date(p.expected_date) < today)
+                  const onTrack = outstanding.filter(p => new Date(p.expected_date) >= today)
+                  const fulfillmentRate = scopedPledges.length > 0 ? Math.round((fulfilled.length / scopedPledges.length) * 100) : 0
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Performance — {filterYear} <InfoTip text="Total pledged, fulfilled, and outstanding for pledges expected this year, plus a breakdown by status." /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Total pledged</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${totalPledged.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Fulfillment rate</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: fulfillmentRate >= 70 ? C.sage : fulfillmentRate >= 40 ? C.gold : C.red }}>{fulfillmentRate}%</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.text }}>Fulfilled</span>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>{fulfilled.length} · ${fulfilledTotal.toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.text }}>Pending, on track</span>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>{onTrack.length} · ${onTrack.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                        </div>
+                        {overdue.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.red }}>Overdue</span>
+                            <span style={{ fontSize: 11.5, color: C.red }}>{overdue.length} · ${overdue.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const activeGrants = grants.filter(g => g.status === 'active')
+                  if (activeGrants.length === 0) return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Grant Funding</div>
+                      <div style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>No active grants yet.</div>
+                    </div>
+                  )
+                  const totalSecured = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
+                  const today = new Date()
+                  const dueSoon = activeGrants.filter(g => {
+                    const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+                    return days <= 60
+                  })
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding <InfoTip text="Active grants, total secured, how much has been utilized against grant expenses, and report deadlines coming up in the next 60 days." /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Active grants</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{activeGrants.length}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Total secured</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${totalSecured.toLocaleString()}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {activeGrants.slice(0, 4).map((g, i) => {
+                          const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+                          const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+                          const overdue = days < 0
+                          return (
+                            <div key={i} style={{ padding: '8px 10px', background: overdue ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 12, fontWeight: 500, color: overdue ? C.red : C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{g.funder_name}</span>
+                                <span style={{ fontSize: 11.5, color: overdue ? C.red : C.muted }}>${Number(g.amount).toLocaleString()}</span>
+                              </div>
+                              <div style={{ fontSize: 10.5, color: overdue ? C.red : C.muted, marginTop: 2 }}>
+                                ${utilized.toLocaleString()} utilized · report {overdue ? `overdue` : days <= 60 ? `in ${days}d` : new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                  const yearStart = new Date(yearNum, 0, 1)
+                  const yearEnd = new Date(yearNum, 11, 31, 23, 59, 59)
+                  const newSignups = recurringGifts.filter(g => new Date(g.created_at) >= yearStart && new Date(g.created_at) <= yearEnd)
+                  const cancellations = recurringGifts.filter(g => g.status === 'cancelled' && new Date(g.created_at) >= yearStart && new Date(g.created_at) <= yearEnd)
+                  const netChange = newSignups.length - cancellations.length
+                  const mrrChange = newSignups.reduce((s, g) => s + Number(g.amount), 0) - cancellations.reduce((s, g) => s + Number(g.amount), 0)
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Gift Growth — {filterYear} <InfoTip text="New recurring gift sign-ups vs cancellations this year, and the resulting change to your monthly recurring revenue." /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>New sign-ups</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.sage }}>+{newSignups.length}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Cancellations</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.red }}>-{cancellations.length}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.text }}>Net change</span>
+                          <span style={{ fontSize: 11.5, color: netChange >= 0 ? C.sage : C.red, fontWeight: 500 }}>{netChange >= 0 ? '+' : ''}{netChange}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.text }}>MRR change</span>
+                          <span style={{ fontSize: 11.5, color: mrrChange >= 0 ? C.sage : C.red, fontWeight: 500 }}>{mrrChange >= 0 ? '+' : '-'}${Math.abs(mrrChange).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
