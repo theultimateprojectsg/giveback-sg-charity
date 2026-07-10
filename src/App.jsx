@@ -7992,7 +7992,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
                 <div style={s.card}>
                   <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
@@ -8079,7 +8079,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-              </div>
 
               {(() => {
                 const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && donations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
@@ -8102,7 +8101,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   return { title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total, avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0 }
                 }).sort((a, b) => b.newPct - a.newPct)
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={s.cardTitle}>🌱 New vs Existing Donors per Campaign</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -8125,6 +8124,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
 
               {(() => {
                 const campaignsWithGifts = myCauses.filter(c => c.type === 'campaign' && causeRaisedMap[c.id])
@@ -12148,6 +12148,8 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   statNote: { fontSize: 11, color: C.muted, marginTop: 4 },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
   twoColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
+  threeCol: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 },
+  threeColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
   card: { background: C.white, borderRadius: 4, padding: 20, border: `1px solid ${C.border}`, marginBottom: 0 },
   cardTitle: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, marginBottom: 16 },
   statusStep: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
