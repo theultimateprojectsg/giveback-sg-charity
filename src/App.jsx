@@ -5479,7 +5479,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Year-End Projection</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Year-End Projection <InfoTip text="Extrapolates this year's giving pace so far (total confirmed donations divided by days elapsed) out to a full 365 days, to estimate where the year will land. Only shown from October, once there's enough of the year to project from." /></div>
                     {now.getMonth() < 9 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Available from October</div>
                     ) : (() => {
@@ -5492,7 +5492,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Monthly Forecast</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
                     {(() => {
                       const cm = now.getMonth()
                       const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
