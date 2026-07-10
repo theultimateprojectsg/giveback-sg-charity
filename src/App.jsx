@@ -6930,7 +6930,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         >It's a different person — save anyway</button>
                         <button
                           style={{ ...s.viewBtn, fontSize: 12, padding: '8px 14px' }}
-                          onClick={() => { setManualDuplicateWarning(null); setManualForm(f => ({ ...f, donor_name: manualDuplicateWarning.donors[0].name })) }}
+                          onClick={() => { setManualDuplicateWarning(null); setManualForm(f => ({ ...f, donor_name: manualDuplicateWarning.donors[0].name, duplicateConfirmed: true })) }}
                         >Use existing name</button>
                       </div>
                     </div>
