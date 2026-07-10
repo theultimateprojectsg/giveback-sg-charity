@@ -10280,6 +10280,196 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              {(() => {
+                const bySource57 = {}
+                donations.filter(d => d.acquisition_source).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
+                  if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
+                  bySource57[d.acquisition_source][key]++
+                })
+                const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+                const rows57 = Object.entries(bySource57).map(([source, donorCounts]) => {
+                  const donorKeys = Object.keys(donorCounts)
+                  const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
+                  return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
+                }).sort((a, b) => b.totalDonors - a.totalDonors)
+                if (rows57.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
+                  </div>
+                )
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows57.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const now5 = new Date()
+                const threeMoAgo = new Date(now5.getFullYear(), now5.getMonth() - 3, now5.getDate())
+                const recentTotal = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgo).reduce((s, d) => s + d.amount, 0)
+                const trailingAvgMonthly = recentTotal / 3
+                const runwayMonths = monthlyExpenses > 0 ? (trailingAvgMonthly / monthlyExpenses) : null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>🛢️ Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover — not your actual bank balance." /></div>
+                    {runwayMonths === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Set your monthly expenses in Settings to see this.</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(''); setEditingExpenses(true); setActiveTab('settings') }}>Set expenses →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: runwayMonths >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonths.toFixed(1)} months</div>
+                        <div style={{ fontSize: 11.5, color: runwayMonths >= 3 ? C.sage : C.red, marginTop: 8, fontWeight: 500 }}>
+                          {runwayMonths >= 3 ? '✓ Healthy pace' : '⚠ Below 3 months — worth a closer look'}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Avg ${Math.round(trailingAvgMonthly).toLocaleString()}/month over last 3 months · expenses ${monthlyExpenses.toLocaleString()}/month</div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
+                if (withTiming.length === 0) {
+                  return (
+                    <div style={{ ...s.card, marginBottom: 24 }}>
+                      <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                      <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
+                    </div>
+                  )
+                }
+                const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
+                const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
+                const avgDays = avgHours / 24
+                const overSla = avgHours > 48
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
+                    <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
+                      {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const now11 = new Date()
+                if (now11.getMonth() < 9) {
+                  return (
+                    <div style={{ ...s.card, marginBottom: 24 }}>
+                      <div style={s.cardTitle}>Year-End Projection</div>
+                      <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available from October, once there's enough of the year to extrapolate from.</div>
+                    </div>
+                  )
+                }
+                const yearStart11 = new Date(now11.getFullYear(), 0, 1)
+                const daysElapsed = Math.max(1, Math.ceil((now11 - yearStart11) / (1000 * 60 * 60 * 24)))
+                const ytdTotal = confirmedDonations.filter(d => new Date(d.created_at) >= yearStart11).reduce((s, d) => s + d.amount, 0)
+                const projectedTotal = Math.round((ytdTotal / daysElapsed) * 365)
+                const lastYearStart11 = new Date(now11.getFullYear() - 1, 0, 1)
+                const lastYearEnd11 = new Date(now11.getFullYear(), 0, 1)
+                const lastYearTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastYearStart11 && new Date(d.created_at) < lastYearEnd11).reduce((s, d) => s + d.amount, 0)
+                const trendPct = lastYearTotal > 0 ? Math.round(((projectedTotal - lastYearTotal) / lastYearTotal) * 100) : null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Year-End Projection</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 8 }}>${projectedTotal.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where {now11.getFullYear()} is likely to land.</div>
+                    {lastYearTotal > 0 ? (
+                      <div style={{ fontSize: 12.5, color: trendPct >= 0 ? C.sage : C.red, fontWeight: 500 }}>
+                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}% vs {now11.getFullYear() - 1}'s ${lastYearTotal.toLocaleString()}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: C.muted }}>No data from {now11.getFullYear() - 1} to compare against.</div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const activeRecurring6 = recurringGifts.filter(g => g.status === 'active')
+                const monthlyize6 = (g) => {
+                  const amt = Number(g.amount) || 0
+                  if (g.frequency === 'weekly') return amt * 4.33
+                  if (g.frequency === 'quarterly') return amt / 3
+                  if (g.frequency === 'yearly' || g.frequency === 'annual') return amt / 12
+                  return amt
+                }
+                const giroMonthly6 = activeRecurring6.filter(g => g.type === 'giro').reduce((s, g) => s + monthlyize6(g), 0)
+                const habitualMonthly6 = activeRecurring6.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
+                const otherMonthly6 = activeRecurring6.filter(g => g.type !== 'giro' && g.type !== 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
+                const totalMonthly6 = giroMonthly6 + habitualMonthly6 + otherMonthly6
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.cardTitle}>Monthly Recurring Revenue</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>${Math.round(totalMonthly6).toLocaleString()}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>per month, from {activeRecurring6.length} active recurring gift{activeRecurring6.length !== 1 ? 's' : ''} — separate from one-off donations</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: C.forest }}>GIRO (confirmed)</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(giroMonthly6).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: C.forest }}>Habitual PayNow (expected)</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(habitualMonthly6).toLocaleString()}</span>
+                      </div>
+                      {otherMonthly6 > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                          <span style={{ color: C.muted }}>Other (standing order, etc.)</span>
+                          <span style={{ fontWeight: 500, color: C.muted }}>${Math.round(otherMonthly6).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={{ ...s.card, marginBottom: 0 }}>
+                <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
+                  {(() => {
+                    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
+                    return [
+                      { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
+                      { label: '$50 — $200', min: 50, max: 200, color: C.sage },
+                      { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
+                      { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
+                    ].map((bucket, i) => {
+                    const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
+                    const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
+                    const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
+                    return (
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{count}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{pct}% of donations · ${total.toLocaleString()}</div>
+                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
+                        </div>
+                      </div>
+                    )
+                    })
+                  })()}
+                </div>
+              </div>
             </div>
 
           </div>
