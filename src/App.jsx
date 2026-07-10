@@ -5530,36 +5530,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   {/* Giving Changes */}
                   <div id="giving-changes-card" style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', scrollMarginTop: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
-                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
-                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); supabase.from('charity_contacts').update({ giving_change_min_pct: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
-                    </div>
-                    {flags.length === 0 ? (
-                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                        {flags.map((f, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: f.name, email: f.email, total: f.recent, count: givingChangeMinGifts, receipts: 0 }); setActiveTab('donors') }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
-                              <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
-                            </div>
-                            <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: f.changePct < 0 ? C.red : C.sage }}>
-                              {f.changePct > 0 ? '↑' : '↓'} {Math.abs(f.changePct)}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {allFlags.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowAllGivingChanges(v => !v)}>
-                        {showAllGivingChanges ? 'Show top 5 only' : `Show all ${allFlags.length}`}
-                      </button>
-                    )}
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Giving changes</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 4, lineHeight: 1 }}>{allFlags.length}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{allFlags.length === 0 ? 'no significant changes detected' : 'donors shifted recently'}</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
                   </div>
                 </div>
               )
@@ -5663,52 +5637,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   return map
                 })()).sort((a, b) => b.total - a.total)
                 const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
-                const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
-                const now59 = new Date()
-                const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
-                const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
-                const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
-                const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
-                const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
                 return (
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
-                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
-                      </div>
-                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
-                      </div>
-                    </div>
-                    <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {sorted.slice(0, 5).map((d, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.ivory, borderRadius: 4 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: [C.forest, C.sage, C.gold, C.borderStrong, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 500, fontFamily: C.fontVoice, flexShrink: 0 }}>{i + 1}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
-                          </div>
-                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Donor lifetime value</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 4, lineHeight: 1 }}>${avgLTV.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>average per donor</div>
+                    <div style={{ fontSize: 11.5, color: C.sage, cursor: 'pointer' }} onClick={() => setActiveTab('analytics2')}>View in Analytics →</div>
                   </div>
                 )
               })()}
@@ -8721,6 +8655,108 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                       </div>
                     )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const allFlags = allGivingChangeFlags
+                const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 5)
+                return (
+                  <div id="giving-changes-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
+                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
+                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); supabase.from('charity_contacts').update({ giving_change_min_pct: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
+                    </div>
+                    {flags.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        {flags.map((f, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: f.name, email: f.email, total: f.recent, count: givingChangeMinGifts, receipts: 0 }); setActiveTab('donors') }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
+                            </div>
+                            <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: f.changePct < 0 ? C.red : C.sage }}>
+                              {f.changePct > 0 ? '↑' : '↓'} {Math.abs(f.changePct)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {allFlags.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowAllGivingChanges(v => !v)}>
+                        {showAllGivingChanges ? 'Show top 5 only' : `Show all ${allFlags.length}`}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {confirmedDonations.length > 0 && (() => {
+                const sorted = Object.values((() => {
+                  const map = {}
+                  confirmedDonations.forEach(d => {
+                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                    if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
+                    map[key].total += d.amount
+                    map[key].count++
+                    if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
+                  })
+                  return map
+                })()).sort((a, b) => b.total - a.total)
+                const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
+                const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+                const now59 = new Date()
+                const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
+                const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
+                const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
+                const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
+                const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
+                      </div>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
+                      </div>
+                    </div>
+                    <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sorted.slice(0, 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: [C.forest, C.sage, C.gold, C.borderStrong, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 500, fontFamily: C.fontVoice, flexShrink: 0 }}>{i + 1}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
+                          </div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )
               })()}
