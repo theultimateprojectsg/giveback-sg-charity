@@ -7921,13 +7921,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : annualGoal ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: C.forest }}>${totalThisYear.toLocaleString()}</span>
-                        <span style={{ fontSize: 13, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisYear.toLocaleString()}</span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
                       </div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden' }}>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.min(100, Math.round((totalThisYear / annualGoal) * 100))}%`, height: '100%', background: totalThisYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
                       </div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{Math.round((totalThisYear / annualGoal) * 100)}% of goal reached</div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisYear / annualGoal) * 100)}% of goal reached</div>
                       {parseInt(filterYear) === new Date().getFullYear() && (() => {
                         const yearStart = new Date(parseInt(filterYear), 0, 1)
                         const now5 = new Date()
