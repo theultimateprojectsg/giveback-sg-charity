@@ -7679,13 +7679,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       {/* ACTIONS */}
                       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {selectedDonation.donor_email?.trim() && (
-                          <button
-                            style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
-                            disabled={sendingThankYouId === selectedDonation.id}
-                            onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
-                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
-                        )}
                         {selectedDonation.receipt_issued && (
                           <>
                             <button style={{ ...s.viewBtn, justifyContent: 'center', opacity: charityIpcLoaded ? 1 : 0.5 }} disabled={!charityIpcLoaded} onClick={() => exportSingleReceiptPDF(selectedDonation)}>📄 Download Receipt PDF</button>
@@ -7802,6 +7795,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               onConfirm: () => confirmPaymentFlow(selectedDonation),
                             })
                           }}>✓ Confirm Payment & Issue Receipt</button>
+                        )}
+                        {selectedDonation.payment_status === 'confirmed' && selectedDonation.donor_email?.trim() && (
+                          <button
+                            style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
+                            disabled={sendingThankYouId === selectedDonation.id}
+                            onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
+                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={s.viewBtn} onClick={() => { setEditingManual(true); setEditForm({}) }}>✏️ Edit Entry</button>
