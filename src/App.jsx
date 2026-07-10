@@ -3049,7 +3049,7 @@ export default function App() {
       source: 'manual',
       payment_method: manualForm.payment_method,
       notes: manualForm.notes,
-      donor_email: manualForm.is_anonymous ? null : manualForm.donor_email,
+      donor_email: manualForm.is_anonymous ? null : (manualForm.donor_email?.trim().toLowerCase() || null),
       created_at: manualForm.date,
       receipt_number: receiptNumber,
       receipt_name: manualForm.receipt_name?.trim() || null,
