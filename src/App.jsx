@@ -8430,48 +8430,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (scoped.length === 0) return null
-
-                const firstDonationDate = donations.length > 0 ? new Date([...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0].created_at) : new Date()
-                const daysSinceStart = Math.max(1, Math.ceil((new Date() - firstDonationDate) / (1000 * 60 * 60 * 24)))
-                const allConfirmed = donations.filter(d => d.payment_status === 'confirmed')
-                const allDonorKeys = new Set(allConfirmed.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                const avgPerDay = (allConfirmed.reduce((s, d) => s + d.amount, 0) / daysSinceStart).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                const avgDonorsPerDay = (allDonorKeys.size / daysSinceStart).toFixed(1)
-
-                const donorGiftCounts = {}
-                allConfirmed.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  donorGiftCounts[key] = (donorGiftCounts[key] || 0) + 1
-                })
-                const oneTimeDonors = Object.values(donorGiftCounts).filter(c => c === 1).length
-                const oneTimePct = Object.keys(donorGiftCounts).length > 0 ? Math.round((oneTimeDonors / Object.keys(donorGiftCounts).length) * 100) : 0
-
-                const byDay = {}
-                scoped.forEach(d => {
-                  const dayKey = new Date(d.created_at).toLocaleDateString('en-SG')
-                  if (!byDay[dayKey]) byDay[dayKey] = { total: 0, count: 0 }
-                  byDay[dayKey].total += d.amount
-                  byDay[dayKey].count += 1
-                })
-                const bestDay = Object.entries(byDay).sort((a, b) => b[1].total - a[1].total)[0]
-
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>💡 Fun Facts</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ fontSize: 13, color: C.text }}>On an average day, you bring in <strong style={{ color: C.forest }}>${avgPerDay}</strong> from about <strong style={{ color: C.forest }}>{avgDonorsPerDay}</strong> donors.</div>
-                      <div style={{ fontSize: 13, color: C.text }}><strong style={{ color: C.forest }}>{oneTimePct}%</strong> of your donors have given exactly once — worth thinking about how to turn them into repeat supporters.</div>
-                      {bestDay && (
-                        <div style={{ fontSize: 13, color: C.text }}>Your best day{filterYear !== 'All' ? ` in ${filterYear}` : ''} was <strong style={{ color: C.forest }}>{bestDay[0]}</strong>, raising <strong style={{ color: C.forest }}>${bestDay[1].total.toLocaleString()}</strong> from {bestDay[1].count} donation{bestDay[1].count > 1 ? 's' : ''}.</div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {(() => {
                 const lapsedToday = new Date()
                 const allLapsed = Object.values((() => {
                   const map = {}
@@ -8677,27 +8635,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                const byDonor = {}
-                scoped.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!byDonor[key]) byDonor[key] = 0
-                  byDonor[key] += d.amount
-                })
-                const smallDonors = Object.values(byDonor).filter(total => total < 20)
-                if (smallDonors.length === 0) return null
-                const potentialExtra = smallDonors.length * 5
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>💡 The Power of Small Asks</div>
-                    <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-                      You have <strong style={{ color: C.forest }}>{smallDonors.length} donor{smallDonors.length > 1 ? 's' : ''}</strong> who gave under $20{filterYear !== 'All' ? ` in ${filterYear}` : ''}. If each gave just $5 more, that's an extra <strong style={{ color: C.forest }}>${potentialExtra.toLocaleString()}</strong> — worth a gentle nudge in your next appeal.
                     </div>
                   </div>
                 )
