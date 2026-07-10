@@ -4834,6 +4834,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
             { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+            { id: 'analytics2', icon: '✨', label: 'Analytics 2.0', roles: ['ed', 'staff'] },
           ].filter(item => item.roles.includes(userRole)).map(item => (
             <div key={item.id}
               title={item.label}
@@ -7946,8 +7947,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={s.pageTitle}>Analytics</div>
-                <div style={s.pageSub}>Donation trends and donor insights for {charityName}</div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics</div>
+                <div style={{ ...s.pageSub, marginTop: 4 }}>Donation trends and donor insights for {charityName}</div>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button style={s.viewBtn} onClick={() => { setCustomizeMetricsDraft(visibleMetrics); setShowCustomizeAnalytics(true) }}>⚙️ Customize</button>
@@ -9210,6 +9211,64 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             </div>
             </div>
+        )}
+
+        {/* ── ANALYTICS 2.0 (rebuild in progress) ── */}
+        {activeTab === 'analytics2' && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics 2.0</div>
+                <div style={{ ...s.pageSub, marginTop: 4 }}>Rebuilt to match the rest of the app — work in progress</div>
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>01</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Snapshot</span>
+              </div>
+
+              {(() => {
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                if (scoped.length === 0) return null
+                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+                const donorKeys = new Set(scoped.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                const periodYear = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const lastYearScoped = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === periodYear - 1)
+                const lastYearTotal = lastYearScoped.reduce((s, d) => s + d.amount, 0)
+                const growthPct = lastYearTotal > 0 ? Math.round(((totalAmt - lastYearTotal) / lastYearTotal) * 100) : null
+                const byDonorCount = {}
+                scoped.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; byDonorCount[key] = (byDonorCount[key] || 0) + 1 })
+                const mostLoyalEntry = Object.entries(byDonorCount).sort((a, b) => b[1] - a[1])[0]
+                const mostLoyalDonor = mostLoyalEntry ? scoped.find(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === mostLoyalEntry[0])?.donor_name : null
+                const monthTotals = {}
+                scoped.forEach(d => { const m = new Date(d.created_at).toLocaleDateString('en-SG', { month: 'long' }); monthTotals[m] = (monthTotals[m] || 0) + d.amount })
+                const bestMonthEntry = Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]
+                const donorFirstYear = {}
+                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorFirstYear[key]) donorFirstYear[key] = new Date(d.created_at).getFullYear()
+                })
+                const firstTimeCount = [...donorKeys].filter(k => donorFirstYear[k] === periodYear).length
+
+                const sentences = []
+                sentences.push(`This ${filterYear === 'All' ? 'period' : 'year'}, ${donorKeys.size} donor${donorKeys.size !== 1 ? 's' : ''} gave a total of $${totalAmt.toLocaleString()}${growthPct !== null ? ` — ${growthPct >= 0 ? 'up' : 'down'} ${Math.abs(growthPct)}% from the year before` : ''}.`)
+                if (mostLoyalDonor && mostLoyalEntry[1] > 1) sentences.push(`${mostLoyalDonor} was your most loyal supporter with ${mostLoyalEntry[1]} gifts.`)
+                if (bestMonthEntry) sentences.push(`Your best month was ${bestMonthEntry[0]}, raising $${bestMonthEntry[1].toLocaleString()}.`)
+                if (firstTimeCount > 0) sentences.push(`${firstTimeCount} first-time donor${firstTimeCount > 1 ? 's' : ''} joined this ${filterYear === 'All' ? 'period' : 'year'} — if even half return, that's real momentum.`)
+
+                return (
+                  <div style={{ background: C.forest, borderRadius: 16, padding: 24, marginBottom: 24 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Story So Far</div>
+                    <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
+                  </div>
+                )
+              })()}
+            </div>
+
+          </div>
         )}
 
         {/* ── IRAS ── */}
