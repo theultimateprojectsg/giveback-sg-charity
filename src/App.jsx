@@ -193,6 +193,8 @@ export default function App() {
   const [userRole, setUserRole] = useState('volunteer')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
+  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false)
+  const [newTeamMemberRole, setNewTeamMemberRole] = useState('ed')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [localEds, setLocalEds] = useState([])
@@ -10911,7 +10913,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
                       Right now, emails to your donors send from Giving Tree's address, with replies going to your inbox. If you have your own website domain, you can set up emails to send directly from your own address instead.
                     </div>
-                    <button style={s.issueBtn} onClick={() => setShowDomainSetup(true)}>Set up my own domain</button>
+                    <button style={s.btnForest} onClick={() => setShowDomainSetup(true)}>Set up my own domain</button>
                   </div>
                 )}
               </div>
@@ -10934,7 +10936,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingFyEnd ? 12 : 0 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
                   {!editingFyEnd && (
-                    <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setFyEndMonthInput(fyEndMonth.toString()); setFyEndDayInput(fyEndDay.toString()); setEditingFyEnd(true) }}>Edit</span>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setFyEndMonthInput(fyEndMonth.toString()); setFyEndDayInput(fyEndDay.toString()); setEditingFyEnd(true) }}>Edit</button>
                   )}
                 </div>
                 {editingFyEnd ? (
@@ -11011,78 +11013,53 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={s.cardTitle}>👥 Team Access</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                  Assign a role to anyone who needs access. <strong>Executive Director</strong> sees everything. <strong>Staff</strong> has full operational access. <strong>Board Member</strong> sees dashboard trends only, no individual donor records. <strong>Volunteer</strong> can log manual entries only.
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>👥 Team Access</div>
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setVolunteerInput(''); setNewTeamMemberRole('ed'); setShowAddTeamMemberModal(true) }}>+ Add Person</button>
                 </div>
-                <div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                    {[...localEds.map(e => ({ email: e, role: 'ed' })), ...localBoardMembers.map(e => ({ email: e, role: 'board' })), ...localVolunteers.map(e => ({ email: e, role: 'volunteer' }))].length === 0 && (
-                      <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No additional roles assigned yet — everyone else defaults to Staff.</div>
-                    )}
-                    {localEds.map(email => (
-                      <div key={`ed-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 13, color: C.forest }}>👑 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Executive Director</span></span>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                          const updated = localEds.filter(e => e !== email)
-                          const { error } = await supabase.from('charity_contacts').update({ ed_emails: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error removing', 'error'); return }
-                          setLocalEds(updated)
-                          showToast('Removed')
-                        }}>Remove</button>
-                      </div>
-                    ))}
-                    {localBoardMembers.map(email => (
-                      <div key={`board-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 13, color: C.forest }}>📋 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Board Member</span></span>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                          const updated = localBoardMembers.filter(e => e !== email)
-                          const { error } = await supabase.from('charity_contacts').update({ board_emails: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error removing', 'error'); return }
-                          setLocalBoardMembers(updated)
-                          showToast('Removed')
-                        }}>Remove</button>
-                      </div>
-                    ))}
-                    {localVolunteers.map(email => (
-                      <div key={`vol-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 13, color: C.forest }}>👤 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Volunteer</span></span>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                          const updated = localVolunteers.filter(e => e !== email)
-                          const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error removing', 'error'); return }
-                          setLocalVolunteers(updated)
-                          showToast('Removed')
-                        }}>Remove</button>
-                      </div>
-                    ))}
-                  </div>
-                  <input style={{ ...s.formInput, fontSize: 13, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <select style={{ ...s.formInput, fontSize: 13, flex: 1 }} id="new-role-select">
-                      <option value="ed">Executive Director</option>
-                      <option value="board">Board Member</option>
-                      <option value="volunteer">Volunteer</option>
-                    </select>
-                    <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={async () => {
-                      const email = volunteerInput.trim().toLowerCase()
-                      const role = document.getElementById('new-role-select').value
-                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
-                      if ([...localEds, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
-                      setSavingVolunteer(true)
-                      const columnMap = { ed: 'ed_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
-                      const currentMap = { ed: localEds, board: localBoardMembers, volunteer: localVolunteers }
-                      const updated = [...currentMap[role], email]
-                      const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
-                      if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
-                      if (role === 'ed') setLocalEds(updated)
-                      else if (role === 'board') setLocalBoardMembers(updated)
-                      else setLocalVolunteers(updated)
-                      setVolunteerInput('')
-                      setSavingVolunteer(false)
-                      showToast(`${email} added ✓`)
-                    }} disabled={savingVolunteer}>{savingVolunteer ? '...' : 'Add'}</button>
-                  </div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  <strong>Executive Director</strong> sees everything. <strong>Staff</strong> has full operational access. <strong>Board Member</strong> sees dashboard trends only, no individual donor records. <strong>Volunteer</strong> can log manual entries only.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[...localEds.map(e => ({ email: e, role: 'ed' })), ...localBoardMembers.map(e => ({ email: e, role: 'board' })), ...localVolunteers.map(e => ({ email: e, role: 'volunteer' }))].length === 0 && (
+                    <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No additional roles assigned yet — everyone else defaults to Staff.</div>
+                  )}
+                  {localEds.map(email => (
+                    <div key={`ed-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 13, color: C.forest }}>👑 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Executive Director</span></span>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                        const updated = localEds.filter(e => e !== email)
+                        const { error } = await supabase.from('charity_contacts').update({ ed_emails: updated }).eq('charity_uen', charityUen)
+                        if (error) { showToast('Error removing', 'error'); return }
+                        setLocalEds(updated)
+                        showToast('Removed')
+                      }}>Remove</button>
+                    </div>
+                  ))}
+                  {localBoardMembers.map(email => (
+                    <div key={`board-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 13, color: C.forest }}>📋 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Board Member</span></span>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                        const updated = localBoardMembers.filter(e => e !== email)
+                        const { error } = await supabase.from('charity_contacts').update({ board_emails: updated }).eq('charity_uen', charityUen)
+                        if (error) { showToast('Error removing', 'error'); return }
+                        setLocalBoardMembers(updated)
+                        showToast('Removed')
+                      }}>Remove</button>
+                    </div>
+                  ))}
+                  {localVolunteers.map(email => (
+                    <div key={`vol-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 13, color: C.forest }}>👤 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Volunteer</span></span>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
+                        const updated = localVolunteers.filter(e => e !== email)
+                        const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
+                        if (error) { showToast('Error removing', 'error'); return }
+                        setLocalVolunteers(updated)
+                        showToast('Removed')
+                      }}>Remove</button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -11815,6 +11792,51 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           </div>
         )
       })()}
+
+      {showAddTeamMemberModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowAddTeamMemberModal(false)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Add Team Member</div>
+              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowAddTeamMemberModal(false)}>✕</button>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={s.formLabel}>Email</div>
+              <input style={s.formInput} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} autoFocus />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={s.formLabel}>Role</div>
+              <select style={s.formInput} value={newTeamMemberRole} onChange={e => setNewTeamMemberRole(e.target.value)}>
+                <option value="ed">Executive Director</option>
+                <option value="board">Board Member</option>
+                <option value="volunteer">Volunteer</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={savingVolunteer} onClick={async () => {
+                const email = volunteerInput.trim().toLowerCase()
+                const role = newTeamMemberRole
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
+                if ([...localEds, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
+                setSavingVolunteer(true)
+                const columnMap = { ed: 'ed_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+                const currentMap = { ed: localEds, board: localBoardMembers, volunteer: localVolunteers }
+                const updated = [...currentMap[role], email]
+                const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
+                if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
+                if (role === 'ed') setLocalEds(updated)
+                else if (role === 'board') setLocalBoardMembers(updated)
+                else setLocalVolunteers(updated)
+                setVolunteerInput('')
+                setSavingVolunteer(false)
+                setShowAddTeamMemberModal(false)
+                showToast(`${email} added ✓`)
+              }}>{savingVolunteer ? 'Adding...' : 'Add'}</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowAddTeamMemberModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {duplicateDonationWarning && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDuplicateDonationWarning(null)}>
