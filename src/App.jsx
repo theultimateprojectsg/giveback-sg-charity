@@ -5261,7 +5261,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
                   {/* MTD donations */}
                   <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
@@ -5334,6 +5334,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Year-End Projection</div>
+                    {now.getMonth() < 9 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Available from October</div>
+                    ) : (() => {
+                      const yearStartYE = new Date(now.getFullYear(), 0, 1)
+                      const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
+                      const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
+                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * 365)
+                      return <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${projectedYE.toLocaleString()}</div>
+                    })()}
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Monthly Forecast</div>
+                    {(() => {
+                      const cm = now.getMonth()
+                      const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
+                      const histTotals = priorYears.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === cm }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+                      if (histTotals.length === 0) return <div style={{ fontSize: 12.5, color: C.muted }}>Needs prior year data</div>
+                      const avg = histTotals.reduce((s, t) => s + t, 0) / histTotals.length
+                      return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
+                    })()}
                   </div>
                 </div>
               )
