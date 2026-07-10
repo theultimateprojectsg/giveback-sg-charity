@@ -5519,12 +5519,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const now03 = new Date()
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
               const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
-              const behindPaceCount = liveCampaignsList.filter(c => {
+              const behindPaceCampaigns = liveCampaignsList.filter(c => {
                 const stats = causeRaisedMap[c.id] || { total: 0 }
                 const goal = c.target_amount || 0
                 const pct = goal > 0 ? (stats.total / goal) * 100 : 100
                 return goal > 0 && pct < 40
-              }).length
+              })
 
               const activeGrantsList = grants.filter(g => g.status === 'active')
               const grantsReceived = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
@@ -5552,8 +5552,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Campaigns</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${campaignRevenue.toLocaleString()} raised so far</div>
-                    {behindPaceCount > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500 }}>⚠ {behindPaceCount} behind pace</div>
+                    {behindPaceCampaigns.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
                     ) : liveCampaignsList.length > 0 ? (
                       <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500 }}>✓ On pace</div>
                     ) : null}
