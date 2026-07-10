@@ -5519,11 +5519,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const goalYear = new Date().getFullYear()
               const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
               return (
-                <div style={{ ...s.card, marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 0 }}>
-                    <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🎯 Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
                     {!editingGoal && (
-                      <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
+                      <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
                         {annualGoal ? 'Edit' : '+ Set Goal'}
                       </span>
                     )}
@@ -5537,13 +5537,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : annualGoal ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: C.forest }}>${totalThisGoalYear.toLocaleString()}</span>
-                        <span style={{ fontSize: 13, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
                       </div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 10, overflow: 'hidden' }}>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.min(100, Math.round((totalThisGoalYear / annualGoal) * 100))}%`, height: '100%', background: totalThisGoalYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
                       </div>
-                      <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
                       {(() => {
                         const yearStart = new Date(goalYear, 0, 1)
                         const now5 = new Date()
@@ -5555,19 +5555,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const onTrack = projectedTotal >= annualGoal
                         const gap = Math.abs(annualGoal - projectedTotal)
                         return (
-                          <div style={{ marginTop: 12, padding: '10px 14px', background: onTrack ? C.successBg : C.warningBg, borderRadius: 10, border: `1px solid ${onTrack ? C.sage : C.warningBorder}` }}>
-                            <div style={{ fontSize: 12, fontWeight: 500, color: onTrack ? C.forest : C.warning }}>
-                              {onTrack
-                                ? `On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
-                                : `On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
-                            </div>
-                            <div style={{ fontSize: 11, color: onTrack ? C.sage : C.warning, marginTop: 2 }}>Based on your average of ${dailyRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}/day so far this year</div>
+                          <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500, marginTop: 10 }}>
+                            {onTrack
+                              ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
+                              : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
                           </div>
                         )
                       })()}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 12, color: C.muted }}>No goal set for this year yet.</div>
+                    <div style={{ fontSize: 11.5, color: C.muted }}>No goal set for this year yet.</div>
                   )}
                 </div>
               )
