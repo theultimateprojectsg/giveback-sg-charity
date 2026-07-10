@@ -5583,15 +5583,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('grants')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Grants</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeGrantsList.length}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${grantsRemaining.toLocaleString()} unspent</div>
                     {nearestGrantDeadline !== undefined ? (
-                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginBottom: 8 }}>⚠ Report due in {nearestGrantDeadline}d</div>
+                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
                     ) : activeGrantsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginBottom: 8 }}>✓ No deadlines soon</div>
-                    ) : (
-                      <div style={{ marginBottom: 8 }} />
-                    )}
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ No deadlines soon</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${grantsReceived.toLocaleString()}</div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
                       </div>
@@ -5602,15 +5600,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Pending Pledges</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{pendingPledgesList.length}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${upcomingPledgeTotal.toLocaleString()} upcoming</div>
                     {overduePledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginBottom: 8 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
                     ) : pendingPledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginBottom: 8 }}>✓ None overdue</div>
-                    ) : (
-                      <div style={{ marginBottom: 8 }} />
-                    )}
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ None overdue</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${pledgesFulfilledRevenue.toLocaleString()}</div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
                       </div>
@@ -5621,13 +5617,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('massappeal')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mass Appeals</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearAppeals.length}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>this year</div>
                     {daysSinceLastAppeal !== null ? (
-                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginBottom: 8 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
-                    ) : (
-                      <div style={{ marginBottom: 8 }} />
-                    )}
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
                       </div>
@@ -5638,15 +5632,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recurring Giving</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeRecurringList.length}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}/mo expected</div>
                     {escalatedGiroList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginBottom: 8 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
                     ) : activeRecurringList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginBottom: 8 }}>✓ All on schedule</div>
-                    ) : (
-                      <div style={{ marginBottom: 8 }} />
-                    )}
-                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ All on schedule</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
                       </div>
