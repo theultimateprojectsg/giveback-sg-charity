@@ -199,15 +199,14 @@ export default function App() {
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [localEds, setLocalEds] = useState([])
   const [localBoardMembers, setLocalBoardMembers] = useState([])
-  const [monthlyExpenses, setMonthlyExpenses] = useState(0)
+  const [monthlyExpensesRaw, setMonthlyExpensesRaw] = useState(0)
   const [customObligations, setCustomObligations] = useState([])
   const [customTasks, setCustomTasks] = useState([])
   const [showAddTask, setShowAddTask] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', date: '' })
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })
-  const [editingExpenses, setEditingExpenses] = useState(false)
-  const [expensesInput, setExpensesInput] = useState('')
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
@@ -217,6 +216,7 @@ export default function App() {
   const [showGrantForm, setShowGrantForm] = useState(false)
   const [grantForm, setGrantForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', report_due_date: '' })
   const [recurringExpenses, setRecurringExpenses] = useState([])
+  const monthlyExpenses = recurringExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
   const [refunds, setRefunds] = useState([])
   const [showRefundForm, setShowRefundForm] = useState(false)
@@ -703,7 +703,7 @@ export default function App() {
     setLocalVolunteers(volunteerEmails)
     setLocalEds(edEmails)
     setLocalBoardMembers(boardEmails)
-    setMonthlyExpenses(data?.monthly_expenses || 0)
+    // monthlyExpenses is now derived from recurringExpenses — no separate load needed
     setCustomObligations(data?.custom_obligations || [])
     setCustomTasks(data?.custom_tasks || [])
     setSenderDomainStatus(data?.sender_domain_status || 'none')
@@ -10926,7 +10926,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
                   style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
                   🗑️ Request Account Deletion
-                </a>h
+                </a>
               </div>
 
               <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
@@ -10971,28 +10971,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ ...s.card, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
-                  {!editingExpenses && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(monthlyExpenses?.toString() || ''); setEditingExpenses(true) }}>Edit</button>}
                 </div>
-                {editingExpenses ? (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input style={s.formInput} type="number" placeholder="e.g. 15000" value={expensesInput} onChange={e => setExpensesInput(e.target.value)} />
-                    <button style={{ ...s.btnForest, flexShrink: 0 }} onClick={async () => {
-                      const val = parseFloat(expensesInput) || 0
-                      const { error } = await supabase.from('charity_contacts').update({ monthly_expenses: val }).eq('charity_uen', charityUen)
-                      if (error) { showToast('Error saving', 'error'); return }
-                      setMonthlyExpenses(val)
-                      setEditingExpenses(false)
-                      showToast('Monthly expenses updated ✓')
-                    }}>Save</button>
-                    <button style={s.viewBtn} onClick={() => setEditingExpenses(false)}>Cancel</button>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
-                    {monthlyExpenses > 0 ? `SGD $${monthlyExpenses.toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Not set — used for coverage ratio on dashboard</span>}
-                  </div>
-                )}
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
+                  {recurringExpenses.length > 0 ? `SGD $${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>}
+                </div>
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Optional breakdown — see what's actually driving your costs (doesn't need to add up to the total above)</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
                   {recurringExpenses.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                       {recurringExpenses.map(e => (
@@ -11004,10 +10988,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                       ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 600, color: C.forest, paddingTop: 4 }}>
-                        <span>Total itemised</span>
-                        <span>${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}</span>
-                      </div>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6 }}>
