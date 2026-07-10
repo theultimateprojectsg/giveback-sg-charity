@@ -3735,6 +3735,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-Pledges-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
+  function exportGrantsExcel(filteredGrants) {
+    const rows = filteredGrants.map(g => {
+      const spent = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+      return {
+        'Funder Name': g.funder_name,
+        'Amount (SGD)': g.amount,
+        'Status': g.status.charAt(0).toUpperCase() + g.status.slice(1),
+        'Start Date': g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG') : '',
+        'Report Due Date': g.report_due_date ? new Date(g.report_due_date).toLocaleDateString('en-SG') : '',
+        'Utilized (SGD)': spent,
+        'Remaining (SGD)': Number(g.amount) - spent,
+        'Utilization %': Number(g.amount) > 0 ? Math.round((spent / Number(g.amount)) * 100) : 0,
+        'Disbursement Schedule': g.disbursement_schedule || '',
+        'Purpose Restriction': g.purpose_restriction || '',
+        'Recorded By': g.created_by || '',
+        'Recorded On': new Date(g.created_at).toLocaleDateString('en-SG'),
+      }
+    })
+    if (rows.length === 0) { showToast('No grants to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 24 }, { wch: 30 }, { wch: 24 }, { wch: 14 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Grants')
+    XLSX.writeFile(wb, `GivingTree-Grants-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
   function exportRecurringExcel(filteredGifts) {
     const rows = filteredGifts.map(g => ({
       'Donor Name': g.donor_name,
@@ -10868,6 +10894,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All' || grantAmountFilter !== 'All' || grantYearFilter !== 'All') && (
                 <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All') }}>✕ Clear Filters</button>
               )}
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                const q = grantSearchTerm.toLowerCase().trim()
+                const filtered = grants.filter(g => {
+                  const matchesSearch = q === '' || g.funder_name.toLowerCase().includes(q)
+                  const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+                  const matchesUrgency = grantUrgencyFilter === 'All'
+                    || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
+                    || (grantUrgencyFilter === 'Due Soon' && days !== null && days >= 0 && days <= 60)
+                    || (grantUrgencyFilter === 'Healthy' && (days === null || days > 60))
+                  const amt = Number(g.amount)
+                  const matchesAmount = grantAmountFilter === 'All'
+                    || (grantAmountFilter === 'Under 20000' && amt < 20000)
+                    || (grantAmountFilter === '20000-100000' && amt >= 20000 && amt <= 100000)
+                    || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
+                    || (grantAmountFilter === 'Over 250000' && amt > 250000)
+                  const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
+                  return matchesSearch && matchesUrgency && matchesAmount && matchesYear
+                })
+                exportGrantsExcel(filtered)
+              }}>⬇️ Export to Excel</button>
             </div>
 
             {(() => {
