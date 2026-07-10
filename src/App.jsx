@@ -1250,8 +1250,9 @@ export default function App() {
       setRecurringGivenTotals(totals)
 
       const { data: skipData } = await supabase
-        .from('recurring_gift_skips')
+        .from('recurring_gift_events')
         .select('recurring_gift_id, skipped_cycle_date, reason, created_at')
+        .eq('event_type', 'skip')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('created_at', { ascending: false })
       const skips = {}
@@ -1262,8 +1263,9 @@ export default function App() {
       setRecurringSkipHistory(skips)
 
       const { data: reminderData } = await supabase
-        .from('recurring_gift_reminders')
+        .from('recurring_gift_events')
         .select('recurring_gift_id, sent_at, sent_by')
+        .eq('event_type', 'reminder')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('sent_at', { ascending: false })
       const reminders = {}
@@ -1407,8 +1409,9 @@ export default function App() {
     const skippedDate = gift.next_expected_date
     const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, skippedDate)
 
-    const { data: inserted, error: skipError } = await supabase.from('recurring_gift_skips').insert({
+    const { data: inserted, error: skipError } = await supabase.from('recurring_gift_events').insert({
       recurring_gift_id: gift.id,
+      event_type: 'skip',
       skipped_cycle_date: skippedDate,
       reason: skipCycleReason || null,
       created_by: session.user.email,
@@ -1459,10 +1462,12 @@ export default function App() {
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingRecurringReminder(false); return }
 
-    const { data: inserted } = await supabase.from('recurring_gift_reminders').insert({
+    const { data: inserted } = await supabase.from('recurring_gift_events').insert({
       recurring_gift_id: g.id,
+      event_type: 'reminder',
       subject: recurringReminderSubject,
       message: recurringReminderBody,
+      sent_at: new Date().toISOString(),
       sent_by: session.user.email,
     }).select().single()
 
