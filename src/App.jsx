@@ -10863,7 +10863,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.pageHeader}>
               <div style={s.pageTitle}>Settings</div>
             </div>
-            <div style={{ maxWidth: 500 }}>
+            <div style={{ maxWidth: 1000 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
+              <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Charity & Account</div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Charity Details</div>
                 {[
@@ -10951,8 +10954,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   🗑️ Request Account Deletion
                 </a>
               </div>
+              </div>
 
-              <div style={{ ...s.card, marginTop: 16 }}>
+              <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Operations</div>
+              <div style={{ ...s.card, marginTop: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
                   {!editingExpenses && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setExpensesInput(monthlyExpenses?.toString() || ''); setEditingExpenses(true) }}>Edit</button>}
@@ -11092,6 +11098,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Terms of Use</a>
               </div>
 
+              </div>
+              </div>
             </div>
           </div>
         )}
