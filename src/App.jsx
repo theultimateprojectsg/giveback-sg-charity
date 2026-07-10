@@ -5570,8 +5570,43 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Trends and Insights</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Status</span>
               </div>
+
+            {(() => {
+              const now03 = new Date()
+              const liveCampaignsCount = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03)).length
+              const activeGrantsList = grants.filter(g => g.status === 'active')
+              const grantsReceived = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+              const pendingPledgesList = pledges.filter(p => p.status === 'pending')
+              const pledgesExpected = pendingPledgesList.reduce((s, p) => s + Number(p.amount), 0)
+              const thisYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === now03.getFullYear())
+              const totalSentThisYear = thisYearAppeals.reduce((s, a) => s + (a.sent_count || 0), 0)
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Campaigns</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsCount}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>currently accepting gifts</div>
+                  </div>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('grants')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Active Grants</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeGrantsList.length}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>${grantsReceived.toLocaleString()} received</div>
+                  </div>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Pending Pledges</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{pendingPledgesList.length}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>${pledgesExpected.toLocaleString()} expected</div>
+                  </div>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('massappeal')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mass Appeals</div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearAppeals.length}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{totalSentThisYear.toLocaleString()} sent this year</div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* ── CONCENTRATION + LAPSED + GIVING CHANGES (3-across) ── */}
             {(() => {
