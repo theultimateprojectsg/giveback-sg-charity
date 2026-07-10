@@ -1741,7 +1741,7 @@ export default function App() {
   }
 
   function startEditCause(c) {
-    setCauseForm({ title: c.title, description: c.description, target_amount: c.target_amount?.toString() || '', end_date: c.end_date || '', editingId: c.id })
+    setCauseForm({ title: c.title, description: c.description, target_amount: c.target_amount?.toString() || '', end_date: c.end_date || '', cost: c.cost?.toString() || '', editingId: c.id })
     setShowCampaignModal(true)
   }
 
@@ -1761,6 +1761,7 @@ export default function App() {
         description: causeForm.description,
         target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
         end_date: causeForm.end_date || null,
+        cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
       }).eq('id', causeForm.editingId)
       setSavingCause(false)
       if (error) { setCauseError(`Error: ${error.message}`); return }
