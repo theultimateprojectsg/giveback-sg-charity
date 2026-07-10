@@ -7956,7 +7956,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 <div style={s.card}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ ...s.cardTitle, marginBottom: 0 }}>📊 Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`}</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`}</div>
                     {filterYear !== 'All' && (
                       <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
                         <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
@@ -7976,7 +7976,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
                 <div style={s.card}>
-                  <div style={s.cardTitle}>📈 Number of Donations per Month</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Number of Donations per Month</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -7992,7 +7992,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
                 <div style={s.card}>
-                  <div style={s.cardTitle}>🎯 Campaign Performance — {filterYear}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Campaign Performance — {filterYear}</div>
                   {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                   ) : (
@@ -8051,7 +8051,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 return (
                   <div style={s.card}>
-                    <div style={s.cardTitle}>🚦 Campaign Momentum</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Campaign Momentum</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>This week vs. last week, for your currently live campaigns — tells you where to focus your next push.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows.map((r, i) => {
@@ -8100,7 +8100,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).sort((a, b) => b.newPct - a.newPct)
                 return (
                   <div style={s.card}>
-                    <div style={s.cardTitle}>🌱 New vs Existing Donors per Campaign — {filterYear}</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>New vs Existing Donors per Campaign — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Campaigns with a high "new" share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {rows.map((r, i) => (
@@ -8604,6 +8604,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Composition & Sources</span>
+              </div>
+
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {donorList.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: [C.gold, C.sage, C.teal, C.forest, C.muted][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''}</div>
+                      </div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 14, fontWeight: 500, color: C.forest }}>${d.total.toLocaleString()}</div>
+                    </div>
+                  ))}
+                  {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
+                </div>
               </div>
 
               {(() => {
