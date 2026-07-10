@@ -5199,6 +5199,90 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const builtIn = [
+                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
+              ]
+              const custom = (customObligations || []).map(o => {
+                let d = new Date(o.date)
+                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
+                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
+              }).map(o => {
+                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                if (d < today) d.setFullYear(today.getFullYear() + 1)
+                return { ...o, dateObj: d }
+              })
+              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
+                .sort((a, b) => a.dateObj - b.dateObj)
+                .filter(o => {
+                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 180
+                })
+                return (
+                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
+                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                    </div>
+                  {showAddObligation && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <div>
+                          <div style={s.formLabel}>Title</div>
+                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div>
+                          <div style={s.formLabel}>Date</div>
+                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
+                        </div>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!obligationForm.title.trim() || !obligationForm.date) return
+                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
+                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomObligations(updated)
+                          setObligationForm({ title: '', date: '', repeat: 'annual' })
+                          setShowAddObligation(false)
+                          showToast('Obligation added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {all.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {all.map((o, i) => {
+                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                        const urgent = days <= 7
+                        const soon = days <= 30
+                        return (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
+                              {o.type !== 'iras' && o.type !== 'coc' && (
+                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
+                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                  if (!error) { setCustomObligations(updated); showToast('Removed') }
+                }}>✕</span>
+              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
@@ -5360,91 +5444,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
                     })()}
                   </div>
-                </div>
-              )
-            })()}
-
-            {/* ── UPCOMING OBLIGATIONS ── */}
-            {(() => {
-              const today = new Date()
-              today.setHours(0, 0, 0, 0)
-              const builtIn = [
-                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
-              ]
-              const custom = (customObligations || []).map(o => {
-                let d = new Date(o.date)
-                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
-                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
-              }).map(o => {
-                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
-                if (d < today) d.setFullYear(today.getFullYear() + 1)
-                return { ...o, dateObj: d }
-              })
-              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
-                .sort((a, b) => a.dateObj - b.dateObj)
-                .filter(o => {
-                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
-                  return days >= 0 && days <= 180
-                })
-                return (
-                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
-                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
-                    </div>
-                  {showAddObligation && (
-                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                        <div>
-                          <div style={s.formLabel}>Title</div>
-                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
-                        </div>
-                        <div>
-                          <div style={s.formLabel}>Date</div>
-                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
-                        </div>
-                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
-                          if (!obligationForm.title.trim() || !obligationForm.date) return
-                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
-                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error saving', 'error'); return }
-                          setCustomObligations(updated)
-                          setObligationForm({ title: '', date: '', repeat: 'annual' })
-                          setShowAddObligation(false)
-                          showToast('Obligation added ✓')
-                        }}>Save</button>
-                      </div>
-                    </div>
-                  )}
-                  {all.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {all.map((o, i) => {
-                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
-                        const urgent = days <= 7
-                        const soon = days <= 30
-                        return (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
-                              {o.type !== 'iras' && o.type !== 'coc' && (
-                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
-                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                  if (!error) { setCustomObligations(updated); showToast('Removed') }
-                }}>✕</span>
-              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
                 </div>
               )
             })()}
