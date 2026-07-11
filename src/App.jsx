@@ -9101,6 +9101,117 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              {(() => {
+                const today = new Date()
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const buildOutstandingUnits = () => {
+                  const units = []
+                  pledges.filter(p => p.status === 'pending').forEach(p => {
+                    if (p.is_multi_year) {
+                      pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).forEach(inst => {
+                        units.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date })
+                      })
+                    } else {
+                      units.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date })
+                    }
+                  })
+                  return units
+                }
+                const outstandingUnits = buildOutstandingUnits()
+                const overdueUnits = outstandingUnits.filter(u => new Date(u.expected_date) < today).map(u => ({
+                  ...u,
+                  daysOverdue: Math.floor((today - new Date(u.expected_date)) / (1000 * 60 * 60 * 24)),
+                })).sort((a, b) => b.daysOverdue - a.daysOverdue)
+                const overdueTotal = overdueUnits.reduce((s, u) => s + u.amount, 0)
+
+                const scopedPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr)
+                const lastYearPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr - 1)
+                const avgPledgeSize = scopedPledgesForYr.length > 0 ? scopedPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / scopedPledgesForYr.length : 0
+                const lastYearAvgPledgeSize = lastYearPledgesForYr.length > 0 ? lastYearPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / lastYearPledgesForYr.length : 0
+                const avgDelta = lastYearAvgPledgeSize === 0 ? (avgPledgeSize > 0 ? null : 0) : Math.round(((avgPledgeSize - lastYearAvgPledgeSize) / lastYearAvgPledgeSize) * 100)
+
+                const cancelledCount = scopedPledgesForYr.filter(p => p.status === 'cancelled').length
+                const cancellationRate = scopedPledgesForYr.length > 0 ? Math.round((cancelledCount / scopedPledgesForYr.length) * 100) : 0
+
+                const allYearsWithPledges = [...new Set(pledges.map(p => new Date(p.expected_date).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithPledges.slice(-5)
+                const trendData = trendYears.map(y => {
+                  const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
+                  const pledgedTotal = ps.reduce((s, p) => s + Number(p.amount), 0)
+                  const fulfilledTotal = ps.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
+                  return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
+                })
+
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0, background: overdueUnits.length > 0 ? C.warningBg : C.white, border: overdueUnits.length > 0 ? `1px solid ${C.warningBorder}` : `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: overdueUnits.length > 0 ? C.warning : C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overdueUnits.length > 0 ? C.warning : C.forest, lineHeight: 1, marginBottom: 6 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400 }}>· ${overdueTotal.toLocaleString()}</span></div>
+                        <div style={{ fontSize: 11, color: overdueUnits.length > 0 ? C.warning : C.muted }}>pending pledges past their due date</div>
+                      </div>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        {avgDelta === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: avgDelta > 0 ? C.sage : avgDelta < 0 ? C.red : C.muted }}>
+                            {avgDelta > 0 ? '▲' : avgDelta < 0 ? '▼' : '–'} {Math.abs(avgDelta)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
+                      </div>
+                    </div>
+
+                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                      {trendData.length >= 2 && (
+                        <div style={s.card}>
+                          <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
+                          <ResponsiveContainer width="100%" height={140}>
+                            <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                              <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'pledged' ? 'Pledged' : 'Fulfilled']} />
+                              <Bar dataKey="pledged" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                              <Bar dataKey="fulfilled" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                          <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginTop: 8 }}>
+                            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />Fulfilled</span>
+                            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />Pledged</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Overdue Pledges <InfoTip text="Pending pledges (or unpaid instalments) whose expected date has passed, sorted by how overdue they are." /></div>
+                        {overdueUnits.length === 0 ? (
+                          <div style={{ fontSize: 12.5, color: C.muted }}>No overdue pledges right now.</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {overdueUnits.slice(0, 5).map((u, i) => (
+                              <div key={i} style={{ padding: '9px 11px', background: C.warningBg, borderRadius: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{u.donor_name}</span>
+                                  <span style={{ fontSize: 12, fontWeight: 500, color: C.warning }}>${u.amount.toLocaleString()}</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: C.warning }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
