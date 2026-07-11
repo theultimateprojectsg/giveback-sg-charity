@@ -3634,6 +3634,397 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { yr, newDonorChartData, totalNew }
   }, [filterYear, donations])
 
+  const campaignSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const statsForYear = (y) => {
+      const ds = donations.filter(d => d.cause_id && campaignCauseIds.has(d.cause_id) && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+      const total = ds.reduce((s, d) => s + d.amount, 0)
+      const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+      return {
+        total,
+        count: ds.length,
+        donors: donorKeys.size,
+        avgGift: ds.length > 0 ? total / ds.length : 0,
+        campaignsRun: myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y).length,
+      }
+    }
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+    const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
+    const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
+    const tiles = [
+      { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations tagged to a campaign in ${yr}, compared to ${yr - 1}. Excludes grants, mass appeals, and other donations not tied to a campaign.` },
+      { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns launched in ${yr}, compared to ${yr - 1}. Includes campaigns that received no donations.` },
+      { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any campaign in ${yr}, compared to ${yr - 1}. A donor giving to multiple campaigns is only counted once.` },
+      { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.`, extra: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null },
+    ]
+    return { yr, tiles }
+  }, [filterYear, donations, campaignCauseIds, myCauses])
+
+  const campaignGoalStrip = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+
+    const statsForYear = (y) => {
+      const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y)
+      const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
+      const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
+      const successRatePct = withGoal.length > 0 ? Math.round((reachedGoalCampaigns.length / withGoal.length) * 100) : null
+
+      const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
+      const donorCampaignSets = {}
+      yearScopedCampaignDonations.forEach(d => {
+        const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+        if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
+        donorCampaignSets[key].add(d.cause_id)
+      })
+      const donorKeysWithCampaign = Object.keys(donorCampaignSets)
+      const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
+      const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
+
+      const timesToGoal = reachedGoalCampaigns.map(c => {
+        const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        let running = 0, crossDate = null
+        for (const d of campDonationsSorted) {
+          running += d.amount
+          if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
+        }
+        return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
+      }).filter(d => d !== null)
+      const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
+
+      return { withGoalCount: withGoal.length, reachedCount: reachedGoalCampaigns.length, successRatePct, donorCount: donorKeysWithCampaign.length, loyaltyPct, avgTimeToGoal }
+    }
+
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const ptDelta = (c, p) => (c === null || p === null) ? null : c - p
+    const dayDelta = (c, p) => (c === null || p === null) ? null : c - p
+
+    const strip = [
+      { label: 'Goal Success Rate', val: cur.withGoalCount > 0 ? `${cur.reachedCount} of ${cur.withGoalCount}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.', d: ptDelta(cur.successRatePct, prev.successRatePct), unit: 'pt' },
+      { label: 'Cross-Campaign Loyalty', val: cur.donorCount > 0 ? `${cur.loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${cur.donorCount} donor${cur.donorCount !== 1 ? 's' : ''}.`, d: ptDelta(cur.loyaltyPct, prev.loyaltyPct), unit: 'pt' },
+      { label: 'Avg Time to Goal', val: cur.avgTimeToGoal !== null ? `${cur.avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.', d: dayDelta(cur.avgTimeToGoal, prev.avgTimeToGoal), unit: 'd', invert: true },
+    ]
+
+    return { yr, strip }
+  }, [filterYear, myCauses, causeRaisedMap, donations, campaignCauseIds])
+
+  const campaignLeaderboardStats = React.useMemo(() => {
+    const today = new Date()
+    const campaignsForLeaderboardYear = myCauses.filter(c => c.type === 'campaign' && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
+    const donatedRows = causePerformanceThisYear.filter(r => !r.isGeneral)
+    const donatedIds = new Set(donatedRows.map(r => r.id))
+    const zeroRows = campaignsForLeaderboardYear.filter(c => !donatedIds.has(c.id)).map(c => ({
+      id: c.id, title: c.title, total: 0, count: 0, avg: 0, donors: 0,
+      cost: c.cost || 0, target_amount: c.target_amount || null, end_date: c.end_date || null, created_at: c.created_at || null,
+    }))
+    const campaignRows = [...donatedRows, ...zeroRows].map(row => {
+      const hasGoal = row.target_amount && row.end_date
+      let pctToGoal = null, pctElapsed = null, daysToEnd = null, goalReached = false, behind = false, slightlyBehind = false
+      if (hasGoal) {
+        const start = new Date(row.created_at)
+        const end = new Date(row.end_date)
+        pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
+        const totalSpan = end - start
+        pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
+        daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+        goalReached = row.total >= Number(row.target_amount)
+        const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
+        behind = !goalReached && gap !== null && gap >= 20
+        slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
+      }
+      const isEnded = row.end_date ? new Date(row.end_date) < today : false
+      const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const daysSinceLastGift = campDonations.length > 0
+        ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24))
+        : (row.created_at ? Math.floor((today - new Date(row.created_at)) / (1000 * 60 * 60 * 24)) : null)
+      const isStalled = !isEnded && daysSinceLastGift !== null && daysSinceLastGift >= 14
+      return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
+    }).sort((a, b) => b.total - a.total)
+
+    const endingSoon = campaignRows.filter(r => r.hasGoal && r.daysToEnd !== null && r.daysToEnd >= 0 && r.daysToEnd <= 7).sort((a, b) => a.daysToEnd - b.daysToEnd)
+
+    const yearScopedDonations = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+    const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && yearScopedDonations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
+    const donorGrowthRows = scopedCampaigns.map(c => {
+      const campDonations = yearScopedDonations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
+      const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+      let brandNewCount = 0
+      donorKeys.forEach(key => {
+        const firstGiftToCampaign = campDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]
+        if (donorFirstGiftDate[key] === firstGiftToCampaign.created_at) brandNewCount++
+      })
+      const total = campDonations.reduce((s, d) => s + d.amount, 0)
+      const newPct = donorKeys.size > 0 ? Math.round((brandNewCount / donorKeys.size) * 100) : 0
+      const appealTotal = campDonations.filter(d => d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)).reduce((s, d) => s + d.amount, 0)
+      const referralTotal = campDonations.filter(d => d.acquisition_source === 'referral').reduce((s, d) => s + d.amount, 0)
+      const organicTotal = total - appealTotal - referralTotal
+      return {
+        title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total,
+        avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0,
+        organicTotal, appealTotal, referralTotal,
+        organicPct: total > 0 ? Math.round((organicTotal / total) * 100) : 0,
+        appealPct: total > 0 ? Math.round((appealTotal / total) * 100) : 0,
+        referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
+        hasAppeal: appealTotal > 0,
+      }
+    }).sort((a, b) => b.total - a.total)
+
+    const allYearsWithCampaignData = [...new Set(donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id)).map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
+    const trendYears = allYearsWithCampaignData.slice(-5)
+    const trendData = trendYears.map(y => {
+      const ds = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
+      const total = ds.reduce((s, d) => s + d.amount, 0)
+      const campaignsThatYear = new Set(ds.map(d => d.cause_id)).size
+      return { year: y.toString(), avgPerCampaign: campaignsThatYear > 0 ? Math.round(total / campaignsThatYear) : 0, campaignsThatYear }
+    })
+
+    let donorGrowthAgg = null
+    if (donorGrowthRows.length > 0) {
+      const aggOrganic = donorGrowthRows.reduce((s, r) => s + r.organicTotal, 0)
+      const aggAppeal = donorGrowthRows.reduce((s, r) => s + r.appealTotal, 0)
+      const aggReferral = donorGrowthRows.reduce((s, r) => s + r.referralTotal, 0)
+      const aggTotal = aggOrganic + aggAppeal + aggReferral
+      const aggOrganicPct = aggTotal > 0 ? Math.round((aggOrganic / aggTotal) * 100) : 0
+      const aggAppealPct = aggTotal > 0 ? Math.round((aggAppeal / aggTotal) * 100) : 0
+      const aggReferralPct = aggTotal > 0 ? Math.round((aggReferral / aggTotal) * 100) : 0
+
+      const appealReliant = donorGrowthRows.filter(r => r.appealPct >= 40).sort((a, b) => b.appealPct - a.appealPct)
+      const standoutOrganic = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 100 && r.organicPct === 100)
+      const stagnant = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 0)
+      const flaggedTitles = new Set([...appealReliant, ...standoutOrganic, ...stagnant].map(r => r.title))
+      const restCount = donorGrowthRows.filter(r => !flaggedTitles.has(r.title)).length
+      donorGrowthAgg = { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant, restCount }
+    }
+
+    return { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg }
+  }, [filterYear, myCauses, causePerformanceThisYear, donations, donorFirstGiftDate, allAppealRecipients, campaignCauseIds])
+
+  const appealSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const statsForYear = (y) => {
+      const appealsY = massAppeals.filter(a => new Date(a.created_at).getFullYear() === y)
+      const appealIds = new Set(appealsY.map(a => a.id))
+      const recipients = allAppealRecipients.filter(r => appealIds.has(r.appeal_id) && r.status === 'sent')
+      const converted = recipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+      const raised = converted.reduce((s, r) => {
+        const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+        return s + (donation ? Number(donation.amount) : 0)
+      }, 0)
+      return {
+        appealsSent: appealsY.length,
+        recipients: recipients.length,
+        raised,
+        conversionRate: recipients.length > 0 ? Math.round((converted.length / recipients.length) * 100) : 0,
+      }
+    }
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const tiles = [
+      { label: 'Total Raised from Appeals', val: `$${cur.raised.toLocaleString()}`, d: delta(cur.raised, prev.raised), tip: `Total confirmed donations traced back to a mass appeal by PayNow reference, in ${yr} compared to ${yr - 1}.` },
+      { label: 'Appeals Sent', val: cur.appealsSent, d: delta(cur.appealsSent, prev.appealsSent), tip: `Number of mass appeals sent out in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Recipients Reached', val: cur.recipients, d: delta(cur.recipients, prev.recipients), tip: `Total number of successful sends across all mass appeals in ${yr}, compared to ${yr - 1}. Counts each send, so a donor reached by multiple appeals is counted more than once.` },
+      { label: 'Conversion Rate', val: `${cur.conversionRate}%`, d: delta(cur.conversionRate, prev.conversionRate), tip: `Share of appeal recipients who went on to make a confirmed donation using the appeal's QR code, in ${yr} compared to ${yr - 1}.` },
+    ]
+    return { yr, tiles }
+  }, [filterYear, massAppeals, allAppealRecipients, donations])
+
+  const appealListStrip = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+    const donorKey = (r) => r.donor_email?.trim() || r.donor_name
+
+    const curIds = appealIdsInYear(yr)
+    const prevIds = appealIdsInYear(yr - 1)
+    const curRecipients = allAppealRecipients.filter(r => curIds.has(r.appeal_id))
+    const prevRecipients = allAppealRecipients.filter(r => prevIds.has(r.appeal_id))
+    const curUnique = new Set(curRecipients.map(donorKey)).size
+    const prevUnique = new Set(prevRecipients.map(donorKey)).size
+    const uniqueDelta = prevUnique === 0 ? (curUnique > 0 ? null : 0) : Math.round(((curUnique - prevUnique) / prevUnique) * 100)
+
+    const donorFirstAppealYear = {}
+    ;[...allAppealRecipients].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
+      const key = donorKey(r)
+      if (!donorFirstAppealYear[key]) donorFirstAppealYear[key] = new Date(r.created_at).getFullYear()
+    })
+    const newToListCount = Object.values(donorFirstAppealYear).filter(y => y === yr).length
+
+    const yearAppealIds = curIds
+    const sentRecipientsYr = allAppealRecipients.filter(r => yearAppealIds.has(r.appeal_id) && r.status === 'sent')
+    const convertedYr = sentRecipientsYr.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+    const appealGiftTotal = convertedYr.reduce((s, r) => {
+      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+      return s + (donation ? Number(donation.amount) : 0)
+    }, 0)
+    const appealAvgGift = convertedYr.length > 0 ? appealGiftTotal / convertedYr.length : 0
+    const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+    const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
+    const giftDiff = Math.round(appealAvgGift - orgWideAvgGift)
+
+    const strip = [
+      { label: 'Unique Donors on List', val: curUnique, d: uniqueDelta, tip: `Distinct donors targeted by any mass appeal sent in ${yr}, compared to ${yr - 1}.` },
+      { label: 'New to List This Year', val: newToListCount, sub: `first appeared on an appeal in ${yr}`, tip: `Donors whose earliest appearance on any mass appeal, across all years, falls in ${yr}.` },
+      { label: 'Appeal Gift Size', val: `$${appealAvgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, sub: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null, tip: `Average confirmed donation amount among appeal recipients who converted in ${yr}, compared to your org-wide average gift.` },
+    ]
+
+    return { yr, strip }
+  }, [filterYear, massAppeals, allAppealRecipients, donations])
+
+  const appealTrendStats = React.useMemo(() => {
+    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+    const statsForYear = (y) => {
+      const ids = appealIdsInYear(y)
+      const sent = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'sent')
+      const converted = sent.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+      const raised = converted.reduce((s, r) => {
+        const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+        return s + (donation ? Number(donation.amount) : 0)
+      }, 0)
+      return { raised, conversionRate: sent.length > 0 ? Math.round((converted.length / sent.length) * 100) : null }
+    }
+    const allYearsWithAppeals = [...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => a - b)
+    const trendYears = allYearsWithAppeals.slice(-5)
+    const trendData = trendYears.map(y => ({ year: y.toString(), ...statsForYear(y) }))
+
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const yearIds = appealIdsInYear(yr)
+    const sentThisYear = allAppealRecipients.filter(r => yearIds.has(r.appeal_id) && r.status === 'sent')
+    const responseTimes = sentThisYear.map(r => {
+      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+      if (!donation) return null
+      return Math.floor((new Date(donation.created_at) - new Date(r.created_at)) / (1000 * 60 * 60 * 24))
+    }).filter(d => d !== null && d >= 0)
+    const medianResponseDays = (() => {
+      if (responseTimes.length === 0) return null
+      const sorted = [...responseTimes].sort((a, b) => a - b)
+      const mid = Math.floor(sorted.length / 2)
+      return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid]
+    })()
+    const within24h = responseTimes.filter(d => d < 1).length
+    const within7d = responseTimes.filter(d => d >= 1 && d <= 7).length
+    const after7d = responseTimes.filter(d => d > 7).length
+    const respTotal = responseTimes.length
+    const respBuckets = [
+      { label: 'Within 24 hours', count: within24h, color: C.sage },
+      { label: '1–7 days', count: within7d, color: C.gold },
+      { label: '8+ days', count: after7d, color: C.muted },
+    ]
+
+    return { trendData, yr, medianResponseDays, respBuckets, respTotal, within24h, within7d }
+  }, [filterYear, massAppeals, allAppealRecipients, donations])
+
+  const appealConversionStats = React.useMemo(() => {
+    const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const scopedAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum)
+    const lastYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum - 1)
+
+    const recipientsForAppeal = (appealId) => allAppealRecipients.filter(r => r.appeal_id === appealId)
+
+    const analyzeAppeal = (appeal) => {
+      const recipients = recipientsForAppeal(appeal.id)
+      const sentRecipients = recipients.filter(r => r.status === 'sent')
+      const converted = sentRecipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+      const raised = converted.reduce((s, r) => {
+        const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+        return s + (donation ? Number(donation.amount) : 0)
+      }, 0)
+      const conversionRate = sentRecipients.length > 0 ? Math.round((converted.length / sentRecipients.length) * 100) : 0
+      return { appeal, sentCount: sentRecipients.length, convertedCount: converted.length, raised, conversionRate }
+    }
+
+    const scopedAnalyzed = scopedAppeals.map(analyzeAppeal)
+    const totalRaised = scopedAnalyzed.reduce((s, a) => s + a.raised, 0)
+    const totalSent = scopedAnalyzed.reduce((s, a) => s + a.sentCount, 0)
+    const totalConverted = scopedAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
+    const overallConversion = totalSent > 0 ? Math.round((totalConverted / totalSent) * 100) : 0
+
+    const lastYearAnalyzed = lastYearAppeals.map(analyzeAppeal)
+    const lastYearSent = lastYearAnalyzed.reduce((s, a) => s + a.sentCount, 0)
+    const lastYearConverted = lastYearAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
+    const lastYearRaised = lastYearAnalyzed.reduce((s, a) => s + a.raised, 0)
+    const lastYearConversion = lastYearSent > 0 ? Math.round((lastYearConverted / lastYearSent) * 100) : null
+    const conversionDiff = lastYearConversion !== null ? overallConversion - lastYearConversion : null
+    const appealCountDiff = scopedAppeals.length - lastYearAppeals.length
+
+    const causeSpecific = scopedAnalyzed.filter(a => a.appeal.cause_id)
+    const generalOnes = scopedAnalyzed.filter(a => !a.appeal.cause_id)
+    const avgConversion = (list) => {
+      const withSends = list.filter(a => a.sentCount > 0)
+      if (withSends.length === 0) return null
+      return Math.round(withSends.reduce((s, a) => s + a.conversionRate, 0) / withSends.length)
+    }
+    const causeSpecificAvg = avgConversion(causeSpecific)
+    const generalAvg = avgConversion(generalOnes)
+
+    const distinctAmounts = [...new Set(scopedAnalyzed.filter(a => a.sentCount > 0).map(a => Number(a.appeal.amount)))]
+
+    return { yearNum, scopedAppeals, lastYearAppeals, scopedAnalyzed, totalRaised, overallConversion, appealCountDiff, conversionDiff, lastYearRaised, lastYearConversion, causeSpecificAvg, generalAvg, distinctAmounts }
+  }, [filterYear, massAppeals, allAppealRecipients, donations])
+
+  const appealListHealthStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+    const deliveryStatsForYear = (y) => {
+      const ids = appealIdsInYear(y)
+      const attempted = allAppealRecipients.filter(r => ids.has(r.appeal_id) && (r.status === 'sent' || r.status === 'failed' || r.status === 'blocked'))
+      const bounced = attempted.filter(r => r.status === 'failed')
+      const blocked = attempted.filter(r => r.status === 'blocked')
+      return {
+        total: attempted.length,
+        bouncedPct: attempted.length > 0 ? Math.round((bounced.length / attempted.length) * 100) : 0,
+        blockedPct: attempted.length > 0 ? Math.round((blocked.length / attempted.length) * 100) : 0,
+        bouncedCount: bounced.length,
+        blockedCount: blocked.length,
+      }
+    }
+    const curDelivery = deliveryStatsForYear(yr)
+    const prevDelivery = deliveryStatsForYear(yr - 1)
+
+    const bounceReasons = (() => {
+      const ids = appealIdsInYear(yr)
+      const bounced = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'failed')
+      const counts = {}
+      bounced.forEach(r => {
+        const reason = r.error_message?.trim() || 'Unknown error'
+        counts[reason] = (counts[reason] || 0) + 1
+      })
+      return Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count)
+    })()
+
+    const byDonor = {}
+    allAppealRecipients.forEach(r => {
+      const key = r.donor_email?.trim() || r.donor_name
+      if (!byDonor[key]) byDonor[key] = { name: r.donor_name, recipientRows: [] }
+      byDonor[key].recipientRows.push(r)
+    })
+    const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
+
+    const fatigueList = repeatRecipients.map(d => {
+      const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      const gaveFlags = sorted.map(r => donations.some(don => don.payment_ref === r.payment_ref && don.payment_status === 'confirmed'))
+      const gaveCount = gaveFlags.filter(Boolean).length
+      const lastGave = gaveFlags[gaveFlags.length - 1]
+      const isFatigued = gaveFlags.length >= 2 && gaveFlags.slice(0, -1).some(Boolean) && !lastGave
+      return { name: d.name, totalAppeals: sorted.length, gaveCount, isFatigued }
+    }).sort((a, b) => (b.isFatigued ? 1 : 0) - (a.isFatigued ? 1 : 0))
+
+    const overGivers = allAppealRecipients.filter(r => {
+      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+      return donation && Number(donation.amount) > Number(r.amount) * 1.5
+    }).map(r => ({
+      name: r.donor_name,
+      asked: Number(r.amount),
+      gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
+    }))
+
+    const fatiguedCount = fatigueList.filter(d => d.isFatigued).length
+
+    return { yr, curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount }
+  }, [filterYear, massAppeals, allAppealRecipients, donations])
+
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
@@ -8307,31 +8698,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const statsForYear = (y) => {
-                  const ds = donations.filter(d => d.cause_id && campaignCauseIds.has(d.cause_id) && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
-                  const total = ds.reduce((s, d) => s + d.amount, 0)
-                  const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                  return {
-                    total,
-                    count: ds.length,
-                    donors: donorKeys.size,
-                    avgGift: ds.length > 0 ? total / ds.length : 0,
-                    campaignsRun: myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y).length,
-                  }
-                }
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-                const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
-                const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
-                const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
-                const tiles = [
-                  { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations tagged to a campaign in ${yr}, compared to ${yr - 1}. Excludes grants, mass appeals, and other donations not tied to a campaign.` },
-                  { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns launched in ${yr}, compared to ${yr - 1}. Includes campaigns that received no donations.` },
-                  { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any campaign in ${yr}, compared to ${yr - 1}. A donor giving to multiple campaigns is only counted once.` },
-                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.`, extra: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null },
-                ]
+                const { yr, tiles } = campaignSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
@@ -8353,50 +8720,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-
-                const statsForYear = (y) => {
-                  const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y)
-                  const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
-                  const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
-                  const successRatePct = withGoal.length > 0 ? Math.round((reachedGoalCampaigns.length / withGoal.length) * 100) : null
-
-                  const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
-                  const donorCampaignSets = {}
-                  yearScopedCampaignDonations.forEach(d => {
-                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                    if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
-                    donorCampaignSets[key].add(d.cause_id)
-                  })
-                  const donorKeysWithCampaign = Object.keys(donorCampaignSets)
-                  const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
-                  const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
-
-                  const timesToGoal = reachedGoalCampaigns.map(c => {
-                    const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    let running = 0, crossDate = null
-                    for (const d of campDonationsSorted) {
-                      running += d.amount
-                      if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
-                    }
-                    return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
-                  }).filter(d => d !== null)
-                  const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
-
-                  return { withGoalCount: withGoal.length, reachedCount: reachedGoalCampaigns.length, successRatePct, donorCount: donorKeysWithCampaign.length, loyaltyPct, avgTimeToGoal }
-                }
-
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const ptDelta = (c, p) => (c === null || p === null) ? null : c - p
-                const dayDelta = (c, p) => (c === null || p === null) ? null : c - p
-
-                const strip = [
-                  { label: 'Goal Success Rate', val: cur.withGoalCount > 0 ? `${cur.reachedCount} of ${cur.withGoalCount}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.', d: ptDelta(cur.successRatePct, prev.successRatePct), unit: 'pt' },
-                  { label: 'Cross-Campaign Loyalty', val: cur.donorCount > 0 ? `${cur.loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${cur.donorCount} donor${cur.donorCount !== 1 ? 's' : ''}.`, d: ptDelta(cur.loyaltyPct, prev.loyaltyPct), unit: 'pt' },
-                  { label: 'Avg Time to Goal', val: cur.avgTimeToGoal !== null ? `${cur.avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.', d: dayDelta(cur.avgTimeToGoal, prev.avgTimeToGoal), unit: 'd', invert: true },
-                ]
-
+                const { yr, strip } = campaignGoalStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t, i) => (
@@ -8418,74 +8742,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const today = new Date()
-                const campaignsForLeaderboardYear = myCauses.filter(c => c.type === 'campaign' && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
-                const donatedRows = causePerformanceThisYear.filter(r => !r.isGeneral)
-                const donatedIds = new Set(donatedRows.map(r => r.id))
-                const zeroRows = campaignsForLeaderboardYear.filter(c => !donatedIds.has(c.id)).map(c => ({
-                  id: c.id, title: c.title, total: 0, count: 0, avg: 0, donors: 0,
-                  cost: c.cost || 0, target_amount: c.target_amount || null, end_date: c.end_date || null, created_at: c.created_at || null,
-                }))
-                const campaignRows = [...donatedRows, ...zeroRows].map(row => {
-                  const hasGoal = row.target_amount && row.end_date
-                  let pctToGoal = null, pctElapsed = null, daysToEnd = null, goalReached = false, behind = false, slightlyBehind = false
-                  if (hasGoal) {
-                    const start = new Date(row.created_at)
-                    const end = new Date(row.end_date)
-                    pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
-                    const totalSpan = end - start
-                    pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
-                    daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
-                    goalReached = row.total >= Number(row.target_amount)
-                    const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
-                    behind = !goalReached && gap !== null && gap >= 20
-                    slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
-                  }
-                  const isEnded = row.end_date ? new Date(row.end_date) < today : false
-                  const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                  const daysSinceLastGift = campDonations.length > 0
-                    ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24))
-                    : (row.created_at ? Math.floor((today - new Date(row.created_at)) / (1000 * 60 * 60 * 24)) : null)
-                  const isStalled = !isEnded && daysSinceLastGift !== null && daysSinceLastGift >= 14
-                  return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
-                }).sort((a, b) => b.total - a.total)
-
-                const endingSoon = campaignRows.filter(r => r.hasGoal && r.daysToEnd !== null && r.daysToEnd >= 0 && r.daysToEnd <= 7).sort((a, b) => a.daysToEnd - b.daysToEnd)
-
-                const yearScopedDonations = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
-                const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && yearScopedDonations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
-                const donorGrowthRows = scopedCampaigns.map(c => {
-                  const campDonations = yearScopedDonations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
-                  const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                  let brandNewCount = 0
-                  donorKeys.forEach(key => {
-                    const firstGiftToCampaign = campDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]
-                    if (donorFirstGiftDate[key] === firstGiftToCampaign.created_at) brandNewCount++
-                  })
-                  const total = campDonations.reduce((s, d) => s + d.amount, 0)
-                  const newPct = donorKeys.size > 0 ? Math.round((brandNewCount / donorKeys.size) * 100) : 0
-                  const appealTotal = campDonations.filter(d => d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)).reduce((s, d) => s + d.amount, 0)
-                  const referralTotal = campDonations.filter(d => d.acquisition_source === 'referral').reduce((s, d) => s + d.amount, 0)
-                  const organicTotal = total - appealTotal - referralTotal
-                  return {
-                    title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total,
-                    avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0,
-                    organicTotal, appealTotal, referralTotal,
-                    organicPct: total > 0 ? Math.round((organicTotal / total) * 100) : 0,
-                    appealPct: total > 0 ? Math.round((appealTotal / total) * 100) : 0,
-                    referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
-                    hasAppeal: appealTotal > 0,
-                  }
-                }).sort((a, b) => b.total - a.total)
-
-                const allYearsWithCampaignData = [...new Set(donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id)).map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
-                const trendYears = allYearsWithCampaignData.slice(-5)
-                const trendData = trendYears.map(y => {
-                  const ds = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
-                  const total = ds.reduce((s, d) => s + d.amount, 0)
-                  const campaignsThatYear = new Set(ds.map(d => d.cause_id)).size
-                  return { year: y.toString(), avgPerCampaign: campaignsThatYear > 0 ? Math.round(total / campaignsThatYear) : 0, campaignsThatYear }
-                })
+                const { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg } = campaignLeaderboardStats
 
                 return (
                   <>
@@ -8567,20 +8824,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         )}
 
-                        {donorGrowthRows.length > 0 && (() => {
-                          const aggOrganic = donorGrowthRows.reduce((s, r) => s + r.organicTotal, 0)
-                          const aggAppeal = donorGrowthRows.reduce((s, r) => s + r.appealTotal, 0)
-                          const aggReferral = donorGrowthRows.reduce((s, r) => s + r.referralTotal, 0)
-                          const aggTotal = aggOrganic + aggAppeal + aggReferral
-                          const aggOrganicPct = aggTotal > 0 ? Math.round((aggOrganic / aggTotal) * 100) : 0
-                          const aggAppealPct = aggTotal > 0 ? Math.round((aggAppeal / aggTotal) * 100) : 0
-                          const aggReferralPct = aggTotal > 0 ? Math.round((aggReferral / aggTotal) * 100) : 0
-
-                          const appealReliant = donorGrowthRows.filter(r => r.appealPct >= 40).sort((a, b) => b.appealPct - a.appealPct)
-                          const standoutOrganic = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 100 && r.organicPct === 100)
-                          const stagnant = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 0)
-                          const flaggedTitles = new Set([...appealReliant, ...standoutOrganic, ...stagnant].map(r => r.title))
-                          const restCount = donorGrowthRows.filter(r => !flaggedTitles.has(r.title)).length
+                        {donorGrowthAgg && (() => {
+                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
 
                           return (
                           <div style={s.card}>
@@ -8651,32 +8896,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const statsForYear = (y) => {
-                  const appealsY = massAppeals.filter(a => new Date(a.created_at).getFullYear() === y)
-                  const appealIds = new Set(appealsY.map(a => a.id))
-                  const recipients = allAppealRecipients.filter(r => appealIds.has(r.appeal_id) && r.status === 'sent')
-                  const converted = recipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
-                  const raised = converted.reduce((s, r) => {
-                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                    return s + (donation ? Number(donation.amount) : 0)
-                  }, 0)
-                  return {
-                    appealsSent: appealsY.length,
-                    recipients: recipients.length,
-                    raised,
-                    conversionRate: recipients.length > 0 ? Math.round((converted.length / recipients.length) * 100) : 0,
-                  }
-                }
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-                const tiles = [
-                  { label: 'Total Raised from Appeals', val: `$${cur.raised.toLocaleString()}`, d: delta(cur.raised, prev.raised), tip: `Total confirmed donations traced back to a mass appeal by PayNow reference, in ${yr} compared to ${yr - 1}.` },
-                  { label: 'Appeals Sent', val: cur.appealsSent, d: delta(cur.appealsSent, prev.appealsSent), tip: `Number of mass appeals sent out in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Recipients Reached', val: cur.recipients, d: delta(cur.recipients, prev.recipients), tip: `Total number of successful sends across all mass appeals in ${yr}, compared to ${yr - 1}. Counts each send, so a donor reached by multiple appeals is counted more than once.` },
-                  { label: 'Conversion Rate', val: `${cur.conversionRate}%`, d: delta(cur.conversionRate, prev.conversionRate), tip: `Share of appeal recipients who went on to make a confirmed donation using the appeal's QR code, in ${yr} compared to ${yr - 1}.` },
-                ]
+                const { yr, tiles } = appealSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
@@ -8697,43 +8917,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
-                const donorKey = (r) => r.donor_email?.trim() || r.donor_name
-
-                const curIds = appealIdsInYear(yr)
-                const prevIds = appealIdsInYear(yr - 1)
-                const curRecipients = allAppealRecipients.filter(r => curIds.has(r.appeal_id))
-                const prevRecipients = allAppealRecipients.filter(r => prevIds.has(r.appeal_id))
-                const curUnique = new Set(curRecipients.map(donorKey)).size
-                const prevUnique = new Set(prevRecipients.map(donorKey)).size
-                const uniqueDelta = prevUnique === 0 ? (curUnique > 0 ? null : 0) : Math.round(((curUnique - prevUnique) / prevUnique) * 100)
-
-                const donorFirstAppealYear = {}
-                ;[...allAppealRecipients].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
-                  const key = donorKey(r)
-                  if (!donorFirstAppealYear[key]) donorFirstAppealYear[key] = new Date(r.created_at).getFullYear()
-                })
-                const newToListCount = Object.values(donorFirstAppealYear).filter(y => y === yr).length
-
-                const yearAppealIds = curIds
-                const sentRecipientsYr = allAppealRecipients.filter(r => yearAppealIds.has(r.appeal_id) && r.status === 'sent')
-                const convertedYr = sentRecipientsYr.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
-                const appealGiftTotal = convertedYr.reduce((s, r) => {
-                  const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                  return s + (donation ? Number(donation.amount) : 0)
-                }, 0)
-                const appealAvgGift = convertedYr.length > 0 ? appealGiftTotal / convertedYr.length : 0
-                const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
-                const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
-                const giftDiff = Math.round(appealAvgGift - orgWideAvgGift)
-
-                const strip = [
-                  { label: 'Unique Donors on List', val: curUnique, d: uniqueDelta, tip: `Distinct donors targeted by any mass appeal sent in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'New to List This Year', val: newToListCount, sub: `first appeared on an appeal in ${yr}`, tip: `Donors whose earliest appearance on any mass appeal, across all years, falls in ${yr}.` },
-                  { label: 'Appeal Gift Size', val: `$${appealAvgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, sub: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null, tip: `Average confirmed donation amount among appeal recipients who converted in ${yr}, compared to your org-wide average gift.` },
-                ]
-
+                const { yr, strip } = appealListStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t, i) => (
@@ -8758,44 +8942,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
-                const statsForYear = (y) => {
-                  const ids = appealIdsInYear(y)
-                  const sent = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'sent')
-                  const converted = sent.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
-                  const raised = converted.reduce((s, r) => {
-                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                    return s + (donation ? Number(donation.amount) : 0)
-                  }, 0)
-                  return { raised, conversionRate: sent.length > 0 ? Math.round((converted.length / sent.length) * 100) : null }
-                }
-                const allYearsWithAppeals = [...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => a - b)
-                const trendYears = allYearsWithAppeals.slice(-5)
-                const trendData = trendYears.map(y => ({ year: y.toString(), ...statsForYear(y) }))
-
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const yearIds = appealIdsInYear(yr)
-                const sentThisYear = allAppealRecipients.filter(r => yearIds.has(r.appeal_id) && r.status === 'sent')
-                const responseTimes = sentThisYear.map(r => {
-                  const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                  if (!donation) return null
-                  return Math.floor((new Date(donation.created_at) - new Date(r.created_at)) / (1000 * 60 * 60 * 24))
-                }).filter(d => d !== null && d >= 0)
-                const medianResponseDays = (() => {
-                  if (responseTimes.length === 0) return null
-                  const sorted = [...responseTimes].sort((a, b) => a - b)
-                  const mid = Math.floor(sorted.length / 2)
-                  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid]
-                })()
-                const within24h = responseTimes.filter(d => d < 1).length
-                const within7d = responseTimes.filter(d => d >= 1 && d <= 7).length
-                const after7d = responseTimes.filter(d => d > 7).length
-                const respTotal = responseTimes.length
-                const respBuckets = [
-                  { label: 'Within 24 hours', count: within24h, color: C.sage },
-                  { label: '1–7 days', count: within7d, color: C.gold },
-                  { label: '8+ days', count: after7d, color: C.muted },
-                ]
+                const { trendData, yr, medianResponseDays, respBuckets, respTotal, within24h, within7d } = appealTrendStats
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
@@ -8853,49 +9000,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
-                  const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                  const scopedAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum)
-                  const lastYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum - 1)
-
-                  const recipientsForAppeal = (appealId) => allAppealRecipients.filter(r => r.appeal_id === appealId)
-
-                  const analyzeAppeal = (appeal) => {
-                    const recipients = recipientsForAppeal(appeal.id)
-                    const sentRecipients = recipients.filter(r => r.status === 'sent')
-                    const converted = sentRecipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
-                    const raised = converted.reduce((s, r) => {
-                      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                      return s + (donation ? Number(donation.amount) : 0)
-                    }, 0)
-                    const conversionRate = sentRecipients.length > 0 ? Math.round((converted.length / sentRecipients.length) * 100) : 0
-                    return { appeal, sentCount: sentRecipients.length, convertedCount: converted.length, raised, conversionRate }
-                  }
-
-                  const scopedAnalyzed = scopedAppeals.map(analyzeAppeal)
-                  const totalRaised = scopedAnalyzed.reduce((s, a) => s + a.raised, 0)
-                  const totalSent = scopedAnalyzed.reduce((s, a) => s + a.sentCount, 0)
-                  const totalConverted = scopedAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
-                  const overallConversion = totalSent > 0 ? Math.round((totalConverted / totalSent) * 100) : 0
-
-                  const lastYearAnalyzed = lastYearAppeals.map(analyzeAppeal)
-                  const lastYearSent = lastYearAnalyzed.reduce((s, a) => s + a.sentCount, 0)
-                  const lastYearConverted = lastYearAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
-                  const lastYearRaised = lastYearAnalyzed.reduce((s, a) => s + a.raised, 0)
-                  const lastYearConversion = lastYearSent > 0 ? Math.round((lastYearConverted / lastYearSent) * 100) : null
-                  const conversionDiff = lastYearConversion !== null ? overallConversion - lastYearConversion : null
-                  const appealCountDiff = scopedAppeals.length - lastYearAppeals.length
-
-                  const causeSpecific = scopedAnalyzed.filter(a => a.appeal.cause_id)
-                  const generalOnes = scopedAnalyzed.filter(a => !a.appeal.cause_id)
-                  const avgConversion = (list) => {
-                    const withSends = list.filter(a => a.sentCount > 0)
-                    if (withSends.length === 0) return null
-                    return Math.round(withSends.reduce((s, a) => s + a.conversionRate, 0) / withSends.length)
-                  }
-                  const causeSpecificAvg = avgConversion(causeSpecific)
-                  const generalAvg = avgConversion(generalOnes)
-
-                  const distinctAmounts = [...new Set(scopedAnalyzed.filter(a => a.sentCount > 0).map(a => Number(a.appeal.amount)))]
+                  const { yearNum, scopedAppeals, lastYearAppeals, scopedAnalyzed, totalRaised, overallConversion, appealCountDiff, conversionDiff, lastYearRaised, lastYearConversion, causeSpecificAvg, generalAvg, distinctAmounts } = appealConversionStats
 
                   return (
                     <div style={s.card}>
@@ -8986,63 +9091,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                  const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
-                  const deliveryStatsForYear = (y) => {
-                    const ids = appealIdsInYear(y)
-                    const attempted = allAppealRecipients.filter(r => ids.has(r.appeal_id) && (r.status === 'sent' || r.status === 'failed' || r.status === 'blocked'))
-                    const bounced = attempted.filter(r => r.status === 'failed')
-                    const blocked = attempted.filter(r => r.status === 'blocked')
-                    return {
-                      total: attempted.length,
-                      bouncedPct: attempted.length > 0 ? Math.round((bounced.length / attempted.length) * 100) : 0,
-                      blockedPct: attempted.length > 0 ? Math.round((blocked.length / attempted.length) * 100) : 0,
-                      bouncedCount: bounced.length,
-                      blockedCount: blocked.length,
-                    }
-                  }
-                  const curDelivery = deliveryStatsForYear(yr)
-                  const prevDelivery = deliveryStatsForYear(yr - 1)
+                  const { yr, curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
                   const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
-
-                  const bounceReasons = (() => {
-                    const ids = appealIdsInYear(yr)
-                    const bounced = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'failed')
-                    const counts = {}
-                    bounced.forEach(r => {
-                      const reason = r.error_message?.trim() || 'Unknown error'
-                      counts[reason] = (counts[reason] || 0) + 1
-                    })
-                    return Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count)
-                  })()
-
-                  const byDonor = {}
-                  allAppealRecipients.forEach(r => {
-                    const key = r.donor_email?.trim() || r.donor_name
-                    if (!byDonor[key]) byDonor[key] = { name: r.donor_name, recipientRows: [] }
-                    byDonor[key].recipientRows.push(r)
-                  })
-                  const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
-
-                  const fatigueList = repeatRecipients.map(d => {
-                    const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    const gaveFlags = sorted.map(r => donations.some(don => don.payment_ref === r.payment_ref && don.payment_status === 'confirmed'))
-                    const gaveCount = gaveFlags.filter(Boolean).length
-                    const lastGave = gaveFlags[gaveFlags.length - 1]
-                    const isFatigued = gaveFlags.length >= 2 && gaveFlags.slice(0, -1).some(Boolean) && !lastGave
-                    return { name: d.name, totalAppeals: sorted.length, gaveCount, isFatigued }
-                  }).sort((a, b) => (b.isFatigued ? 1 : 0) - (a.isFatigued ? 1 : 0))
-
-                  const overGivers = allAppealRecipients.filter(r => {
-                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                    return donation && Number(donation.amount) > Number(r.amount) * 1.5
-                  }).map(r => ({
-                    name: r.donor_name,
-                    asked: Number(r.amount),
-                    gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
-                  }))
-
-                  const fatiguedCount = fatigueList.filter(d => d.isFatigued).length
 
                   return (
                     <div style={s.card}>
