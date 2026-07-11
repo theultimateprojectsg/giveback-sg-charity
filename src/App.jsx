@@ -8216,7 +8216,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
                       <div>
@@ -8247,7 +8247,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {fulfilledWithDates.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Fulfilled pledges: how late did they run?</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Fulfilled pledges: how late did they run?</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                             <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
@@ -8268,7 +8268,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                      <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
                         <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={async e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); const { error } = await supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen); if (error) { console.error('Failed to save pledge watch threshold:', error); showToast('Could not save this setting — please try again', 'error') } }}>
@@ -8341,7 +8341,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
                     {tooFewDonors ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
@@ -8471,7 +8471,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             return (
                               <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: overdue || behind ? C.red : C.forest }}>{g.funder_name}</span>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
                                   <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -8552,10 +8552,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           return (
                             <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{g.funder_name}</span>
-                                <span style={{ fontSize: 11, color: C.warning }}>ends in {monthsOut} mo</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
                               </div>
-                              <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
+                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
                             </div>
                           )
                         })}
