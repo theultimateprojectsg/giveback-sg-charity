@@ -9669,7 +9669,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {missedFiltered.slice(0, 5).map((g, i) => (
                             <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
+                                  {g.donor_name}
+                                  {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
+                                </span>
                                 <span style={{ fontSize: 11.5, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.missedCycles} cycle{g.missedCycles !== 1 ? 's' : ''} missed{g.missedCycles >= 2 ? ' — possible cancellation' : ''}</span>
                               </div>
                             </div>
@@ -9685,7 +9688,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {frequentSkippers.slice(0, 5).map((g, i) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>
+                                  {g.donor_name}
+                                  {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
+                                </span>
                                 <span style={{ fontSize: 11, color: C.muted }}>{g.skipCount} cycles skipped</span>
                               </div>
                               <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Still active — using Skip Cycle rather than missing silently</div>
@@ -9698,7 +9704,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {recurringPatternSuggestions.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No untagged recurring patterns detected.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {recurringPatternSuggestions.slice(0, 5).map((d, i) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
@@ -9706,6 +9712,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           ))}
                         </div>
+                      )}
+
+                      {(missedFiltered.length > 0 || frequentSkippers.length > 0) && (
+                        <div style={{ fontSize: 10.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 10 }}>A missed GIRO cycle usually means a bank authorization issue — worth a direct follow-up. A missed PayNow cycle is often just forgetfulness.</div>
                       )}
                     </div>
                   )
@@ -9759,6 +9769,57 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              {(() => {
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const allYearsWithGrants = [...new Set(grants.map(grantYearOf))].sort((a, b) => a - b)
+                const trendYears = allYearsWithGrants.slice(-5)
+                const trendData = trendYears.map(y => ({
+                  year: y.toString(),
+                  total: grants.filter(g => grantYearOf(g) === y).reduce((s, g) => s + Number(g.amount), 0),
+                }))
+
+                const activeGrantsList = grants.filter(g => g.status === 'active')
+                const totalActiveAmount = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+                const totalUtilized = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+                const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
+                            <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total grant funding secured, by year awarded.</div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Grant Utilization <InfoTip text="Total spend logged across all active grants, as a share of their combined value. A quick portfolio-wide check on whether you're spending down grant funds at a healthy pace." /></div>
+                      {utilizationRate === null ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants right now.</div>
+                      ) : (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: utilizationRate >= 80 ? C.gold : utilizationRate >= 20 ? C.sage : C.gold, marginBottom: 4 }}>{utilizationRate}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funds spent so far</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted }}>${totalUtilized.toLocaleString()} spent of ${totalActiveAmount.toLocaleString()} across {activeGrantsList.length} active grant{activeGrantsList.length !== 1 ? 's' : ''}</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -9775,32 +9836,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={s.analyticsStatNumber}>{thisYearGrants.length}</span>
-                          {lastYearGrants.length > 0 && (
-                            <span style={s.analyticsStatDelta(countDiff >= 0)}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={s.analyticsStatNumber}>${thisYearTotal.toLocaleString()}</span>
-                          {totalDiffPct !== null && (
-                            <span style={s.analyticsStatDelta(totalDiffPct >= 0)}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
+                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant is keeping pace with its report deadline. Totals and YoY change are shown in the tiles above." /></div>
 
                     {activeGrants.length === 0 ? (
-                      <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
+                      <div style={{ fontSize: 13, color: C.muted }}>No active grants right now.</div>
                     ) : (
                       <>
                         <div style={s.analyticsSubTitleDivider}>Pace vs report deadline</div>
