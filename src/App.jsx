@@ -3351,23 +3351,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     return { donationBadgeInfo, donorBadgeMap }
   }, [donations])
-  const donorMap = {}
-  donations.filter(d => !d.is_anonymous).forEach(d => {
-    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-    if (!donorMap[key]) {
-      donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false }
-    }
-    if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
-    donorMap[key].total += d.amount
-    donorMap[key].count += 1
-    if (d.receipt_issued) donorMap[key].receipts += 1
-    if (d.donor_deactivated) donorMap[key].deactivated = true
-    if (d.donor_do_not_contact) donorMap[key].doNotContact = true
-    if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
-      donorMap[key].lastDate = d.created_at
-    }
-  })
-  const donorList = Object.values(donorMap).sort((a, b) => b.total - a.total)
+  const donorList = React.useMemo(() => {
+    const donorMap = {}
+    donations.filter(d => !d.is_anonymous).forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorMap[key]) {
+        donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false }
+      }
+      if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
+      donorMap[key].total += d.amount
+      donorMap[key].count += 1
+      if (d.receipt_issued) donorMap[key].receipts += 1
+      if (d.donor_deactivated) donorMap[key].deactivated = true
+      if (d.donor_do_not_contact) donorMap[key].doNotContact = true
+      if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
+        donorMap[key].lastDate = d.created_at
+      }
+    })
+    return Object.values(donorMap).sort((a, b) => b.total - a.total)
+  }, [donations])
   const activeDonorList = donorList.filter(d => !d.deactivated)
 
   const contactOnlyDonors = donorContacts
@@ -3401,26 +3403,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
   }, [pendingSelectedDonorKey, activeDonorList])
   const deactivatedDonorList = donorList.filter(d => d.deactivated)
-  const noteworthyDonors = donorList
-    .filter(d => {
-      const key = d.email?.trim() || d.name
-      const b = donorBadgeMap[key]
-      return b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)
+  const noteworthyDonors = React.useMemo(() => {
+    return donorList
+      .filter(d => {
+        const key = d.email?.trim() || d.name
+        const b = donorBadgeMap[key]
+        return b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)
+      })
+      .sort((a, b) => {
+        const keyA = a.email?.trim() || a.name
+        const keyB = b.email?.trim() || b.name
+        return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
+      })
+      .slice(0, 5)
+  }, [donorList, donorBadgeMap])
+  const causeRaisedMap = React.useMemo(() => {
+    const map = {}
+    donations.forEach(d => {
+      if (!d.cause_id || d.payment_status !== 'confirmed') return
+      map[d.cause_id] = (map[d.cause_id] || { total: 0, donors: new Set() })
+      map[d.cause_id].total += d.amount
+      map[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
     })
-    .sort((a, b) => {
-      const keyA = a.email?.trim() || a.name
-      const keyB = b.email?.trim() || b.name
-      return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
-    })
-    .slice(0, 5)
-  const causeRaisedMap = {}
-  donations.forEach(d => {
-    if (!d.cause_id || d.payment_status !== 'confirmed') return
-    causeRaisedMap[d.cause_id] = (causeRaisedMap[d.cause_id] || { total: 0, donors: new Set() })
-    causeRaisedMap[d.cause_id].total += d.amount
-    causeRaisedMap[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
-  })
-  const causePerformanceThisYear = (() => {
+    return map
+  }, [donations])
+  const causePerformanceThisYear = React.useMemo(() => {
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
     const map = {}
     let generalTotal = 0
@@ -3451,14 +3458,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       rows.push({ title: 'General Donation', total: generalTotal, count: generalCount, avg: generalTotal / generalCount, donors: null, isGeneral: true })
     }
     return rows
-  })()
+  }, [donations, filterYear, myCauses])
 
   const now = new Date()
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const confirmedDonations = donations.filter(d => d.payment_status === 'confirmed')
+  const confirmedDonations = React.useMemo(() => donations.filter(d => d.payment_status === 'confirmed'), [donations])
 
-  const giroMissedCycles = (() => {
+  const giroMissedCycles = React.useMemo(() => {
     const now26 = new Date()
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'yearly' || g.frequency === 'annual' ? 365 : 30
@@ -3467,8 +3474,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const missedCycles = Math.floor(daysLate / gapDays) + 1
       return { donor_name: g.donor_name, donor_email: g.donor_email, missedCycles, gift_id: g.id, type: g.type }
     }).filter(Boolean)
-  })()
-  const recurringPatternSuggestions = (() => {
+  }, [recurringGifts])
+  const recurringPatternSuggestions = React.useMemo(() => {
     const alreadyRecurring = new Set(recurringGifts.map(g => g.donor_email?.trim() || g.donor_name))
     const donorGifts = {}
     confirmedDonations.forEach(d => {
@@ -3490,8 +3497,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }
       return null
     }).filter(Boolean)
-  })()
-  const recurringTrendFlags = (() => {
+  }, [recurringGifts, confirmedDonations])
+  const recurringTrendFlags = React.useMemo(() => {
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const cycles = donations
         .filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed')
@@ -3509,7 +3516,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }
       return null
     }).filter(Boolean)
-  })()
+  }, [recurringGifts, donations])
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
