@@ -3549,7 +3549,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return confirmedDonations.filter(d => new Date(d.created_at) >= monthStart && new Date(d.created_at) < monthEnd).reduce((s, d) => s + d.amount, 0)
   })
   const trendMax = Math.max(...sixMonthTrend, 1)
-  const repeatDonorsThisMonth = Object.values(donorMap).filter(d => {
+  const repeatDonorsThisMonth = donorList.filter(d => {
     const donationsThisMonth = donations.filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === (d.email?.trim() || d.name) && new Date(don.created_at) >= thisMonthStart)
     return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
   }).length
