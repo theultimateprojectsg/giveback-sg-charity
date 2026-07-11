@@ -8419,18 +8419,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 28, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearGrants.length}</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearGrants.length}</span>
                           {lastYearGrants.length > 0 && (
-                            <span style={{ fontSize: 14, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
                           )}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 28, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${thisYearTotal.toLocaleString()}</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${thisYearTotal.toLocaleString()}</span>
                           {totalDiffPct !== null && (
-                            <span style={{ fontSize: 14, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
                           )}
                         </div>
                       </div>
@@ -8515,7 +8515,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 28, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topFunderPct}%</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topFunderPct}%</div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
