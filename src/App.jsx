@@ -7954,11 +7954,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const median = (arr) => {
+                  if (arr.length === 0) return 0
+                  const sorted = [...arr].sort((a, b) => a - b)
+                  const mid = Math.floor(sorted.length / 2)
+                  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+                }
                 const statsForYear = (y) => {
                   const ds = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
                   const total = ds.reduce((s, d) => s + d.amount, 0)
                   const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                  return { total, count: ds.length, donors: donorKeys.size, avgGift: ds.length > 0 ? total / ds.length : 0 }
+                  return { total, count: ds.length, donors: donorKeys.size, avgGift: ds.length > 0 ? total / ds.length : 0, medianGift: median(ds.map(d => d.amount)) }
                 }
                 const cur = statsForYear(yr)
                 const prev = statsForYear(yr - 1)
@@ -7967,7 +7973,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations across all sources — campaigns, mass appeals, and general giving — in ${yr}, compared to ${yr - 1}.` },
                   { label: 'Total Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of confirmed donations received across all sources in ${yr}, compared to ${yr - 1}.` },
                   { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any source in ${yr}, compared to ${yr - 1}. A donor giving more than once is only counted once.` },
-                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed donation amount across all sources in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed donation amount across all sources in ${yr}, compared to ${yr - 1}. Median shown below since a few large gifts can skew the average.`, extra: `median $${cur.medianGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
                 ]
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -7982,6 +7988,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
                           </div>
                         )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
                       </div>
                     ))}
                   </div>
@@ -8038,6 +8045,123 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )}
                 </div>
               )}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
+                const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+
+                let campaignsAmt = 0, massAppealAmt = 0, recurringAmt = 0, generalAmt = 0
+                yearDonations.forEach(d => {
+                  if (d.recurring_gift_id) { recurringAmt += d.amount; return }
+                  if (d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)) { massAppealAmt += d.amount; return }
+                  if (d.cause_id && campaignCauseIds.has(d.cause_id)) { campaignsAmt += d.amount; return }
+                  generalAmt += d.amount
+                })
+                const grantsAmt = grants.filter(g => grantYearOf(g) === yr).reduce((s, g) => s + Number(g.amount), 0)
+                const totalRevenue = campaignsAmt + massAppealAmt + recurringAmt + generalAmt + grantsAmt
+
+                const channelRows = [
+                  { label: 'Campaigns', amt: campaignsAmt, color: C.sage },
+                  { label: 'Mass Appeals', amt: massAppealAmt, color: C.gold },
+                  { label: 'Recurring Gifts', amt: recurringAmt, color: C.teal },
+                  { label: 'Grants', amt: grantsAmt, color: C.forest },
+                  { label: 'General / Unrestricted', amt: generalAmt, color: C.muted },
+                ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0 }))
+
+                const pledgeFulfilledIds = new Set(pledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id).map(p => p.fulfilled_donation_id))
+                const pledgeFulfilledAmt = yearDonations.filter(d => pledgeFulfilledIds.has(d.id)).reduce((s, d) => s + d.amount, 0)
+                const predictableAmt = recurringAmt + grantsAmt + pledgeFulfilledAmt
+                const predictablePct = totalRevenue > 0 ? Math.round((predictableAmt / totalRevenue) * 100) : 0
+                const oneOffAmt = Math.max(0, totalRevenue - predictableAmt)
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
+                      {channelRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                            {channelRows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: r.color }} />)}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {channelRows.map((r, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                                <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
+                      {totalRevenue === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                      ) : (
+                        <>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12.5, color: C.text }}>Predictable — recurring, grants, fulfilled pledges</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12.5, color: C.text }}>One-off — campaign, appeal, general gifts</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const donorFirstDate = {}
+                ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorFirstDate[key]) donorFirstDate[key] = d.created_at
+                })
+                const monthCounts = Array(12).fill(0)
+                Object.values(donorFirstDate).forEach(dateStr => {
+                  const dt = new Date(dateStr)
+                  if (dt.getFullYear() === yr) monthCounts[dt.getMonth()]++
+                })
+                const newDonorChartData = monthCounts.map((count, i) => ({ month: new Date(yr, i, 1).toLocaleDateString('en-SG', { month: 'short' }), count }))
+                const totalNew = monthCounts.reduce((s, c) => s + c, 0)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                    {totalNew === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                          <XAxis dataKey="month" tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value, 'New donors']} />
+                          <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                )
+              })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 <div style={s.card}>
