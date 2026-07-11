@@ -8609,24 +8609,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Active gifts</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>{activeGifts.length}</span>
+                            <span style={s.analyticsStatNumber}>{activeGifts.length}</span>
                             <span style={{ fontSize: 10.5, fontWeight: 500, color: giftCountDiff >= 0 ? C.sage : C.red }}>{giftCountDiff === 0 ? '—' : giftCountDiff > 0 ? `↑${giftCountDiff}` : `↓${Math.abs(giftCountDiff)}`}</span>
                           </div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>MRR</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>${Math.round(mrr).toLocaleString()}</span>
+                            <span style={s.analyticsStatNumber}>${Math.round(mrr).toLocaleString()}</span>
                             {mrrDiffPct !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct >= 0 ? '↑' : '↓'}{Math.abs(mrrDiffPct)}%</span>}
                           </div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Avg. lifespan</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
+                          <div style={s.analyticsStatNumber}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>At risk</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</div>
+                          <div style={{ ...s.analyticsStatNumber, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</div>
                         </div>
                       </div>
                       <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>vs 90 days ago{cancelledGifts.length > 0 ? ` · based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
@@ -8672,7 +8672,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Gift Risk <InfoTip text="Recurring donors who've missed payments, who frequently use Skip Cycle, and donors giving recurring-shaped manual gifts who aren't yet set up as a formal recurring gift." /></div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Missed payments</div>
+                        <div style={s.analyticsSubTitle}>Missed payments</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
                           <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringMissedThreshold} onChange={async e => { const v = Number(e.target.value); setRecurringMissedThreshold(v); const { error } = await supabase.from('charity_contacts').update({ recurring_missed_threshold: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
@@ -8697,7 +8697,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Frequent skippers</div>
+                      <div style={s.analyticsSubTitleDivider}>Frequent skippers</div>
                       {frequentSkippers.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have skipped 2+ cycles this year.</div>
                       ) : (
@@ -8714,7 +8714,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Looks recurring, not yet tagged</div>
+                      <div style={s.analyticsSubTitleDivider}>Looks recurring, not yet tagged</div>
                       {recurringPatternSuggestions.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No untagged recurring patterns detected.</div>
                       ) : (
@@ -8786,18 +8786,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{scopedAppeals.length}</span>
+                            <span style={s.analyticsStatNumber}>{scopedAppeals.length}</span>
                             {lastYearAppeals.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: appealCountDiff >= 0 ? C.sage : C.red }}>{appealCountDiff === 0 ? '—' : appealCountDiff > 0 ? `↑${appealCountDiff}` : `↓${Math.abs(appealCountDiff)}`}</span>}
                           </div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${totalRaised.toLocaleString()}</div>
+                          <div style={s.analyticsStatNumber}>${totalRaised.toLocaleString()}</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
+                            <span style={{ ...s.analyticsStatNumber, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
                             {conversionDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: conversionDiff >= 0 ? C.sage : C.red }}>{conversionDiff === 0 ? '—' : conversionDiff > 0 ? `↑${conversionDiff}pt` : `↓${Math.abs(conversionDiff)}pt`}</span>}
                           </div>
                         </div>
@@ -8810,7 +8810,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No appeals sent {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                       ) : (
                         <>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Appeal-by-appeal conversion</div>
+                          <div style={s.analyticsSubTitleDivider}>Appeal-by-appeal conversion</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                             {[...scopedAnalyzed].sort((a, b) => b.conversionRate - a.conversionRate).map((a, i) => {
                               const isSending = a.appeal.status === 'sending'
@@ -8827,7 +8827,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             })}
                           </div>
 
-                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Cause-specific vs. general</div>
+                          <div style={s.analyticsSubTitle}>Cause-specific vs. general</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: causeSpecificAvg !== null || generalAvg !== null ? 18 : 0 }}>
                             {causeSpecificAvg !== null && (
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
@@ -8843,7 +8843,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             )}
                           </div>
 
-                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Ask amount vs. conversion</div>
+                          <div style={s.analyticsSubTitle}>Ask amount vs. conversion</div>
                           {distinctAmounts.length < 2 ? (
                             <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter(a => a.sentCount > 0).length} appeal{scopedAnalyzed.filter(a => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
                           ) : (
@@ -8899,22 +8899,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   return (
                     <div style={s.card}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Appeal List Health</div>
+                      <div style={s.analyticsCardTitle}>Appeal List Health</div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced/blocked</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: badDeliveryPct >= 20 ? C.red : badDeliveryPct >= 10 ? C.gold : C.forest }}>{badDeliveryPct}%</div>
+                          <div style={{ ...s.analyticsStatNumber, color: badDeliveryPct >= 20 ? C.red : badDeliveryPct >= 10 ? C.gold : C.forest }}>{badDeliveryPct}%</div>
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{badDelivery.length} of {allSentRecipients.length} sends</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{repeatRecipients.length}</div>
+                          <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
                         </div>
                       </div>
 
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Response pattern among repeat recipients</div>
+                      <div style={s.analyticsSubTitleDivider}>Response pattern among repeat recipients</div>
                       {fatigueList.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
                       ) : (
@@ -8930,7 +8930,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donors who gave more than asked</div>
+                      <div style={s.analyticsSubTitle}>Donors who gave more than asked</div>
                       {overGivers.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
                       ) : (
