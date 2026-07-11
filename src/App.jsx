@@ -8435,9 +8435,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                     </div>
-                    {lastYearGrants.length > 0 && (
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearGrants.length} grant{lastYearGrants.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} secured</div>
-                    )}
+                    
 
                     {activeGrants.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
