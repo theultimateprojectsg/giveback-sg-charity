@@ -8284,18 +8284,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const cur = statsForYear(yr)
                 const prev = statsForYear(yr - 1)
                 const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+                const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
+                const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
                 const tiles = [
                   { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations tagged to a campaign in ${yr}, compared to ${yr - 1}. Excludes grants, mass appeals, and other donations not tied to a campaign.` },
                   { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns that received at least one confirmed donation in ${yr}, compared to ${yr - 1}.` },
                   { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any campaign in ${yr}, compared to ${yr - 1}. A donor giving to multiple campaigns is only counted once.` },
-                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.`, extra: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null },
                 ]
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
@@ -8303,6 +8306,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
                           </div>
                         )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
+                const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
+                const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
+                const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
+
+                const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === yr)
+                const donorCampaignSets = {}
+                yearScopedCampaignDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
+                  donorCampaignSets[key].add(d.cause_id)
+                })
+                const donorKeysWithCampaign = Object.keys(donorCampaignSets)
+                const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
+                const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : 0
+
+                const timesToGoal = reachedGoalCampaigns.map(c => {
+                  const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                  let running = 0, crossDate = null
+                  for (const d of campDonationsSorted) {
+                    running += d.amount
+                    if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
+                  }
+                  return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
+                }).filter(d => d !== null)
+                const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
+
+                const strip = [
+                  { icon: '🎯', label: 'Goal Success Rate', val: withGoal.length > 0 ? `${reachedGoalCampaigns.length} of ${withGoal.length}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.' },
+                  { icon: '🤝', label: 'Cross-Campaign Loyalty', val: donorKeysWithCampaign.length > 0 ? `${loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${donorKeysWithCampaign.length} donor${donorKeysWithCampaign.length !== 1 ? 's' : ''}.` },
+                  { icon: '⏳', label: 'Avg Time to Goal', val: avgTimeToGoal !== null ? `${avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.' },
+                ]
+
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {strip.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0, padding: '12px 14px' }}>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.icon} {t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>{t.val}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{t.sub}</div>
                       </div>
                     ))}
                   </div>
@@ -8436,7 +8488,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             })}
                           </div>
                         )}
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Ranked by total raised. Rows in green are ahead of pace, red are behind or stalled.</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Ranked by total raised. Rows in green are ahead of pace, red are behind or stalled. ROI shown where cost is logged — {campaignRows.filter(r => r.cost > 0).length} of {campaignRows.length} campaign{campaignRows.length !== 1 ? 's' : ''} have cost data.</div>
                       </div>
 
                       <div>
