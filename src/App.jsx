@@ -8278,7 +8278,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     count: ds.length,
                     donors: donorKeys.size,
                     avgGift: ds.length > 0 ? total / ds.length : 0,
-                    campaignsRun: new Set(ds.map(d => d.cause_id)).size,
+                    campaignsRun: myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y).length,
                   }
                 }
                 const cur = statsForYear(yr)
@@ -8289,7 +8289,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
                 const tiles = [
                   { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations tagged to a campaign in ${yr}, compared to ${yr - 1}. Excludes grants, mass appeals, and other donations not tied to a campaign.` },
-                  { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns that received at least one confirmed donation in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns launched in ${yr}, compared to ${yr - 1}. Includes campaigns that received no donations.` },
                   { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any campaign in ${yr}, compared to ${yr - 1}. A donor giving to multiple campaigns is only counted once.` },
                   { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.`, extra: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null },
                 ]
@@ -8363,9 +8363,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {(() => {
                 const today = new Date()
-                const campaignRows = causePerformanceThisYear.filter(r => !r.isGeneral).map(row => {
+                const campaignsForLeaderboardYear = myCauses.filter(c => c.type === 'campaign' && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
+                const donatedRows = causePerformanceThisYear.filter(r => !r.isGeneral)
+                const donatedIds = new Set(donatedRows.map(r => r.id))
+                const zeroRows = campaignsForLeaderboardYear.filter(c => !donatedIds.has(c.id)).map(c => ({
+                  id: c.id, title: c.title, total: 0, count: 0, avg: 0, donors: 0,
+                  cost: c.cost || 0, target_amount: c.target_amount || null, end_date: c.end_date || null, created_at: c.created_at || null,
+                }))
+                const campaignRows = [...donatedRows, ...zeroRows].map(row => {
                   const hasGoal = row.target_amount && row.end_date
-                  let pctToGoal = null, pctElapsed = null, daysToEnd = null, isStalled = false, goalReached = false, behind = false, slightlyBehind = false
+                  let pctToGoal = null, pctElapsed = null, daysToEnd = null, goalReached = false, behind = false, slightlyBehind = false
                   if (hasGoal) {
                     const start = new Date(row.created_at)
                     const end = new Date(row.end_date)
@@ -8377,10 +8384,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
                     behind = !goalReached && gap !== null && gap >= 20
                     slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
-                    const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                    const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
-                    isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
                   }
+                  const isEnded = row.end_date ? new Date(row.end_date) < today : false
+                  const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  const daysSinceLastGift = campDonations.length > 0
+                    ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24))
+                    : (row.created_at ? Math.floor((today - new Date(row.created_at)) / (1000 * 60 * 60 * 24)) : null)
+                  const isStalled = !isEnded && daysSinceLastGift !== null && daysSinceLastGift >= 14
                   return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
                 }).sort((a, b) => b.total - a.total)
 
@@ -8436,14 +8446,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     <div style={isMobile ? s.twoColMobile : s.twoCol}>
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text="Campaigns ranked by total raised, highest to lowest. Shows progress toward each campaign's goal where one has been set, and flags campaigns with no gifts in 14+ days as stalled." /></div>
+                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text="All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set, and flags any campaign with no gifts in 14+ days as stalled, whether or not it has a goal." /></div>
                         {campaignRows.length === 0 ? (
-                          <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                          <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {campaignRows.map((row, i) => {
-                              const bg = row.hasGoal ? (row.isStalled || row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.goalReached ? '#EAF3DE' : C.ivory) : C.ivory
-                              const accentColor = row.hasGoal ? (row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : row.goalReached ? '#27500A' : C.text) : C.forest
+                              const bg = row.isStalled || row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
+                              const accentColor = row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
                               const barColor = row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
                               let statusText = null
                               if (row.hasGoal) {
@@ -8452,13 +8462,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 else if (row.behind) statusText = 'behind pace'
                                 else if (row.slightlyBehind) statusText = 'slightly behind'
                                 else statusText = 'on pace'
+                              } else if (row.isStalled) {
+                                statusText = row.count === 0 ? 'no donations since launch — stalled' : 'no gifts in 14+ days — stalled'
                               }
                               return (
                                 <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal ? 8 : 2 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal || statusText ? 8 : 2 }}>
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
-                                      <div style={{ fontSize: 10.5, color: C.muted }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                                      <div style={{ fontSize: 10.5, color: C.muted }}>{row.count === 0 ? 'No donations yet' : `${row.count} donation${row.count > 1 ? 's' : ''} · ${row.donors} donor${row.donors > 1 ? 's' : ''} · avg $${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 16 }}>
                                       <div style={{ textAlign: 'right' }}>
@@ -8473,7 +8485,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                       )}
                                     </div>
                                   </div>
-                                  {row.hasGoal && (
+                                  {row.hasGoal ? (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
                                         <div style={{ width: `${Math.min(100, row.pctToGoal)}%`, height: '100%', background: barColor }} />
@@ -8482,6 +8494,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                         {row.pctToGoal}% of goal · {row.daysToEnd >= 0 ? `ends in ${row.daysToEnd}d` : 'ended'} · {statusText}
                                       </span>
                                     </div>
+                                  ) : statusText && (
+                                    <div style={{ fontSize: 10.5, color: accentColor, fontWeight: 500 }}>{statusText}</div>
                                   )}
                                 </div>
                               )
