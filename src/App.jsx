@@ -3441,6 +3441,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         avg: stats.total / stats.count,
         donors: stats.donors.size,
         cost: cause?.cost || 0,
+        target_amount: cause?.target_amount || null,
+        end_date: cause?.end_date || null,
+        created_at: cause?.created_at || null,
       }
     }).sort((a, b) => b.total - a.total)
     if (generalCount > 0) {
@@ -8039,25 +8042,59 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
                 <div style={s.card}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Performance — {filterYear} <InfoTip text="Total raised, donation count, and donor count per campaign this year, ranked highest to lowest. Includes cost and ROI where a campaign cost has been set." /></div>
+                  <div style={s.analyticsCardTitle}>Campaign Performance — {filterYear} <InfoTip text="Total raised and ROI per campaign this year, ranked highest to lowest, with progress toward each campaign's goal where one has been set." /></div>
                   {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {row.title}</div>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                            {row.cost > 0 && (
-                              <div style={{ fontSize: 11, color: row.total >= row.cost ? C.sage : C.red, marginTop: 2, fontWeight: 500 }}>
-                                Cost ${row.cost.toLocaleString()} · ROI {(row.total / row.cost).toFixed(1)}×
+                      {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => {
+                        const hasGoal = row.target_amount && row.end_date
+                        let pctToGoal = null, pctElapsed = null, daysToEnd = null, paceColor = C.sage
+                        if (hasGoal) {
+                          const today = new Date()
+                          const start = new Date(row.created_at)
+                          const end = new Date(row.end_date)
+                          pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
+                          const totalSpan = end - start
+                          pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
+                          daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+                          const goalReached = row.total >= Number(row.target_amount)
+                          const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
+                          paceColor = goalReached ? C.sage : gap !== null && gap >= 20 ? C.red : gap !== null && gap >= 8 ? C.gold : C.sage
+                        }
+                        return (
+                          <div key={i} style={{ padding: '14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 2 }}>{row.title}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 20, flexShrink: 0, marginLeft: 16 }}>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
+                                  <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
+                                </div>
+                                {row.cost > 0 && (
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
+                                    <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {hasGoal && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                  <div style={{ width: `${Math.min(100, pctToGoal)}%`, height: '100%', background: paceColor }} />
+                                </div>
+                                <span style={{ fontSize: 10.5, color: paceColor, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                  {row.total >= Number(row.target_amount) ? 'Goal reached' : `${pctToGoal}% of goal`} · {daysToEnd >= 0 ? `ends in ${daysToEnd}d` : 'ended'}
+                                </span>
                               </div>
                             )}
                           </div>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${row.total.toLocaleString()}</div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                   </div>
