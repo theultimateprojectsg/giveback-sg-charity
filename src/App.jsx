@@ -8917,6 +8917,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const prevDelivery = deliveryStatsForYear(yr - 1)
                   const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
 
+                  const bounceReasons = (() => {
+                    const ids = appealIdsInYear(yr)
+                    const bounced = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'failed')
+                    const counts = {}
+                    bounced.forEach(r => {
+                      const reason = r.error_message?.trim() || 'Unknown error'
+                      counts[reason] = (counts[reason] || 0) + 1
+                    })
+                    return Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count)
+                  })()
+
                   const byDonor = {}
                   allAppealRecipients.forEach(r => {
                     const key = r.donor_email?.trim() || r.donor_name
@@ -8975,6 +8986,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>donors who blocked appeals</div>
                         </div>
                       </div>
+
+                      {bounceReasons.length > 0 && (
+                        <>
+                          <div style={s.analyticsSubTitleDivider}>Top bounce reasons</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                            {bounceReasons.slice(0, 5).map((r, i) => (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{r.reason}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                         <div>
