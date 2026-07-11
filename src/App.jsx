@@ -7995,10 +7995,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              {filterYear !== 'All' && (
+              {(() => {
+                const allYearsWithData = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithData.slice(-5)
+                if (trendYears.length < 2) return null
+                const trendData = trendYears.map(y => ({
+                  year: y.toString(),
+                  total: donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y).reduce((s, d) => s + d.amount, 0),
+                }))
+                const firstYr = trendData[0]
+                const lastYr = trendData[trendData.length - 1]
+                const cagr = firstYr.total > 0 && trendData.length > 1 ? Math.round((Math.pow(lastYr.total / firstYr.total, 1 / (trendData.length - 1)) - 1) * 100) : null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                        <XAxis dataKey="year" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                        <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
+                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    {cagr !== null && (
+                      <div style={{ fontSize: 11.5, color: cagr >= 0 ? C.sage : C.red, fontWeight: 500, marginTop: 10 }}>
+                        {cagr >= 0 ? '✓' : '⚠'} {Math.abs(cagr)}% average annual growth from {firstYr.year} to {lastYr.year}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const goalYear = new Date().getFullYear()
+                const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+                return (
                 <div style={{ ...s.card, marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
-                    <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {filterYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
+                    <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above." /></div>
                     {!editingGoal && (
                       <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
                         {annualGoal ? 'Edit' : '+ Set Goal'}
@@ -8014,20 +8049,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : annualGoal ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={s.analyticsStatNumber}>${totalThisYear.toLocaleString()}</span>
+                        <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
                         <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
                       </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, Math.round((totalThisYear / annualGoal) * 100))}%`, height: '100%', background: totalThisYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
+                        <div style={{ width: `${Math.min(100, Math.round((totalThisGoalYear / annualGoal) * 100))}%`, height: '100%', background: totalThisGoalYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisYear / annualGoal) * 100)}% of goal reached</div>
-                      {parseInt(filterYear) === new Date().getFullYear() && (() => {
-                        const yearStart = new Date(parseInt(filterYear), 0, 1)
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
+                      {(() => {
+                        const yearStart = new Date(goalYear, 0, 1)
                         const now5 = new Date()
-                        const yearEnd = new Date(parseInt(filterYear), 11, 31)
+                        const yearEnd = new Date(goalYear, 11, 31)
                         const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
                         const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
-                        const dailyRate = totalThisYear / daysElapsed
+                        const dailyRate = totalThisGoalYear / daysElapsed
                         const projectedTotal = Math.round(dailyRate * totalDaysInYear)
                         const onTrack = projectedTotal >= annualGoal
                         const gap = Math.abs(annualGoal - projectedTotal)
@@ -8044,7 +8079,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 11.5, color: C.muted }}>No goal set for this year yet.</div>
                   )}
                 </div>
-              )}
+                )
+              })()}
 
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
