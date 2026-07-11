@@ -3435,6 +3435,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const rows = Object.entries(map).map(([causeId, stats]) => {
       const cause = myCauses.find(c => c.id === causeId)
       return {
+        id: causeId,
         title: cause?.title || 'Unknown Campaign',
         total: stats.total,
         count: stats.count,
@@ -8308,143 +8309,39 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              <div style={isMobile ? s.threeColMobile : s.threeCol}>
-              {causePerformanceThisYear.length > 0 && (
-                <div style={s.card}>
-                  <div style={s.analyticsCardTitle}>Campaign Performance — {filterYear} <InfoTip text="Total raised and ROI per campaign this year, ranked highest to lowest, with progress toward each campaign's goal where one has been set." /></div>
-                  {causePerformanceThisYear.filter(r => !r.isGeneral).length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {causePerformanceThisYear.filter(r => !r.isGeneral).map((row, i) => {
-                        const hasGoal = row.target_amount && row.end_date
-                        let pctToGoal = null, pctElapsed = null, daysToEnd = null, paceColor = C.sage
-                        if (hasGoal) {
-                          const today = new Date()
-                          const start = new Date(row.created_at)
-                          const end = new Date(row.end_date)
-                          pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
-                          const totalSpan = end - start
-                          pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
-                          daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
-                          const goalReached = row.total >= Number(row.target_amount)
-                          const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
-                          paceColor = goalReached ? C.sage : gap !== null && gap >= 20 ? C.red : gap !== null && gap >= 8 ? C.gold : C.sage
-                        }
-                        return (
-                          <div key={i} style={{ padding: '14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 2 }}>{row.title}</div>
-                                <div style={{ fontSize: 10.5, color: C.muted }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 20, flexShrink: 0, marginLeft: 16 }}>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
-                                  <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
-                                </div>
-                                {row.cost > 0 && (
-                                  <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
-                                    <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            {hasGoal && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                  <div style={{ width: `${Math.min(100, pctToGoal)}%`, height: '100%', background: paceColor }} />
-                                </div>
-                                <span style={{ fontSize: 10.5, color: paceColor, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                                  {row.total >= Number(row.target_amount) ? 'Goal reached' : `${pctToGoal}% of goal`} · {daysToEnd >= 0 ? `ends in ${daysToEnd}d` : 'ended'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                  </div>
-              )}
-
               {(() => {
                 const today = new Date()
-                const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
+                const campaignRows = causePerformanceThisYear.filter(r => !r.isGeneral).map(row => {
+                  const hasGoal = row.target_amount && row.end_date
+                  let pctToGoal = null, pctElapsed = null, daysToEnd = null, isStalled = false, goalReached = false, behind = false, slightlyBehind = false
+                  if (hasGoal) {
+                    const start = new Date(row.created_at)
+                    const end = new Date(row.end_date)
+                    pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
+                    const totalSpan = end - start
+                    pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
+                    daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+                    goalReached = row.total >= Number(row.target_amount)
+                    const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
+                    behind = !goalReached && gap !== null && gap >= 20
+                    slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
+                    const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
+                    isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
+                  }
+                  return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
+                }).sort((a, b) => b.total - a.total)
 
-                const paceData = campaignsWithGoalAndDate.map(c => {
-                  const raised = causeRaisedMap[c.id]?.total || 0
-                  const start = new Date(c.created_at)
-                  const end = new Date(c.end_date)
-                  const totalSpan = end - start
-                  const elapsed = today - start
-                  const pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
-                  const pctRaised = Math.round((raised / Number(c.target_amount)) * 100)
-                  const daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+                const endingSoon = campaignRows.filter(r => r.hasGoal && r.daysToEnd !== null && r.daysToEnd >= 0 && r.daysToEnd <= 7).sort((a, b) => a.daysToEnd - b.daysToEnd)
 
-                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                  const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
-                  const isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
-
-                  const goalReached = raised >= Number(c.target_amount)
-                  const gap = pctElapsed !== null ? pctElapsed - pctRaised : null
-                  const behind = !goalReached && gap !== null && gap >= 20
-                  const slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
-
-                  return { cause: c, raised, pctElapsed, pctRaised, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
-                }).sort((a, b) => a.cause.title.localeCompare(b.cause.title))
-
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Campaign Pace to Goal <InfoTip text="Compares how much of a campaign's timeline has passed against how much of its goal has been raised, and flags campaigns with no gifts in 14+ days as stalled. Only includes campaigns with both a target amount and an end date set." /></div>
-
-                    {paceData.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with both a goal and end date set yet.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {paceData.map((p, i) => {
-                          const bg = p.isStalled || p.behind ? '#FBEEE9' : p.slightlyBehind ? '#FDF8EC' : p.goalReached ? '#EAF3DE' : C.ivory
-                          const textColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : p.goalReached ? '#27500A' : C.text
-                          const barColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : C.sage
-                          let verdict
-                          if (p.isStalled) verdict = `No gifts in ${(() => { const last = donations.filter(d => d.cause_id === p.cause.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; return last ? Math.floor((today - new Date(last.created_at)) / (1000 * 60 * 60 * 24)) : '14+' })()} days — stalled`
-                          else if (p.goalReached) verdict = 'Goal already reached — ahead of pace'
-                          else if (p.behind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — behind pace`
-                          else if (p.slightlyBehind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — slightly behind`
-                          else verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — on pace`
-                          return (
-                            <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{p.cause.title}</span>
-                                <span style={{ fontSize: 11, color: textColor }}>{p.daysToEnd >= 0 ? `ends in ${p.daysToEnd}d` : 'ended'}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                  <div style={{ width: `${Math.min(100, p.pctRaised)}%`, height: '100%', background: barColor }} />
-                                </div>
-                                <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${p.raised.toLocaleString()} of ${Number(p.cause.target_amount).toLocaleString()}</span>
-                              </div>
-                              <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
                 const yearScopedDonations = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
                 const scopedCampaigns = myCauses.filter(c => c.type === 'campaign' && yearScopedDonations.some(d => d.cause_id === c.id && d.payment_status === 'confirmed'))
-                if (scopedCampaigns.length === 0) return null
                 const donorFirstSeenDate = {}
                 ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                   if (!donorFirstSeenDate[key]) donorFirstSeenDate[key] = d.created_at
                 })
-                const rows = scopedCampaigns.map(c => {
+                const donorGrowthRows = scopedCampaigns.map(c => {
                   const campDonations = yearScopedDonations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
                   const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
                   let brandNewCount = 0
@@ -8465,35 +8362,131 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
                     hasAppeal: appealTotal > 0,
                   }
-                }).sort((a, b) => a.title.localeCompare(b.title))
+                }).sort((a, b) => b.total - a.total)
+
+                const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
+                const allYearsWithCampaignData = [...new Set(donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id)).map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithCampaignData.slice(-5)
+                const trendData = trendYears.map(y => {
+                  const ds = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
+                  const total = ds.reduce((s, d) => s + d.amount, 0)
+                  const campaignsThatYear = new Set(ds.map(d => d.cause_id)).size
+                  return { year: y.toString(), avgPerCampaign: campaignsThatYear > 0 ? Math.round(total / campaignsThatYear) : 0, campaignsThatYear }
+                })
+
                 return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="For each campaign: the share of donors who are brand new vs. already known, and where the money actually came from — organic giving, a mass appeal (traced by PayNow reference), or donor referrals." /></div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {rows.map((r, i) => (
-                        <div key={i} style={{ padding: '12px 14px', background: r.appealPct >= 50 ? C.warningBg : C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{r.title}</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: r.newPct >= 50 ? C.sage : C.warning }}>{r.newPct}% new donors</div>
+                  <>
+                    {endingSoon.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                        <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map(r => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
+                      </div>
+                    )}
+
+                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text="Campaigns ranked by total raised, highest to lowest. Shows progress toward each campaign's goal where one has been set, and flags campaigns with no gifts in 14+ days as stalled." /></div>
+                        {campaignRows.length === 0 ? (
+                          <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaign-tagged donations {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {campaignRows.map((row, i) => {
+                              const bg = row.hasGoal ? (row.isStalled || row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.goalReached ? '#EAF3DE' : C.ivory) : C.ivory
+                              const accentColor = row.hasGoal ? (row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : row.goalReached ? '#27500A' : C.text) : C.forest
+                              const barColor = row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
+                              let statusText = null
+                              if (row.hasGoal) {
+                                if (row.isStalled) statusText = 'no gifts in 14+ days — stalled'
+                                else if (row.goalReached) statusText = 'goal reached'
+                                else if (row.behind) statusText = 'behind pace'
+                                else if (row.slightlyBehind) statusText = 'slightly behind'
+                                else statusText = 'on pace'
+                              }
+                              return (
+                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal ? 8 : 2 }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
+                                      <div style={{ fontSize: 10.5, color: C.muted }}>{row.count} donation{row.count > 1 ? 's' : ''} · {row.donors} donor{row.donors > 1 ? 's' : ''} · avg ${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 16 }}>
+                                      <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
+                                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
+                                      </div>
+                                      {row.cost > 0 && (
+                                        <div style={{ textAlign: 'right' }}>
+                                          <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
+                                          <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {row.hasGoal && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                        <div style={{ width: `${Math.min(100, row.pctToGoal)}%`, height: '100%', background: barColor }} />
+                                      </div>
+                                      <span style={{ fontSize: 10.5, color: accentColor, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                        {row.pctToGoal}% of goal · {row.daysToEnd >= 0 ? `ends in ${row.daysToEnd}d` : 'ended'} · {statusText}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
-                          <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
-                            {r.newCount} new donor{r.newCount !== 1 ? 's' : ''} · {r.existingCount} existing donor{r.existingCount !== 1 ? 's' : ''} · avg ${r.avgPerDonor.toLocaleString(undefined, { maximumFractionDigits: 0 })}/donor
+                        )}
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Ranked by total raised. Rows in green are ahead of pace, red are behind or stalled.</div>
+                      </div>
+
+                      <div>
+                        {trendData.length >= 2 && (
+                          <div style={{ ...s.card, marginBottom: 16 }}>
+                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
+                            <ResponsiveContainer width="100%" height={140}>
+                              <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                                <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Avg per campaign']} />
+                                <Bar dataKey="avgPerCampaign" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
                           </div>
-                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 6 }}>
-                            {r.organicPct > 0 && <div style={{ width: `${r.organicPct}%`, background: C.sage }} />}
-                            {r.appealPct > 0 && <div style={{ width: `${r.appealPct}%`, background: C.gold }} />}
-                            {r.referralPct > 0 && <div style={{ width: `${r.referralPct}%`, background: C.muted }} />}
+                        )}
+
+                        {donorGrowthRows.length > 0 && (
+                          <div style={s.card}>
+                            <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="For each campaign: the share of donors who are brand new vs. already known, and where the money actually came from — organic giving, a mass appeal (traced by PayNow reference), or donor referrals." /></div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              {donorGrowthRows.map((r, i) => (
+                                <div key={i} style={{ padding: '12px 14px', background: r.appealPct >= 50 ? C.warningBg : C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{r.title}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: r.newPct >= 50 ? C.sage : C.warning }}>{r.newPct}% new donors</div>
+                                  </div>
+                                  <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
+                                    {r.newCount} new donor{r.newCount !== 1 ? 's' : ''} · {r.existingCount} existing donor{r.existingCount !== 1 ? 's' : ''} · avg ${r.avgPerDonor.toLocaleString(undefined, { maximumFractionDigits: 0 })}/donor
+                                  </div>
+                                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 6 }}>
+                                    {r.organicPct > 0 && <div style={{ width: `${r.organicPct}%`, background: C.sage }} />}
+                                    {r.appealPct > 0 && <div style={{ width: `${r.appealPct}%`, background: C.gold }} />}
+                                    {r.referralPct > 0 && <div style={{ width: `${r.referralPct}%`, background: C.muted }} />}
+                                  </div>
+                                  <div style={{ fontSize: 10.5, color: r.appealPct >= 50 ? C.warning : C.muted }}>
+                                    {r.organicPct}% organic · {r.appealPct}% mass appeal · {r.referralPct}% referral{!r.hasAppeal ? ' — no appeal sent yet' : r.appealPct >= 50 ? ' — heavily reliant on that appeal' : ''}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div style={{ fontSize: 10.5, color: r.appealPct >= 50 ? C.warning : C.muted }}>
-                            {r.organicPct}% organic · {r.appealPct}% mass appeal · {r.referralPct}% referral{!r.hasAppeal ? ' — no appeal sent yet' : r.appealPct >= 50 ? ' — heavily reliant on that appeal' : ''}
-                          </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )
               })()}
-              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
