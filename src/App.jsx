@@ -8065,7 +8065,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={s.card}>
                     <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ResponsiveContainer width="100%" height={130}>
                       <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                         <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -8203,6 +8203,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={s.card}>
                     <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                    <div style={{ minHeight: 22 }} />
                     {totalNew === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
@@ -8222,12 +8223,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 <div style={s.card}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
-                  {filterYear !== 'All' && (
-                    <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
-                      <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
-                      <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
-                    </div>
-                  )}
+                  <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
+                    {filterYear !== 'All' && (
+                      <>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
+                      </>
+                    )}
+                  </div>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -8241,6 +8244,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 <div style={s.card}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
+                  <div style={{ minHeight: 22 }} />
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
