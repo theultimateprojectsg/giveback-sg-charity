@@ -4295,6 +4295,353 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { missedFiltered, frequentSkippers }
   }, [giroMissedCycles, recurringSkipHistory, recurringGifts])
 
+  const grantSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+    const statsForYear = (y) => {
+      const gs = grants.filter(g => grantYearOf(g) === y)
+      const total = gs.reduce((s, g) => s + Number(g.amount), 0)
+      return { total, count: gs.length, avg: gs.length > 0 ? total / gs.length : 0 }
+    }
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const activeGrantsCount = grants.filter(g => g.status === 'active').length
+    const tiles = [
+      { label: 'Grants Awarded', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of grants with a start date in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Total Secured', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of grants awarded in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Avg Grant Size', val: `$${cur.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avg, prev.avg), tip: `Average grant amount awarded in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
+    ]
+    return { yr, tiles }
+  }, [filterYear, grants])
+
+  const grantOverviewStats = React.useMemo(() => {
+    const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+    const allYearsWithGrants = [...new Set(grants.map(grantYearOf))].sort((a, b) => a - b)
+    const trendYears = allYearsWithGrants.slice(-5)
+    const trendData = trendYears.map(y => ({
+      year: y.toString(),
+      total: grants.filter(g => grantYearOf(g) === y).reduce((s, g) => s + Number(g.amount), 0),
+    }))
+
+    const activeGrantsList = grants.filter(g => g.status === 'active')
+    const totalActiveAmount = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+    const totalUtilized = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+    const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
+
+    const activeGrants = grants.filter(g => g.status === 'active')
+    const today = new Date()
+
+    const totalActive = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
+    const byFunder = activeGrants.map(g => ({
+      funder_name: g.funder_name,
+      amount: Number(g.amount),
+      pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+    const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
+    const highRisk = byFunder.length >= 2 && topFunderPct >= 60
+    const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
+    const tooFewFunders = byFunder.length < 2
+
+    const sixMonthsOut = new Date()
+    sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
+    const expiringSoon = activeGrants.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
+
+    return { trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon }
+  }, [grants, grantExpenses])
+
+  const donorRetentionSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const donorMap = {}
+    donations.filter(d => d.payment_status === 'confirmed').forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorMap[key]) donorMap[key] = { total: 0, count: 0, years: new Set() }
+      donorMap[key].total += d.amount
+      donorMap[key].count += 1
+      donorMap[key].years.add(new Date(d.created_at).getFullYear())
+    })
+    const allDonors = Object.values(donorMap)
+    const repeatCount = allDonors.filter(d => d.count >= 2).length
+    const repeatDonorRate = allDonors.length > 0 ? Math.round((repeatCount / allDonors.length) * 100) : 0
+    const avgLTV = allDonors.length > 0 ? Math.round(allDonors.reduce((s, d) => s + d.total, 0) / allDonors.length) : 0
+
+    const priorYearDonors = allDonors.filter(d => d.years.has(yr - 1))
+    const retainedDonors = priorYearDonors.filter(d => d.years.has(yr))
+    const retentionRate = priorYearDonors.length > 0 ? Math.round((retainedDonors.length / priorYearDonors.length) * 100) : null
+
+    const activeCount = allDonors.filter(d => d.years.has(yr)).length
+    const lapsedCount = allDonors.filter(d => !d.years.has(yr) && Math.max(...d.years) < yr).length
+
+    return { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount }
+  }, [filterYear, donations])
+
+  const lapsedDonorsStats = React.useMemo(() => {
+    const lapsedToday = new Date()
+    const map = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
+        map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
+      }
+      map[key].count++
+      map[key].total += d.amount
+    })
+    const allLapsed = Object.values(map).filter(d => {
+      const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+      return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
+    }).map(d => ({ ...d, key: d.email?.trim() || d.name })).sort((a, b) => b.total - a.total)
+
+    const isInReachOutCooldown = (donorKey) => {
+      const history = lapsedReminderHistory[donorKey]
+      if (!history || history.length === 0) return false
+      const daysSinceReminder = Math.floor((lapsedToday - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+      return daysSinceReminder < 30
+    }
+
+    const activeLapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key))
+    const dismissedLapsed = allLapsed.filter(d => lapsedDismissals[d.key])
+
+    return { activeLapsed, dismissedLapsed }
+  }, [confirmedDonations, lapsedMinDays, lapsedMinGifts, lapsedDismissals, lapsedReminderHistory])
+
+  const quietDonorsStats = React.useMemo(() => {
+    const byDonor = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!byDonor[key]) byDonor[key] = { name: d.donor_name, email: d.donor_email, dates: [] }
+      byDonor[key].dates.push(new Date(d.created_at))
+    })
+    const now4 = new Date()
+    const quiet = Object.values(byDonor).map(donor => {
+      const sorted = donor.dates.sort((a, b) => a - b)
+      if (sorted.length < 3) return null
+      const gaps = []
+      for (let i = 1; i < sorted.length; i++) {
+        gaps.push((sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24))
+      }
+      const avgGapDays = gaps.reduce((s, g) => s + g, 0) / gaps.length
+      const daysSinceLast = (now4 - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
+      if (avgGapDays > 0 && avgGapDays < 60 && daysSinceLast > avgGapDays * 2 && daysSinceLast < 365) {
+        return { name: donor.name, email: donor.email, avgGapDays: Math.round(avgGapDays), daysSinceLast: Math.round(daysSinceLast), lastGift: sorted[sorted.length - 1] }
+      }
+      return null
+    }).filter(Boolean).sort((a, b) => b.daysSinceLast - a.daysSinceLast).slice(0, 8)
+    return quiet
+  }, [confirmedDonations])
+
+  const quietlyPayingStats = React.useMemo(() => {
+    const yearAgo75 = new Date()
+    yearAgo75.setFullYear(yearAgo75.getFullYear() - 1)
+    const activeRecurringDonors75 = recurringGifts.filter(g => g.status === 'active')
+    return activeRecurringDonors75.map(g => {
+      const donorKey75 = g.donor_email?.trim() || g.donor_name
+      const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const lastContact75 = myNotes75[0]?.created_at || null
+      const isQuiet75 = !lastContact75 || new Date(lastContact75) < yearAgo75
+      if (!isQuiet75) return null
+      return {
+        name: g.donor_name,
+        email: g.donor_email,
+        amount: g.amount,
+        frequency: g.frequency,
+        lastContact: lastContact75,
+      }
+    }).filter(Boolean)
+  }, [recurringGifts, donorNotes])
+
+  const donorHighlightsStats = React.useMemo(() => {
+    const yearScopedConfirmed = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+    if (yearScopedConfirmed.length === 0) return []
+
+    const byDonorTotal = {}
+    yearScopedConfirmed.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!byDonorTotal[key]) byDonorTotal[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, firstYear: null }
+      byDonorTotal[key].total += d.amount
+      byDonorTotal[key].count += 1
+    })
+    const topDonor = Object.values(byDonorTotal).sort((a, b) => b.total - a.total)[0]
+    const mostFrequent = Object.values(byDonorTotal).sort((a, b) => b.count - a.count)[0]
+    const largestGift = [...yearScopedConfirmed].sort((a, b) => b.amount - a.amount)[0]
+
+    const donorFirstEverYear = {}
+    ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorFirstEverYear[key]) donorFirstEverYear[key] = new Date(d.created_at).getFullYear()
+    })
+    const firstTimeGiftsThisPeriod = yearScopedConfirmed.filter(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      return donorFirstEverYear[key] === new Date(d.created_at).getFullYear()
+    })
+    const standoutNewDonor = [...firstTimeGiftsThisPeriod].sort((a, b) => b.amount - a.amount)[0]
+
+    return [
+      topDonor && { icon: '🏆', label: 'Top donor', name: topDonor.name, sub: `$${topDonor.total.toLocaleString()} across ${topDonor.count} gift${topDonor.count > 1 ? 's' : ''}`, donor: { name: topDonor.name, email: topDonor.email, total: topDonor.total, count: topDonor.count } },
+      largestGift && { icon: '💎', label: 'Largest single gift', name: largestGift.donor_name, sub: `$${Number(largestGift.amount).toLocaleString()} on ${new Date(largestGift.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}`, donor: { name: largestGift.donor_name, email: largestGift.donor_email, total: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.total || largestGift.amount, count: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.count || 1 } },
+      mostFrequent && { icon: '🔁', label: 'Most frequent giver', name: mostFrequent.name, sub: `${mostFrequent.count} donations, $${mostFrequent.total.toLocaleString()} total`, donor: { name: mostFrequent.name, email: mostFrequent.email, total: mostFrequent.total, count: mostFrequent.count } },
+      standoutNewDonor && { icon: '✨', label: 'Standout new supporter', name: standoutNewDonor.donor_name, sub: `First gift: $${Number(standoutNewDonor.amount).toLocaleString()}`, donor: { name: standoutNewDonor.donor_name, email: standoutNewDonor.donor_email, total: standoutNewDonor.amount, count: 1 } },
+    ].filter(Boolean)
+  }, [filterYear, donations])
+
+  const givingStreaksStats = React.useMemo(() => {
+    const byDonorMonths = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      const dt = new Date(d.created_at)
+      const monthKey = `${dt.getFullYear()}-${dt.getMonth()}`
+      if (!byDonorMonths[key]) byDonorMonths[key] = { name: d.donor_name, email: d.donor_email, months: new Set() }
+      byDonorMonths[key].months.add(monthKey)
+    })
+    const now3 = new Date()
+    return Object.values(byDonorMonths).map(donor => {
+      const sortedMonths = [...donor.months].map(m => { const [y, mo] = m.split('-').map(Number); return y * 12 + mo }).sort((a, b) => b - a)
+      const currentMonthIdx = now3.getFullYear() * 12 + now3.getMonth()
+      if (sortedMonths[0] < currentMonthIdx - 1) return { ...donor, streak: 0 }
+      let streak = 1
+      for (let i = 0; i < sortedMonths.length - 1; i++) {
+        if (sortedMonths[i] - sortedMonths[i + 1] === 1) streak++
+        else break
+      }
+      return { ...donor, streak }
+    }).filter(d => d.streak >= 3).sort((a, b) => b.streak - a.streak).slice(0, 8)
+  }, [confirmedDonations])
+
+  const donorLTVStats = React.useMemo(() => {
+    if (confirmedDonations.length === 0) return null
+    const map = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
+      map[key].total += d.amount
+      map[key].count++
+      if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
+    })
+    const sorted = Object.values(map).sort((a, b) => b.total - a.total)
+    const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
+    const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+    const now59 = new Date()
+    const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
+    const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
+    const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
+    const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
+    const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
+    return { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 }
+  }, [confirmedDonations])
+
+  const paymentMixStats = React.useMemo(() => {
+    const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+    if (scoped.length === 0) return null
+    const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
+    const byMethod = {}
+    scoped.forEach(d => {
+      const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+      if (!byMethod[label]) byMethod[label] = 0
+      byMethod[label] += d.amount
+    })
+    const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
+
+    const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
+    const allMethods61 = [...new Set(rows.map(r => r.label))]
+    const yearlyMix61 = allYears61.map(y => {
+      const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+      const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
+      const mix = {}
+      allMethods61.forEach(m => { mix[m] = 0 })
+      yearDons.forEach(d => {
+        const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+        mix[label] = (mix[label] || 0) + d.amount
+      })
+      return { year: y, mix, total: yearTotal }
+    })
+
+    return { rows, allYears61, allMethods61, yearlyMix61 }
+  }, [filterYear, donations])
+
+  const fundingConcentrationStats = React.useMemo(() => {
+    const donorTotals = {}
+    confirmedDonations.forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
+      donorTotals[key].total += d.amount
+      donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
+    })
+    const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
+    const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
+    const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
+    const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
+    const tooFewDonors = sorted.length < concentrationTopN * 3
+    const highRisk = !tooFewDonors && concentrationPct >= 70
+    const medRisk = !tooFewDonors && concentrationPct >= 50
+    const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
+
+    const quarterAgo = new Date()
+    quarterAgo.setDate(quarterAgo.getDate() - 90)
+    const priorDonorTotals = {}
+    confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
+      priorDonorTotals[key] += d.amount
+    })
+    const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
+    const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
+    const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
+    const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
+    const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
+
+    return { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend }
+  }, [confirmedDonations, concentrationTopN])
+
+  const topConnectorsStats = React.useMemo(() => {
+    const referrals78 = donations.filter(d => d.referred_by_donor_key)
+    if (referrals78.length === 0) return []
+    const byReferrer78 = {}
+    referrals78.forEach(d => {
+      const referrerKey = d.referred_by_donor_key
+      const referredKey = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!byReferrer78[referrerKey]) byReferrer78[referrerKey] = { referredDonors: {} }
+      if (!byReferrer78[referrerKey].referredDonors[referredKey]) byReferrer78[referrerKey].referredDonors[referredKey] = 0
+      byReferrer78[referrerKey].referredDonors[referredKey]++
+    })
+    return Object.entries(byReferrer78).map(([referrerKey, info]) => {
+      const referrer = donorList.find(d => (d.email?.trim() || d.name) === referrerKey)
+      const referredCount = Object.keys(info.referredDonors).length
+      const sustainedCount = Object.values(info.referredDonors).filter(c => c > 1).length
+      return { name: referrer?.name || referrerKey, referredCount, sustainedCount }
+    }).sort((a, b) => b.sustainedCount - a.sustainedCount || b.referredCount - a.referredCount)
+  }, [donations, donorList])
+
+  const acquisitionSourceStats = React.useMemo(() => {
+    const bySource57 = {}
+    donations.filter(d => d.acquisition_source).forEach(d => {
+      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
+      if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
+      bySource57[d.acquisition_source][key]++
+    })
+    const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+    return Object.entries(bySource57).map(([source, donorCounts]) => {
+      const donorKeys = Object.keys(donorCounts)
+      const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
+      return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
+    }).sort((a, b) => b.totalDonors - a.totalDonors)
+  }, [donations])
+
+  const donationSizeBreakdownStats = React.useMemo(() => {
+    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
+    return [
+      { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
+      { label: '$50 — $200', min: 50, max: 200, color: C.sage },
+      { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
+      { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
+    ].map((bucket) => {
+      const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
+      const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
+      const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
+      return { ...bucket, count, total, pct }
+    })
+  }, [filterYear, donations])
+
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
@@ -9914,23 +10261,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
-                const statsForYear = (y) => {
-                  const gs = grants.filter(g => grantYearOf(g) === y)
-                  const total = gs.reduce((s, g) => s + Number(g.amount), 0)
-                  return { total, count: gs.length, avg: gs.length > 0 ? total / gs.length : 0 }
-                }
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-                const activeGrantsCount = grants.filter(g => g.status === 'active').length
-                const tiles = [
-                  { label: 'Grants Awarded', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of grants with a start date in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Total Secured', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of grants awarded in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Avg Grant Size', val: `$${cur.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avg, prev.avg), tip: `Average grant amount awarded in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
-                ]
+                const { yr, tiles } = grantSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
@@ -9953,20 +10284,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
-                const allYearsWithGrants = [...new Set(grants.map(grantYearOf))].sort((a, b) => a - b)
-                const trendYears = allYearsWithGrants.slice(-5)
-                const trendData = trendYears.map(y => ({
-                  year: y.toString(),
-                  total: grants.filter(g => grantYearOf(g) === y).reduce((s, g) => s + Number(g.amount), 0),
-                }))
-
-                const activeGrantsList = grants.filter(g => g.status === 'active')
-                const totalActiveAmount = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
-                const totalUtilized = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
-                const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
-
-                const activeGrants = grants.filter(g => g.status === 'active')
+                const { trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon } = grantOverviewStats
                 const today = new Date()
 
                 return (
@@ -10048,21 +10366,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
 
                     {(() => {
-                      const totalActive = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
-                      const byFunder = activeGrants.map(g => ({
-                        funder_name: g.funder_name,
-                        amount: Number(g.amount),
-                        pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
-                      })).sort((a, b) => b.amount - a.amount)
-                      const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
-                      const highRisk = byFunder.length >= 2 && topFunderPct >= 60
-                      const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
-                      const tooFewFunders = byFunder.length < 2
-
-                      const sixMonthsOut = new Date()
-                      sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
-                      const expiringSoon = activeGrants.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
-
                       return (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
@@ -10131,27 +10434,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const donorMap = {}
-                donations.filter(d => d.payment_status === 'confirmed').forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorMap[key]) donorMap[key] = { total: 0, count: 0, years: new Set() }
-                  donorMap[key].total += d.amount
-                  donorMap[key].count += 1
-                  donorMap[key].years.add(new Date(d.created_at).getFullYear())
-                })
-                const allDonors = Object.values(donorMap)
-                const repeatCount = allDonors.filter(d => d.count >= 2).length
-                const repeatDonorRate = allDonors.length > 0 ? Math.round((repeatCount / allDonors.length) * 100) : 0
-                const avgLTV = allDonors.length > 0 ? Math.round(allDonors.reduce((s, d) => s + d.total, 0) / allDonors.length) : 0
-
-                const priorYearDonors = allDonors.filter(d => d.years.has(yr - 1))
-                const retainedDonors = priorYearDonors.filter(d => d.years.has(yr))
-                const retentionRate = priorYearDonors.length > 0 ? Math.round((retainedDonors.length / priorYearDonors.length) * 100) : null
-
-                const activeCount = allDonors.filter(d => d.years.has(yr)).length
-                const lapsedCount = allDonors.filter(d => !d.years.has(yr) && Math.max(...d.years) < yr).length
-
+                const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
@@ -10182,32 +10465,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
               {(() => {
                 const lapsedToday = new Date()
-                const allLapsed = Object.values((() => {
-                  const map = {}
-                  confirmedDonations.forEach(d => {
-                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                    if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
-                      map[key] = { name: d.donor_name, email: d.donor_email, lastDate: d.created_at, count: 0, total: 0 }
-                    }
-                    map[key].count++
-                    map[key].total += d.amount
-                  })
-                  return map
-                })()).filter(d => {
-                  const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                  return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
-                }).map(d => ({ ...d, key: d.email?.trim() || d.name })).sort((a, b) => b.total - a.total)
-
-                const isInReachOutCooldown = (donorKey) => {
-                  const history = lapsedReminderHistory[donorKey]
-                  if (!history || history.length === 0) return false
-                  const daysSinceReminder = Math.floor((lapsedToday - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-                  return daysSinceReminder < 30
-                }
-
-                const activeLapsed = allLapsed.filter(d => !lapsedDismissals[d.key] && !isInReachOutCooldown(d.key))
+                const { activeLapsed, dismissedLapsed } = lapsedDonorsStats
                 const lapsed = showAllLapsedDonors ? activeLapsed : activeLapsed.slice(0, 5)
-                const dismissedLapsed = allLapsed.filter(d => lapsedDismissals[d.key])
 
                 return (
                   <div id="lapsed-donors-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
@@ -10290,29 +10549,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
-                const byDonor = {}
-                confirmedAll.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!byDonor[key]) byDonor[key] = { name: d.donor_name, email: d.donor_email, dates: [] }
-                  byDonor[key].dates.push(new Date(d.created_at))
-                })
-                const now4 = new Date()
-                const quiet = Object.values(byDonor).map(donor => {
-                  const sorted = donor.dates.sort((a, b) => a - b)
-                  if (sorted.length < 3) return null
-                  const gaps = []
-                  for (let i = 1; i < sorted.length; i++) {
-                    gaps.push((sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24))
-                  }
-                  const avgGapDays = gaps.reduce((s, g) => s + g, 0) / gaps.length
-                  const daysSinceLast = (now4 - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
-                  if (avgGapDays > 0 && avgGapDays < 60 && daysSinceLast > avgGapDays * 2 && daysSinceLast < 365) {
-                    return { name: donor.name, email: donor.email, avgGapDays: Math.round(avgGapDays), daysSinceLast: Math.round(daysSinceLast), lastGift: sorted[sorted.length - 1] }
-                  }
-                  return null
-                }).filter(Boolean).sort((a, b) => b.daysSinceLast - a.daysSinceLast).slice(0, 8)
-
+                const quiet = quietDonorsStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>🤫 Quiet Donors</div>
@@ -10337,24 +10574,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const yearAgo75 = new Date()
-                yearAgo75.setFullYear(yearAgo75.getFullYear() - 1)
-                const activeRecurringDonors75 = recurringGifts.filter(g => g.status === 'active')
-                const quietlyPaying75 = activeRecurringDonors75.map(g => {
-                  const donorKey75 = g.donor_email?.trim() || g.donor_name
-                  const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                  const lastContact75 = myNotes75[0]?.created_at || null
-                  const isQuiet75 = !lastContact75 || new Date(lastContact75) < yearAgo75
-                  if (!isQuiet75) return null
-                  return {
-                    name: g.donor_name,
-                    email: g.donor_email,
-                    amount: g.amount,
-                    frequency: g.frequency,
-                    lastContact: lastContact75,
-                  }
-                }).filter(Boolean)
-
+                const quietlyPaying75 = quietlyPayingStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>Quietly Paying Donors</div>
@@ -10420,37 +10640,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={{ fontSize: 12, fontWeight: 600, color: C.sage, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Recognition & Stewardship</div>
               {(() => {
-                const yearScopedConfirmed = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (yearScopedConfirmed.length === 0) return null
-
-                const byDonorTotal = {}
-                yearScopedConfirmed.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!byDonorTotal[key]) byDonorTotal[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, firstYear: null }
-                  byDonorTotal[key].total += d.amount
-                  byDonorTotal[key].count += 1
-                })
-                const topDonor = Object.values(byDonorTotal).sort((a, b) => b.total - a.total)[0]
-                const mostFrequent = Object.values(byDonorTotal).sort((a, b) => b.count - a.count)[0]
-                const largestGift = [...yearScopedConfirmed].sort((a, b) => b.amount - a.amount)[0]
-
-                const donorFirstEverYear = {}
-                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorFirstEverYear[key]) donorFirstEverYear[key] = new Date(d.created_at).getFullYear()
-                })
-                const firstTimeGiftsThisPeriod = yearScopedConfirmed.filter(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  return donorFirstEverYear[key] === new Date(d.created_at).getFullYear()
-                })
-                const standoutNewDonor = [...firstTimeGiftsThisPeriod].sort((a, b) => b.amount - a.amount)[0]
-
-                const cards = [
-                  topDonor && { icon: '🏆', label: 'Top donor', name: topDonor.name, sub: `$${topDonor.total.toLocaleString()} across ${topDonor.count} gift${topDonor.count > 1 ? 's' : ''}`, donor: { name: topDonor.name, email: topDonor.email, total: topDonor.total, count: topDonor.count } },
-                  largestGift && { icon: '💎', label: 'Largest single gift', name: largestGift.donor_name, sub: `$${Number(largestGift.amount).toLocaleString()} on ${new Date(largestGift.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}`, donor: { name: largestGift.donor_name, email: largestGift.donor_email, total: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.total || largestGift.amount, count: byDonorTotal[largestGift.donor_email?.trim() || largestGift.donor_nric || largestGift.donor_name]?.count || 1 } },
-                  mostFrequent && { icon: '🔁', label: 'Most frequent giver', name: mostFrequent.name, sub: `${mostFrequent.count} donations, $${mostFrequent.total.toLocaleString()} total`, donor: { name: mostFrequent.name, email: mostFrequent.email, total: mostFrequent.total, count: mostFrequent.count } },
-                  standoutNewDonor && { icon: '✨', label: 'Standout new supporter', name: standoutNewDonor.donor_name, sub: `First gift: $${Number(standoutNewDonor.amount).toLocaleString()}`, donor: { name: standoutNewDonor.donor_name, email: standoutNewDonor.donor_email, total: standoutNewDonor.amount, count: 1 } },
-                ].filter(Boolean)
+                const cards = donorHighlightsStats
+                if (cards.length === 0) return null
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -10478,28 +10669,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
               {(() => {
-                const confirmedAll = donations.filter(d => d.payment_status === 'confirmed')
-                const byDonorMonths = {}
-                confirmedAll.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  const dt = new Date(d.created_at)
-                  const monthKey = `${dt.getFullYear()}-${dt.getMonth()}`
-                  if (!byDonorMonths[key]) byDonorMonths[key] = { name: d.donor_name, email: d.donor_email, months: new Set() }
-                  byDonorMonths[key].months.add(monthKey)
-                })
-                const now3 = new Date()
-                const streaks = Object.values(byDonorMonths).map(donor => {
-                  const sortedMonths = [...donor.months].map(m => { const [y, mo] = m.split('-').map(Number); return y * 12 + mo }).sort((a, b) => b - a)
-                  const currentMonthIdx = now3.getFullYear() * 12 + now3.getMonth()
-                  if (sortedMonths[0] < currentMonthIdx - 1) return { ...donor, streak: 0 }
-                  let streak = 1
-                  for (let i = 0; i < sortedMonths.length - 1; i++) {
-                    if (sortedMonths[i] - sortedMonths[i + 1] === 1) streak++
-                    else break
-                  }
-                  return { ...donor, streak }
-                }).filter(d => d.streak >= 3).sort((a, b) => b.streak - a.streak).slice(0, 8)
-
+                const streaks = givingStreaksStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>🔥 Giving Streaks</div>
@@ -10536,26 +10706,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-              {confirmedDonations.length > 0 && (() => {
-                const sorted = Object.values((() => {
-                  const map = {}
-                  confirmedDonations.forEach(d => {
-                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                    if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
-                    map[key].total += d.amount
-                    map[key].count++
-                    if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
-                  })
-                  return map
-                })()).sort((a, b) => b.total - a.total)
-                const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
-                const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
-                const now59 = new Date()
-                const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
-                const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
-                const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
-                const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
-                const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
+              {donorLTVStats && (() => {
+                const { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 } = donorLTVStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -10620,32 +10772,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
 
-              {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (scoped.length === 0) return null
-                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
-                const byMethod = {}
-                scoped.forEach(d => {
-                  const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
-                  if (!byMethod[label]) byMethod[label] = 0
-                  byMethod[label] += d.amount
-                })
-                const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
+              {paymentMixStats && (() => {
+                const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
                 const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
-
-                const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort()
-                const allMethods61 = [...new Set(rows.map(r => r.label))]
-                const yearlyMix61 = allYears61.map(y => {
-                  const yearDons = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
-                  const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
-                  const mix = {}
-                  allMethods61.forEach(m => { mix[m] = 0 })
-                  yearDons.forEach(d => {
-                    const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
-                    mix[label] = (mix[label] || 0) + d.amount
-                  })
-                  return { year: y, mix, total: yearTotal }
-                })
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -10690,35 +10819,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const donorTotals = {}
-                confirmedDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
-                  donorTotals[key].total += d.amount
-                  donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
-                })
-                const sorted = Object.values(donorTotals).sort((a, b) => b.total - a.total)
-                const grandTotal = sorted.reduce((s, d) => s + d.total, 0)
-                const topNTotal = sorted.slice(0, concentrationTopN).reduce((s, d) => s + d.total, 0)
-                const concentrationPct = grandTotal > 0 ? Math.round((topNTotal / grandTotal) * 100) : 0
-                const tooFewDonors = sorted.length < concentrationTopN * 3
-                const highRisk = !tooFewDonors && concentrationPct >= 70
-                const medRisk = !tooFewDonors && concentrationPct >= 50
-                const topDonorNames = sorted.slice(0, concentrationTopN).map(d => d.name)
-
-                const quarterAgo = new Date()
-                quarterAgo.setDate(quarterAgo.getDate() - 90)
-                const priorDonorTotals = {}
-                confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
-                  priorDonorTotals[key] += d.amount
-                })
-                const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
-                const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
-                const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
-                const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
-                const concentrationTrend = priorConcentrationPct !== null ? concentrationPct - priorConcentrationPct : null
+                const { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend } = fundingConcentrationStats
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -10766,27 +10867,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const referrals78 = donations.filter(d => d.referred_by_donor_key)
-                if (referrals78.length === 0) return (
+                const rows78 = topConnectorsStats
+                if (rows78.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
                   </div>
                 )
-                const byReferrer78 = {}
-                referrals78.forEach(d => {
-                  const referrerKey = d.referred_by_donor_key
-                  const referredKey = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!byReferrer78[referrerKey]) byReferrer78[referrerKey] = { referredDonors: {} }
-                  if (!byReferrer78[referrerKey].referredDonors[referredKey]) byReferrer78[referrerKey].referredDonors[referredKey] = 0
-                  byReferrer78[referrerKey].referredDonors[referredKey]++
-                })
-                const rows78 = Object.entries(byReferrer78).map(([referrerKey, info]) => {
-                  const referrer = donorList.find(d => (d.email?.trim() || d.name) === referrerKey)
-                  const referredCount = Object.keys(info.referredDonors).length
-                  const sustainedCount = Object.values(info.referredDonors).filter(c => c > 1).length
-                  return { name: referrer?.name || referrerKey, referredCount, sustainedCount }
-                }).sort((a, b) => b.sustainedCount - a.sustainedCount || b.referredCount - a.referredCount)
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>Top Connectors</div>
@@ -10804,19 +10891,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const bySource57 = {}
-                donations.filter(d => d.acquisition_source).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
-                  if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
-                  bySource57[d.acquisition_source][key]++
-                })
-                const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
-                const rows57 = Object.entries(bySource57).map(([source, donorCounts]) => {
-                  const donorKeys = Object.keys(donorCounts)
-                  const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
-                  return { source: sourceLabels57[source] || source, totalDonors: donorKeys.length, repeatDonors: repeat, repeatPct: donorKeys.length > 0 ? Math.round((repeat / donorKeys.length) * 100) : 0 }
-                }).sort((a, b) => b.totalDonors - a.totalDonors)
+                const rows57 = acquisitionSourceStats
                 if (rows57.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>Donor Acquisition Sources</div>
@@ -10842,29 +10917,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ ...s.card, marginBottom: 0 }}>
                 <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
-                  {(() => {
-                    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
-                    return [
-                      { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
-                      { label: '$50 — $200', min: 50, max: 200, color: C.sage },
-                      { label: '$200 — $1,000', min: 200, max: 1000, color: C.teal },
-                      { label: 'Over $1,000', min: 1000, max: Infinity, color: C.forest },
-                    ].map((bucket, i) => {
-                    const count = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).length
-                    const total = yearScoped.filter(d => d.amount >= bucket.min && d.amount < bucket.max).reduce((s, d) => s + d.amount, 0)
-                    const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
-                    return (
+                  {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{count}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{pct}% of donations · ${total.toLocaleString()}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{bucket.pct}% of donations · ${bucket.total.toLocaleString()}</div>
                         <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
+                          <div style={{ width: `${bucket.pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
                         </div>
                       </div>
-                    )
-                    })
-                  })()}
+                  ))}
                 </div>
               </div>
               </div>
