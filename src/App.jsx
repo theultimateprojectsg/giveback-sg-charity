@@ -8446,28 +8446,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     <div style={isMobile ? s.twoColMobile : s.twoCol}>
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text="All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set, and flags any campaign with no gifts in 14+ days as stalled, whether or not it has a goal." /></div>
+                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter(r => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                         {campaignRows.length === 0 ? (
                           <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {campaignRows.map((row, i) => {
-                              const bg = row.isStalled || row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
-                              const accentColor = row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
-                              const barColor = row.isStalled || row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
+                              const bg = row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
+                              const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
+                              const barColor = row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
                               let statusText = null
                               if (row.hasGoal) {
-                                if (row.isStalled) statusText = 'no gifts in 14+ days — stalled'
-                                else if (row.goalReached) statusText = 'goal reached'
+                                if (row.goalReached) statusText = 'goal reached'
                                 else if (row.behind) statusText = 'behind pace'
                                 else if (row.slightlyBehind) statusText = 'slightly behind'
                                 else statusText = 'on pace'
-                              } else if (row.isStalled) {
-                                statusText = row.count === 0 ? 'no donations since launch — stalled' : 'no gifts in 14+ days — stalled'
                               }
                               return (
-                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal || statusText ? 8 : 2 }}>
+                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setCampaignSearchTerm(row.title); setCampaignYearFilter('All'); setActiveTab('campaigns') }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal ? 8 : 2 }}>
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
                                       <div style={{ fontSize: 10.5, color: C.muted }}>{row.count === 0 ? 'No donations yet' : `${row.count} donation${row.count > 1 ? 's' : ''} · ${row.donors} donor${row.donors > 1 ? 's' : ''} · avg $${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</div>
@@ -8485,7 +8482,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                       )}
                                     </div>
                                   </div>
-                                  {row.hasGoal ? (
+                                  {row.hasGoal && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
                                         <div style={{ width: `${Math.min(100, row.pctToGoal)}%`, height: '100%', background: barColor }} />
@@ -8494,15 +8491,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                         {row.pctToGoal}% of goal · {row.daysToEnd >= 0 ? `ends in ${row.daysToEnd}d` : 'ended'} · {statusText}
                                       </span>
                                     </div>
-                                  ) : statusText && (
-                                    <div style={{ fontSize: 10.5, color: accentColor, fontWeight: 500 }}>{statusText}</div>
                                   )}
                                 </div>
                               )
                             })}
                           </div>
                         )}
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Ranked by total raised. Rows in green are ahead of pace, red are behind or stalled. ROI shown where cost is logged — {campaignRows.filter(r => r.cost > 0).length} of {campaignRows.length} campaign{campaignRows.length !== 1 ? 's' : ''} have cost data.</div>
                       </div>
 
                       <div>
