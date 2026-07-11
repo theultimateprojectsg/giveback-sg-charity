@@ -8343,17 +8343,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
 
                 const strip = [
-                  { icon: '🎯', label: 'Goal Success Rate', val: withGoal.length > 0 ? `${reachedGoalCampaigns.length} of ${withGoal.length}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.' },
-                  { icon: '🤝', label: 'Cross-Campaign Loyalty', val: donorKeysWithCampaign.length > 0 ? `${loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${donorKeysWithCampaign.length} donor${donorKeysWithCampaign.length !== 1 ? 's' : ''}.` },
-                  { icon: '⏳', label: 'Avg Time to Goal', val: avgTimeToGoal !== null ? `${avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.' },
+                  { label: 'Goal Success Rate', val: withGoal.length > 0 ? `${reachedGoalCampaigns.length} of ${withGoal.length}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.' },
+                  { label: 'Cross-Campaign Loyalty', val: donorKeysWithCampaign.length > 0 ? `${loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${donorKeysWithCampaign.length} donor${donorKeysWithCampaign.length !== 1 ? 's' : ''}.` },
+                  { label: 'Avg Time to Goal', val: avgTimeToGoal !== null ? `${avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.' },
                 ]
 
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0, padding: '12px 14px' }}>
-                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.icon} {t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>{t.val}</div>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{t.sub}</div>
                       </div>
                     ))}
@@ -8518,7 +8518,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <Bar dataKey="avgPerCampaign" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                               </BarChart>
                             </ResponsiveContainer>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
+                            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
                           </div>
                         )}
 
@@ -8601,6 +8601,67 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
                           </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+                const donorKey = (r) => r.donor_email?.trim() || r.donor_name
+
+                const curIds = appealIdsInYear(yr)
+                const prevIds = appealIdsInYear(yr - 1)
+                const curRecipients = allAppealRecipients.filter(r => curIds.has(r.appeal_id))
+                const prevRecipients = allAppealRecipients.filter(r => prevIds.has(r.appeal_id))
+                const curUnique = new Set(curRecipients.map(donorKey)).size
+                const prevUnique = new Set(prevRecipients.map(donorKey)).size
+                const uniqueDelta = prevUnique === 0 ? (curUnique > 0 ? null : 0) : Math.round(((curUnique - prevUnique) / prevUnique) * 100)
+
+                const donorFirstAppealYear = {}
+                ;[...allAppealRecipients].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
+                  const key = donorKey(r)
+                  if (!donorFirstAppealYear[key]) donorFirstAppealYear[key] = new Date(r.created_at).getFullYear()
+                })
+                const newToListCount = Object.values(donorFirstAppealYear).filter(y => y === yr).length
+
+                const yearAppealIds = curIds
+                const sentRecipientsYr = allAppealRecipients.filter(r => yearAppealIds.has(r.appeal_id) && r.status === 'sent')
+                const convertedYr = sentRecipientsYr.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+                const appealGiftTotal = convertedYr.reduce((s, r) => {
+                  const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                  return s + (donation ? Number(donation.amount) : 0)
+                }, 0)
+                const appealAvgGift = convertedYr.length > 0 ? appealGiftTotal / convertedYr.length : 0
+                const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+                const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
+                const giftDiff = Math.round(appealAvgGift - orgWideAvgGift)
+
+                const strip = [
+                  { label: 'Unique Donors on List', val: curUnique, d: uniqueDelta, tip: `Distinct donors targeted by any mass appeal sent in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'New to List This Year', val: newToListCount, sub: `first appeared on an appeal in ${yr}`, tip: `Donors whose earliest appearance on any mass appeal, across all years, falls in ${yr}.` },
+                  { label: 'Appeal Gift Size', val: `$${appealAvgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, sub: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null, tip: `Average confirmed donation amount among appeal recipients who converted in ${yr}, compared to your org-wide average gift.` },
+                ]
+
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {strip.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d !== undefined ? (
+                          t.d === null ? (
+                            <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          ) : (
+                            <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                              {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                            </div>
+                          )
+                        ) : (
+                          t.sub && <div style={{ fontSize: 11, color: C.muted }}>{t.sub}</div>
                         )}
                       </div>
                     ))}
@@ -8743,9 +8804,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const allSentRecipients = allAppealRecipients.filter(r => r.status === 'sent' || r.status === 'failed' || r.status === 'blocked')
-                  const badDelivery = allAppealRecipients.filter(r => r.status === 'failed' || r.status === 'blocked')
-                  const badDeliveryPct = allSentRecipients.length > 0 ? Math.round((badDelivery.length / allSentRecipients.length) * 100) : 0
+                  const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                  const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+                  const deliveryStatsForYear = (y) => {
+                    const ids = appealIdsInYear(y)
+                    const attempted = allAppealRecipients.filter(r => ids.has(r.appeal_id) && (r.status === 'sent' || r.status === 'failed' || r.status === 'blocked'))
+                    const bounced = attempted.filter(r => r.status === 'failed')
+                    const blocked = attempted.filter(r => r.status === 'blocked')
+                    return {
+                      total: attempted.length,
+                      bouncedPct: attempted.length > 0 ? Math.round((bounced.length / attempted.length) * 100) : 0,
+                      blockedPct: attempted.length > 0 ? Math.round((blocked.length / attempted.length) * 100) : 0,
+                      bouncedCount: bounced.length,
+                      blockedCount: blocked.length,
+                    }
+                  }
+                  const curDelivery = deliveryStatsForYear(yr)
+                  const prevDelivery = deliveryStatsForYear(yr - 1)
+                  const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
 
                   const byDonor = {}
                   allAppealRecipients.forEach(r => {
@@ -8773,20 +8849,49 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
                   }))
 
+                  const fatiguedCount = fatigueList.filter(d => d.isFatigued).length
+
                   return (
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Appeal List Health</div>
+                      <div style={s.analyticsCardTitle}>Appeal List Health <InfoTip text="Bounces are bad contact data — the message couldn't be delivered. Opt-outs are donors who actively blocked appeals — a stewardship signal, not a data problem." /></div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: curDelivery.bouncedPct >= 20 ? C.red : curDelivery.bouncedPct >= 10 ? C.gold : C.forest }}>{curDelivery.bouncedPct}%</span>
+                            {ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) !== null && (
+                              <span style={{ fontSize: 10.5, fontWeight: 500, color: ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) <= 0 ? C.sage : C.red }}>
+                                {ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) === 0 ? '—' : ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) > 0 ? `▲${ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct)}pt` : `▼${Math.abs(ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct))}pt`}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>bad contact data</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Opted Out</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: curDelivery.blockedPct >= 20 ? C.red : curDelivery.blockedPct >= 10 ? C.gold : C.forest }}>{curDelivery.blockedPct}%</span>
+                            {ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) !== null && (
+                              <span style={{ fontSize: 10.5, fontWeight: 500, color: ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) <= 0 ? C.sage : C.red }}>
+                                {ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) === 0 ? '—' : ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) > 0 ? `▲${ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct)}pt` : `▼${Math.abs(ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct))}pt`}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>donors who blocked appeals</div>
+                        </div>
+                      </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced/blocked</div>
-                          <div style={{ ...s.analyticsStatNumber, color: badDeliveryPct >= 20 ? C.red : badDeliveryPct >= 10 ? C.gold : C.forest }}>{badDeliveryPct}%</div>
-                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{badDelivery.length} of {allSentRecipients.length} sends</div>
-                        </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
                           <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>List Fatigue</div>
+                          <div style={{ ...s.analyticsStatNumber, color: fatiguedCount > 0 ? C.gold : C.forest }}>{fatiguedCount}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>gave before, skipped last appeal</div>
                         </div>
                       </div>
 
