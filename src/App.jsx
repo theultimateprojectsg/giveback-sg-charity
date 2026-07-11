@@ -8179,24 +8179,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   })
                   const total = campDonations.reduce((s, d) => s + d.amount, 0)
                   const newPct = donorKeys.size > 0 ? Math.round((brandNewCount / donorKeys.size) * 100) : 0
-                  return { title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total, avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0 }
+                  const appealTotal = campDonations.filter(d => d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)).reduce((s, d) => s + d.amount, 0)
+                  const referralTotal = campDonations.filter(d => d.acquisition_source === 'referral').reduce((s, d) => s + d.amount, 0)
+                  const organicTotal = total - appealTotal - referralTotal
+                  return {
+                    title: c.title, newCount: brandNewCount, existingCount: donorKeys.size - brandNewCount, newPct, total,
+                    avgPerDonor: donorKeys.size > 0 ? total / donorKeys.size : 0,
+                    organicPct: total > 0 ? Math.round((organicTotal / total) * 100) : 0,
+                    appealPct: total > 0 ? Math.round((appealTotal / total) * 100) : 0,
+                    referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
+                    hasAppeal: appealTotal > 0,
+                  }
                 }).sort((a, b) => b.newPct - a.newPct)
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>New vs Existing Donors per Campaign — {filterYear} <InfoTip text="Campaigns with a high &quot;new&quot; share are growing your donor base. Campaigns that mostly draw existing donors are moving money, not growing you." /></div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="For each campaign: the share of donors who are brand new vs. already known, and where the money actually came from — organic giving, a mass appeal (traced by PayNow reference), or donor referrals." /></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {rows.map((r, i) => (
-                        <div key={i} style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div key={i} style={{ padding: '12px 14px', background: r.appealPct >= 50 ? C.warningBg : C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{r.title}</div>
                             <div style={{ fontSize: 12, fontWeight: 700, color: r.newPct >= 50 ? C.sage : C.warning }}>{r.newPct}% new donors</div>
                           </div>
-                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
-                            <div style={{ width: `${r.newPct}%`, background: C.sage }} />
-                            <div style={{ width: `${100 - r.newPct}%`, background: C.border }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: C.muted }}>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
                             {r.newCount} new donor{r.newCount !== 1 ? 's' : ''} · {r.existingCount} existing donor{r.existingCount !== 1 ? 's' : ''} · avg ${r.avgPerDonor.toLocaleString(undefined, { maximumFractionDigits: 0 })}/donor
+                          </div>
+                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 6 }}>
+                            {r.organicPct > 0 && <div style={{ width: `${r.organicPct}%`, background: C.sage }} />}
+                            {r.appealPct > 0 && <div style={{ width: `${r.appealPct}%`, background: C.gold }} />}
+                            {r.referralPct > 0 && <div style={{ width: `${r.referralPct}%`, background: C.muted }} />}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: r.appealPct >= 50 ? C.warning : C.muted }}>
+                            {r.organicPct}% organic · {r.appealPct}% mass appeal · {r.referralPct}% referral{!r.hasAppeal ? ' — no appeal sent yet' : r.appealPct >= 50 ? ' — heavily reliant on that appeal' : ''}
                           </div>
                         </div>
                       ))}
@@ -9056,59 +9070,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
 
-                {(() => {
-                  const activeCampaigns = myCauses.filter(c => c.type === 'campaign' && (causeRaisedMap[c.id]?.total || 0) > 0)
-
-                  const sourceMixData = activeCampaigns.map(c => {
-                    const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
-                    const total = campDonations.reduce((s, d) => s + d.amount, 0)
-                    const appealTotal = campDonations.filter(d => d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)).reduce((s, d) => s + d.amount, 0)
-                    const referralTotal = campDonations.filter(d => d.acquisition_source === 'referral').reduce((s, d) => s + d.amount, 0)
-                    const organicTotal = total - appealTotal - referralTotal
-                    return {
-                      cause: c,
-                      total,
-                      organicPct: total > 0 ? Math.round((organicTotal / total) * 100) : 0,
-                      appealPct: total > 0 ? Math.round((appealTotal / total) * 100) : 0,
-                      referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
-                      hasAppeal: appealTotal > 0,
-                    }
-                  }).sort((a, b) => b.total - a.total)
-
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Funding Sources <InfoTip text="How each campaign's donations actually came in — organic/manual giving, donations traced to a mass appeal by PayNow reference, or donor referrals." /></div>
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>How each campaign's donations actually came in.</div>
-
-                      {sourceMixData.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with donations yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {sourceMixData.map((s2, i) => (
-                            <div key={i} style={{ padding: '10px 12px', background: s2.appealPct >= 50 ? C.warningBg : C.ivory, borderRadius: 4 }}>
-                              <div style={{ fontSize: 12.5, fontWeight: 500, color: s2.appealPct >= 50 ? C.warning : C.forest, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s2.cause.title}</div>
-                              <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', height: 8, marginBottom: 6 }}>
-                                {s2.organicPct > 0 && <div style={{ width: `${s2.organicPct}%`, background: C.sage }} />}
-                                {s2.appealPct > 0 && <div style={{ width: `${s2.appealPct}%`, background: C.gold }} />}
-                                {s2.referralPct > 0 && <div style={{ width: `${s2.referralPct}%`, background: C.muted }} />}
-                              </div>
-                              <div style={{ fontSize: 10.5, color: s2.appealPct >= 50 ? C.warning : C.muted }}>
-                                {s2.organicPct}% organic · {s2.appealPct}% mass appeal · {s2.referralPct}% referral{!s2.hasAppeal ? ' — no appeal sent yet' : s2.appealPct >= 50 ? ' — heavily reliant on that appeal' : ''}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: 12, marginTop: 14, fontSize: 10.5, color: C.muted }}>
-                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Organic / manual</span>
-                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.gold, borderRadius: 2, marginRight: 4 }} />Mass appeal</span>
-                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.muted, borderRadius: 2, marginRight: 4 }} />Referral</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
+                </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
