@@ -8392,6 +8392,80 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              {(() => {
+                const activeGrantsList = grants.filter(g => g.status === 'active')
+                const totalActive = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+                const byFunder = activeGrantsList.map(g => ({
+                  funder_name: g.funder_name,
+                  amount: Number(g.amount),
+                  pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
+                })).sort((a, b) => b.amount - a.amount)
+                const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
+                const highRisk = byFunder.length >= 2 && topFunderPct >= 60
+                const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
+                const tooFewFunders = byFunder.length < 2
+
+                const today = new Date()
+                const sixMonthsOut = new Date()
+                sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
+                const expiringSoon = activeGrantsList.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
+
+                    {tooFewFunders ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topFunderPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
+                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
+                        </div>
+                      </>
+                    )}
+
+                    {byFunder.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>By funder, active grants only</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {byFunder.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Funding expiring in the next 6 months</div>
+                    {expiringSoon.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {expiringSoon.map((g, i) => {
+                          const monthsOut = Math.round((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{g.funder_name}</span>
+                                <span style={{ fontSize: 11, color: C.warning }}>ends in {monthsOut} mo</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const ninetyDaysAgo = new Date()
