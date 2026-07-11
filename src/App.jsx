@@ -8135,7 +8135,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Momentum <InfoTip text="This week vs. last week, for your currently live campaigns — tells you where to focus your next push." /></div>
+                    <div style={s.analyticsCardTitle}>Campaign Momentum <InfoTip text="This week vs. last week, for your currently live campaigns — tells you where to focus your next push." /></div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows.map((r, i) => {
                         const m = statusMeta[r.status]
