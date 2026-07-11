@@ -8365,11 +8365,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: t.d !== null ? 3 : 0 }}>{t.sub}</div>
-                        {t.d !== null && (
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{t.sub}</div>
+                        {t.d !== null ? (
                           <div style={{ fontSize: 11, fontWeight: 500, color: (t.invert ? t.d <= 0 : t.d >= 0) ? C.sage : C.red }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}{t.unit} vs {yr - 1}
                           </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: C.muted }}>no comparable data last year</div>
                         )}
                       </div>
                     ))}
