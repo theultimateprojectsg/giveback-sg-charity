@@ -8532,7 +8532,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {byFunder.map((f, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
                             </div>
                           ))}
