@@ -321,6 +321,7 @@ export default function App() {
     setDonorReceiptNameOverrides(overrideMap)
   }
   const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
+  const [allAppealRecipients, setAllAppealRecipients] = useState([])
 
   async function openAppealDetail(appeal) {
     setSelectedAppealDetail(appeal)
@@ -1635,6 +1636,15 @@ export default function App() {
       .order('created_at', { ascending: false })
     if (error) { console.error('Could not load mass appeals:', error); return }
     setMassAppeals(data || [])
+
+    if (data && data.length > 0) {
+      const { data: recipientData, error: recipientError } = await supabase
+        .from('mass_appeal_recipients')
+        .select('*')
+        .in('appeal_id', data.map(a => a.id))
+      if (recipientError) { console.error('Could not load appeal recipients:', recipientError); return }
+      setAllAppealRecipients(recipientData || [])
+    }
   }
 
   async function loadMyCauses() {
