@@ -8101,61 +8101,71 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )}
 
               {(() => {
-                const now6 = new Date()
-                const liveCampaigns = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now6))
-                if (liveCampaigns.length === 0) return null
-                const rows = liveCampaigns.map(c => {
-                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
-                  const thisWeekStart = new Date(now6.getTime() - 7 * 24 * 60 * 60 * 1000)
-                  const lastWeekStart = new Date(now6.getTime() - 14 * 24 * 60 * 60 * 1000)
-                  const thisWeek = campDonations.filter(d => new Date(d.created_at) >= thisWeekStart).reduce((s, d) => s + d.amount, 0)
-                  const lastWeek = campDonations.filter(d => new Date(d.created_at) >= lastWeekStart && new Date(d.created_at) < thisWeekStart).reduce((s, d) => s + d.amount, 0)
-                  const daysSinceLastGift = campDonations.length > 0 ? Math.floor((now6 - new Date([...campDonations].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at)) / (1000 * 60 * 60 * 24)) : null
-                  let status = 'new'
-                  let changePct = null
-                  if (lastWeek > 0) {
-                    changePct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100)
-                    status = changePct >= 10 ? 'up' : changePct <= -25 ? 'down' : 'flat'
-                  } else if (thisWeek > 0) {
-                    status = 'up'
-                  } else if (daysSinceLastGift !== null && daysSinceLastGift > 14) {
-                    status = 'stalled'
-                  } else if (campDonations.length === 0) {
-                    status = 'quiet'
-                  }
-                  return { title: c.title, thisWeek, lastWeek, changePct, daysSinceLastGift, status }
+                const today = new Date()
+                const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date)
+
+                const paceData = campaignsWithGoalAndDate.map(c => {
+                  const raised = causeRaisedMap[c.id]?.total || 0
+                  const start = new Date(c.created_at)
+                  const end = new Date(c.end_date)
+                  const totalSpan = end - start
+                  const elapsed = today - start
+                  const pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
+                  const pctRaised = Math.round((raised / Number(c.target_amount)) * 100)
+                  const daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+
+                  const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
+                  const isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
+
+                  const goalReached = raised >= Number(c.target_amount)
+                  const gap = pctElapsed !== null ? pctElapsed - pctRaised : null
+                  const behind = !goalReached && gap !== null && gap >= 20
+                  const slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
+
+                  return { cause: c, raised, pctElapsed, pctRaised, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
+                }).sort((a, b) => {
+                  if (a.isStalled !== b.isStalled) return a.isStalled ? -1 : 1
+                  if (a.behind !== b.behind) return a.behind ? -1 : 1
+                  return (a.daysToEnd ?? 9999) - (b.daysToEnd ?? 9999)
                 })
-                const statusMeta = {
-                  up: { label: 'Picking up', color: C.sage, bg: C.successBg, icon: '📈' },
-                  flat: { label: 'Steady', color: C.muted, bg: C.ivory, icon: '➡️' },
-                  down: { label: 'Slowing down', color: C.warning, bg: C.warningBg, icon: '📉' },
-                  stalled: { label: 'Stalled — no gifts in 2+ weeks', color: C.red, bg: '#FBE9E7', icon: '⚠️' },
-                  quiet: { label: 'No gifts yet', color: C.muted, bg: C.ivory, icon: '🌱' },
-                  new: { label: 'Just getting started', color: C.gold, bg: '#FDF8EC', icon: '✨' },
-                }
+
                 return (
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Campaign Momentum <InfoTip text="This week vs. last week, for your currently live campaigns — tells you where to focus your next push." /></div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {rows.map((r, i) => {
-                        const m = statusMeta[r.status]
-                        return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: m.bg, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                            <div style={{ fontSize: 18, flexShrink: 0 }}>{m.icon}</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</div>
-                              <div style={{ fontSize: 11, color: m.color, fontWeight: 500, marginTop: 2 }}>
-                                {m.label}{r.changePct !== null ? ` · ${r.changePct >= 0 ? '+' : ''}${r.changePct}% vs last week` : ''}
+                    <div style={s.analyticsCardTitle}>Campaign Pace to Goal <InfoTip text="Compares how much of a campaign's timeline has passed against how much of its goal has been raised, and flags campaigns with no gifts in 14+ days as stalled. Only includes campaigns with both a target amount and an end date set." /></div>
+
+                    {paceData.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with both a goal and end date set yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {paceData.map((p, i) => {
+                          const bg = p.isStalled || p.behind ? '#FBEEE9' : p.slightlyBehind ? '#FDF8EC' : p.goalReached ? '#EAF3DE' : C.ivory
+                          const textColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : p.goalReached ? '#27500A' : C.text
+                          const barColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : C.sage
+                          let verdict
+                          if (p.isStalled) verdict = `No gifts in ${(() => { const last = donations.filter(d => d.cause_id === p.cause.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; return last ? Math.floor((today - new Date(last.created_at)) / (1000 * 60 * 60 * 24)) : '14+' })()} days — stalled`
+                          else if (p.goalReached) verdict = 'Goal already reached — ahead of pace'
+                          else if (p.behind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — behind pace`
+                          else if (p.slightlyBehind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — slightly behind`
+                          else verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — on pace`
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{p.cause.title}</span>
+                                <span style={{ fontSize: 11, color: textColor }}>{p.daysToEnd >= 0 ? `ends in ${p.daysToEnd}d` : 'ended'}</span>
                               </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                  <div style={{ width: `${Math.min(100, p.pctRaised)}%`, height: '100%', background: barColor }} />
+                                </div>
+                                <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${p.raised.toLocaleString()} of ${Number(p.cause.target_amount).toLocaleString()}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
                             </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontFamily: C.fontVoice, fontSize: 13, fontWeight: 500, color: C.forest }}>${r.thisWeek.toLocaleString()}</div>
-                              <div style={{ fontSize: 10, color: C.muted }}>this week</div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })()}
@@ -8999,79 +9009,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
               </div>
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                {(() => {
-                  const today = new Date()
-                  const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date)
-
-                  const paceData = campaignsWithGoalAndDate.map(c => {
-                    const raised = causeRaisedMap[c.id]?.total || 0
-                    const start = new Date(c.created_at)
-                    const end = new Date(c.end_date)
-                    const totalSpan = end - start
-                    const elapsed = today - start
-                    const pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
-                    const pctRaised = Math.round((raised / Number(c.target_amount)) * 100)
-                    const daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
-
-                    const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                    const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
-                    const isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
-
-                    const goalReached = raised >= Number(c.target_amount)
-                    const gap = pctElapsed !== null ? pctElapsed - pctRaised : null
-                    const behind = !goalReached && gap !== null && gap >= 20
-                    const slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
-
-                    return { cause: c, raised, pctElapsed, pctRaised, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
-                  }).sort((a, b) => {
-                    if (a.isStalled !== b.isStalled) return a.isStalled ? -1 : 1
-                    if (a.behind !== b.behind) return a.behind ? -1 : 1
-                    return (a.daysToEnd ?? 9999) - (b.daysToEnd ?? 9999)
-                  })
-
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Pace to Goal <InfoTip text="Compares how much of a campaign's timeline has passed against how much of its goal has been raised, and flags campaigns with no gifts in 14+ days as stalled. Only includes campaigns with both a target amount and an end date set." /></div>
-
-                      {paceData.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with both a goal and end date set yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {paceData.map((p, i) => {
-                            const bg = p.isStalled || p.behind ? '#FBEEE9' : p.slightlyBehind ? '#FDF8EC' : p.goalReached ? '#EAF3DE' : C.ivory
-                            const textColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : p.goalReached ? '#27500A' : C.text
-                            const barColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : C.sage
-                            let verdict
-                            if (p.isStalled) verdict = `No gifts in ${(() => { const last = donations.filter(d => d.cause_id === p.cause.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; return last ? Math.floor((today - new Date(last.created_at)) / (1000 * 60 * 60 * 24)) : '14+' })()} days — stalled`
-                            else if (p.goalReached) verdict = 'Goal already reached — ahead of pace'
-                            else if (p.behind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — behind pace`
-                            else if (p.slightlyBehind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — slightly behind`
-                            else verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — on pace`
-                            return (
-                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{p.cause.title}</span>
-                                  <span style={{ fontSize: 11, color: textColor }}>{p.daysToEnd >= 0 ? `ends in ${p.daysToEnd}d` : 'ended'}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                    <div style={{ width: `${Math.min(100, p.pctRaised)}%`, height: '100%', background: barColor }} />
-                                  </div>
-                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${p.raised.toLocaleString()} of ${Number(p.cause.target_amount).toLocaleString()}</span>
-                                </div>
-                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
-
-                </div>
-            </div>
+              </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
