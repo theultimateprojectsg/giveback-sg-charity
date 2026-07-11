@@ -8463,7 +8463,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 else statusText = 'on pace'
                               }
                               return (
-                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setCampaignSearchTerm(row.title); setCampaignYearFilter('All'); setActiveTab('campaigns') }}>
+                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setCampaignSearchTerm(row.title); setCampaignYearFilter('All'); setActiveTab('promotions') }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal ? 8 : 2 }}>
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
