@@ -8169,6 +8169,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const scopedPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum)
@@ -8215,7 +8216,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
@@ -8340,7 +8341,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const heaviestMonth = [...monthsRanked].sort((a, b) => b.amount - a.amount)[0]
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
                     {tooFewDonors ? (
@@ -8396,6 +8397,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
