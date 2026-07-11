@@ -7936,8 +7936,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (firstTimeCount > 0) sentences.push(`${firstTimeCount} first-time donor${firstTimeCount > 1 ? 's' : ''} joined this ${filterYear === 'All' ? 'period' : 'year'} — if even half return, that's real momentum.`)
 
                 return (
-                  <div style={{ background: C.forest, borderRadius: 16, padding: 24, marginBottom: 24 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Story So Far</div>
+                  <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 24 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>Your Story So Far <InfoTip text="An auto-generated recap of the selected period — total raised, your most loyal donor, best month, and first-time donors — written in plain sentences." /></div>
                     <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
                   </div>
                 )
