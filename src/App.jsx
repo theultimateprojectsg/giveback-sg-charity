@@ -8217,28 +8217,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="Pledges made this year vs last, how punctual fulfilled pledges have been, and which donors have a pattern of broken or overdue pledges." /></div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pledges made</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{scopedPledges.length}</span>
-                          {lastYearPledges.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>}
+                          <span style={s.analyticsStatNumber}>{scopedPledges.length}</span>
+                          {lastYearPledges.length > 0 && <span style={s.analyticsStatDelta(countDiff >= 0)}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Amount pledged</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalPledged.toLocaleString()}</span>
-                          {totalDiffPct !== null && <span style={{ fontSize: 12, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>}
+                          <span style={s.analyticsStatNumber}>${totalPledged.toLocaleString()}</span>
+                          {totalDiffPct !== null && <span style={s.analyticsStatDelta(totalDiffPct >= 0)}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Fulfilled on time</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{onTimeRate}%</span>
-                          {onTimeRateDiff !== null && <span style={{ fontSize: 12, fontWeight: 600, color: onTimeRateDiff >= 0 ? C.sage : C.red }}>{onTimeRateDiff === 0 ? '—' : onTimeRateDiff > 0 ? `↑ ${onTimeRateDiff}pt` : `↓ ${Math.abs(onTimeRateDiff)}pt`} vs {yearNum - 1}</span>}
+                          <span style={{ ...s.analyticsStatNumber, color: C.sage }}>{onTimeRate}%</span>
+                          {onTimeRateDiff !== null && <span style={s.analyticsStatDelta(onTimeRateDiff >= 0)}>{onTimeRateDiff === 0 ? '—' : onTimeRateDiff > 0 ? `↑ ${onTimeRateDiff}pt` : `↓ ${Math.abs(onTimeRateDiff)}pt`} vs {yearNum - 1}</span>}
                         </div>
                       </div>
                     </div>
@@ -8342,13 +8342,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
                     {tooFewDonors ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topDonorPct}%</div>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
@@ -8361,7 +8361,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {donorRanked.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest outstanding pledges</div>
+                        <div style={s.analyticsSubTitleDivider}>Largest outstanding pledges</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {donorRanked.slice(0, 5).map((d, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
@@ -8373,7 +8373,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </>
                     )}
 
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Outstanding pledges by expected month</div>
+                    <div style={s.analyticsSubTitle}>Outstanding pledges by expected month</div>
                     {monthsRanked.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
                     ) : (
@@ -8415,24 +8415,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
+                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearGrants.length}</span>
+                          <span style={s.analyticsStatNumber}>{thisYearGrants.length}</span>
                           {lastYearGrants.length > 0 && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
+                            <span style={s.analyticsStatDelta(countDiff >= 0)}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
                           )}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${thisYearTotal.toLocaleString()}</span>
+                          <span style={s.analyticsStatNumber}>${thisYearTotal.toLocaleString()}</span>
                           {totalDiffPct !== null && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
+                            <span style={s.analyticsStatDelta(totalDiffPct >= 0)}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
                           )}
                         </div>
                       </div>
@@ -8443,7 +8443,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
                     ) : (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Pace vs report deadline</div>
+                        <div style={s.analyticsSubTitleDivider}>Pace vs report deadline</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {activeGrants.map((g, i) => {
                             const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
@@ -8511,13 +8511,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
+                    <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
 
                     {tooFewFunders ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topFunderPct}%</div>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topFunderPct}%</div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
@@ -8530,7 +8530,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {byFunder.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>By funder, active grants only</div>
+                        <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {byFunder.map((f, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
@@ -8542,7 +8542,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </>
                     )}
 
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Funding expiring in the next 6 months</div>
+                    <div style={s.analyticsSubTitle}>Funding expiring in the next 6 months</div>
                     {expiringSoon.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
                     ) : (
@@ -8603,7 +8603,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                   return (
                     <div style={s.card}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Revenue Health <InfoTip text="Active recurring gifts and monthly recurring revenue vs 90 days ago, average time a recurring gift lasts before cancellation, and donors whose giving has consistently increased or decreased over recent cycles." /></div>
+                      <div style={s.analyticsCardTitle}>Recurring Revenue Health <InfoTip text="Active recurring gifts and monthly recurring revenue vs 90 days ago, average time a recurring gift lasts before cancellation, and donors whose giving has consistently increased or decreased over recent cycles." /></div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
                         <div>
@@ -8632,7 +8632,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>vs 90 days ago{cancelledGifts.length > 0 ? ` · based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Giving trend</div>
+                        <div style={s.analyticsSubTitle}>Giving trend</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
                           <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringTrendCycles} onChange={async e => { const v = Number(e.target.value); setRecurringTrendCycles(v); const { error } = await supabase.from('charity_contacts').update({ recurring_trend_cycles: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
@@ -13185,6 +13185,11 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   threeColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
   card: { background: C.white, borderRadius: 4, padding: 20, border: `1px solid ${C.border}`, marginBottom: 0 },
   cardTitle: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, marginBottom: 16 },
+  analyticsCardTitle: { fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
+  analyticsSubTitle: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  analyticsSubTitleDivider: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 },
+  analyticsStatNumber: { fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 },
+  analyticsStatDelta: (positive) => ({ fontSize: 12, fontWeight: 600, color: positive ? C.sage : C.red }),
   statusStep: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
   stepDot: { width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 },
   stepLine: { width: 2, height: 16, background: C.border, marginLeft: 13, marginBottom: 4 },
