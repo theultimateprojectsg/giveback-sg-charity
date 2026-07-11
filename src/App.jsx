@@ -383,6 +383,8 @@ export default function App() {
   const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
+  const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
+  const [recurringMissedThreshold, setRecurringMissedThreshold] = useState(2)
 
   const [lapsedMinGifts, setLapsedMinGifts] = useState(2)
   const [lapsedMinDays, setLapsedMinDays] = useState(60)
@@ -654,7 +656,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -699,6 +701,8 @@ export default function App() {
     setGivingChangeMinPct(data?.giving_change_min_pct ?? 30)
     setConcentrationTopN(data?.concentration_top_n ?? 10)
     setPledgeWatchThreshold(data?.pledge_watch_threshold ?? 2)
+    setRecurringTrendCycles(data?.recurring_trend_cycles ?? 2)
+    setRecurringMissedThreshold(data?.recurring_missed_threshold ?? 2)
     setLapsedMinGifts(data?.lapsed_min_gifts ?? 2)
     setLapsedMinDays(data?.lapsed_min_days ?? 60)
     setRoleLoaded(true)
@@ -8377,6 +8381,172 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const ninetyDaysAgo = new Date()
+                  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+                  const activeGifts = recurringGifts.filter(g => g.status === 'active')
+                  const activeGiftsAgo = recurringGifts.filter(g => g.status === 'active' && new Date(g.created_at) < ninetyDaysAgo)
+                  const giftCountDiff = activeGifts.length - activeGiftsAgo.length
+
+                  const mrr = activeGifts.reduce((s, g) => {
+                    const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+                    return s + monthly
+                  }, 0)
+                  const mrrAgo = activeGiftsAgo.reduce((s, g) => {
+                    const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+                    return s + monthly
+                  }, 0)
+                  const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
+
+                  const cancelledGifts = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at)
+                  const avgLifespanMonths = cancelledGifts.length > 0
+                    ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at) - new Date(g.created_at)) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
+                    : null
+
+                  const atRiskCount = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold).length
+
+                  const trendFlagsFiltered = recurringTrendFlags.filter(f => {
+                    const gift = recurringGifts.find(g => g.id === f.gift_id)
+                    if (!gift) return false
+                    const cycles = donations.filter(d => d.recurring_gift_id === gift.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                    if (recurringTrendCycles === 3 && cycles.length < 4) return false
+                    return true
+                  })
+                  const upgrades = trendFlagsFiltered.filter(f => f.direction === 'upgrade')
+                  const downgrades = trendFlagsFiltered.filter(f => f.direction === 'downgrade')
+
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Revenue Health <InfoTip text="Active recurring gifts and monthly recurring revenue vs 90 days ago, average time a recurring gift lasts before cancellation, and donors whose giving has consistently increased or decreased over recent cycles." /></div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Active gifts</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>{activeGifts.length}</span>
+                            <span style={{ fontSize: 10.5, fontWeight: 500, color: giftCountDiff >= 0 ? C.sage : C.red }}>{giftCountDiff === 0 ? '—' : giftCountDiff > 0 ? `↑${giftCountDiff}` : `↓${Math.abs(giftCountDiff)}`}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>MRR</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>${Math.round(mrr).toLocaleString()}</span>
+                            {mrrDiffPct !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct >= 0 ? '↑' : '↓'}{Math.abs(mrrDiffPct)}%</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Avg. lifespan</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>At risk</div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>vs 90 days ago{cancelledGifts.length > 0 ? ` · based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Giving trend</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringTrendCycles} onChange={async e => { const v = Number(e.target.value); setRecurringTrendCycles(v); const { error } = await supabase.from('charity_contacts').update({ recurring_trend_cycles: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
+                            <option value={2}>2 cycles</option>
+                            <option value={3}>3 cycles</option>
+                          </select>
+                        </div>
+                      </div>
+                      {trendFlagsFiltered.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No sustained upgrade or downgrade patterns right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {[...upgrades, ...downgrades].slice(0, 5).map((f, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? '#EAF3DE' : '#FBEEE9', borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.donor_name}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F', marginTop: 2 }}>{recurringTrendCycles} consecutive cycles {f.direction === 'upgrade' ? 'increasing' : 'decreasing'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
+                  const frequentSkippers = Object.entries(recurringSkipHistory).filter(([, skips]) => skips.length >= 2).map(([giftId, skips]) => {
+                    const gift = recurringGifts.find(g => g.id === giftId)
+                    return gift ? { ...gift, skipCount: skips.length } : null
+                  }).filter(Boolean)
+
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Gift Risk <InfoTip text="Recurring donors who've missed payments, who frequently use Skip Cycle, and donors giving recurring-shaped manual gifts who aren't yet set up as a formal recurring gift." /></div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Missed payments</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringMissedThreshold} onChange={async e => { const v = Number(e.target.value); setRecurringMissedThreshold(v); const { error } = await supabase.from('charity_contacts').update({ recurring_missed_threshold: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
+                            <option value={1}>1 cycle</option>
+                            <option value={2}>2 cycles</option>
+                            <option value={3}>3 cycles</option>
+                          </select>
+                        </div>
+                      </div>
+                      {missedFiltered.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No missed recurring payments right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {missedFiltered.slice(0, 5).map((g, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 11.5, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.missedCycles} cycle{g.missedCycles !== 1 ? 's' : ''} missed{g.missedCycles >= 2 ? ' — possible cancellation' : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Frequent skippers</div>
+                      {frequentSkippers.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have skipped 2+ cycles this year.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {frequentSkippers.slice(0, 5).map((g, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 11, color: C.muted }}>{g.skipCount} cycles skipped</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Still active — using Skip Cycle rather than missing silently</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Looks recurring, not yet tagged</div>
+                      {recurringPatternSuggestions.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No untagged recurring patterns detected.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {recurringPatternSuggestions.slice(0, 5).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                              <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
