@@ -8316,36 +8316,47 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
-                const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
-                const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
-                const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
 
-                const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === yr)
-                const donorCampaignSets = {}
-                yearScopedCampaignDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
-                  donorCampaignSets[key].add(d.cause_id)
-                })
-                const donorKeysWithCampaign = Object.keys(donorCampaignSets)
-                const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
-                const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : 0
+                const statsForYear = (y) => {
+                  const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && new Date(c.created_at).getFullYear() === y)
+                  const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
+                  const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
+                  const successRatePct = withGoal.length > 0 ? Math.round((reachedGoalCampaigns.length / withGoal.length) * 100) : null
 
-                const timesToGoal = reachedGoalCampaigns.map(c => {
-                  const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                  let running = 0, crossDate = null
-                  for (const d of campDonationsSorted) {
-                    running += d.amount
-                    if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
-                  }
-                  return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
-                }).filter(d => d !== null)
-                const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
+                  const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && new Date(d.created_at).getFullYear() === y)
+                  const donorCampaignSets = {}
+                  yearScopedCampaignDonations.forEach(d => {
+                    const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                    if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
+                    donorCampaignSets[key].add(d.cause_id)
+                  })
+                  const donorKeysWithCampaign = Object.keys(donorCampaignSets)
+                  const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
+                  const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
+
+                  const timesToGoal = reachedGoalCampaigns.map(c => {
+                    const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                    let running = 0, crossDate = null
+                    for (const d of campDonationsSorted) {
+                      running += d.amount
+                      if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
+                    }
+                    return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
+                  }).filter(d => d !== null)
+                  const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
+
+                  return { withGoalCount: withGoal.length, reachedCount: reachedGoalCampaigns.length, successRatePct, donorCount: donorKeysWithCampaign.length, loyaltyPct, avgTimeToGoal }
+                }
+
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const ptDelta = (c, p) => (c === null || p === null) ? null : c - p
+                const dayDelta = (c, p) => (c === null || p === null) ? null : c - p
 
                 const strip = [
-                  { label: 'Goal Success Rate', val: withGoal.length > 0 ? `${reachedGoalCampaigns.length} of ${withGoal.length}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.' },
-                  { label: 'Cross-Campaign Loyalty', val: donorKeysWithCampaign.length > 0 ? `${loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${donorKeysWithCampaign.length} donor${donorKeysWithCampaign.length !== 1 ? 's' : ''}.` },
-                  { label: 'Avg Time to Goal', val: avgTimeToGoal !== null ? `${avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.' },
+                  { label: 'Goal Success Rate', val: cur.withGoalCount > 0 ? `${cur.reachedCount} of ${cur.withGoalCount}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.', d: ptDelta(cur.successRatePct, prev.successRatePct), unit: 'pt' },
+                  { label: 'Cross-Campaign Loyalty', val: cur.donorCount > 0 ? `${cur.loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${cur.donorCount} donor${cur.donorCount !== 1 ? 's' : ''}.`, d: ptDelta(cur.loyaltyPct, prev.loyaltyPct), unit: 'pt' },
+                  { label: 'Avg Time to Goal', val: cur.avgTimeToGoal !== null ? `${cur.avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.', d: dayDelta(cur.avgTimeToGoal, prev.avgTimeToGoal), unit: 'd', invert: true },
                 ]
 
                 return (
@@ -8354,7 +8365,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{t.sub}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: t.d !== null ? 3 : 0 }}>{t.sub}</div>
+                        {t.d !== null && (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: (t.invert ? t.d <= 0 : t.d >= 0) ? C.sage : C.red }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}{t.unit} vs {yr - 1}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
