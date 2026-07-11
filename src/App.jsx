@@ -8773,6 +8773,131 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const today = new Date()
+                  const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date)
+
+                  const paceData = campaignsWithGoalAndDate.map(c => {
+                    const raised = causeRaisedMap[c.id]?.total || 0
+                    const start = new Date(c.created_at)
+                    const end = new Date(c.end_date)
+                    const totalSpan = end - start
+                    const elapsed = today - start
+                    const pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
+                    const pctRaised = Math.round((raised / Number(c.target_amount)) * 100)
+                    const daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+
+                    const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    const daysSinceLastGift = campDonations.length > 0 ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24)) : null
+                    const isStalled = daysToEnd >= 0 && daysSinceLastGift !== null && daysSinceLastGift >= 14
+
+                    const goalReached = raised >= Number(c.target_amount)
+                    const gap = pctElapsed !== null ? pctElapsed - pctRaised : null
+                    const behind = !goalReached && gap !== null && gap >= 20
+                    const slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
+
+                    return { cause: c, raised, pctElapsed, pctRaised, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
+                  }).sort((a, b) => {
+                    if (a.isStalled !== b.isStalled) return a.isStalled ? -1 : 1
+                    if (a.behind !== b.behind) return a.behind ? -1 : 1
+                    return (a.daysToEnd ?? 9999) - (b.daysToEnd ?? 9999)
+                  })
+
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Pace to Goal <InfoTip text="Compares how much of a campaign's timeline has passed against how much of its goal has been raised, and flags campaigns with no gifts in 14+ days as stalled. Only includes campaigns with both a target amount and an end date set." /></div>
+
+                      {paceData.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with both a goal and end date set yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {paceData.map((p, i) => {
+                            const bg = p.isStalled || p.behind ? '#FBEEE9' : p.slightlyBehind ? '#FDF8EC' : p.goalReached ? '#EAF3DE' : C.ivory
+                            const textColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : p.goalReached ? '#27500A' : C.text
+                            const barColor = p.isStalled || p.behind ? C.red : p.slightlyBehind ? C.gold : C.sage
+                            let verdict
+                            if (p.isStalled) verdict = `No gifts in ${(() => { const last = donations.filter(d => d.cause_id === p.cause.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; return last ? Math.floor((today - new Date(last.created_at)) / (1000 * 60 * 60 * 24)) : '14+' })()} days — stalled`
+                            else if (p.goalReached) verdict = 'Goal already reached — ahead of pace'
+                            else if (p.behind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — behind pace`
+                            else if (p.slightlyBehind) verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — slightly behind`
+                            else verdict = `${p.pctElapsed}% of timeline used, ${p.pctRaised}% of goal raised — on pace`
+                            return (
+                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{p.cause.title}</span>
+                                  <span style={{ fontSize: 11, color: textColor }}>{p.daysToEnd >= 0 ? `ends in ${p.daysToEnd}d` : 'ended'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${Math.min(100, p.pctRaised)}%`, height: '100%', background: barColor }} />
+                                  </div>
+                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${p.raised.toLocaleString()} of ${Number(p.cause.target_amount).toLocaleString()}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const activeCampaigns = myCauses.filter(c => c.type === 'campaign' && (causeRaisedMap[c.id]?.total || 0) > 0)
+
+                  const sourceMixData = activeCampaigns.map(c => {
+                    const campDonations = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed')
+                    const total = campDonations.reduce((s, d) => s + d.amount, 0)
+                    const appealTotal = campDonations.filter(d => d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)).reduce((s, d) => s + d.amount, 0)
+                    const referralTotal = campDonations.filter(d => d.acquisition_source === 'referral').reduce((s, d) => s + d.amount, 0)
+                    const organicTotal = total - appealTotal - referralTotal
+                    return {
+                      cause: c,
+                      total,
+                      organicPct: total > 0 ? Math.round((organicTotal / total) * 100) : 0,
+                      appealPct: total > 0 ? Math.round((appealTotal / total) * 100) : 0,
+                      referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
+                      hasAppeal: appealTotal > 0,
+                    }
+                  }).sort((a, b) => b.total - a.total)
+
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Campaign Funding Sources <InfoTip text="How each campaign's donations actually came in — organic/manual giving, donations traced to a mass appeal by PayNow reference, or donor referrals." /></div>
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>How each campaign's donations actually came in.</div>
+
+                      {sourceMixData.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No campaigns with donations yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {sourceMixData.map((s2, i) => (
+                            <div key={i} style={{ padding: '10px 12px', background: s2.appealPct >= 50 ? C.warningBg : C.ivory, borderRadius: 4 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 500, color: s2.appealPct >= 50 ? C.warning : C.forest, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s2.cause.title}</div>
+                              <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', height: 8, marginBottom: 6 }}>
+                                {s2.organicPct > 0 && <div style={{ width: `${s2.organicPct}%`, background: C.sage }} />}
+                                {s2.appealPct > 0 && <div style={{ width: `${s2.appealPct}%`, background: C.gold }} />}
+                                {s2.referralPct > 0 && <div style={{ width: `${s2.referralPct}%`, background: C.muted }} />}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: s2.appealPct >= 50 ? C.warning : C.muted }}>
+                                {s2.organicPct}% organic · {s2.appealPct}% mass appeal · {s2.referralPct}% referral{!s2.hasAppeal ? ' — no appeal sent yet' : s2.appealPct >= 50 ? ' — heavily reliant on that appeal' : ''}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: 12, marginTop: 14, fontSize: 10.5, color: C.muted }}>
+                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Organic / manual</span>
+                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.gold, borderRadius: 2, marginRight: 4 }} />Mass appeal</span>
+                        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.muted, borderRadius: 2, marginRight: 4 }} />Referral</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
