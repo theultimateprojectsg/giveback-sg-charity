@@ -8071,7 +8071,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                         <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
-                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
                     {cagr !== null && (
@@ -8213,7 +8213,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value, 'New donors']} />
-                          <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
@@ -8237,8 +8237,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                       <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(filterYear) - 1}` : 'Previous year')]} />
-                      {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} />}
-                      <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} />
+                      {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />}
+                      <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
