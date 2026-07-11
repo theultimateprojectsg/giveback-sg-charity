@@ -9783,12 +9783,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const totalUtilized = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
                 const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
 
+                const activeGrants = grants.filter(g => g.status === 'active')
+                const today = new Date()
+
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <div style={isMobile ? s.threeColMobile : s.threeCol}>
                     {trendData.length >= 2 && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
-                        <ResponsiveContainer width="100%" height={140}>
+                        <ResponsiveContainer width="100%" height={120}>
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -9802,39 +9805,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Grant Utilization <InfoTip text="Total spend logged across all active grants, as a share of their combined value. A quick portfolio-wide check on whether you're spending down grant funds at a healthy pace." /></div>
-                      {utilizationRate === null ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants right now.</div>
+                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant is keeping pace with its report deadline, plus overall utilization across all active grants. Totals and YoY change are shown in the tiles above." /></div>
+
+                      {utilizationRate !== null && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Overall utilization</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>{utilizationRate}% <span style={{ fontSize: 10, fontWeight: 400, fontFamily: 'inherit', color: C.muted }}>· ${totalUtilized.toLocaleString()} of ${totalActiveAmount.toLocaleString()}</span></span>
+                        </div>
+                      )}
+
+                      {activeGrants.length === 0 ? (
+                        <div style={{ fontSize: 13, color: C.muted }}>No active grants right now.</div>
                       ) : (
                         <>
-                          <div style={{ ...s.analyticsStatNumber, color: utilizationRate >= 80 ? C.gold : utilizationRate >= 20 ? C.sage : C.gold, marginBottom: 4 }}>{utilizationRate}%</div>
-                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funds spent so far</div>
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
-                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: C.muted }}>${totalUtilized.toLocaleString()} spent of ${totalActiveAmount.toLocaleString()} across {activeGrantsList.length} active grant{activeGrantsList.length !== 1 ? 's' : ''}</div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              {(() => {
-                const activeGrants = grants.filter(g => g.status === 'active')
-                const today = new Date()
-
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant is keeping pace with its report deadline. Totals and YoY change are shown in the tiles above." /></div>
-
-                    {activeGrants.length === 0 ? (
-                      <div style={{ fontSize: 13, color: C.muted }}>No active grants right now.</div>
-                    ) : (
-                      <>
-                        <div style={s.analyticsSubTitleDivider}>Pace vs report deadline</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Pace vs report deadline</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {activeGrants.map((g, i) => {
                             const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
                             const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
@@ -9874,34 +9859,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )
                           })}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })()}
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-              {(() => {
-                const activeGrantsList = grants.filter(g => g.status === 'active')
-                const totalActive = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
-                const byFunder = activeGrantsList.map(g => ({
-                  funder_name: g.funder_name,
-                  amount: Number(g.amount),
-                  pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
-                })).sort((a, b) => b.amount - a.amount)
-                const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
-                const highRisk = byFunder.length >= 2 && topFunderPct >= 60
-                const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
-                const tooFewFunders = byFunder.length < 2
+                    {(() => {
+                      const totalActive = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
+                      const byFunder = activeGrants.map(g => ({
+                        funder_name: g.funder_name,
+                        amount: Number(g.amount),
+                        pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
+                      })).sort((a, b) => b.amount - a.amount)
+                      const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
+                      const highRisk = byFunder.length >= 2 && topFunderPct >= 60
+                      const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
+                      const tooFewFunders = byFunder.length < 2
 
-                const today = new Date()
-                const sixMonthsOut = new Date()
-                sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
-                const expiringSoon = activeGrantsList.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
+                      const sixMonthsOut = new Date()
+                      sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
+                      const expiringSoon = activeGrants.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
 
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
+                      return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
 
                     {tooFewFunders ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
@@ -9952,9 +9933,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )}
                   </div>
+                      )
+                    })()}
+                  </div>
                 )
               })()}
-              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
