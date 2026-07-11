@@ -8300,6 +8300,104 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
+                const outstandingUnits = []
+                pledges.filter(p => p.status === 'pending').forEach(p => {
+                  if (p.is_multi_year) {
+                    const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received)
+                    myInstalments.forEach(inst => {
+                      outstandingUnits.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date, pledge_id: p.id })
+                    })
+                  } else {
+                    outstandingUnits.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date, pledge_id: p.id })
+                  }
+                })
+
+                const totalOutstanding = outstandingUnits.reduce((s, u) => s + u.amount, 0)
+
+                const byDonorOutstanding = {}
+                outstandingUnits.forEach(u => {
+                  if (!byDonorOutstanding[u.donor_name]) byDonorOutstanding[u.donor_name] = 0
+                  byDonorOutstanding[u.donor_name] += u.amount
+                })
+                const donorRanked = Object.entries(byDonorOutstanding).map(([name, amount]) => ({
+                  name, amount, pct: totalOutstanding > 0 ? Math.round((amount / totalOutstanding) * 100) : 0,
+                })).sort((a, b) => b.amount - a.amount)
+
+                const topDonorPct = donorRanked.length > 0 ? donorRanked[0].pct : 0
+                const highRisk = donorRanked.length >= 2 && topDonorPct >= 60
+                const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
+                const tooFewDonors = donorRanked.length < 2
+
+                const byMonth = {}
+                outstandingUnits.forEach(u => {
+                  const d = new Date(u.expected_date)
+                  const key = `${d.getFullYear()}-${d.getMonth()}`
+                  if (!byMonth[key]) byMonth[key] = { label: d.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }), amount: 0, count: 0, sortKey: d.getFullYear() * 12 + d.getMonth() }
+                  byMonth[key].amount += u.amount
+                  byMonth[key].count += 1
+                })
+                const monthsRanked = Object.values(byMonth).sort((a, b) => a.sortKey - b.sortKey)
+                const heaviestMonth = [...monthsRanked].sort((a, b) => b.amount - a.amount)[0]
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+
+                    {tooFewDonors ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, lineHeight: 1, marginBottom: 4 }}>{topDonorPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
+                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
+                        </div>
+                      </>
+                    )}
+
+                    {donorRanked.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest outstanding pledges</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {donorRanked.slice(0, 5).map((d, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Outstanding pledges by expected month</div>
+                    {monthsRanked.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {monthsRanked.map((m, i) => {
+                          const isHeaviest = heaviestMonth && m.label === heaviestMonth.label && monthsRanked.length > 1
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: isHeaviest ? C.warningBg : C.ivory, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: isHeaviest ? C.warning : C.text }}>{m.label}</span>
+                                <span style={{ fontSize: 11, color: isHeaviest ? C.warning : C.muted }}>${m.amount.toLocaleString()} · {m.count} pledge{m.count !== 1 ? 's' : ''}</span>
+                              </div>
+                              {isHeaviest && (
+                                <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>Heaviest single month — worth confirming these are on track</div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
                 const thisYearGrants = grants.filter(g => grantYearOf(g) === yearNum)
