@@ -8587,9 +8587,54 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>PLEDGE_PLACEHOLDER</span>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
               </div>
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const statsForYear = (y) => {
+                  const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
+                  const total = ps.reduce((s, p) => s + Number(p.amount), 0)
+                  const fulfilled = ps.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+                  const onTime = fulfilled.filter(p => {
+                    const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+                    return donation && new Date(donation.created_at) <= new Date(p.expected_date)
+                  }).length
+                  return {
+                    count: ps.length,
+                    total,
+                    fulfilledCount: fulfilled.length,
+                    onTimeRate: ps.length > 0 ? Math.round((onTime / ps.length) * 100) : 0,
+                  }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const tiles = [
+                  { label: 'Pledges Made', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of pledges with an expected date in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Amount Pledged', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of pledges expected in ${yr}, compared to ${yr - 1}. Includes fulfilled, pending, and cancelled pledges.` },
+                  { label: 'Fulfilled', val: cur.fulfilledCount, d: delta(cur.fulfilledCount, prev.fulfilledCount), tip: `Number of pledges expected in ${yr} that have been fulfilled with a matching donation, compared to ${yr - 1}.` },
+                  { label: 'Fulfilled On Time', val: `${cur.onTimeRate}%`, d: delta(cur.onTimeRate, prev.onTimeRate), tip: `Share of pledges expected in ${yr} that were fulfilled on or before their expected date, compared to ${yr - 1}.` },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
@@ -8821,172 +8866,51 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              {(() => {
-                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
-                const thisYearGrants = grants.filter(g => grantYearOf(g) === yearNum)
-                const lastYearGrants = grants.filter(g => grantYearOf(g) === yearNum - 1)
-                const thisYearTotal = thisYearGrants.reduce((s, g) => s + Number(g.amount), 0)
-                const lastYearTotal = lastYearGrants.reduce((s, g) => s + Number(g.amount), 0)
-                const countDiff = thisYearGrants.length - lastYearGrants.length
-                const totalDiffPct = lastYearTotal > 0 ? Math.round(((thisYearTotal - lastYearTotal) / lastYearTotal) * 100) : null
-
-                const activeGrants = grants.filter(g => g.status === 'active')
-                const today = new Date()
-
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={s.analyticsStatNumber}>{thisYearGrants.length}</span>
-                          {lastYearGrants.length > 0 && (
-                            <span style={s.analyticsStatDelta(countDiff >= 0)}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={s.analyticsStatNumber}>${thisYearTotal.toLocaleString()}</span>
-                          {totalDiffPct !== null && (
-                            <span style={s.analyticsStatDelta(totalDiffPct >= 0)}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-
-                    {activeGrants.length === 0 ? (
-                      <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
-                    ) : (
-                      <>
-                        <div style={s.analyticsSubTitleDivider}>Pace vs report deadline</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {activeGrants.map((g, i) => {
-                            const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
-                            const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
-                            const start = new Date(g.start_date || g.created_at)
-                            const due = g.report_due_date ? new Date(g.report_due_date) : null
-                            const daysToReport = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null
-                            const overdue = daysToReport !== null && daysToReport < 0
-                            let pctElapsed = null
-                            if (due) {
-                              const totalSpan = due - start
-                              const elapsed = today - start
-                              pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
-                            }
-                            const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
-                            const behind = gap !== null && gap >= 20
-                            const slightlyBehind = gap !== null && gap >= 8 && gap < 20
-                            const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
-                            const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
-                            const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
-                            let verdict = 'Not enough data to assess pace'
-                            if (pctElapsed !== null) {
-                              verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
-                            }
-                            return (
-                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
-                                  <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                    <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
-                                  </div>
-                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
-                                </div>
-                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const activeGrantsList = grants.filter(g => g.status === 'active')
-                const totalActive = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
-                const byFunder = activeGrantsList.map(g => ({
-                  funder_name: g.funder_name,
-                  amount: Number(g.amount),
-                  pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
-                })).sort((a, b) => b.amount - a.amount)
-                const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
-                const highRisk = byFunder.length >= 2 && topFunderPct >= 60
-                const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
-                const tooFewFunders = byFunder.length < 2
-
-                const today = new Date()
-                const sixMonthsOut = new Date()
-                sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
-                const expiringSoon = activeGrantsList.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
-
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
-
-                    {tooFewFunders ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
-                    ) : (
-                      <>
-                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topFunderPct}%</div>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
-                          <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
-                        </div>
-                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
-                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
-                        </div>
-                      </>
-                    )}
-
-                    {byFunder.length > 0 && (
-                      <>
-                        <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {byFunder.map((f, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    <div style={s.analyticsSubTitle}>Funding expiring in the next 6 months</div>
-                    {expiringSoon.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {expiringSoon.map((g, i) => {
-                          const monthsOut = Math.round((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
-                          return (
-                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
-                                <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
-                              </div>
-                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
               </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>06</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
+              </div>
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const statsForYear = (y) => {
+                  const ds = donations.filter(d => d.recurring_gift_id && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                  const total = ds.reduce((s, d) => s + d.amount, 0)
+                  const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                  const newGifts = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === y).length
+                  return { total, count: ds.length, donors: donorKeys.size, newGifts }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const tiles = [
+                  { label: 'Total Raised (Recurring)', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations collected through recurring gifts in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'New Recurring Gifts', val: cur.newGifts, d: delta(cur.newGifts, prev.newGifts), tip: `Number of new recurring gifts (GIRO or habitual PayNow) started in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Recurring Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who made at least one recurring donation in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Recurring Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of individual confirmed recurring donation charges collected in ${yr}, compared to ${yr - 1}.` },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
@@ -9153,13 +9077,226 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
-
-              </div>
+            </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>07</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
+              </div>
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const statsForYear = (y) => {
+                  const gs = grants.filter(g => grantYearOf(g) === y)
+                  const total = gs.reduce((s, g) => s + Number(g.amount), 0)
+                  return { total, count: gs.length, avg: gs.length > 0 ? total / gs.length : 0 }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const activeGrantsCount = grants.filter(g => g.status === 'active').length
+                const tiles = [
+                  { label: 'Grants Awarded', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of grants with a start date in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Total Secured', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of grants awarded in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Avg Grant Size', val: `$${cur.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avg, prev.avg), tip: `Average grant amount awarded in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === undefined ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>currently active</div>
+                        ) : t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              {(() => {
+                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const thisYearGrants = grants.filter(g => grantYearOf(g) === yearNum)
+                const lastYearGrants = grants.filter(g => grantYearOf(g) === yearNum - 1)
+                const thisYearTotal = thisYearGrants.reduce((s, g) => s + Number(g.amount), 0)
+                const lastYearTotal = lastYearGrants.reduce((s, g) => s + Number(g.amount), 0)
+                const countDiff = thisYearGrants.length - lastYearGrants.length
+                const totalDiffPct = lastYearTotal > 0 ? Math.round(((thisYearTotal - lastYearTotal) / lastYearTotal) * 100) : null
+
+                const activeGrants = grants.filter(g => g.status === 'active')
+                const today = new Date()
+
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Grants awarded</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <span style={s.analyticsStatNumber}>{thisYearGrants.length}</span>
+                          {lastYearGrants.length > 0 && (
+                            <span style={s.analyticsStatDelta(countDiff >= 0)}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Total secured</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                          <span style={s.analyticsStatNumber}>${thisYearTotal.toLocaleString()}</span>
+                          {totalDiffPct !== null && (
+                            <span style={s.analyticsStatDelta(totalDiffPct >= 0)}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+
+                    {activeGrants.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No active grants right now.</div>
+                    ) : (
+                      <>
+                        <div style={s.analyticsSubTitleDivider}>Pace vs report deadline</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {activeGrants.map((g, i) => {
+                            const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+                            const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
+                            const start = new Date(g.start_date || g.created_at)
+                            const due = g.report_due_date ? new Date(g.report_due_date) : null
+                            const daysToReport = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null
+                            const overdue = daysToReport !== null && daysToReport < 0
+                            let pctElapsed = null
+                            if (due) {
+                              const totalSpan = due - start
+                              const elapsed = today - start
+                              pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
+                            }
+                            const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
+                            const behind = gap !== null && gap >= 20
+                            const slightlyBehind = gap !== null && gap >= 8 && gap < 20
+                            const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
+                            const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
+                            const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
+                            let verdict = 'Not enough data to assess pace'
+                            if (pctElapsed !== null) {
+                              verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
+                            }
+                            return (
+                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                  <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
+                                  </div>
+                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const activeGrantsList = grants.filter(g => g.status === 'active')
+                const totalActive = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+                const byFunder = activeGrantsList.map(g => ({
+                  funder_name: g.funder_name,
+                  amount: Number(g.amount),
+                  pct: totalActive > 0 ? Math.round((Number(g.amount) / totalActive) * 100) : 0,
+                })).sort((a, b) => b.amount - a.amount)
+                const topFunderPct = byFunder.length > 0 ? byFunder[0].pct : 0
+                const highRisk = byFunder.length >= 2 && topFunderPct >= 60
+                const medRisk = byFunder.length >= 2 && topFunderPct >= 40 && topFunderPct < 60
+                const tooFewFunders = byFunder.length < 2
+
+                const today = new Date()
+                const sixMonthsOut = new Date()
+                sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
+                const expiringSoon = activeGrantsList.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
+
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
+
+                    {tooFewFunders ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topFunderPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
+                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
+                        </div>
+                      </>
+                    )}
+
+                    {byFunder.length > 0 && (
+                      <>
+                        <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {byFunder.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <div style={s.analyticsSubTitle}>Funding expiring in the next 6 months</div>
+                    {expiringSoon.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {expiringSoon.map((g, i) => {
+                          const monthsOut = Math.round((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>08</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
               </div>
 
