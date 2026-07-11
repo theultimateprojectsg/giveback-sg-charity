@@ -4025,6 +4025,276 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { yr, curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount }
   }, [filterYear, massAppeals, allAppealRecipients, donations])
 
+  const pledgeSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const statsForYear = (y) => {
+      const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
+      const total = ps.reduce((s, p) => s + Number(p.amount), 0)
+      const fulfilled = ps.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+      const onTime = fulfilled.filter(p => {
+        const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+        return donation && new Date(donation.created_at) <= new Date(p.expected_date)
+      }).length
+      return {
+        count: ps.length,
+        total,
+        fulfilledCount: fulfilled.length,
+        onTimeRate: ps.length > 0 ? Math.round((onTime / ps.length) * 100) : 0,
+      }
+    }
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const tiles = [
+      { label: 'Pledges Made', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of pledges with an expected date in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Amount Pledged', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of pledges expected in ${yr}, compared to ${yr - 1}. Includes fulfilled, pending, and cancelled pledges.` },
+      { label: 'Fulfilled', val: cur.fulfilledCount, d: delta(cur.fulfilledCount, prev.fulfilledCount), tip: `Number of pledges expected in ${yr} that have been fulfilled with a matching donation, compared to ${yr - 1}.` },
+      { label: 'Fulfilled On Time', val: `${cur.onTimeRate}%`, d: delta(cur.onTimeRate, prev.onTimeRate), tip: `Share of pledges expected in ${yr} that were fulfilled on or before their expected date, compared to ${yr - 1}.` },
+    ]
+    return { yr, tiles }
+  }, [filterYear, pledges, donations])
+
+  const pledgeStatsAndTrend = React.useMemo(() => {
+    const today = new Date()
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const buildOutstandingUnits = () => {
+      const units = []
+      pledges.filter(p => p.status === 'pending').forEach(p => {
+        if (p.is_multi_year) {
+          pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).forEach(inst => {
+            units.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date })
+          })
+        } else {
+          units.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date })
+        }
+      })
+      return units
+    }
+    const outstandingUnits = buildOutstandingUnits()
+    const overdueUnits = outstandingUnits.filter(u => new Date(u.expected_date) < today).map(u => ({
+      ...u,
+      daysOverdue: Math.floor((today - new Date(u.expected_date)) / (1000 * 60 * 60 * 24)),
+    })).sort((a, b) => b.daysOverdue - a.daysOverdue)
+    const overdueTotal = overdueUnits.reduce((s, u) => s + u.amount, 0)
+
+    const scopedPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr)
+    const lastYearPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr - 1)
+    const avgPledgeSize = scopedPledgesForYr.length > 0 ? scopedPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / scopedPledgesForYr.length : 0
+    const lastYearAvgPledgeSize = lastYearPledgesForYr.length > 0 ? lastYearPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / lastYearPledgesForYr.length : 0
+    const avgDelta = lastYearAvgPledgeSize === 0 ? (avgPledgeSize > 0 ? null : 0) : Math.round(((avgPledgeSize - lastYearAvgPledgeSize) / lastYearAvgPledgeSize) * 100)
+
+    const cancelledCount = scopedPledgesForYr.filter(p => p.status === 'cancelled').length
+    const cancellationRate = scopedPledgesForYr.length > 0 ? Math.round((cancelledCount / scopedPledgesForYr.length) * 100) : 0
+
+    const pledgeDonorKey = (p) => p.donor_email?.trim() || p.donor_name
+    const pledgeCountByDonor = {}
+    pledges.forEach(p => {
+      const key = pledgeDonorKey(p)
+      pledgeCountByDonor[key] = (pledgeCountByDonor[key] || 0) + 1
+    })
+    const pledgeDonorKeys = Object.keys(pledgeCountByDonor)
+    const repeatPledgeDonors = pledgeDonorKeys.filter(k => pledgeCountByDonor[k] >= 2).length
+    const repeatPledgeRate = pledgeDonorKeys.length > 0 ? Math.round((repeatPledgeDonors / pledgeDonorKeys.length) * 100) : 0
+
+    const allYearsWithPledges = [...new Set(pledges.map(p => new Date(p.expected_date).getFullYear()))].sort((a, b) => a - b)
+    const trendYears = allYearsWithPledges.slice(-5)
+    const trendData = trendYears.map(y => {
+      const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
+      const pledgedTotal = ps.reduce((s, p) => s + Number(p.amount), 0)
+      const fulfilledTotal = ps.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
+      return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
+    })
+
+    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData }
+  }, [filterYear, pledges, pledgeInstalments])
+
+  const pledgeReliabilityStats = React.useMemo(() => {
+    const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const scopedPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum)
+    const lastYearPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum - 1)
+    const lastYearTotal = lastYearPledges.reduce((s, p) => s + Number(p.amount), 0)
+
+    const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+    const fulfilledWithDates = fulfilled.map(p => {
+      const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+      if (!donation) return null
+      const daysLate = Math.ceil((new Date(donation.created_at) - new Date(p.expected_date)) / (1000 * 60 * 60 * 24))
+      return { pledge: p, daysLate }
+    }).filter(Boolean)
+
+    const onTimeGroup = fulfilledWithDates.filter(f => f.daysLate <= 0)
+    const slightlyLateGroup = fulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
+    const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
+
+    const lastYearFulfilled = lastYearPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+    const lastYearOnTime = lastYearFulfilled.filter(p => {
+      const donation = donations.find(d => d.id === p.fulfilled_donation_id)
+      if (!donation) return false
+      return new Date(donation.created_at) <= new Date(p.expected_date)
+    }).length
+    const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTime / lastYearPledges.length) * 100) : null
+
+    const today = new Date()
+    const donorKey = (p) => p.donor_email?.trim() || p.donor_name
+    const byDonor = {}
+    pledges.forEach(p => {
+      const key = donorKey(p)
+      if (!byDonor[key]) byDonor[key] = { name: p.donor_name, pledges: [] }
+      byDonor[key].pledges.push(p)
+    })
+    const watchList = Object.values(byDonor).map(d => {
+      const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today))
+      const rescheduled = d.pledges.filter(p => p.status === 'pending')
+      return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
+    }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
+
+    return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList }
+  }, [filterYear, pledges, donations, pledgeWatchThreshold])
+
+  const pledgeConcentrationStats = React.useMemo(() => {
+    const outstandingUnits = []
+    pledges.filter(p => p.status === 'pending').forEach(p => {
+      if (p.is_multi_year) {
+        const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received)
+        myInstalments.forEach(inst => {
+          outstandingUnits.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date, pledge_id: p.id })
+        })
+      } else {
+        outstandingUnits.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date, pledge_id: p.id })
+      }
+    })
+
+    const totalOutstanding = outstandingUnits.reduce((s, u) => s + u.amount, 0)
+
+    const byDonorOutstanding = {}
+    outstandingUnits.forEach(u => {
+      if (!byDonorOutstanding[u.donor_name]) byDonorOutstanding[u.donor_name] = 0
+      byDonorOutstanding[u.donor_name] += u.amount
+    })
+    const donorRanked = Object.entries(byDonorOutstanding).map(([name, amount]) => ({
+      name, amount, pct: totalOutstanding > 0 ? Math.round((amount / totalOutstanding) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+
+    const topDonorPct = donorRanked.length > 0 ? donorRanked[0].pct : 0
+    const highRisk = donorRanked.length >= 2 && topDonorPct >= 60
+    const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
+    const tooFewDonors = donorRanked.length < 2
+
+    const byMonth = {}
+    outstandingUnits.forEach(u => {
+      const d = new Date(u.expected_date)
+      const key = `${d.getFullYear()}-${d.getMonth()}`
+      if (!byMonth[key]) byMonth[key] = { label: d.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }), amount: 0, count: 0, sortKey: d.getFullYear() * 12 + d.getMonth() }
+      byMonth[key].amount += u.amount
+      byMonth[key].count += 1
+    })
+    const monthsRanked = Object.values(byMonth).sort((a, b) => a.sortKey - b.sortKey)
+    const heaviestMonth = [...monthsRanked].sort((a, b) => b.amount - a.amount)[0]
+
+    return { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth }
+  }, [pledges, pledgeInstalments])
+
+  const recurringSnapshotStats = React.useMemo(() => {
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const statsForYear = (y) => {
+      const ds = donations.filter(d => d.recurring_gift_id && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+      const total = ds.reduce((s, d) => s + d.amount, 0)
+      const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+      const newGifts = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === y).length
+      return { total, count: ds.length, donors: donorKeys.size, newGifts }
+    }
+    const cur = statsForYear(yr)
+    const prev = statsForYear(yr - 1)
+    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const tiles = [
+      { label: 'Total Raised (Recurring)', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations collected through recurring gifts in ${yr}, compared to ${yr - 1}.` },
+      { label: 'New Recurring Gifts', val: cur.newGifts, d: delta(cur.newGifts, prev.newGifts), tip: `Number of new recurring gifts (GIRO or habitual PayNow) started in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Recurring Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who made at least one recurring donation in ${yr}, compared to ${yr - 1}.` },
+      { label: 'Recurring Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of individual confirmed recurring donation charges collected in ${yr}, compared to ${yr - 1}.` },
+    ]
+    return { yr, tiles }
+  }, [filterYear, donations, recurringGifts])
+
+  const recurringMrrStats = React.useMemo(() => {
+    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+    const mrrAsOfEndOfYear = (y) => {
+      const yearEnd = new Date(y, 11, 31)
+      const activeAtYearEnd = recurringGifts.filter(g => new Date(g.created_at) <= yearEnd && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > yearEnd)))
+      return activeAtYearEnd.reduce((s, g) => s + monthlyEquivalent(g), 0)
+    }
+    const allYearsWithGifts = [...new Set(recurringGifts.map(g => new Date(g.created_at).getFullYear()))].sort((a, b) => a - b)
+    const trendYears = allYearsWithGifts.slice(-5)
+    const trendData = trendYears.map(y => ({ year: y.toString(), mrr: Math.round(mrrAsOfEndOfYear(y)) }))
+
+    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+    const newGiftsThisYear = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === yr)
+    const newMrr = newGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
+    const churnedGiftsThisYear = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at && new Date(g.cancelled_at).getFullYear() === yr)
+    const churnedMrr = churnedGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
+    const netMrr = newMrr - churnedMrr
+
+    return { trendData, yr, newMrr, churnedMrr, netMrr }
+  }, [filterYear, recurringGifts])
+
+  const recurringHealthStats = React.useMemo(() => {
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const activeGifts = recurringGifts.filter(g => g.status === 'active')
+    const activeGiftsAgo = recurringGifts.filter(g => g.status === 'active' && new Date(g.created_at) < ninetyDaysAgo)
+    const giftCountDiff = activeGifts.length - activeGiftsAgo.length
+
+    const mrr = activeGifts.reduce((s, g) => {
+      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+      return s + monthly
+    }, 0)
+    const mrrAgo = activeGiftsAgo.reduce((s, g) => {
+      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+      return s + monthly
+    }, 0)
+    const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
+
+    const cancelledGifts = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at)
+    const avgLifespanMonths = cancelledGifts.length > 0
+      ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at) - new Date(g.created_at)) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
+      : null
+
+    const atRiskGifts = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold)
+    const atRiskCount = atRiskGifts.length
+    const atRiskMrr = atRiskGifts.reduce((s, g) => {
+      const gift = recurringGifts.find(rg => rg.id === g.gift_id)
+      if (!gift) return s
+      const monthly = gift.frequency === 'weekly' ? Number(gift.amount) * 4.33 : gift.frequency === 'quarterly' ? Number(gift.amount) / 3 : gift.frequency === 'yearly' || gift.frequency === 'annual' ? Number(gift.amount) / 12 : Number(gift.amount)
+      return s + monthly
+    }, 0)
+
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+    const activeOneYearAgo = recurringGifts.filter(g => new Date(g.created_at) <= oneYearAgo && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > oneYearAgo)))
+    const stillActiveNow = activeOneYearAgo.filter(g => g.status === 'active')
+    const retentionRate = activeOneYearAgo.length > 0 ? Math.round((stillActiveNow.length / activeOneYearAgo.length) * 100) : null
+
+    const trendFlagsFiltered = recurringTrendFlags.filter(f => {
+      const gift = recurringGifts.find(g => g.id === f.gift_id)
+      if (!gift) return false
+      const cycles = donations.filter(d => d.recurring_gift_id === gift.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      if (recurringTrendCycles === 3 && cycles.length < 4) return false
+      return true
+    })
+    const upgrades = trendFlagsFiltered.filter(f => f.direction === 'upgrade')
+    const downgrades = trendFlagsFiltered.filter(f => f.direction === 'downgrade')
+
+    return { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades }
+  }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, recurringTrendCycles, donations])
+
+  const recurringRiskStats = React.useMemo(() => {
+    const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
+    const frequentSkippers = Object.entries(recurringSkipHistory).filter(([, skips]) => skips.length >= 2).map(([giftId, skips]) => {
+      const gift = recurringGifts.find(g => g.id === giftId)
+      return gift ? { ...gift, skipCount: skips.length } : null
+    }).filter(Boolean)
+    return { missedFiltered, frequentSkippers }
+  }, [giroMissedCycles, recurringSkipHistory, recurringGifts])
+
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
@@ -9195,31 +9465,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const statsForYear = (y) => {
-                  const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
-                  const total = ps.reduce((s, p) => s + Number(p.amount), 0)
-                  const fulfilled = ps.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
-                  const onTime = fulfilled.filter(p => {
-                    const donation = donations.find(d => d.id === p.fulfilled_donation_id)
-                    return donation && new Date(donation.created_at) <= new Date(p.expected_date)
-                  }).length
-                  return {
-                    count: ps.length,
-                    total,
-                    fulfilledCount: fulfilled.length,
-                    onTimeRate: ps.length > 0 ? Math.round((onTime / ps.length) * 100) : 0,
-                  }
-                }
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-                const tiles = [
-                  { label: 'Pledges Made', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of pledges with an expected date in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Amount Pledged', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of pledges expected in ${yr}, compared to ${yr - 1}. Includes fulfilled, pending, and cancelled pledges.` },
-                  { label: 'Fulfilled', val: cur.fulfilledCount, d: delta(cur.fulfilledCount, prev.fulfilledCount), tip: `Number of pledges expected in ${yr} that have been fulfilled with a matching donation, compared to ${yr - 1}.` },
-                  { label: 'Fulfilled On Time', val: `${cur.onTimeRate}%`, d: delta(cur.onTimeRate, prev.onTimeRate), tip: `Share of pledges expected in ${yr} that were fulfilled on or before their expected date, compared to ${yr - 1}.` },
-                ]
+                const { yr, tiles } = pledgeSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
@@ -9240,55 +9486,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const today = new Date()
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const buildOutstandingUnits = () => {
-                  const units = []
-                  pledges.filter(p => p.status === 'pending').forEach(p => {
-                    if (p.is_multi_year) {
-                      pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).forEach(inst => {
-                        units.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date })
-                      })
-                    } else {
-                      units.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date })
-                    }
-                  })
-                  return units
-                }
-                const outstandingUnits = buildOutstandingUnits()
-                const overdueUnits = outstandingUnits.filter(u => new Date(u.expected_date) < today).map(u => ({
-                  ...u,
-                  daysOverdue: Math.floor((today - new Date(u.expected_date)) / (1000 * 60 * 60 * 24)),
-                })).sort((a, b) => b.daysOverdue - a.daysOverdue)
-                const overdueTotal = overdueUnits.reduce((s, u) => s + u.amount, 0)
-
-                const scopedPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr)
-                const lastYearPledgesForYr = pledges.filter(p => new Date(p.expected_date).getFullYear() === yr - 1)
-                const avgPledgeSize = scopedPledgesForYr.length > 0 ? scopedPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / scopedPledgesForYr.length : 0
-                const lastYearAvgPledgeSize = lastYearPledgesForYr.length > 0 ? lastYearPledgesForYr.reduce((s, p) => s + Number(p.amount), 0) / lastYearPledgesForYr.length : 0
-                const avgDelta = lastYearAvgPledgeSize === 0 ? (avgPledgeSize > 0 ? null : 0) : Math.round(((avgPledgeSize - lastYearAvgPledgeSize) / lastYearAvgPledgeSize) * 100)
-
-                const cancelledCount = scopedPledgesForYr.filter(p => p.status === 'cancelled').length
-                const cancellationRate = scopedPledgesForYr.length > 0 ? Math.round((cancelledCount / scopedPledgesForYr.length) * 100) : 0
-
-                const pledgeDonorKey = (p) => p.donor_email?.trim() || p.donor_name
-                const pledgeCountByDonor = {}
-                pledges.forEach(p => {
-                  const key = pledgeDonorKey(p)
-                  pledgeCountByDonor[key] = (pledgeCountByDonor[key] || 0) + 1
-                })
-                const pledgeDonorKeys = Object.keys(pledgeCountByDonor)
-                const repeatPledgeDonors = pledgeDonorKeys.filter(k => pledgeCountByDonor[k] >= 2).length
-                const repeatPledgeRate = pledgeDonorKeys.length > 0 ? Math.round((repeatPledgeDonors / pledgeDonorKeys.length) * 100) : 0
-
-                const allYearsWithPledges = [...new Set(pledges.map(p => new Date(p.expected_date).getFullYear()))].sort((a, b) => a - b)
-                const trendYears = allYearsWithPledges.slice(-5)
-                const trendData = trendYears.map(y => {
-                  const ps = pledges.filter(p => new Date(p.expected_date).getFullYear() === y)
-                  const pledgedTotal = ps.reduce((s, p) => s + Number(p.amount), 0)
-                  const fulfilledTotal = ps.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
-                  return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
-                })
+                const { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData } = pledgeStatsAndTrend
 
                 return (
                   <>
@@ -9367,44 +9565,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
-                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const scopedPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum)
-                const lastYearPledges = pledges.filter(p => new Date(p.expected_date).getFullYear() === yearNum - 1)
-                const lastYearTotal = lastYearPledges.reduce((s, p) => s + Number(p.amount), 0)
-
-                const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
-                const fulfilledWithDates = fulfilled.map(p => {
-                  const donation = donations.find(d => d.id === p.fulfilled_donation_id)
-                  if (!donation) return null
-                  const daysLate = Math.ceil((new Date(donation.created_at) - new Date(p.expected_date)) / (1000 * 60 * 60 * 24))
-                  return { pledge: p, daysLate }
-                }).filter(Boolean)
-
-                const onTimeGroup = fulfilledWithDates.filter(f => f.daysLate <= 0)
-                const slightlyLateGroup = fulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
-                const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
-
-                const lastYearFulfilled = lastYearPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
-                const lastYearOnTime = lastYearFulfilled.filter(p => {
-                  const donation = donations.find(d => d.id === p.fulfilled_donation_id)
-                  if (!donation) return false
-                  return new Date(donation.created_at) <= new Date(p.expected_date)
-                }).length
-                const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTime / lastYearPledges.length) * 100) : null
-
-                const today = new Date()
-                const donorKey = (p) => p.donor_email?.trim() || p.donor_name
-                const byDonor = {}
-                pledges.forEach(p => {
-                  const key = donorKey(p)
-                  if (!byDonor[key]) byDonor[key] = { name: p.donor_name, pledges: [] }
-                  byDonor[key].pledges.push(p)
-                })
-                const watchList = Object.values(byDonor).map(d => {
-                  const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today))
-                  const rescheduled = d.pledges.filter(p => p.status === 'pending')
-                  return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
-                }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
+                const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
 
                 return (
                   <div style={s.card}>
@@ -9466,44 +9627,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const outstandingUnits = []
-                pledges.filter(p => p.status === 'pending').forEach(p => {
-                  if (p.is_multi_year) {
-                    const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received)
-                    myInstalments.forEach(inst => {
-                      outstandingUnits.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date, pledge_id: p.id })
-                    })
-                  } else {
-                    outstandingUnits.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date, pledge_id: p.id })
-                  }
-                })
-
-                const totalOutstanding = outstandingUnits.reduce((s, u) => s + u.amount, 0)
-
-                const byDonorOutstanding = {}
-                outstandingUnits.forEach(u => {
-                  if (!byDonorOutstanding[u.donor_name]) byDonorOutstanding[u.donor_name] = 0
-                  byDonorOutstanding[u.donor_name] += u.amount
-                })
-                const donorRanked = Object.entries(byDonorOutstanding).map(([name, amount]) => ({
-                  name, amount, pct: totalOutstanding > 0 ? Math.round((amount / totalOutstanding) * 100) : 0,
-                })).sort((a, b) => b.amount - a.amount)
-
-                const topDonorPct = donorRanked.length > 0 ? donorRanked[0].pct : 0
-                const highRisk = donorRanked.length >= 2 && topDonorPct >= 60
-                const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
-                const tooFewDonors = donorRanked.length < 2
-
-                const byMonth = {}
-                outstandingUnits.forEach(u => {
-                  const d = new Date(u.expected_date)
-                  const key = `${d.getFullYear()}-${d.getMonth()}`
-                  if (!byMonth[key]) byMonth[key] = { label: d.toLocaleDateString('en-SG', { month: 'long', year: 'numeric' }), amount: 0, count: 0, sortKey: d.getFullYear() * 12 + d.getMonth() }
-                  byMonth[key].amount += u.amount
-                  byMonth[key].count += 1
-                })
-                const monthsRanked = Object.values(byMonth).sort((a, b) => a.sortKey - b.sortKey)
-                const heaviestMonth = [...monthsRanked].sort((a, b) => b.amount - a.amount)[0]
+                const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth } = pledgeConcentrationStats
 
                 return (
                   <div style={s.card}>
@@ -9574,23 +9698,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const statsForYear = (y) => {
-                  const ds = donations.filter(d => d.recurring_gift_id && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
-                  const total = ds.reduce((s, d) => s + d.amount, 0)
-                  const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                  const newGifts = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === y).length
-                  return { total, count: ds.length, donors: donorKeys.size, newGifts }
-                }
-                const cur = statsForYear(yr)
-                const prev = statsForYear(yr - 1)
-                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-                const tiles = [
-                  { label: 'Total Raised (Recurring)', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations collected through recurring gifts in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'New Recurring Gifts', val: cur.newGifts, d: delta(cur.newGifts, prev.newGifts), tip: `Number of new recurring gifts (GIRO or habitual PayNow) started in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Recurring Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who made at least one recurring donation in ${yr}, compared to ${yr - 1}.` },
-                  { label: 'Recurring Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of individual confirmed recurring donation charges collected in ${yr}, compared to ${yr - 1}.` },
-                ]
+                const { yr, tiles } = recurringSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
@@ -9611,22 +9719,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
-                const mrrAsOfEndOfYear = (y) => {
-                  const yearEnd = new Date(y, 11, 31)
-                  const activeAtYearEnd = recurringGifts.filter(g => new Date(g.created_at) <= yearEnd && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > yearEnd)))
-                  return activeAtYearEnd.reduce((s, g) => s + monthlyEquivalent(g), 0)
-                }
-                const allYearsWithGifts = [...new Set(recurringGifts.map(g => new Date(g.created_at).getFullYear()))].sort((a, b) => a - b)
-                const trendYears = allYearsWithGifts.slice(-5)
-                const trendData = trendYears.map(y => ({ year: y.toString(), mrr: Math.round(mrrAsOfEndOfYear(y)) }))
-
-                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const newGiftsThisYear = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === yr)
-                const newMrr = newGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
-                const churnedGiftsThisYear = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at && new Date(g.cancelled_at).getFullYear() === yr)
-                const churnedMrr = churnedGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
-                const netMrr = newMrr - churnedMrr
+                const { trendData, yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
@@ -9669,51 +9762,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
-                  const ninetyDaysAgo = new Date()
-                  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-                  const activeGifts = recurringGifts.filter(g => g.status === 'active')
-                  const activeGiftsAgo = recurringGifts.filter(g => g.status === 'active' && new Date(g.created_at) < ninetyDaysAgo)
-                  const giftCountDiff = activeGifts.length - activeGiftsAgo.length
-
-                  const mrr = activeGifts.reduce((s, g) => {
-                    const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
-                    return s + monthly
-                  }, 0)
-                  const mrrAgo = activeGiftsAgo.reduce((s, g) => {
-                    const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
-                    return s + monthly
-                  }, 0)
-                  const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
-
-                  const cancelledGifts = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at)
-                  const avgLifespanMonths = cancelledGifts.length > 0
-                    ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at) - new Date(g.created_at)) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
-                    : null
-
-                  const atRiskGifts = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold)
-                  const atRiskCount = atRiskGifts.length
-                  const atRiskMrr = atRiskGifts.reduce((s, g) => {
-                    const gift = recurringGifts.find(rg => rg.id === g.gift_id)
-                    if (!gift) return s
-                    const monthly = gift.frequency === 'weekly' ? Number(gift.amount) * 4.33 : gift.frequency === 'quarterly' ? Number(gift.amount) / 3 : gift.frequency === 'yearly' || gift.frequency === 'annual' ? Number(gift.amount) / 12 : Number(gift.amount)
-                    return s + monthly
-                  }, 0)
-
-                  const oneYearAgo = new Date()
-                  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-                  const activeOneYearAgo = recurringGifts.filter(g => new Date(g.created_at) <= oneYearAgo && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > oneYearAgo)))
-                  const stillActiveNow = activeOneYearAgo.filter(g => g.status === 'active')
-                  const retentionRate = activeOneYearAgo.length > 0 ? Math.round((stillActiveNow.length / activeOneYearAgo.length) * 100) : null
-
-                  const trendFlagsFiltered = recurringTrendFlags.filter(f => {
-                    const gift = recurringGifts.find(g => g.id === f.gift_id)
-                    if (!gift) return false
-                    const cycles = donations.filter(d => d.recurring_gift_id === gift.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    if (recurringTrendCycles === 3 && cycles.length < 4) return false
-                    return true
-                  })
-                  const upgrades = trendFlagsFiltered.filter(f => f.direction === 'upgrade')
-                  const downgrades = trendFlagsFiltered.filter(f => f.direction === 'downgrade')
+                  const { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
                   return (
                     <div style={s.card}>
@@ -9779,11 +9828,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
-                  const frequentSkippers = Object.entries(recurringSkipHistory).filter(([, skips]) => skips.length >= 2).map(([giftId, skips]) => {
-                    const gift = recurringGifts.find(g => g.id === giftId)
-                    return gift ? { ...gift, skipCount: skips.length } : null
-                  }).filter(Boolean)
+                  const { missedFiltered, frequentSkippers } = recurringRiskStats
 
                   return (
                     <div style={s.card}>
