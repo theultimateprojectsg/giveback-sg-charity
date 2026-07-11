@@ -7995,10 +7995,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const allYearsWithData = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
                 const trendYears = allYearsWithData.slice(-5)
-                if (trendYears.length < 2) return null
+                if (trendYears.length < 2) return <div />
                 const trendData = trendYears.map(y => ({
                   year: y.toString(),
                   total: donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y).reduce((s, d) => s + d.amount, 0),
@@ -8007,9 +8008,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const lastYr = trendData[trendData.length - 1]
                 const cagr = firstYr.total > 0 && trendData.length > 1 ? Math.round((Math.pow(lastYr.total / firstYr.total, 1 / (trendData.length - 1)) - 1) * 100) : null
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                         <XAxis dataKey="year" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -8031,7 +8032,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const goalYear = new Date().getFullYear()
                 const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
                 return (
-                <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={s.card}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
                     <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above." /></div>
                     {!editingGoal && (
@@ -8081,6 +8082,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 )
               })()}
+              </div>
 
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -8164,6 +8166,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const donorFirstDate = {}
@@ -8180,16 +8183,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const totalNew = monthCounts.reduce((s, c) => s + c, 0)
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                  <div style={s.card}>
+                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
                     {totalNew === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={180}>
                         <BarChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                          <XAxis dataKey="month" tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value, 'New donors']} />
                           <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} />
                         </BarChart>
@@ -8199,22 +8202,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 <div style={s.card}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
-                    {filterYear !== 'All' && (
-                      <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
-                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
-                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
-                      </div>
-                    )}
-                  </div>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
+                  {filterYear !== 'All' && (
+                    <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
+                      <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
+                      <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
+                    </div>
+                  )}
+                  <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                      <XAxis dataKey="month" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                       <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(filterYear) - 1}` : 'Previous year')]} />
                       {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} />}
                       <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} />
@@ -8223,11 +8223,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 <div style={s.card}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} />
                       <Line type="monotone" dataKey="count" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 4 }} />
                     </LineChart>
