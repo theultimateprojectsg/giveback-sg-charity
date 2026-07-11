@@ -3445,7 +3445,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         end_date: cause?.end_date || null,
         created_at: cause?.created_at || null,
       }
-    }).sort((a, b) => b.total - a.total)
+    }).sort((a, b) => a.title.localeCompare(b.title))
     if (generalCount > 0) {
       rows.push({ title: 'General Donation', total: generalTotal, count: generalCount, avg: generalTotal / generalCount, donors: null, isGeneral: true })
     }
@@ -8102,7 +8102,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {(() => {
                 const today = new Date()
-                const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date)
+                const campaignsWithGoalAndDate = myCauses.filter(c => c.type === 'campaign' && c.target_amount && c.end_date && (filterYear === 'All' || new Date(c.created_at).getFullYear() === parseInt(filterYear)))
 
                 const paceData = campaignsWithGoalAndDate.map(c => {
                   const raised = causeRaisedMap[c.id]?.total || 0
@@ -8124,11 +8124,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
 
                   return { cause: c, raised, pctElapsed, pctRaised, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
-                }).sort((a, b) => {
-                  if (a.isStalled !== b.isStalled) return a.isStalled ? -1 : 1
-                  if (a.behind !== b.behind) return a.behind ? -1 : 1
-                  return (a.daysToEnd ?? 9999) - (b.daysToEnd ?? 9999)
-                })
+                }).sort((a, b) => a.cause.title.localeCompare(b.cause.title))
 
                 return (
                   <div style={s.card}>
@@ -8200,7 +8196,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     referralPct: total > 0 ? Math.round((referralTotal / total) * 100) : 0,
                     hasAppeal: appealTotal > 0,
                   }
-                }).sort((a, b) => b.newPct - a.newPct)
+                }).sort((a, b) => a.title.localeCompare(b.title))
                 return (
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="For each campaign: the share of donors who are brand new vs. already known, and where the money actually came from — organic giving, a mass appeal (traced by PayNow reference), or donor referrals." /></div>
