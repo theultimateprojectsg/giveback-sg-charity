@@ -9822,15 +9822,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
-                const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
-                const thisYearGrants = grants.filter(g => grantYearOf(g) === yearNum)
-                const lastYearGrants = grants.filter(g => grantYearOf(g) === yearNum - 1)
-                const thisYearTotal = thisYearGrants.reduce((s, g) => s + Number(g.amount), 0)
-                const lastYearTotal = lastYearGrants.reduce((s, g) => s + Number(g.amount), 0)
-                const countDiff = thisYearGrants.length - lastYearGrants.length
-                const totalDiffPct = lastYearTotal > 0 ? Math.round(((thisYearTotal - lastYearTotal) / lastYearTotal) * 100) : null
-
                 const activeGrants = grants.filter(g => g.status === 'active')
                 const today = new Date()
 
