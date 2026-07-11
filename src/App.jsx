@@ -7969,7 +7969,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
 
-              {React.useMemo(() => {
+              {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const median = (arr) => {
                   if (arr.length === 0) return 0
@@ -8010,7 +8010,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ))}
                   </div>
                 )
-              }, [filterYear, donations, isMobile])}
+              })()}
 
               {(() => {
                 const goalYear = new Date().getFullYear()
@@ -8068,7 +8068,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
-              {React.useMemo(() => {
+              {(() => {
                 const allYearsWithData = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
                 const trendYears = allYearsWithData.slice(-5)
                 if (trendYears.length < 2) return <div />
@@ -8098,9 +8098,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
                 )
-              }, [donations])}
+              })()}
 
-              {React.useMemo(() => {
+              {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
                 const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
@@ -8147,9 +8147,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
                 )
-              }, [filterYear, donations, allAppealRecipients, campaignCauseIds, grants])}
+              })()}
 
-              {React.useMemo(() => {
+              {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
                 const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
@@ -8196,11 +8196,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
                 )
-              }, [filterYear, donations, allAppealRecipients, campaignCauseIds, grants, pledges])}
+              })()}
               </div>
 
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
-              {React.useMemo(() => {
+              {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const donorFirstDate = {}
                 ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
@@ -8234,7 +8234,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
                 )
-              }, [filterYear, donations])}
+              })()}
 
                 <div style={s.card}>
                   <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
