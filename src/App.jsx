@@ -8397,6 +8397,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
                 const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
@@ -8411,7 +8412,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const today = new Date()
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding — {filterYear} <InfoTip text="Grants awarded this year vs last, and whether spending on each active grant is keeping pace with its report deadline." /></div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
@@ -8509,7 +8510,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const expiringSoon = activeGrantsList.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.card}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
 
                     {tooFewFunders ? (
@@ -8563,6 +8564,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
