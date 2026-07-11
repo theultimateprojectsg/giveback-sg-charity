@@ -8224,21 +8224,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pledges made</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{scopedPledges.length}</span>
-                          {lastYearPledges.length > 0 && <span style={{ fontSize: 14, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑${countDiff}` : `↓${Math.abs(countDiff)}`}</span>}
+                          {lastYearPledges.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: countDiff >= 0 ? C.sage : C.red }}>{countDiff === 0 ? '—' : countDiff > 0 ? `↑ ${countDiff}` : `↓ ${Math.abs(countDiff)}`} vs {yearNum - 1}</span>}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Amount pledged</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalPledged.toLocaleString()}</span>
-                          {totalDiffPct !== null && <span style={{ fontSize: 14, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'}{Math.abs(totalDiffPct)}%</span>}
+                          {totalDiffPct !== null && <span style={{ fontSize: 12, fontWeight: 600, color: totalDiffPct >= 0 ? C.sage : C.red }}>{totalDiffPct >= 0 ? '↑' : '↓'} {Math.abs(totalDiffPct)}% vs {yearNum - 1}</span>}
                         </div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Fulfilled on time</div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{onTimeRate}%</span>
-                          {onTimeRateDiff !== null && <span style={{ fontSize: 14, fontWeight: 600, color: onTimeRateDiff >= 0 ? C.sage : C.red }}>{onTimeRateDiff === 0 ? '—' : onTimeRateDiff > 0 ? `↑${onTimeRateDiff}pt` : `↓${Math.abs(onTimeRateDiff)}pt`}</span>}
+                          {onTimeRateDiff !== null && <span style={{ fontSize: 12, fontWeight: 600, color: onTimeRateDiff >= 0 ? C.sage : C.red }}>{onTimeRateDiff === 0 ? '—' : onTimeRateDiff > 0 ? `↑ ${onTimeRateDiff}pt` : `↓ ${Math.abs(onTimeRateDiff)}pt`} vs {yearNum - 1}</span>}
                         </div>
                       </div>
                     </div>
