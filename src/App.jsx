@@ -7980,7 +7980,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {tiles.map((t, i) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
@@ -8064,7 +8064,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const cagr = firstYr.total > 0 && trendData.length > 1 ? Math.round((Math.pow(lastYr.total / firstYr.total, 1 / (trendData.length - 1)) - 1) * 100) : null
                 return (
                   <div style={s.card}>
-                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                    <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
                     <ResponsiveContainer width="100%" height={130}>
                       <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -8109,7 +8109,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
+                    <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
                     {channelRows.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
@@ -8121,9 +8121,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {channelRows.map((r, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: 12.5, color: C.text, flex: 1 }}>{r.label}</span>
-                              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                              <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 12, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
                             </div>
                           ))}
                         </div>
@@ -8157,24 +8157,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
+                    <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
                     {totalRevenue === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
                           <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 11.5, color: C.text }}>Predictable</span>
-                            <span style={{ fontSize: 11.5, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, color: C.text }}>Predictable</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 11.5, color: C.text }}>One-off</span>
-                            <span style={{ fontSize: 11.5, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, color: C.text }}>One-off</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
                           </div>
                         </div>
                       </>
@@ -8202,7 +8202,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={s.card}>
-                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
                     <div style={{ minHeight: 22 }} />
                     {totalNew === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
@@ -8222,7 +8222,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
                 <div style={s.card}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
+                  <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                     {filterYear !== 'All' && (
                       <>
@@ -8243,7 +8243,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
                 <div style={s.card}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
+                  <div style={s.analyticsCardTitle}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
                   <div style={{ minHeight: 22 }} />
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
