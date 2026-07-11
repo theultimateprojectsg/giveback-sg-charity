@@ -8038,6 +8038,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
               </div>
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
+              </div>
 
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
@@ -8224,6 +8232,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>MASS_APPEAL_PLACEHOLDER</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeal Performance</span>
+              </div>
+              {/* MASS_APPEAL_CARDS_GO_HERE */}
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>PLEDGE_PLACEHOLDER</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
               </div>
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
