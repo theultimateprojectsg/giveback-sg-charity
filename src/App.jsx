@@ -7952,6 +7952,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
 
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const statsForYear = (y) => {
+                  const ds = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                  const total = ds.reduce((s, d) => s + d.amount, 0)
+                  const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                  return { total, count: ds.length, donors: donorKeys.size, avgGift: ds.length > 0 ? total / ds.length : 0 }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const tiles = [
+                  { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations across all sources — campaigns, mass appeals, and general giving — in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Total Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of confirmed donations received across all sources in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any source in ${yr}, compared to ${yr - 1}. A donor giving more than once is only counted once.` },
+                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed donation amount across all sources in ${yr}, compared to ${yr - 1}.` },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
               {filterYear !== 'All' && (
                 <div style={{ ...s.card, marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
