@@ -9768,15 +9768,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-              </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Composition & Sources</span>
-              </div>
-
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Sources</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
@@ -10044,12 +10037,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   })()}
                 </div>
               </div>
-            </div>
+              </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>09</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Forecasting and composition</span>
               </div>
 
