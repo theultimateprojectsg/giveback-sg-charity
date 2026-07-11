@@ -7952,7 +7952,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {filterYear !== 'All' && (
                 <div style={{ ...s.card, marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>Annual Fundraising Goal — {filterYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
+                    <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {filterYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
                     {!editingGoal && (
                       <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
                         {annualGoal ? 'Edit' : '+ Set Goal'}
@@ -7968,7 +7968,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ) : annualGoal ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisYear.toLocaleString()}</span>
+                        <span style={s.analyticsStatNumber}>${totalThisYear.toLocaleString()}</span>
                         <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
                       </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
@@ -8003,7 +8003,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 <div style={s.card}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
+                    <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
                     {filterYear !== 'All' && (
                       <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
                         <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
@@ -8023,7 +8023,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
                 <div style={s.card}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 5 }}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
