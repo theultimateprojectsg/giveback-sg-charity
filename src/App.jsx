@@ -9472,6 +9472,63 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              {(() => {
+                const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+                const mrrAsOfEndOfYear = (y) => {
+                  const yearEnd = new Date(y, 11, 31)
+                  const activeAtYearEnd = recurringGifts.filter(g => new Date(g.created_at) <= yearEnd && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > yearEnd)))
+                  return activeAtYearEnd.reduce((s, g) => s + monthlyEquivalent(g), 0)
+                }
+                const allYearsWithGifts = [...new Set(recurringGifts.map(g => new Date(g.created_at).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithGifts.slice(-5)
+                const trendData = trendYears.map(y => ({ year: y.toString(), mrr: Math.round(mrrAsOfEndOfYear(y)) }))
+
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const newGiftsThisYear = recurringGifts.filter(g => new Date(g.created_at).getFullYear() === yr)
+                const newMrr = newGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
+                const churnedGiftsThisYear = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at && new Date(g.cancelled_at).getFullYear() === yr)
+                const churnedMrr = churnedGiftsThisYear.reduce((s, g) => s + monthlyEquivalent(g), 0)
+                const netMrr = newMrr - churnedMrr
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Recurring Revenue Trend <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'MRR']} />
+                            <Bar dataKey="mrr" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New MRR added</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newMrr).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.red }}>− Churned MRR lost</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(churnedMrr).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Net MRR change</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netMrr >= 0 ? C.sage : C.red }}>{netMrr >= 0 ? '+' : '−'}${Math.abs(Math.round(netMrr)).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const ninetyDaysAgo = new Date()
@@ -9495,7 +9552,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at) - new Date(g.created_at)) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
                     : null
 
-                  const atRiskCount = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold).length
+                  const atRiskGifts = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold)
+                  const atRiskCount = atRiskGifts.length
+                  const atRiskMrr = atRiskGifts.reduce((s, g) => {
+                    const gift = recurringGifts.find(rg => rg.id === g.gift_id)
+                    if (!gift) return s
+                    const monthly = gift.frequency === 'weekly' ? Number(gift.amount) * 4.33 : gift.frequency === 'quarterly' ? Number(gift.amount) / 3 : gift.frequency === 'yearly' || gift.frequency === 'annual' ? Number(gift.amount) / 12 : Number(gift.amount)
+                    return s + monthly
+                  }, 0)
+
+                  const oneYearAgo = new Date()
+                  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+                  const activeOneYearAgo = recurringGifts.filter(g => new Date(g.created_at) <= oneYearAgo && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > oneYearAgo)))
+                  const stillActiveNow = activeOneYearAgo.filter(g => g.status === 'active')
+                  const retentionRate = activeOneYearAgo.length > 0 ? Math.round((stillActiveNow.length / activeOneYearAgo.length) * 100) : null
 
                   const trendFlagsFiltered = recurringTrendFlags.filter(f => {
                     const gift = recurringGifts.find(g => g.id === f.gift_id)
@@ -9511,7 +9581,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Recurring Revenue Health <InfoTip text="Active recurring gifts and monthly recurring revenue vs 90 days ago, average time a recurring gift lasts before cancellation, and donors whose giving has consistently increased or decreased over recent cycles." /></div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 6 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Active gifts</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -9527,15 +9597,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                         <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
+                          <div style={{ ...s.analyticsStatNumber, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
+                        </div>
+                        <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Avg. lifespan</div>
                           <div style={s.analyticsStatNumber}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                         </div>
-                        <div>
+                        <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>At risk</div>
-                          <div style={{ ...s.analyticsStatNumber, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</div>
+                          <div style={{ ...s.analyticsStatNumber, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount} {atRiskCount > 0 && <span style={{ fontSize: 15, fontWeight: 400 }}>· ${Math.round(atRiskMrr).toLocaleString()} MRR</span>}</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>vs 90 days ago{cancelledGifts.length > 0 ? ` · based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>Active gifts and MRR vs 90 days ago{cancelledGifts.length > 0 ? ` · lifespan based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
                         <div style={s.analyticsSubTitle}>Giving trend</div>
