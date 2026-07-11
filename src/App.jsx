@@ -8243,7 +8243,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </ResponsiveContainer>
                 </div>
                 <div style={s.card}>
-                  <div style={s.analyticsCardTitle}>Number of Donations per Month <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
+                  <div style={s.analyticsCardTitle}>Number of Donations per Month — {filterYear} <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
                   <div style={{ minHeight: 22 }} />
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
