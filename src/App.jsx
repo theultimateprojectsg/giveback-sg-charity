@@ -9349,6 +9349,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               <div style={{ fontSize: 12, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Needs Attention</div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
               {(() => {
                 const lapsedToday = new Date()
                 const allLapsed = Object.values((() => {
@@ -9585,6 +9586,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+              </div>
 
               <div style={{ fontSize: 12, fontWeight: 600, color: C.sage, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Recognition & Stewardship</div>
               {(() => {
