@@ -8317,10 +8317,271 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>MASS_APPEAL_PLACEHOLDER</span>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeal Performance</span>
+                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
               </div>
-              {/* MASS_APPEAL_CARDS_GO_HERE */}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const statsForYear = (y) => {
+                  const appealsY = massAppeals.filter(a => new Date(a.created_at).getFullYear() === y)
+                  const appealIds = new Set(appealsY.map(a => a.id))
+                  const recipients = allAppealRecipients.filter(r => appealIds.has(r.appeal_id) && r.status === 'sent')
+                  const converted = recipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+                  const raised = converted.reduce((s, r) => {
+                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                    return s + (donation ? Number(donation.amount) : 0)
+                  }, 0)
+                  return {
+                    appealsSent: appealsY.length,
+                    recipients: recipients.length,
+                    raised,
+                    conversionRate: recipients.length > 0 ? Math.round((converted.length / recipients.length) * 100) : 0,
+                  }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const tiles = [
+                  { label: 'Total Raised from Appeals', val: `$${cur.raised.toLocaleString()}`, d: delta(cur.raised, prev.raised), tip: `Total confirmed donations traced back to a mass appeal by PayNow reference, in ${yr} compared to ${yr - 1}.` },
+                  { label: 'Appeals Sent', val: cur.appealsSent, d: delta(cur.appealsSent, prev.appealsSent), tip: `Number of mass appeals sent out in ${yr}, compared to ${yr - 1}.` },
+                  { label: 'Recipients Reached', val: cur.recipients, d: delta(cur.recipients, prev.recipients), tip: `Total number of successful sends across all mass appeals in ${yr}, compared to ${yr - 1}. Counts each send, so a donor reached by multiple appeals is counted more than once.` },
+                  { label: 'Conversion Rate', val: `${cur.conversionRate}%`, d: delta(cur.conversionRate, prev.conversionRate), tip: `Share of appeal recipients who went on to make a confirmed donation using the appeal's QR code, in ${yr} compared to ${yr - 1}.` },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                  const scopedAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum)
+                  const lastYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum - 1)
+
+                  const recipientsForAppeal = (appealId) => allAppealRecipients.filter(r => r.appeal_id === appealId)
+
+                  const analyzeAppeal = (appeal) => {
+                    const recipients = recipientsForAppeal(appeal.id)
+                    const sentRecipients = recipients.filter(r => r.status === 'sent')
+                    const converted = sentRecipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+                    const raised = converted.reduce((s, r) => {
+                      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                      return s + (donation ? Number(donation.amount) : 0)
+                    }, 0)
+                    const conversionRate = sentRecipients.length > 0 ? Math.round((converted.length / sentRecipients.length) * 100) : 0
+                    return { appeal, sentCount: sentRecipients.length, convertedCount: converted.length, raised, conversionRate }
+                  }
+
+                  const scopedAnalyzed = scopedAppeals.map(analyzeAppeal)
+                  const totalRaised = scopedAnalyzed.reduce((s, a) => s + a.raised, 0)
+                  const totalSent = scopedAnalyzed.reduce((s, a) => s + a.sentCount, 0)
+                  const totalConverted = scopedAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
+                  const overallConversion = totalSent > 0 ? Math.round((totalConverted / totalSent) * 100) : 0
+
+                  const lastYearAnalyzed = lastYearAppeals.map(analyzeAppeal)
+                  const lastYearSent = lastYearAnalyzed.reduce((s, a) => s + a.sentCount, 0)
+                  const lastYearConverted = lastYearAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
+                  const lastYearRaised = lastYearAnalyzed.reduce((s, a) => s + a.raised, 0)
+                  const lastYearConversion = lastYearSent > 0 ? Math.round((lastYearConverted / lastYearSent) * 100) : null
+                  const conversionDiff = lastYearConversion !== null ? overallConversion - lastYearConversion : null
+                  const appealCountDiff = scopedAppeals.length - lastYearAppeals.length
+
+                  const causeSpecific = scopedAnalyzed.filter(a => a.appeal.cause_id)
+                  const generalOnes = scopedAnalyzed.filter(a => !a.appeal.cause_id)
+                  const avgConversion = (list) => {
+                    const withSends = list.filter(a => a.sentCount > 0)
+                    if (withSends.length === 0) return null
+                    return Math.round(withSends.reduce((s, a) => s + a.conversionRate, 0) / withSends.length)
+                  }
+                  const causeSpecificAvg = avgConversion(causeSpecific)
+                  const generalAvg = avgConversion(generalOnes)
+
+                  const distinctAmounts = [...new Set(scopedAnalyzed.filter(a => a.sentCount > 0).map(a => Number(a.appeal.amount)))]
+
+                  return (
+                    <div style={s.card}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={s.analyticsStatNumber}>{scopedAppeals.length}</span>
+                            {lastYearAppeals.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: appealCountDiff >= 0 ? C.sage : C.red }}>{appealCountDiff === 0 ? '—' : appealCountDiff > 0 ? `↑${appealCountDiff}` : `↓${Math.abs(appealCountDiff)}`}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
+                          <div style={s.analyticsStatNumber}>${totalRaised.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
+                            {conversionDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: conversionDiff >= 0 ? C.sage : C.red }}>{conversionDiff === 0 ? '—' : conversionDiff > 0 ? `↑${conversionDiff}pt` : `↓${Math.abs(conversionDiff)}pt`}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      {lastYearAppeals.length > 0 && (
+                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearAppeals.length} appeal{lastYearAppeals.length !== 1 ? 's' : ''} · ${lastYearRaised.toLocaleString()} raised{lastYearConversion !== null ? ` · ${lastYearConversion}% conversion` : ''}</div>
+                      )}
+
+                      {scopedAnalyzed.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No appeals sent {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                      ) : (
+                        <>
+                          <div style={s.analyticsSubTitleDivider}>Appeal-by-appeal conversion</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                            {[...scopedAnalyzed].sort((a, b) => b.conversionRate - a.conversionRate).map((a, i) => {
+                              const isSending = a.appeal.status === 'sending'
+                              const bg = a.conversionRate >= 25 ? '#EAF3DE' : a.conversionRate >= 15 ? '#FDF8EC' : C.ivory
+                              const textColor = a.conversionRate >= 25 ? '#27500A' : a.conversionRate >= 15 ? '#854F0B' : C.text
+                              return (
+                                <div key={i} style={{ padding: '8px 10px', background: bg, borderRadius: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>{a.appeal.cause_name || 'General Appeal'}</span>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: textColor }}>{a.conversionRate}% · {a.convertedCount}/{a.sentCount} · ${a.raised.toLocaleString()}{isSending ? ' (sending)' : ''}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <div style={s.analyticsSubTitle}>Cause-specific vs. general</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: causeSpecificAvg !== null || generalAvg !== null ? 18 : 0 }}>
+                            {causeSpecificAvg !== null && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text }}>Cause-specific appeals</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{causeSpecificAvg}% avg conversion</span>
+                              </div>
+                            )}
+                            {generalAvg !== null && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text }}>General appeals</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{generalAvg}% avg conversion</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={s.analyticsSubTitle}>Ask amount vs. conversion</div>
+                          {distinctAmounts.length < 2 ? (
+                            <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter(a => a.sentCount > 0).length} appeal{scopedAnalyzed.filter(a => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {distinctAmounts.sort((a, b) => a - b).map((amt, i) => {
+                                const matching = scopedAnalyzed.filter(a => Number(a.appeal.amount) === amt && a.sentCount > 0)
+                                const avgConv = Math.round(matching.reduce((s, a) => s + a.conversionRate, 0) / matching.length)
+                                return (
+                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                    <span style={{ fontSize: 12, color: C.text }}>${amt} ask</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{avgConv}% avg conversion</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const allSentRecipients = allAppealRecipients.filter(r => r.status === 'sent' || r.status === 'failed' || r.status === 'blocked')
+                  const badDelivery = allAppealRecipients.filter(r => r.status === 'failed' || r.status === 'blocked')
+                  const badDeliveryPct = allSentRecipients.length > 0 ? Math.round((badDelivery.length / allSentRecipients.length) * 100) : 0
+
+                  const byDonor = {}
+                  allAppealRecipients.forEach(r => {
+                    const key = r.donor_email?.trim() || r.donor_name
+                    if (!byDonor[key]) byDonor[key] = { name: r.donor_name, recipientRows: [] }
+                    byDonor[key].recipientRows.push(r)
+                  })
+                  const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
+
+                  const fatigueList = repeatRecipients.map(d => {
+                    const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                    const gaveFlags = sorted.map(r => donations.some(don => don.payment_ref === r.payment_ref && don.payment_status === 'confirmed'))
+                    const gaveCount = gaveFlags.filter(Boolean).length
+                    const lastGave = gaveFlags[gaveFlags.length - 1]
+                    const isFatigued = gaveFlags.length >= 2 && gaveFlags.slice(0, -1).some(Boolean) && !lastGave
+                    return { name: d.name, totalAppeals: sorted.length, gaveCount, isFatigued }
+                  }).sort((a, b) => (b.isFatigued ? 1 : 0) - (a.isFatigued ? 1 : 0))
+
+                  const overGivers = allAppealRecipients.filter(r => {
+                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                    return donation && Number(donation.amount) > Number(r.amount) * 1.5
+                  }).map(r => ({
+                    name: r.donor_name,
+                    asked: Number(r.amount),
+                    gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
+                  }))
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Appeal List Health</div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced/blocked</div>
+                          <div style={{ ...s.analyticsStatNumber, color: badDeliveryPct >= 20 ? C.red : badDeliveryPct >= 10 ? C.gold : C.forest }}>{badDeliveryPct}%</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{badDelivery.length} of {allSentRecipients.length} sends</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
+                          <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
+                        </div>
+                      </div>
+
+                      <div style={s.analyticsSubTitleDivider}>Response pattern among repeat recipients</div>
+                      {fatigueList.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {fatigueList.slice(0, 5).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
+                                <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitle}>Donors who gave more than asked</div>
+                      {overGivers.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {overGivers.slice(0, 5).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                              <span style={{ fontSize: 11, color: C.muted }}>asked ${d.asked} · gave ${d.gave}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
@@ -8884,222 +9145,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                               <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
-              </div>
-
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                {(() => {
-                  const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                  const scopedAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum)
-                  const lastYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === yearNum - 1)
-
-                  const recipientsForAppeal = (appealId) => allAppealRecipients.filter(r => r.appeal_id === appealId)
-
-                  const analyzeAppeal = (appeal) => {
-                    const recipients = recipientsForAppeal(appeal.id)
-                    const sentRecipients = recipients.filter(r => r.status === 'sent')
-                    const converted = sentRecipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
-                    const raised = converted.reduce((s, r) => {
-                      const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                      return s + (donation ? Number(donation.amount) : 0)
-                    }, 0)
-                    const conversionRate = sentRecipients.length > 0 ? Math.round((converted.length / sentRecipients.length) * 100) : 0
-                    return { appeal, sentCount: sentRecipients.length, convertedCount: converted.length, raised, conversionRate }
-                  }
-
-                  const scopedAnalyzed = scopedAppeals.map(analyzeAppeal)
-                  const totalRaised = scopedAnalyzed.reduce((s, a) => s + a.raised, 0)
-                  const totalSent = scopedAnalyzed.reduce((s, a) => s + a.sentCount, 0)
-                  const totalConverted = scopedAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
-                  const overallConversion = totalSent > 0 ? Math.round((totalConverted / totalSent) * 100) : 0
-
-                  const lastYearAnalyzed = lastYearAppeals.map(analyzeAppeal)
-                  const lastYearSent = lastYearAnalyzed.reduce((s, a) => s + a.sentCount, 0)
-                  const lastYearConverted = lastYearAnalyzed.reduce((s, a) => s + a.convertedCount, 0)
-                  const lastYearRaised = lastYearAnalyzed.reduce((s, a) => s + a.raised, 0)
-                  const lastYearConversion = lastYearSent > 0 ? Math.round((lastYearConverted / lastYearSent) * 100) : null
-                  const conversionDiff = lastYearConversion !== null ? overallConversion - lastYearConversion : null
-                  const appealCountDiff = scopedAppeals.length - lastYearAppeals.length
-
-                  const causeSpecific = scopedAnalyzed.filter(a => a.appeal.cause_id)
-                  const generalOnes = scopedAnalyzed.filter(a => !a.appeal.cause_id)
-                  const avgConversion = (list) => {
-                    const withSends = list.filter(a => a.sentCount > 0)
-                    if (withSends.length === 0) return null
-                    return Math.round(withSends.reduce((s, a) => s + a.conversionRate, 0) / withSends.length)
-                  }
-                  const causeSpecificAvg = avgConversion(causeSpecific)
-                  const generalAvg = avgConversion(generalOnes)
-
-                  const distinctAmounts = [...new Set(scopedAnalyzed.filter(a => a.sentCount > 0).map(a => Number(a.appeal.amount)))]
-
-                  return (
-                    <div style={s.card}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 }}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={s.analyticsStatNumber}>{scopedAppeals.length}</span>
-                            {lastYearAppeals.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: appealCountDiff >= 0 ? C.sage : C.red }}>{appealCountDiff === 0 ? '—' : appealCountDiff > 0 ? `↑${appealCountDiff}` : `↓${Math.abs(appealCountDiff)}`}</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
-                          <div style={s.analyticsStatNumber}>${totalRaised.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ ...s.analyticsStatNumber, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
-                            {conversionDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: conversionDiff >= 0 ? C.sage : C.red }}>{conversionDiff === 0 ? '—' : conversionDiff > 0 ? `↑${conversionDiff}pt` : `↓${Math.abs(conversionDiff)}pt`}</span>}
-                          </div>
-                        </div>
-                      </div>
-                      {lastYearAppeals.length > 0 && (
-                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearAppeals.length} appeal{lastYearAppeals.length !== 1 ? 's' : ''} · ${lastYearRaised.toLocaleString()} raised{lastYearConversion !== null ? ` · ${lastYearConversion}% conversion` : ''}</div>
-                      )}
-
-                      {scopedAnalyzed.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No appeals sent {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
-                      ) : (
-                        <>
-                          <div style={s.analyticsSubTitleDivider}>Appeal-by-appeal conversion</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                            {[...scopedAnalyzed].sort((a, b) => b.conversionRate - a.conversionRate).map((a, i) => {
-                              const isSending = a.appeal.status === 'sending'
-                              const bg = a.conversionRate >= 25 ? '#EAF3DE' : a.conversionRate >= 15 ? '#FDF8EC' : C.ivory
-                              const textColor = a.conversionRate >= 25 ? '#27500A' : a.conversionRate >= 15 ? '#854F0B' : C.text
-                              return (
-                                <div key={i} style={{ padding: '8px 10px', background: bg, borderRadius: 4 }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>{a.appeal.cause_name || 'General Appeal'}</span>
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: textColor }}>{a.conversionRate}% · {a.convertedCount}/{a.sentCount} · ${a.raised.toLocaleString()}{isSending ? ' (sending)' : ''}</span>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-
-                          <div style={s.analyticsSubTitle}>Cause-specific vs. general</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: causeSpecificAvg !== null || generalAvg !== null ? 18 : 0 }}>
-                            {causeSpecificAvg !== null && (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                                <span style={{ fontSize: 12, color: C.text }}>Cause-specific appeals</span>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{causeSpecificAvg}% avg conversion</span>
-                              </div>
-                            )}
-                            {generalAvg !== null && (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                                <span style={{ fontSize: 12, color: C.text }}>General appeals</span>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{generalAvg}% avg conversion</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div style={s.analyticsSubTitle}>Ask amount vs. conversion</div>
-                          {distinctAmounts.length < 2 ? (
-                            <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter(a => a.sentCount > 0).length} appeal{scopedAnalyzed.filter(a => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {distinctAmounts.sort((a, b) => a - b).map((amt, i) => {
-                                const matching = scopedAnalyzed.filter(a => Number(a.appeal.amount) === amt && a.sentCount > 0)
-                                const avgConv = Math.round(matching.reduce((s, a) => s + a.conversionRate, 0) / matching.length)
-                                return (
-                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                                    <span style={{ fontSize: 12, color: C.text }}>${amt} ask</span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{avgConv}% avg conversion</span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )
-                })()}
-
-                {(() => {
-                  const allSentRecipients = allAppealRecipients.filter(r => r.status === 'sent' || r.status === 'failed' || r.status === 'blocked')
-                  const badDelivery = allAppealRecipients.filter(r => r.status === 'failed' || r.status === 'blocked')
-                  const badDeliveryPct = allSentRecipients.length > 0 ? Math.round((badDelivery.length / allSentRecipients.length) * 100) : 0
-
-                  const byDonor = {}
-                  allAppealRecipients.forEach(r => {
-                    const key = r.donor_email?.trim() || r.donor_name
-                    if (!byDonor[key]) byDonor[key] = { name: r.donor_name, recipientRows: [] }
-                    byDonor[key].recipientRows.push(r)
-                  })
-                  const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
-
-                  const fatigueList = repeatRecipients.map(d => {
-                    const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    const gaveFlags = sorted.map(r => donations.some(don => don.payment_ref === r.payment_ref && don.payment_status === 'confirmed'))
-                    const gaveCount = gaveFlags.filter(Boolean).length
-                    const lastGave = gaveFlags[gaveFlags.length - 1]
-                    const isFatigued = gaveFlags.length >= 2 && gaveFlags.slice(0, -1).some(Boolean) && !lastGave
-                    return { name: d.name, totalAppeals: sorted.length, gaveCount, isFatigued }
-                  }).sort((a, b) => (b.isFatigued ? 1 : 0) - (a.isFatigued ? 1 : 0))
-
-                  const overGivers = allAppealRecipients.filter(r => {
-                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
-                    return donation && Number(donation.amount) > Number(r.amount) * 1.5
-                  }).map(r => ({
-                    name: r.donor_name,
-                    asked: Number(r.amount),
-                    gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
-                  }))
-
-                  return (
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Appeal List Health</div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced/blocked</div>
-                          <div style={{ ...s.analyticsStatNumber, color: badDeliveryPct >= 20 ? C.red : badDeliveryPct >= 10 ? C.gold : C.forest }}>{badDeliveryPct}%</div>
-                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{badDelivery.length} of {allSentRecipients.length} sends</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
-                          <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
-                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
-                        </div>
-                      </div>
-
-                      <div style={s.analyticsSubTitleDivider}>Response pattern among repeat recipients</div>
-                      {fatigueList.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {fatigueList.slice(0, 5).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
-                                <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div style={s.analyticsSubTitle}>Donors who gave more than asked</div>
-                      {overGivers.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {overGivers.slice(0, 5).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
-                              <span style={{ fontSize: 11, color: C.muted }}>asked ${d.asked} · gave ${d.gave}</span>
                             </div>
                           ))}
                         </div>
