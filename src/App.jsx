@@ -8047,6 +8047,49 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
               </div>
 
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
+                const statsForYear = (y) => {
+                  const ds = donations.filter(d => d.cause_id && campaignCauseIds.has(d.cause_id) && d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y)
+                  const total = ds.reduce((s, d) => s + d.amount, 0)
+                  const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+                  return {
+                    total,
+                    count: ds.length,
+                    donors: donorKeys.size,
+                    avgGift: ds.length > 0 ? total / ds.length : 0,
+                    campaignsRun: new Set(ds.map(d => d.cause_id)).size,
+                  }
+                }
+                const cur = statsForYear(yr)
+                const prev = statsForYear(yr - 1)
+                const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+                const tiles = [
+                  { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total) },
+                  { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun) },
+                  { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors) },
+                  { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift) },
+                ]
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t.label}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {causePerformanceThisYear.length > 0 && (
                 <div style={s.card}>
