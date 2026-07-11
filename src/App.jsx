@@ -8669,6 +8669,100 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
+              {(() => {
+                const appealIdsInYear = (y) => new Set(massAppeals.filter(a => new Date(a.created_at).getFullYear() === y).map(a => a.id))
+                const statsForYear = (y) => {
+                  const ids = appealIdsInYear(y)
+                  const sent = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'sent')
+                  const converted = sent.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
+                  const raised = converted.reduce((s, r) => {
+                    const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                    return s + (donation ? Number(donation.amount) : 0)
+                  }, 0)
+                  return { raised, conversionRate: sent.length > 0 ? Math.round((converted.length / sent.length) * 100) : null }
+                }
+                const allYearsWithAppeals = [...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithAppeals.slice(-5)
+                const trendData = trendYears.map(y => ({ year: y.toString(), ...statsForYear(y) }))
+
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const yearIds = appealIdsInYear(yr)
+                const sentThisYear = allAppealRecipients.filter(r => yearIds.has(r.appeal_id) && r.status === 'sent')
+                const responseTimes = sentThisYear.map(r => {
+                  const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
+                  if (!donation) return null
+                  return Math.floor((new Date(donation.created_at) - new Date(r.created_at)) / (1000 * 60 * 60 * 24))
+                }).filter(d => d !== null && d >= 0)
+                const medianResponseDays = (() => {
+                  if (responseTimes.length === 0) return null
+                  const sorted = [...responseTimes].sort((a, b) => a - b)
+                  const mid = Math.floor(sorted.length / 2)
+                  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid]
+                })()
+                const within24h = responseTimes.filter(d => d < 1).length
+                const within7d = responseTimes.filter(d => d >= 1 && d <= 7).length
+                const after7d = responseTimes.filter(d => d > 7).length
+                const respTotal = responseTimes.length
+                const respBuckets = [
+                  { label: 'Within 24 hours', count: within24h, color: C.sage },
+                  { label: '1–7 days', count: within7d, color: C.gold },
+                  { label: '8+ days', count: after7d, color: C.muted },
+                ]
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Appeals Trend — Last {trendData.length} Years <InfoTip text="Total raised from mass appeals per year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                        <ResponsiveContainer width="100%" height={130}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Raised']} />
+                            <Bar dataKey="raised" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total raised from appeals, by year.</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 12 }}>
+                          <span style={{ fontSize: 11, color: C.muted }}>Conversion rate trend</span>
+                          <span style={{ fontSize: 11, color: C.text }}>{trendData.map(d => d.conversionRate !== null ? `${d.conversionRate}%` : '—').join(' → ')}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Response Speed — {yr} <InfoTip text="How long after a mass appeal is sent donors typically respond, measured from the appeal recipient's send time to their matched confirmed donation." /></div>
+                      {medianResponseDays === null ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No converted appeal recipients yet {filterYear !== 'All' ? `in ${yr}` : ''}.</div>
+                      ) : (
+                        <>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{medianResponseDays} day{medianResponseDays !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>median time from appeal sent to donation</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {respBuckets.map((b, i) => {
+                              const pct = respTotal > 0 ? Math.round((b.count / respTotal) * 100) : 0
+                              return (
+                                <div key={i}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginBottom: 4 }}>
+                                    <span>{b.label}</span>
+                                    <span>{pct}%</span>
+                                  </div>
+                                  <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${pct}%`, height: '100%', background: b.color, borderRadius: 3 }} />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted, marginTop: 12 }}>{within24h + within7d >= respTotal * 0.7 ? 'Results are mostly in within a week — safe to report final numbers after 7 days.' : 'A meaningful share of responses arrive after a week — wait longer before reporting final numbers.'}</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const yearNum = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
