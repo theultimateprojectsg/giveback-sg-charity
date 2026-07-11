@@ -7995,44 +7995,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              {(() => {
-                const allYearsWithData = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
-                const trendYears = allYearsWithData.slice(-5)
-                if (trendYears.length < 2) return <div />
-                const trendData = trendYears.map(y => ({
-                  year: y.toString(),
-                  total: donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y).reduce((s, d) => s + d.amount, 0),
-                }))
-                const firstYr = trendData[0]
-                const lastYr = trendData[trendData.length - 1]
-                const cagr = firstYr.total > 0 && trendData.length > 1 ? Math.round((Math.pow(lastYr.total / firstYr.total, 1 / (trendData.length - 1)) - 1) * 100) : null
-                return (
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                        <XAxis dataKey="year" tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 12, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                        <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
-                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    {cagr !== null && (
-                      <div style={{ fontSize: 11.5, color: cagr >= 0 ? C.sage : C.red, fontWeight: 500, marginTop: 10 }}>
-                        {cagr >= 0 ? '✓' : '⚠'} {Math.abs(cagr)}% average annual growth from {firstYr.year} to {lastYr.year}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
               {(() => {
                 const goalYear = new Date().getFullYear()
                 const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
                 return (
-                <div style={s.card}>
+                <div style={{ ...s.card, marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
                     <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above." /></div>
                     {!editingGoal && (
@@ -8082,7 +8049,39 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 )
               })()}
-              </div>
+
+              <div style={isMobile ? s.threeColMobile : s.threeCol}>
+              {(() => {
+                const allYearsWithData = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => a - b)
+                const trendYears = allYearsWithData.slice(-5)
+                if (trendYears.length < 2) return <div />
+                const trendData = trendYears.map(y => ({
+                  year: y.toString(),
+                  total: donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === y).reduce((s, d) => s + d.amount, 0),
+                }))
+                const firstYr = trendData[0]
+                const lastYr = trendData[trendData.length - 1]
+                const cagr = firstYr.total > 0 && trendData.length > 1 ? Math.round((Math.pow(lastYr.total / firstYr.total, 1 / (trendData.length - 1)) - 1) * 100) : null
+                return (
+                  <div style={s.card}>
+                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                        <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                        <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
+                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    {cagr !== null && (
+                      <div style={{ fontSize: 11.5, color: cagr >= 0 ? C.sage : C.red, fontWeight: 500, marginTop: 10 }}>
+                        {cagr >= 0 ? '✓' : '⚠'} {Math.abs(cagr)}% average annual growth from {firstYr.year} to {lastYr.year}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {(() => {
                 const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -8108,6 +8107,48 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   { label: 'General / Unrestricted', amt: generalAmt, color: C.muted },
                 ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0 }))
 
+                return (
+                  <div style={s.card}>
+                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
+                    {channelRows.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                          {channelRows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: r.color }} />)}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {channelRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
+                              <span style={{ fontSize: 12.5, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
+                const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+                const campaignCauseIds = new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id))
+                const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === yr)
+
+                let recurringAmt = 0, campaignsAmt = 0, massAppealAmt = 0, generalAmt = 0
+                yearDonations.forEach(d => {
+                  if (d.recurring_gift_id) { recurringAmt += d.amount; return }
+                  if (d.payment_ref && allAppealRecipients.some(r => r.payment_ref === d.payment_ref)) { massAppealAmt += d.amount; return }
+                  if (d.cause_id && campaignCauseIds.has(d.cause_id)) { campaignsAmt += d.amount; return }
+                  generalAmt += d.amount
+                })
+                const grantsAmt = grants.filter(g => grantYearOf(g) === yr).reduce((s, g) => s + Number(g.amount), 0)
+                const totalRevenue = campaignsAmt + massAppealAmt + recurringAmt + generalAmt + grantsAmt
+
                 const pledgeFulfilledIds = new Set(pledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id).map(p => p.fulfilled_donation_id))
                 const pledgeFulfilledAmt = yearDonations.filter(d => pledgeFulfilledIds.has(d.id)).reduce((s, d) => s + d.amount, 0)
                 const predictableAmt = recurringAmt + grantsAmt + pledgeFulfilledAmt
@@ -8115,56 +8156,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const oneOffAmt = Math.max(0, totalRevenue - predictableAmt)
 
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
-                      {channelRows.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
-                      ) : (
-                        <>
-                          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                            {channelRows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: r.color }} />)}
+                  <div style={s.card}>
+                    <div style={{ ...s.analyticsCardTitle, marginBottom: 16 }}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
+                    {totalRevenue === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                          <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 11.5, color: C.text }}>Predictable</span>
+                            <span style={{ fontSize: 11.5, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {channelRows.map((r, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
-                                <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
-                                <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
-                              </div>
-                            ))}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 11.5, color: C.text }}>One-off</span>
+                            <span style={{ fontSize: 11.5, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
                           </div>
-                        </>
-                      )}
-                    </div>
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
-                      {totalRevenue === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
-                      ) : (
-                        <>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
-                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
-                            <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12.5, color: C.text }}>Predictable — recurring, grants, fulfilled pledges</span>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12.5, color: C.text }}>One-off — campaign, appeal, general gifts</span>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })()}
+              </div>
 
               <div style={isMobile ? s.threeColMobile : s.threeCol}>
               {(() => {
