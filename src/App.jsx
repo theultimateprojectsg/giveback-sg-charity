@@ -11037,6 +11037,105 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
+                const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, programmeGrants } = grantOverviewStats
+                return (
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
+                        <ResponsiveContainer width="100%" height={120}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
+                            <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total grant funding secured, by year awarded.</div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
+                      {expenseByCategory.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
+                      ) : (
+                        <>
+                          <ResponsiveContainer width="100%" height={160}>
+                            <PieChart>
+                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={2} isAnimationActive={false}>
+                                {expenseByCategory.map((c, i) => (
+                                  <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
+                                ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                            {expenseByCategory.map((c, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{c.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{c.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${c.amount.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
+                      <div style={s.analyticsSubTitleDivider}>By funder type</div>
+                      {funderTypeBreakdown.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {funderTypeBreakdown.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{f.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{f.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${f.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={s.analyticsSubTitle}>Restricted vs unrestricted</div>
+                      {(restrictedTotal + unrestrictedTotal) === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                            <div style={{ width: `${restrictedPct}%`, background: C.red }} />
+                            <div style={{ width: `${100 - restrictedPct}%`, background: C.sage }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text }}>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.red, borderRadius: 2, marginRight: 5 }} />{restrictedPct}% restricted · ${restrictedTotal.toLocaleString()}</span>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{100 - restrictedPct}% unrestricted · ${unrestrictedTotal.toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
+                      <div style={s.analyticsSubTitleDivider}>Grants by linked programme</div>
+                      {programmeGrants.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No grants linked to a specific programme yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {programmeGrants.map((p, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.title}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${p.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
                 const { totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon } = grantOverviewStats
                 const today = new Date()
 
@@ -11163,105 +11262,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                       )
                     })()}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, programmeGrants } = grantOverviewStats
-                return (
-                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
-                    {trendData.length >= 2 && (
-                      <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
-                        <ResponsiveContainer width="100%" height={120}>
-                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
-                            <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total grant funding secured, by year awarded.</div>
-                      </div>
-                    )}
-
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
-                      {expenseByCategory.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
-                      ) : (
-                        <>
-                          <ResponsiveContainer width="100%" height={160}>
-                            <PieChart>
-                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={2} isAnimationActive={false}>
-                                {expenseByCategory.map((c, i) => (
-                                  <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
-                                ))}
-                              </Pie>
-                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-                            {expenseByCategory.map((c, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
-                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{c.label}</span>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{c.pct}%</span>
-                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${c.amount.toLocaleString()}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
-                      <div style={s.analyticsSubTitleDivider}>By funder type</div>
-                      {funderTypeBreakdown.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {funderTypeBreakdown.map((f, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{f.label}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{f.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${f.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div style={s.analyticsSubTitle}>Restricted vs unrestricted</div>
-                      {(restrictedTotal + unrestrictedTotal) === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
-                      ) : (
-                        <>
-                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
-                            <div style={{ width: `${restrictedPct}%`, background: C.red }} />
-                            <div style={{ width: `${100 - restrictedPct}%`, background: C.sage }} />
-                          </div>
-                          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text }}>
-                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.red, borderRadius: 2, marginRight: 5 }} />{restrictedPct}% restricted · ${restrictedTotal.toLocaleString()}</span>
-                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{100 - restrictedPct}% unrestricted · ${unrestrictedTotal.toLocaleString()}</span>
-                          </div>
-                        </>
-                      )}
-                      <div style={s.analyticsSubTitleDivider}>Grants by linked programme</div>
-                      {programmeGrants.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No grants linked to a specific programme yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {programmeGrants.map((p, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.title}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${p.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )
               })()}
