@@ -13316,7 +13316,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {subtitleParts.length > 0 && (
                       <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{subtitleParts.join(' · ')}</div>
                     )}
-                    {g.purpose_restriction && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>{g.purpose_restriction}</div>}
+                    {g.purpose_restriction && (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                        <span>⚠</span>
+                        <span>{g.purpose_restriction}</span>
+                      </div>
+                    )}
 
                     <div style={{ marginBottom: 5 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
