@@ -9082,9 +9082,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = fundraisingSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
@@ -9274,9 +9274,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = campaignSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
@@ -9296,9 +9296,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, strip } = campaignGoalStrip
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{t.sub}</div>
@@ -9472,9 +9472,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = appealSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
@@ -9493,9 +9493,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, strip } = appealListStrip
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d !== undefined ? (
@@ -9771,9 +9771,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = pledgeSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
@@ -9794,13 +9794,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <>
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
-                      <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0, background: overdueUnits.length > 0 ? '#FBEEE9' : C.white, border: overdueUnits.length > 0 ? `1px solid ${C.red}` : `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0, background: overdueUnits.length > 0 ? '#FBEEE9' : C.white, border: overdueUnits.length > 0 ? `1px solid ${C.red}` : `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 10.5, color: overdueUnits.length > 0 ? C.red : C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overdueUnits.length > 0 ? C.red : C.forest, lineHeight: 1, marginBottom: 6 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400 }}>· ${overdueTotal.toLocaleString()}</span></div>
                         <div style={{ fontSize: 11, color: overdueUnits.length > 0 ? C.red : C.muted }}>pending pledges past their due date</div>
                       </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                         {avgDelta === null ? (
@@ -9811,12 +9811,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         )}
                       </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
                       </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
@@ -10004,9 +10004,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = recurringSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === null ? (
@@ -10220,9 +10220,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, tiles } = grantSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? (
@@ -10393,23 +10393,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(() => {
                 const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: (isMobile || isTablet) ? 'wrap' : 'nowrap' }}>
-                    <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>of {yr - 1}'s donors gave again in {yr}</div>
                     </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatDonorRate}%</div>
                       <div style={{ fontSize: 11, color: C.muted }}>gave 2+ times, all-time</div>
                     </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgLTV.toLocaleString()}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>per donor, all-time</div>
                     </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: (isMobile || isTablet) ? '100%' : 0 }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? '100%' : 0 }}>
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeCount} <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>/ {lapsedCount}</span></div>
                       <div style={{ fontSize: 11, color: C.muted }}>active vs lapsed donors</div>
