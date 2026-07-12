@@ -757,6 +757,7 @@ export default function App() {
   const [grantMatchClaims, setGrantMatchClaims] = useState({})
   const [grantNotes, setGrantNotes] = useState({})
   const [expandedGrantId, setExpandedGrantId] = useState(null)
+  const [expandedRecurringId, setExpandedRecurringId] = useState(null)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
   const [grantYearFilter, setGrantYearFilter] = useState('All')
   const [grantAmountFilter, setGrantAmountFilter] = useState('All')
@@ -5197,6 +5198,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     grantExpenses.forEach(e => { (m[e.grant_id] = m[e.grant_id] || []).push(e) })
     return m
   }, [grantExpenses])
+
+  const donationsByRecurringGift = React.useMemo(() => {
+    const m = {}
+    donations.forEach(d => { if (d.recurring_gift_id) (m[d.recurring_gift_id] = m[d.recurring_gift_id] || []).push(d) })
+    Object.values(m).forEach(list => list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+    return m
+  }, [donations])
 
   const grantSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -13155,13 +13163,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                       </div>
                     )}
-                    {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FBEEE9', border: `1px solid ${C.red}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.red }}>
-                          ⚠ {recurringFailedDeductionHistory[g.id].length} failed deduction{recurringFailedDeductionHistory[g.id].length !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}
-                        </span>
-                      </div>
-                    )}
+                    {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (() => {
+                      const failCount = recurringFailedDeductionHistory[g.id].length
+                      const tier = failCount >= 3 ? 'urgent' : failCount === 2 ? 'high' : 'low'
+                      const tierBg = tier === 'urgent' ? C.red : tier === 'high' ? '#FBEEE9' : C.warningBg
+                      const tierColor = tier === 'urgent' ? '#fff' : tier === 'high' ? C.red : C.warning
+                      return (
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: tierBg, border: tier === 'urgent' ? 'none' : `1px solid ${tierColor}`, borderRadius: 4, padding: '4px 8px', alignSelf: 'flex-start' }}>
+                            <span style={{ fontSize: 11.5, fontWeight: 500, color: tierColor }}>
+                              ⚠ {failCount} failed deduction{failCount !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}
+                            </span>
+                          </div>
+                          {tier !== 'low' && (
+                            <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: tier === 'urgent' ? 500 : 400 }}>
+                              {tier === 'urgent' ? 'Repeated failures — ' : 'Second failure — '}
+                              {g.donor_phone ? `call ${g.donor_name} directly at ${g.donor_phone}` : `email is unreliable here, get a phone number for ${g.donor_name}`}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0 && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
@@ -13177,6 +13199,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {g.created_at && (
                       <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
                         Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    {(donationsByRecurringGift[g.id] || []).length > 0 && (
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={() => setExpandedRecurringId(expandedRecurringId === g.id ? null : g.id)}>
+                        {expandedRecurringId === g.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByRecurringGift[g.id].length})`}
+                      </button>
+                    )}
+                    {expandedRecurringId === g.id && (
+                      <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                        {donationsByRecurringGift[g.id].map(d => (
+                          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                            <span style={{ color: C.text }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{d.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {d.payment_status}</span>}</span>
+                            <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                     {g.status === 'active' && isLate && (
