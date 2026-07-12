@@ -448,7 +448,11 @@ export default function App() {
   const [grantAmountFilter, setGrantAmountFilter] = useState('All')
   const [highlightedGrantId, setHighlightedGrantId] = useState(null)
   const [grantUrgencyFilter, setGrantUrgencyFilter] = useState('All')
-  const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
+  const [grantFunderTypeFilter, setGrantFunderTypeFilter] = useState('All')
+  const [grantFundingTypeFilter, setGrantFundingTypeFilter] = useState('All')
+  const [grantSortBy, setGrantSortBy] = useState('start_desc')
+  const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: 'Programme Costs' })
+  const grantExpenseCategories = ['Programme Costs', 'Staff Costs', 'Administrative Overhead', 'Fundraising Costs', 'Other']
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
@@ -1231,11 +1235,12 @@ export default function App() {
       description: grantExpenseForm.description.trim(),
       amount: parseFloat(grantExpenseForm.amount),
       expense_date: grantExpenseForm.expense_date,
+      category: grantExpenseForm.category || null,
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving expense', 'error'); return }
     setGrantExpenses(prev => [...prev, data])
-    setGrantExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0] })
+    setGrantExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: 'Programme Costs' })
     showToast('Expense logged ✓')
   }
 
@@ -4848,6 +4853,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
     })).sort((a, b) => b.amount - a.amount)
 
+    const activeGrantIds = new Set(activeGrants.map(g => g.id))
+    const byCategory = {}
+    grantExpenses.filter(e => activeGrantIds.has(e.grant_id)).forEach(e => {
+      const key = e.category || 'Uncategorized'
+      if (!byCategory[key]) byCategory[key] = 0
+      byCategory[key] += Number(e.amount)
+    })
+    const totalCategorized = Object.values(byCategory).reduce((s, v) => s + v, 0)
+    const expenseByCategory = Object.entries(byCategory).map(([label, amt]) => ({
+      label, amount: amt, pct: totalCategorized > 0 ? Math.round((amt / totalCategorized) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+
     const restrictedTotal = activeGrants.reduce((s, g) => s + Number(g.restricted_amount || 0), 0)
     const unrestrictedTotal = activeGrants.reduce((s, g) => s + Number(g.unrestricted_amount || 0), 0)
     const restrictedRollupTotal = restrictedTotal + unrestrictedTotal
@@ -4877,7 +4894,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       causeId, title: myCauses.find(c => c.id === causeId)?.title || 'Unknown programme', amount: amt,
     })).sort((a, b) => b.amount - a.amount)
 
-    return { trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon, funderTypeBreakdown, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, programmeGrants }
+    return { trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, programmeGrants }
   }, [grantsWithNextReport, grantExpenses, grantReports, myCauses])
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
@@ -10931,9 +10948,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const { funderTypeBreakdown, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, programmeGrants } = grantOverviewStats
+                const { funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, programmeGrants } = grantOverviewStats
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
                       <div style={s.analyticsSubTitleDivider}>By funder type</div>
@@ -10997,6 +11014,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           ))}
                         </div>
+                      )}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
+                      {expenseByCategory.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 10 }}>
+                            {expenseByCategory.map((c, i) => (
+                              <div key={i} style={{ width: `${c.pct}%`, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {expenseByCategory.map((c, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{c.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{c.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${c.amount.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -13263,8 +13305,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-              {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All' || grantAmountFilter !== 'All' || grantYearFilter !== 'All') && (
-                <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 180 }} value={grantFunderTypeFilter} onChange={e => setGrantFunderTypeFilter(e.target.value)}>
+                <option value="All">All funder types</option>
+                <option value="government">Government / statutory board</option>
+                <option value="corporate">Corporate foundation</option>
+                <option value="trust">Private trust / individual</option>
+                <option value="other">Other</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={grantFundingTypeFilter} onChange={e => setGrantFundingTypeFilter(e.target.value)}>
+                <option value="All">Restricted or not</option>
+                <option value="Restricted">Has restricted funds</option>
+                <option value="Unrestricted">Fully unrestricted</option>
+                <option value="Matching">Matching grants</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={grantSortBy} onChange={e => setGrantSortBy(e.target.value)}>
+                <option value="start_desc">Sort: Newest first</option>
+                <option value="start_asc">Sort: Oldest first</option>
+                <option value="amount_desc">Sort: Amount (high–low)</option>
+                <option value="amount_asc">Sort: Amount (low–high)</option>
+                <option value="report_asc">Sort: Report due soonest</option>
+                <option value="funder_az">Sort: Funder A–Z</option>
+              </select>
+              {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All' || grantAmountFilter !== 'All' || grantYearFilter !== 'All' || grantFunderTypeFilter !== 'All' || grantFundingTypeFilter !== 'All') && (
+                <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setGrantFunderTypeFilter('All'); setGrantFundingTypeFilter('All') }}>✕ Clear Filters</button>
               )}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = grantSearchTerm.toLowerCase().trim()
@@ -13282,7 +13345,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
                     || (grantAmountFilter === 'Over 250000' && amt > 250000)
                   const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
-                  return matchesSearch && matchesUrgency && matchesAmount && matchesYear
+                  const matchesFunderType = grantFunderTypeFilter === 'All' || g.funder_type === grantFunderTypeFilter
+                  const matchesFundingType = grantFundingTypeFilter === 'All'
+                    || (grantFundingTypeFilter === 'Restricted' && Number(g.restricted_amount) > 0)
+                    || (grantFundingTypeFilter === 'Unrestricted' && Number(g.restricted_amount) === 0)
+                    || (grantFundingTypeFilter === 'Matching' && g.is_matching)
+                  return matchesSearch && matchesUrgency && matchesAmount && matchesYear && matchesFunderType && matchesFundingType
                 })
                 exportGrantsExcel(filtered)
               }}>⬇️ Export to Excel</button>
@@ -13304,7 +13372,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
                   || (grantAmountFilter === 'Over 250000' && amt > 250000)
                 const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
-                return matchesSearch && matchesUrgency && matchesAmount && matchesYear
+                const matchesFunderType = grantFunderTypeFilter === 'All' || g.funder_type === grantFunderTypeFilter
+                const matchesFundingType = grantFundingTypeFilter === 'All'
+                  || (grantFundingTypeFilter === 'Restricted' && Number(g.restricted_amount) > 0)
+                  || (grantFundingTypeFilter === 'Unrestricted' && Number(g.restricted_amount) === 0)
+                  || (grantFundingTypeFilter === 'Matching' && g.is_matching)
+                return matchesSearch && matchesUrgency && matchesAmount && matchesYear && matchesFunderType && matchesFundingType
+              }).sort((a, b) => {
+                if (grantSortBy === 'start_desc') return new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at)
+                if (grantSortBy === 'start_asc') return new Date(a.start_date || a.created_at) - new Date(b.start_date || b.created_at)
+                if (grantSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
+                if (grantSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+                if (grantSortBy === 'report_asc') return new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')
+                if (grantSortBy === 'funder_az') return a.funder_name.localeCompare(b.funder_name)
+                return 0
               })
 
               const activeGrants = filteredGrants.filter(g => g.status === 'active')
@@ -13420,7 +13501,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                             {myExpenses84.map(e => (
                               <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                <span style={{ color: C.text }}>{e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span></span>
+                                <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                                  {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
+                                </span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
                                   <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantExpense(e.id)}>✕</span>
@@ -13429,10 +13513,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             ))}
                           </div>
                         )}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
+                          <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={grantExpenseForm.category} onChange={e => setGrantExpenseForm(f => ({ ...f, category: e.target.value }))}>
+                            {grantExpenseCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </select>
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
                         </div>
 
