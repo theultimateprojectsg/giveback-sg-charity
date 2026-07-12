@@ -87,6 +87,25 @@ function colorForDonor(nameOrEmail, palette) {
   return palette[index]
 }
 
+// A charity's fiscal year is labeled by the calendar year it ENDS in (e.g. FY ending 31 Mar 2026 = "FY2026",
+// covering 1 Apr 2025 – 31 Mar 2026). For a fyEndMonth/fyEndDay of 12/31 this collapses to the calendar year,
+// so it's a safe drop-in replacement for `.getFullYear()` everywhere stats bucket dates by "year".
+function fiscalYearOf(dateInput, fyEndMonth, fyEndDay) {
+  const d = new Date(dateInput)
+  const y = d.getFullYear()
+  const fyEndThisCalYear = new Date(y, fyEndMonth - 1, fyEndDay, 23, 59, 59, 999)
+  return d <= fyEndThisCalYear ? y : y + 1
+}
+
+function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
+  const end = new Date(yearLabel, fyEndMonth - 1, fyEndDay, 23, 59, 59, 999)
+  const start = new Date(end)
+  start.setFullYear(start.getFullYear() - 1)
+  start.setDate(start.getDate() + 1)
+  start.setHours(0, 0, 0, 0)
+  return { start, end }
+}
+
 function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
@@ -894,6 +913,7 @@ export default function App() {
   const [editingFyEnd, setEditingFyEnd] = useState(false)
   const [fyEndMonthInput, setFyEndMonthInput] = useState('12')
   const [fyEndDayInput, setFyEndDayInput] = useState('31')
+  const fyOf = React.useCallback((dateInput) => fiscalYearOf(dateInput, fyEndMonth, fyEndDay), [fyEndMonth, fyEndDay])
   const selectedRowRef = useRef(null)
   
   const [confirmModal, setConfirmModal] = useState(null)
@@ -4915,8 +4935,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [grantExpenses])
 
   const grantSnapshotStats = React.useMemo(() => {
-    const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-    const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+    const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
+    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
     const statsForYear = (y) => {
       const gs = grantsWithNextReport.filter(g => grantYearOf(g) === y)
       const total = gs.reduce((s, g) => s + Number(g.amount), 0)
@@ -4933,10 +4953,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
     ]
     return { yr, tiles }
-  }, [filterYear, grantsWithNextReport])
+  }, [filterYear, grantsWithNextReport, fyOf])
 
   const grantOverviewStats = React.useMemo(() => {
-    const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
+    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
     const allYearsWithGrants = [...new Set(grantsWithNextReport.map(grantYearOf))].sort((a, b) => a - b)
     const trendYears = allYearsWithGrants.slice(-5)
     const trendData = trendYears.map(y => ({
@@ -5014,7 +5034,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
 
     // Year-over-year on-time rate trend, keyed off each report's due date year (last up to 4 years with data)
-    const reportYearOf = (r) => new Date(r.due_date).getFullYear()
+    const reportYearOf = (r) => fyOf(r.due_date)
     const reportYears = [...new Set(allReports.map(reportYearOf))].sort((a, b) => a - b).slice(-4)
     const reportComplianceTrend = reportYears.map(y => {
       const yReports = submittedReports.filter(r => reportYearOf(r) === y)
@@ -5063,7 +5083,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk,
       totalCommitted, totalReceived, pendingTranches,
     }
-  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, myCauses, filterYear])
+  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, myCauses, filterYear, fyOf])
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -13554,7 +13574,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </select>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={grantYearFilter} onChange={e => setGrantYearFilter(e.target.value)}>
                 <option value="All">All years</option>
-                {[...new Set(grantsWithNextReport.map(g => new Date(g.start_date || g.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                {[...new Set(grantsWithNextReport.map(g => fyOf(g.start_date || g.created_at)))].sort((a, b) => b - a).map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -13597,7 +13617,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     || (grantAmountFilter === '20000-100000' && amt >= 20000 && amt <= 100000)
                     || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
                     || (grantAmountFilter === 'Over 250000' && amt > 250000)
-                  const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
+                  const matchesYear = grantYearFilter === 'All' || fyOf(g.start_date || g.created_at).toString() === grantYearFilter
                   const matchesFunderType = grantFunderTypeFilter === 'All' || g.funder_type === grantFunderTypeFilter
                   const matchesFundingType = grantFundingTypeFilter === 'All'
                     || (grantFundingTypeFilter === 'Restricted' && Number(g.restricted_amount) > 0)
@@ -13624,7 +13644,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   || (grantAmountFilter === '20000-100000' && amt >= 20000 && amt <= 100000)
                   || (grantAmountFilter === '100000-250000' && amt > 100000 && amt <= 250000)
                   || (grantAmountFilter === 'Over 250000' && amt > 250000)
-                const matchesYear = grantYearFilter === 'All' || new Date(g.start_date || g.created_at).getFullYear().toString() === grantYearFilter
+                const matchesYear = grantYearFilter === 'All' || fyOf(g.start_date || g.created_at).toString() === grantYearFilter
                 const matchesFunderType = grantFunderTypeFilter === 'All' || g.funder_type === grantFunderTypeFilter
                 const matchesFundingType = grantFundingTypeFilter === 'All'
                   || (grantFundingTypeFilter === 'Restricted' && Number(g.restricted_amount) > 0)
