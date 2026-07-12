@@ -6011,8 +6011,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   return (
     <div style={s.page}>
 
-      {/* ── SIDEBAR (desktop, collapsible) ── */}
-      {screenSize === 'desktop' && (
+      {/* ── SIDEBAR (desktop + tablet, collapsible) ── */}
+      {!isMobile && (
       <div style={{ ...s.sidebar, width: sidebarCollapsed ? 64 : 232, transition: 'width 0.2s ease', overflowX: 'hidden', overflowY: 'auto' }}>
 
         {/* Logo */}
