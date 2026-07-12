@@ -485,6 +485,19 @@ export default function App() {
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
 
+  // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
+  // from Analytics, then returning) restores where you were instead of dumping you at the top.
+  const tabScrollPositions = useRef({})
+  useEffect(() => {
+    const onScroll = () => { tabScrollPositions.current[activeTab] = window.scrollY }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [activeTab])
+  useEffect(() => {
+    const saved = tabScrollPositions.current[activeTab] || 0
+    requestAnimationFrame(() => window.scrollTo(0, saved))
+  }, [activeTab])
+
   useEffect(() => {
     if (!session) return
     if (selectedDonor) {
@@ -11178,7 +11191,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
                               </div>
                             )
-                          }); return <>{rows}{behindPaceCount > 0 && <ActionBanner tone="danger" text={`${behindPaceCount} grant${behindPaceCount !== 1 ? 's' : ''} behind pace`} sub="Log expenses or check in with the programme team" />}</> })()}
+                          }); return <>{rows}{behindPaceCount > 0 ? <ActionBanner tone="danger" text={`${behindPaceCount} grant${behindPaceCount !== 1 ? 's' : ''} behind pace`} sub="Log expenses or check in with the programme team" /> : <ActionBanner tone="success" text="All grants on pace" sub={`${activeGrants.length} active grant${activeGrants.length !== 1 ? 's' : ''} tracking on schedule`} />}</> })()}
                           </div>
                         </>
                       )}
@@ -11206,7 +11219,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {byFunder.map((f, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(f.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
                             </div>
@@ -11223,7 +11236,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {expiringSoon.map((g, i) => {
                           const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
                           return (
-                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
+                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
                                 <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
@@ -11279,8 +11292,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               ))}
                             </div>
                           )}
-                          {matchingAtRisk.length > 0 && (
+                          {matchingAtRisk.length > 0 ? (
                             <ActionBanner tone="danger" text={`${matchingAtRisk.length} grant${matchingAtRisk.length !== 1 ? 's' : ''} closing with unclaimed match`} sub="File claims now, or that money is gone for good" />
+                          ) : (
+                            <ActionBanner tone="success" text="No match at risk" sub="All matching grants are on pace or not ending soon" />
                           )}
                         </>
                       )}
@@ -11313,8 +11328,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               ))}
                             </div>
                           )}
-                          {pendingTranches.some(t => t.overdue) && (
+                          {pendingTranches.some(t => t.overdue) ? (
                             <ActionBanner tone="danger" text={`${pendingTranches.filter(t => t.overdue).length} tranche${pendingTranches.filter(t => t.overdue).length !== 1 ? 's' : ''} overdue`} sub="Follow up with the funder" />
+                          ) : (
+                            <ActionBanner tone="success" text="No overdue tranches" sub="All disbursements are on schedule" />
                           )}
                         </>
                         )
@@ -11341,9 +11358,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                       )}
-                      {reportCompliance.overdueCount > 0 && (
+                      {reportCompliance.overdueCount > 0 ? (
                         <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Submit now" />
-                      )}
+                      ) : reportCompliance.total > 0 ? (
+                        <ActionBanner tone="success" text="No overdue reports" sub="All reports are up to date" />
+                      ) : null}
                     </div>
                   </div>
                 )
