@@ -6712,19 +6712,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     return months.map((month, i) => ({
       month,
-      amount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
-      lastYearAmount: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) - 1 && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
-      count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
+      amount: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
+      lastYearAmount: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) - 1 && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
+      count: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
     }))
-  }, [donations, filterYear])
+  }, [donations, filterYear, fyOf])
 
   const monthlyCountData = React.useMemo(() => {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     return months.map((month, i) => ({
       month,
-      count: donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
+      count: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
     }))
-  }, [donations, filterYear])
+  }, [donations, filterYear, fyOf])
 
   if (authLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.ivory, fontFamily: 'Segoe UI', fontSize: 16, color: C.muted }}>
@@ -7341,10 +7341,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const concentrationHighRiskFH = concentrationPctFH >= 70
               const concentrationMedRiskFH = concentrationPctFH >= 50
 
-              const thisYearNumFH = now.getFullYear()
+              const thisYearNumFH = fyOf(now)
               const lastYearNumFH = thisYearNumFH - 1
-              const donorsLastYearFH = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const donorsThisYearFH = new Set(donations.filter(d => new Date(d.created_at).getFullYear() === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const donorsLastYearFH = new Set(donations.filter(d => fyOf(d.created_at) === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const donorsThisYearFH = new Set(donations.filter(d => fyOf(d.created_at) === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
               const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
               const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
 
@@ -7430,14 +7430,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Year-End Projection <InfoTip text="Extrapolates this year's giving pace so far (total confirmed donations divided by days elapsed) out to a full 365 days, to estimate where the year will land. Only shown from October, once there's enough of the year to project from." /></div>
-                    {now.getMonth() < 9 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>Available from October</div>
-                    ) : (() => {
-                      const yearStartYE = new Date(now.getFullYear(), 0, 1)
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
+                    {(() => {
+                      const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
+                      const totalDaysYE = Math.ceil((yearEndYE - yearStartYE) / (1000 * 60 * 60 * 24))
                       const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
+                      if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
                       const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
-                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * 365)
+                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
                       return <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${projectedYE.toLocaleString()}</div>
                     })()}
                   </div>
@@ -7467,30 +7467,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
             {(() => {
-              const goalYear = new Date().getFullYear()
-              const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              const goalYear = fyOf(new Date())
+              const totalThisGoalYear = donations.filter(d => fyOf(d.created_at) === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
               if (!annualGoal) return null
               const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
-              const yearStart = new Date(goalYear, 0, 1)
+              const { start: yearStart, end: yearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
               const now5 = new Date()
-              const yearEnd = new Date(goalYear, 11, 31)
               const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
               const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
               const dailyRate = totalThisGoalYear / daysElapsed
               const projectedTotal = Math.round(dailyRate * totalDaysInYear)
               const onTrack = projectedTotal >= annualGoal
               const gap = Math.abs(annualGoal - projectedTotal)
+              const yearEndLabel = yearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
               return (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings." /></div>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
                     <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
                   </div>
                   <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
                     {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} short of goal`}
                   </div>
                 </div>
               )
@@ -7523,7 +7523,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + Number(p.amount), 0)
               const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + Number(p.amount), 0)
 
-              const thisYearAppeals = massAppeals.filter(a => new Date(a.created_at).getFullYear() === now03.getFullYear())
+              const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
               const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
               const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
 
@@ -7784,7 +7784,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </select>
                   <select style={s.filterSelect} value={donorYearFilter} onChange={e => setDonorYearFilter(e.target.value)}>
                     <option value="All">All years (last donation)</option>
-                    {[...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                    {[...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => fyOf(d.created_at)))].sort((a, b) => b - a).map(y => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
@@ -7802,7 +7802,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         || (donorStatusFilter === 'Prospect' && d.isContactOnly)
                         || (donorStatusFilter === 'DoNotContact' && d.doNotContact)
                         || (donorStatusFilter === 'Deactivated' && d.deactivated)
-                      const matchesYear = donorYearFilter === 'All' || (d.lastDate && new Date(d.lastDate).getFullYear().toString() === donorYearFilter)
+                      const matchesYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
                       return matchesSearch && matchesTag && matchesStatus && matchesYear
                     })
                     showToast('Preparing export...')
@@ -8974,8 +8974,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                 <option>All</option>
                 {donations.length === 0
-    ? <option>{new Date().getFullYear()}</option>
-    : [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
+    ? <option>{fyOf(new Date())}</option>
+    : [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)
   }
               </select>
               <button
@@ -9782,12 +9782,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
+                const scoped = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
                 if (scoped.length === 0) return null
                 const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
                 const donorKeys = new Set(scoped.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                const periodYear = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
-                const lastYearScoped = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at).getFullYear() === periodYear - 1)
+                const periodYear = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
+                const lastYearScoped = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === periodYear - 1)
                 const lastYearTotal = lastYearScoped.reduce((s, d) => s + d.amount, 0)
                 const growthPct = lastYearTotal > 0 ? Math.round(((totalAmt - lastYearTotal) / lastYearTotal) * 100) : null
                 const byDonorCount = {}
@@ -9800,7 +9800,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const donorFirstYear = {}
                 ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorFirstYear[key]) donorFirstYear[key] = new Date(d.created_at).getFullYear()
+                  if (!donorFirstYear[key]) donorFirstYear[key] = fyOf(d.created_at)
                 })
                 const firstTimeCount = [...donorKeys].filter(k => donorFirstYear[k] === periodYear).length
 
@@ -12001,33 +12001,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {(() => {
                 const now11 = new Date()
-                if (now11.getMonth() < 9) {
+                const fyNow11 = fyOf(now11)
+                const { start: yearStart11, end: yearEnd11 } = fiscalYearBounds(fyNow11, fyEndMonth, fyEndDay)
+                const totalDays11 = Math.ceil((yearEnd11 - yearStart11) / (1000 * 60 * 60 * 24))
+                const daysElapsed = Math.max(1, Math.ceil((now11 - yearStart11) / (1000 * 60 * 60 * 24)))
+                if (daysElapsed / totalDays11 < 0.75) {
                   return (
                     <div style={{ ...s.card, marginBottom: 24 }}>
                       <div style={s.cardTitle}>Year-End Projection</div>
-                      <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available from October, once there's enough of the year to extrapolate from.</div>
+                      <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available once at least 75% of the fiscal year has elapsed.</div>
                     </div>
                   )
                 }
-                const yearStart11 = new Date(now11.getFullYear(), 0, 1)
-                const daysElapsed = Math.max(1, Math.ceil((now11 - yearStart11) / (1000 * 60 * 60 * 24)))
                 const ytdTotal = confirmedDonations.filter(d => new Date(d.created_at) >= yearStart11).reduce((s, d) => s + d.amount, 0)
-                const projectedTotal = Math.round((ytdTotal / daysElapsed) * 365)
-                const lastYearStart11 = new Date(now11.getFullYear() - 1, 0, 1)
-                const lastYearEnd11 = new Date(now11.getFullYear(), 0, 1)
-                const lastYearTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastYearStart11 && new Date(d.created_at) < lastYearEnd11).reduce((s, d) => s + d.amount, 0)
+                const projectedTotal = Math.round((ytdTotal / daysElapsed) * totalDays11)
+                const { start: lastYearStart11, end: lastYearEnd11 } = fiscalYearBounds(fyNow11 - 1, fyEndMonth, fyEndDay)
+                const lastYearTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastYearStart11 && new Date(d.created_at) <= lastYearEnd11).reduce((s, d) => s + d.amount, 0)
                 const trendPct = lastYearTotal > 0 ? Math.round(((projectedTotal - lastYearTotal) / lastYearTotal) * 100) : null
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.cardTitle}>Year-End Projection</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 8 }}>${projectedTotal.toLocaleString()}</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where {now11.getFullYear()} is likely to land.</div>
+                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where FY{fyNow11} is likely to land.</div>
                     {lastYearTotal > 0 ? (
                       <div style={{ fontSize: 12.5, color: trendPct >= 0 ? C.sage : C.red, fontWeight: 500 }}>
-                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}% vs {now11.getFullYear() - 1}'s ${lastYearTotal.toLocaleString()}
+                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}% vs FY{fyNow11 - 1}'s ${lastYearTotal.toLocaleString()}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: C.muted }}>No data from {now11.getFullYear() - 1} to compare against.</div>
+                      <div style={{ fontSize: 12, color: C.muted }}>No data from FY{fyNow11 - 1} to compare against.</div>
                     )}
                   </div>
                 )
@@ -12401,7 +12402,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
                 <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={campaignYearFilter} onChange={e => setCampaignYearFilter(e.target.value)}>
                   <option value="All">All years</option>
-                  {[...new Set(myCauses.filter(c => c.type === 'campaign').map(c => new Date(c.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                  {[...new Set(myCauses.filter(c => c.type === 'campaign').map(c => fyOf(c.created_at)))].sort((a, b) => b - a).map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
@@ -12413,7 +12414,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const filtered = myCauses.filter(c => {
                     if (c.type !== 'campaign') return false
                     const matchesSearch = !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
-                    const matchesYear = campaignYearFilter === 'All' || new Date(c.created_at).getFullYear().toString() === campaignYearFilter
+                    const matchesYear = campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
                     return matchesSearch && matchesYear
                   })
                   exportCampaignsExcel(filtered)
@@ -12424,7 +12425,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {(() => {
               const q = campaignSearchTerm.toLowerCase().trim()
               const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
-              const matchesYear = c => campaignYearFilter === 'All' || new Date(c.created_at).getFullYear().toString() === campaignYearFilter
+              const matchesYear = c => campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
               const isPast = c => c.status === 'rejected' || c.status === 'deleted' || c.status === 'completed' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
               const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c))
               const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c))
@@ -12700,7 +12701,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </select>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 150 }} value={recurringYearFilter} onChange={e => setRecurringYearFilter(e.target.value)}>
                 <option value="All">All start years</option>
-                {[...new Set(recurringGifts.filter(g => g.start_date).map(g => new Date(g.start_date).getFullYear()))].sort((a, b) => b - a).map(y => (
+                {[...new Set(recurringGifts.filter(g => g.start_date).map(g => fyOf(g.start_date)))].sort((a, b) => b - a).map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -12729,7 +12730,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       else if (recurringUrgencyFilter === 'Healthy') matchesUrgency = days > 7
                     }
                   }
-                  const matchesYear = recurringYearFilter === 'All' || (g.start_date && new Date(g.start_date).getFullYear().toString() === recurringYearFilter)
+                  const matchesYear = recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
                   return matchesSearch && matchesType && matchesAmt && matchesUrgency && matchesYear
                 })
                 exportRecurringExcel(filtered)
@@ -12764,7 +12765,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return true
               }
               const matchesType = (g) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
-              const matchesYear = (g) => recurringYearFilter === 'All' || (g.start_date && new Date(g.start_date).getFullYear().toString() === recurringYearFilter)
+              const matchesYear = (g) => recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
 
               const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g) && matchesYear(g))
 
@@ -12944,7 +12945,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </select>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={pledgeYearFilter} onChange={e => setPledgeYearFilter(e.target.value)}>
                 <option value="All">All years</option>
-                {[...new Set(pledges.map(p => new Date(p.expected_date).getFullYear()))].sort((a, b) => b - a).map(y => (
+                {[...new Set(pledges.map(p => fyOf(p.expected_date)))].sort((a, b) => b - a).map(y => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
@@ -12955,7 +12956,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const q = pledgeSearchTerm.toLowerCase().trim()
                 const filtered = pledges.filter(p => {
                   const matchesSearch = !q || [p.donor_name, p.donor_email, p.notes].some(f => f?.toLowerCase().includes(q))
-                  const matchesYear = pledgeYearFilter === 'All' || new Date(p.expected_date).getFullYear().toString() === pledgeYearFilter
+                  const matchesYear = pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
                   const amt = Number(p.amount)
                   const matchesAmt = pledgeAmountFilter === 'All'
                     || (pledgeAmountFilter === 'Under 100' && amt < 100)
@@ -13289,7 +13290,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by campaign name or message..." value={massAppealSearchTerm} onChange={e => setMassAppealSearchTerm(e.target.value)} />
                 <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealYearFilter} onChange={e => setMassAppealYearFilter(e.target.value)}>
                   <option value="All">All years</option>
-                  {[...new Set(massAppeals.map(a => new Date(a.created_at).getFullYear()))].sort((a, b) => b - a).map(y => (
+                  {[...new Set(massAppeals.map(a => fyOf(a.created_at)))].sort((a, b) => b - a).map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
@@ -13300,7 +13301,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const q = massAppealSearchTerm.toLowerCase().trim()
                   const filtered = massAppeals.filter(a => {
                     const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
-                    const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
+                    const matchesYear = massAppealYearFilter === 'All' || fyOf(a.created_at).toString() === massAppealYearFilter
                     return matchesSearch && matchesYear
                   })
                   exportMassAppealsExcel(filtered)
@@ -13314,12 +13315,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const searchedAppeals = massAppeals.filter(a => {
                 const q = massAppealSearchTerm.toLowerCase().trim()
                 const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
-                const matchesYear = massAppealYearFilter === 'All' || new Date(a.created_at).getFullYear().toString() === massAppealYearFilter
+                const matchesYear = massAppealYearFilter === 'All' || fyOf(a.created_at).toString() === massAppealYearFilter
                 return matchesSearch && matchesYear
               })
               const byYear = {}
               searchedAppeals.forEach(a => {
-                const y = new Date(a.created_at).getFullYear()
+                const y = fyOf(a.created_at)
                 if (!byYear[y]) byYear[y] = []
                 byYear[y].push(a)
               })
@@ -13844,12 +13845,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 Summary of donations by financial year for your Commissioner of Charities annual submission.
               </div>
               {(() => {
-                const years = [...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a)
+                const years = [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a, b) => b - a)
                 if (years.length === 0) return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No donation data yet.</div>
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {years.map(year => {
-                      const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === year && d.payment_status === 'confirmed')
+                      const yearDonations = donations.filter(d => fyOf(d.created_at) === year && d.payment_status === 'confirmed')
                       const total = yearDonations.reduce((s, d) => s + d.amount, 0)
                       const uniqueDonors = new Set(yearDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
                       return (
