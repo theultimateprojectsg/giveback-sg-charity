@@ -11303,9 +11303,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           )}
                           {matchingAtRisk.length > 0 ? (
-                            <ActionBanner tone="danger" text={`${matchingAtRisk.length} grant${matchingAtRisk.length !== 1 ? 's' : ''} closing with unclaimed match`} sub="File claims now, or that money is gone for good" />
+                            <ActionBanner tone="danger" text={`${matchingAtRisk.length} grant${matchingAtRisk.length !== 1 ? 's' : ''} closing with unclaimed match`} sub="File grant claims now, or that money is gone for good" />
                           ) : (
-                            <ActionBanner tone="success" text="No match at risk" sub="All matching grants are on pace or not ending soon" />
+                            <ActionBanner tone="success" text="No claims at risk" sub="Grant claims are on pace or not ending soon" />
                           )}
                         </>
                       )}
@@ -11385,7 +11385,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </>
                       )}
                       {reportCompliance.overdueCount > 0 ? (
-                        <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Submit now" />
+                        <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Check and submit on time" />
                       ) : reportCompliance.total > 0 ? (
                         <ActionBanner tone="success" text="No overdue reports" sub="All reports are up to date" />
                       ) : null}
