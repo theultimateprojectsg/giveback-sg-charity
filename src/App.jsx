@@ -814,6 +814,9 @@ export default function App() {
   const [recurringUrgencyFilter, setRecurringUrgencyFilter] = useState('All')
   const [recurringAmountFilter, setRecurringAmountFilter] = useState('All')
   const [recurringTypeFilter, setRecurringTypeFilter] = useState('All')
+  const [recurringProgrammeFilter, setRecurringProgrammeFilter] = useState('All')
+  const [recurringAuthFilter, setRecurringAuthFilter] = useState('All')
+  const [recurringSortBy, setRecurringSortBy] = useState('next_asc')
   const [markReceivedModal, setMarkReceivedModal] = useState(null)
   const [markReceivedAmount, setMarkReceivedAmount] = useState('')
   const [markingReceived, setMarkingReceived] = useState(false)
@@ -2053,7 +2056,7 @@ export default function App() {
 
       const { data: skipData } = await supabase
         .from('recurring_gift_events')
-        .select('recurring_gift_id, skipped_cycle_date, reason, created_at')
+        .select('id, recurring_gift_id, skipped_cycle_date, reason, created_at')
         .eq('event_type', 'skip')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('created_at', { ascending: false })
@@ -2066,7 +2069,7 @@ export default function App() {
 
       const { data: failedData } = await supabase
         .from('recurring_gift_events')
-        .select('recurring_gift_id, skipped_cycle_date, reason, created_at')
+        .select('id, recurring_gift_id, skipped_cycle_date, reason, created_at')
         .eq('event_type', 'failed_deduction')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('created_at', { ascending: false })
@@ -2292,6 +2295,31 @@ export default function App() {
     setSkippingCycle(false)
     setSkipCycleModal(null)
     setSkipCycleReason('')
+  }
+
+  async function undoSkipCycle(gift) {
+    const history = recurringSkipHistory[gift.id] || []
+    const lastSkip = history[0]
+    if (!lastSkip) return
+    const { error: deleteError } = await supabase.from('recurring_gift_events').delete().eq('id', lastSkip.id)
+    if (deleteError) { showToast('Error undoing skip', 'error'); return }
+    const { error: giftError } = await supabase.from('recurring_gifts').update({
+      next_expected_date: lastSkip.skipped_cycle_date,
+    }).eq('id', gift.id)
+    if (giftError) { showToast('Skip event removed, but error reverting next expected date', 'error'); return }
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, next_expected_date: lastSkip.skipped_cycle_date } : g))
+    setRecurringSkipHistory(prev => ({ ...prev, [gift.id]: history.slice(1) }))
+    showToast('Skip undone ✓')
+  }
+
+  async function undoFailedDeduction(gift, event) {
+    const { error } = await supabase.from('recurring_gift_events').delete().eq('id', event.id)
+    if (error) { showToast('Error undoing failed deduction', 'error'); return }
+    setRecurringFailedDeductionHistory(prev => ({
+      ...prev,
+      [gift.id]: (prev[gift.id] || []).filter(e => e.id !== event.id),
+    }))
+    showToast('Failed deduction entry removed ✓')
   }
 
   async function sendRecurringReminder() {
@@ -4104,6 +4132,10 @@ export default function App() {
       description = `⚠ This donation is linked to ${pledgeLink.pledgeDonorName || 'a'}'s pledge ($${Number(pledgeLink.amount_applied).toLocaleString()} applied). Deleting it will unlink it from that pledge and reduce the pledge's given-total accordingly${pledgeLink.pledgeStatus === 'fulfilled' ? '. Since this pledge was marked fulfilled by this donation, it will also revert to pending.' : '.'}`
     }
 
+    if (donationToDelete?.recurring_gift_id) {
+      description += ' This payment is linked to a recurring gift — its "last received" date, next expected date, and running total will be rolled back to reflect the deletion.'
+    }
+
     setConfirmModal({
       title: donationToDelete?.receipt_issued ? 'Delete this entry anyway?' : 'Delete this manual entry?',
       description,
@@ -4129,6 +4161,27 @@ export default function App() {
         await supabase.from('pledges').update({ status: 'pending' }).eq('id', pledgeLink.pledge_id)
         setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending' } : p))
       }
+    }
+
+    if (donationToDelete?.recurring_gift_id) {
+      const giftId = donationToDelete.recurring_gift_id
+      const gift = recurringGifts.find(g => g.id === giftId)
+      const remaining = donations.filter(d => d.recurring_gift_id === giftId && d.id !== id && d.status !== 'deleted_by_charity')
+      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const newLastReceived = remainingConfirmed[0]?.created_at ? remainingConfirmed[0].created_at.split('T')[0] : null
+      const newNextExpected = gift ? computeNextExpectedDate(gift.start_date, gift.frequency, newLastReceived) : null
+      if (gift) {
+        await supabase.from('recurring_gifts').update({
+          last_received_date: newLastReceived,
+          next_expected_date: newNextExpected,
+        }).eq('id', giftId)
+        setRecurringGifts(prev => prev.map(g => g.id === giftId ? { ...g, last_received_date: newLastReceived, next_expected_date: newNextExpected } : g))
+      }
+      setRecurringGivenTotals(prev => {
+        const cur = prev[giftId]
+        if (!cur) return prev
+        return { ...prev, [giftId]: { total: Math.max(0, cur.total - Number(donationToDelete.amount)), count: Math.max(0, cur.count - 1) } }
+      })
     }
 
     await supabase.from('audit_log').insert({
@@ -12988,8 +13041,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-              {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All' || recurringYearFilter !== 'All') && (
-                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 190 }} value={recurringProgrammeFilter} onChange={e => setRecurringProgrammeFilter(e.target.value)}>
+                <option value="All">All programmes</option>
+                <option value="__none__">None — unrestricted</option>
+                {myCauses.filter(c => c.type === 'campaign').map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={recurringAuthFilter} onChange={e => setRecurringAuthFilter(e.target.value)}>
+                <option value="All">All authorization</option>
+                <option value="pending">Pending bank approval</option>
+                <option value="active">Authorized</option>
+                <option value="terminated">Terminated by bank</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 190 }} value={recurringSortBy} onChange={e => setRecurringSortBy(e.target.value)}>
+                <option value="next_asc">Next expected soonest</option>
+                <option value="next_desc">Next expected latest</option>
+                <option value="amount_desc">Amount high–low</option>
+                <option value="amount_asc">Amount low–high</option>
+                <option value="start_desc">Start date newest</option>
+                <option value="start_asc">Start date oldest</option>
+                <option value="donor_az">Donor A–Z</option>
+                <option value="reliability_asc">Reliability lowest first</option>
+              </select>
+              {(recurringSearchTerm !== '' || recurringUrgencyFilter !== 'All' || recurringAmountFilter !== 'All' || recurringTypeFilter !== 'All' || recurringYearFilter !== 'All' || recurringProgrammeFilter !== 'All' || recurringAuthFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setRecurringSearchTerm(''); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All') }}>✕ Clear Filters</button>
               )}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = recurringSearchTerm.toLowerCase().trim()
@@ -13014,7 +13088,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }
                   }
                   const matchesYear = recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
-                  return matchesSearch && matchesType && matchesAmt && matchesUrgency && matchesYear
+                  const matchesProgramme = recurringProgrammeFilter === 'All' || (recurringProgrammeFilter === '__none__' ? !g.cause_id : g.cause_id === recurringProgrammeFilter)
+                  const matchesAuth = recurringAuthFilter === 'All' || g.authorization_status === recurringAuthFilter
+                  return matchesSearch && matchesType && matchesAmt && matchesUrgency && matchesYear && matchesProgramme && matchesAuth
                 })
                 exportRecurringExcel(filtered)
               }}>⬇️ Export to Excel</button>
@@ -13049,8 +13125,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
               const matchesType = (g) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
               const matchesYear = (g) => recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
+              const matchesProgramme = (g) => recurringProgrammeFilter === 'All' || (recurringProgrammeFilter === '__none__' ? !g.cause_id : g.cause_id === recurringProgrammeFilter)
+              const matchesAuth = (g) => recurringAuthFilter === 'All' || g.authorization_status === recurringAuthFilter
 
-              const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g) && matchesYear(g))
+              const reliabilityPctOf = (g) => {
+                const gapDays = { weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30
+                const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today - new Date(g.start_date)) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
+                const receivedCount = recurringGivenTotals[g.id]?.count || 0
+                return Math.min(100, Math.round((receivedCount / cyclesElapsed) * 100))
+              }
+
+              const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g) && matchesYear(g) && matchesProgramme(g) && matchesAuth(g)).sort((a, b) => {
+                if (recurringSortBy === 'next_asc') return new Date(a.next_expected_date) - new Date(b.next_expected_date)
+                if (recurringSortBy === 'next_desc') return new Date(b.next_expected_date) - new Date(a.next_expected_date)
+                if (recurringSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
+                if (recurringSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+                if (recurringSortBy === 'start_desc') return new Date(b.start_date || 0) - new Date(a.start_date || 0)
+                if (recurringSortBy === 'start_asc') return new Date(a.start_date || 0) - new Date(b.start_date || 0)
+                if (recurringSortBy === 'donor_az') return a.donor_name.localeCompare(b.donor_name)
+                if (recurringSortBy === 'reliability_asc') return reliabilityPctOf(a) - reliabilityPctOf(b)
+                return 0
+              })
 
               const renderRecurringCard = (g) => {
                 const nextDate = new Date(g.next_expected_date)
@@ -13157,10 +13252,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
 
                     {(recurringSkipHistory[g.id] || []).length > 0 && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
                           ⏭ {recurringSkipHistory[g.id].length} cycle{recurringSkipHistory[g.id].length !== 1 ? 's' : ''} skipped
                         </span>
+                        {g.status !== 'cancelled' && (
+                          <span style={{ fontSize: 11, color: C.gold, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => undoSkipCycle(g)}>↺ Undo last</span>
+                        )}
                       </div>
                     )}
                     {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (() => {
@@ -13170,10 +13268,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const tierColor = tier === 'urgent' ? '#fff' : tier === 'high' ? C.red : C.warning
                       return (
                         <div style={{ marginBottom: 8 }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: tierBg, border: tier === 'urgent' ? 'none' : `1px solid ${tierColor}`, borderRadius: 4, padding: '4px 8px', alignSelf: 'flex-start' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: tierBg, border: tier === 'urgent' ? 'none' : `1px solid ${tierColor}`, borderRadius: 4, padding: '4px 8px', alignSelf: 'flex-start' }}>
                             <span style={{ fontSize: 11.5, fontWeight: 500, color: tierColor }}>
                               ⚠ {failCount} failed deduction{failCount !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}
                             </span>
+                            <span style={{ fontSize: 11, color: tierColor, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => undoFailedDeduction(g, recurringFailedDeductionHistory[g.id][0])}>↺ Undo last</span>
                           </div>
                           {tier !== 'low' && (
                             <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: tier === 'urgent' ? 500 : 400 }}>
@@ -13211,7 +13310,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {donationsByRecurringGift[g.id].map(d => (
                           <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                             <span style={{ color: C.text }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{d.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {d.payment_status}</span>}</span>
-                            <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                              <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
+                            </div>
                           </div>
                         ))}
                       </div>
