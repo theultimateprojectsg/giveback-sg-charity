@@ -5085,16 +5085,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const reportYears = [...new Set(allReports.map(reportYearOf))].sort((a, b) => a - b).slice(-5)
     const reportComplianceTrend = reportYears.map(y => ({ year: y.toString(), ...complianceStatsForYear(y) }))
 
-    const byProgramme = {}
-    grantsWithNextReport.forEach(g => {
-      if (!g.cause_id) return
-      if (!byProgramme[g.cause_id]) byProgramme[g.cause_id] = 0
-      byProgramme[g.cause_id] += Number(g.amount)
-    })
-    const programmeGrants = Object.entries(byProgramme).map(([causeId, amt]) => ({
-      causeId, title: myCauses.find(c => c.id === causeId)?.title || 'Unknown programme', amount: amt,
-    })).sort((a, b) => b.amount - a.amount)
-
     // Matching-grant claims rollup: how much matched funding is left unclaimed portfolio-wide,
     // and which matching grants are approaching their end date with claims still behind the cap.
     const matchingGrants = activeGrants.filter(g => g.is_matching && Number(g.match_cap) > 0)
@@ -5122,11 +5112,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     return {
       trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants: yearScopedActiveGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon,
-      funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, reportComplianceTrend, programmeGrants,
+      funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, reportComplianceTrend,
       totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk,
       totalCommitted, totalReceived, pendingTranches,
     }
-  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, myCauses, filterYear, fyOf])
+  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, filterYear, fyOf])
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -11037,7 +11027,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, programmeGrants } = grantOverviewStats
+                const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct } = grantOverviewStats
                 return (
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     {trendData.length >= 2 && (
@@ -11116,19 +11106,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{100 - restrictedPct}% unrestricted · ${unrestrictedTotal.toLocaleString()}</span>
                           </div>
                         </>
-                      )}
-                      <div style={s.analyticsSubTitleDivider}>Grants by linked programme</div>
-                      {programmeGrants.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No grants linked to a specific programme yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {programmeGrants.map((p, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>{p.title}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${p.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
                       )}
                     </div>
                   </div>
