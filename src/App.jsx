@@ -87,13 +87,22 @@ function colorForDonor(nameOrEmail, palette) {
   return palette[index]
 }
 
-function AddGrantModal({ isMobile, onClose, onSave }) {
-  const [form, setForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
+function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete }) {
+  const isEditing = !!grant
+  const [form, setForm] = useState(() => grant ? {
+    funder_name: grant.funder_name || '',
+    amount: grant.amount?.toString() || '',
+    purpose_restriction: grant.purpose_restriction || '',
+    disbursement_schedule: grant.disbursement_schedule || '',
+    start_date: grant.start_date || '',
+    report_due_date: grant.report_due_date || '',
+    status: grant.status || 'active',
+  } : { funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '', status: 'active' })
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ New Grant</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ {isEditing ? 'Edit Grant' : 'New Grant'}</div>
           <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
@@ -117,14 +126,27 @@ function AddGrantModal({ isMobile, onClose, onSave }) {
             <div style={s.formLabel}>Report Due Date</div>
             <input style={s.formInput} type="date" value={form.report_due_date} onChange={e => setForm(f => ({ ...f, report_due_date: e.target.value }))} />
           </div>
+          {isEditing && (
+            <div>
+              <div style={s.formLabel}>Status</div>
+              <select style={s.formInput} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+          )}
           <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Purpose Restriction</div>
             <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={s.btnForest} onClick={() => onSave(form)}>Save Grant</button>
+          <button style={s.btnForest} onClick={() => onSave(form)}>{isEditing ? 'Save Changes' : 'Save Grant'}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
+          {isEditing && (
+            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => onDelete(grant)}>🗑️ Delete</button>
+          )}
         </div>
       </div>
     </div>
@@ -257,6 +279,7 @@ export default function App() {
   const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [grants, setGrants] = useState([])
   const [showGrantForm, setShowGrantForm] = useState(false)
+  const [editingGrant, setEditingGrant] = useState(null)
   const [recurringExpenses, setRecurringExpenses] = useState([])
   const monthlyExpenses = recurringExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
@@ -998,6 +1021,41 @@ export default function App() {
     setGrants(prev => [...prev, data].sort((a, b) => new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')))
     setShowGrantForm(false)
     showToast('Grant recorded ✓')
+  }
+
+  async function updateGrant(grantId, grantForm) {
+    if (!grantForm.funder_name.trim() || !grantForm.amount) { showToast('Funder name and amount are required', 'error'); return }
+    const { data, error } = await supabase.from('grants').update({
+      funder_name: grantForm.funder_name.trim(),
+      amount: parseFloat(grantForm.amount),
+      purpose_restriction: grantForm.purpose_restriction?.trim() || null,
+      disbursement_schedule: grantForm.disbursement_schedule?.trim() || null,
+      start_date: grantForm.start_date || null,
+      report_due_date: grantForm.report_due_date || null,
+      status: grantForm.status || 'active',
+    }).eq('id', grantId).select().single()
+    if (error) { showToast('Error updating grant', 'error'); return }
+    setGrants(prev => prev.map(g => g.id === grantId ? data : g).sort((a, b) => new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')))
+    setEditingGrant(null)
+    showToast('Grant updated ✓')
+  }
+
+  function deleteGrant(grant) {
+    setConfirmModal({
+      title: 'Delete this grant?',
+      description: `"${grant.funder_name}" (${'$' + Number(grant.amount).toLocaleString()}) will be permanently deleted, along with any expenses logged against it. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        const { error } = await supabase.from('grant_expenses').delete().eq('grant_id', grant.id)
+        if (error) { showToast('Error deleting grant', 'error'); return }
+        const { error: grantError } = await supabase.from('grants').delete().eq('id', grant.id)
+        if (grantError) { showToast('Error deleting grant', 'error'); return }
+        setGrants(prev => prev.filter(g => g.id !== grant.id))
+        setGrantExpenses(prev => prev.filter(e => e.grant_id !== grant.id))
+        setEditingGrant(null)
+        showToast('Grant deleted')
+      },
+    })
   }
 
   async function loadPledgeInstalments() {
@@ -12680,6 +12738,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <AddGrantModal isMobile={isMobile} onClose={() => setShowGrantForm(false)} onSave={saveGrant} />
             )}
 
+            {editingGrant && (
+              <AddGrantModal
+                isMobile={isMobile}
+                grant={editingGrant}
+                onClose={() => setEditingGrant(null)}
+                onSave={(form) => updateGrant(editingGrant.id, form)}
+                onDelete={deleteGrant}
+              />
+            )}
+
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search grants by funder name..." value={grantSearchTerm} onChange={e => setGrantSearchTerm(e.target.value)} />
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 180 }} value={grantUrgencyFilter} onChange={e => setGrantUrgencyFilter(e.target.value)}>
@@ -12803,6 +12871,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</button>
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
                     </div>
                     {isExpanded84 && (
                       <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
