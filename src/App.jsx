@@ -11033,16 +11033,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {trendData.length >= 2 && (
                       <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
-                        <ResponsiveContainer width="100%" height={120}>
-                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
-                            <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                        
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <ResponsiveContainer width="100%" height={140}>
+                            <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                              <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
+                              <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     )}
 
@@ -11051,10 +11052,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {expenseByCategory.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
                       ) : (
-                        <>
-                          <ResponsiveContainer width="100%" height={160}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <ResponsiveContainer width="100%" height={110}>
                             <PieChart>
-                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={2} isAnimationActive={false}>
+                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={2} isAnimationActive={false}>
                                 {expenseByCategory.map((c, i) => (
                                   <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
                                 ))}
@@ -11072,7 +11073,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -11122,9 +11123,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
                       {utilizationRate !== null && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
-                          <span style={{ fontSize: 10.5, color: C.muted }}>Overall utilization</span>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>{utilizationRate}% <span style={{ fontSize: 10, fontWeight: 400, fontFamily: 'inherit', color: C.muted }}>· ${totalUtilized.toLocaleString()} of ${totalActiveAmount.toLocaleString()}</span></span>
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overall utilization</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.forest, marginBottom: 4 }}>{utilizationRate}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalUtilized.toLocaleString()} of ${totalActiveAmount.toLocaleString()}</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: C.forest, borderRadius: 3 }} />
+                          </div>
                         </div>
                       )}
 
@@ -11287,9 +11292,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
                       ) : (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-                            <span style={{ fontSize: 10.5, color: C.muted }}>Received</span>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${totalReceived.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 400, fontFamily: 'inherit', color: C.muted }}>of ${totalCommitted.toLocaleString()} committed</span></span>
+                          <div style={{ ...s.analyticsStatNumber, color: C.teal, marginBottom: 4 }}>{Math.round((totalReceived / totalCommitted) * 100)}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalReceived.toLocaleString()} received of ${totalCommitted.toLocaleString()} committed</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${Math.min(100, Math.round((totalReceived / totalCommitted) * 100))}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
                           </div>
                           <div style={s.analyticsSubTitle}>Pending tranches</div>
                           {pendingTranches.length === 0 ? (
