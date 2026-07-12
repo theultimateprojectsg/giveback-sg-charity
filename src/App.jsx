@@ -13082,19 +13082,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: g.donor_name, email: g.donor_email, total: recurringGivenTotals[g.id]?.total || 0, count: recurringGivenTotals[g.id]?.count || 0, receipts: recurringGivenTotals[g.id]?.count || 0 }); setActiveTab('donors') }}>{g.donor_name}</div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
+                        {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                        {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
+                        {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
                         <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                      {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
+                    {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
+                      <div style={{ marginBottom: 6 }}>
                         <span style={{ fontSize: 10, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '2px 8px', borderRadius: 20 }}>{authLabel}</span>
-                      )}
-                      {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
-                      {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
-                      {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
-                    </div>
+                      </div>
+                    )}
                     {(g.donor_email || g.donor_phone || linkedCause) && (
                       <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[g.donor_email, g.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
                     )}
