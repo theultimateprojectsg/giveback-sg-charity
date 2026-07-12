@@ -11052,7 +11052,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total grant funding secured, by year awarded.</div>
+                        
                       </div>
                     )}
 
