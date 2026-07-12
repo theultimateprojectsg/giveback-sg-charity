@@ -6177,8 +6177,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       <div style={s.mobileTabBar}>
         {[
           { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-          { id: 'donations', icon: '💳', label: 'Donations' },
           { id: 'analytics', icon: '📈', label: 'Analytics' },
+          { id: 'donations', icon: '💳', label: 'Donations' },
           { id: 'donors',    icon: '👥', label: 'Donors' },
         ].map(item => (
           <div key={item.id} style={s.mobileTabItem} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
@@ -9385,18 +9385,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               }
                               return (
                                 <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setCampaignSearchTerm(row.title); setCampaignYearFilter('All'); setActiveTab('promotions') }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: row.hasGoal ? 8 : 2 }}>
+                                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', gap: isMobile ? 10 : 0, marginBottom: row.hasGoal ? 8 : 2 }}>
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
                                       <div style={{ fontSize: 10.5, color: C.muted }}>{row.count === 0 ? 'No donations yet' : `${row.count} donation${row.count > 1 ? 's' : ''} · ${row.donors} donor${row.donors > 1 ? 's' : ''} · avg $${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 16 }}>
-                                      <div style={{ textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: isMobile ? 0 : 16 }}>
+                                      <div style={isMobile ? {} : { textAlign: 'right' }}>
                                         <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
                                         <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
                                       </div>
                                       {row.cost > 0 && (
-                                        <div style={{ textAlign: 'right' }}>
+                                        <div style={isMobile ? {} : { textAlign: 'right' }}>
                                           <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
                                           <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
                                         </div>
