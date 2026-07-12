@@ -117,6 +117,8 @@ export default function App() {
   const [selectedDonationIds, setSelectedDonationIds] = useState([])
   const [donationsPage, setDonationsPage] = useState(0)
   const [donationsPerPage, setDonationsPerPage] = useState(25)
+  const [donorsPage, setDonorsPage] = useState(0)
+  const [donorsPerPage, setDonorsPerPage] = useState(25)
   const [donationSortBy, setDonationSortBy] = useState(null)
   const [donationSortDir, setDonationSortDir] = useState('desc')
   const [bulkEditMode, setBulkEditMode] = useState(false)
@@ -4787,6 +4789,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setDonationsPage(0)
   }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou, donationSortBy, donationSortDir])
 
+  const filteredDonorList = React.useMemo(() => {
+    const q = searchTerm.toLowerCase()
+    return combinedDonorList.filter(d => {
+      const matchSearch = d.name?.toLowerCase().includes(q)
+      const donorKey = d.email?.trim() || d.name
+      const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
+      const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
+      const matchStatus = donorStatusFilter === 'All'
+        || (donorStatusFilter === 'Active' && !d.isContactOnly && !d.deactivated)
+        || (donorStatusFilter === 'Prospect' && d.isContactOnly)
+        || (donorStatusFilter === 'DoNotContact' && d.doNotContact)
+        || (donorStatusFilter === 'Deactivated' && d.deactivated)
+      const matchYear = donorYearFilter === 'All' || (d.lastDate && new Date(d.lastDate).getFullYear().toString() === donorYearFilter)
+      return matchSearch && matchTag && matchTopDonors && matchStatus && matchYear
+    })
+  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, donorStatusFilter, donorYearFilter, donorTagsMap])
+
+  const donorsTotalPages = Math.max(1, Math.ceil(filteredDonorList.length / donorsPerPage))
+  const paginatedDonorList = filteredDonorList.slice(donorsPage * donorsPerPage, donorsPage * donorsPerPage + donorsPerPage)
+
+  useEffect(() => {
+    setDonorsPage(0)
+  }, [searchTerm, filterDonorTag, filterTopDonorNames, donorStatusFilter, donorYearFilter])
+
   function toggleDonationSelected(id) {
     setSelectedDonationIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
@@ -7100,17 +7126,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>All Donors</div>
-                <div style={s.tableCount}>{activeDonorList.length} active · {deactivatedDonorList.length} deactivated</div>
+                <div style={s.tableCount}>{filteredDonorList.length > donorsPerPage ? `${paginatedDonorList.length} of ${filteredDonorList.length} records` : `${filteredDonorList.length} records`}</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : (isMobile || isTablet) ? (
+              {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : filteredDonorList.length === 0 ? <div style={s.empty}>No donors match your filters.</div> : (isMobile || isTablet) ? (
                 <div>
-                  {combinedDonorList.filter(d => {
-                    const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
-                    const donorKey = d.email?.trim() || d.name
-                    const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
-                    const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
-                    return matchSearch && matchTag && matchTopDonors
-                  }).map((d, i) => (
+                  {paginatedDonorList.map((d, i) => (
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
@@ -7138,13 +7158,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', ...DONOR_COLUMN_OPTIONS.filter(o => selectedDonorColumns.includes(o.key)).map(o => o.label)]).map(h => <th key={h} style={{ ...s.th, width: h === 'Donor' ? 260 : undefined, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {combinedDonorList.filter(d => {
-                      const matchSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase())
-                      const donorKey = d.email?.trim() || d.name
-                      const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
-                      const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
-                      return matchSearch && matchTag && matchTopDonors
-                    }).map((d, i) => {
+                    {paginatedDonorList.map((d, i) => {
                       const key = d.email?.trim() || d.name
                       const b = donorBadgeMap[key]
                       const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
@@ -7232,6 +7246,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     })}
                   </tbody>
                 </table>
+              )}
+              {filteredDonorList.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 10 }}>
+                  <select style={{ ...s.filterSelect, padding: '6px 10px', fontSize: 12 }} value={donorsPerPage} onChange={e => { setDonorsPerPage(parseInt(e.target.value)); setDonorsPage(0) }}>
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                    <option value={100}>100 / page</option>
+                  </select>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button
+                      style={{ ...s.viewBtn, opacity: donorsPage === 0 ? 0.4 : 1, cursor: donorsPage === 0 ? 'not-allowed' : 'pointer' }}
+                      disabled={donorsPage === 0}
+                      onClick={() => setDonorsPage(p => Math.max(0, p - 1))}
+                    >← Previous</button>
+                    <span style={{ fontSize: 12, color: C.muted }}>Page {donorsPage + 1} of {donorsTotalPages}</span>
+                    <button
+                      style={{ ...s.viewBtn, opacity: donorsPage >= donorsTotalPages - 1 ? 0.4 : 1, cursor: donorsPage >= donorsTotalPages - 1 ? 'not-allowed' : 'pointer' }}
+                      disabled={donorsPage >= donorsTotalPages - 1}
+                      onClick={() => setDonorsPage(p => Math.min(donorsTotalPages - 1, p + 1))}
+                    >Next →</button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
