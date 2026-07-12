@@ -477,17 +477,19 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
   const [form, setForm] = useState(() => gift ? {
     donor_name: gift.donor_name || '',
     donor_email: gift.donor_email || '',
+    donor_phone: gift.donor_phone || '',
     amount: gift.amount?.toString() || '',
     frequency: gift.frequency || 'monthly',
     start_date: gift.start_date || '',
     end_date: gift.end_date || '',
     type: gift.type || 'giro',
+    type_detail: gift.type_detail || '',
     cause_id: gift.cause_id || '',
     bank_name: gift.bank_name || '',
     giro_reference: gift.giro_reference || '',
     authorization_status: gift.authorization_status || 'active',
     notes: gift.notes || '',
-  } : { donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
+  } : { donor_name: '', donor_email: '', donor_phone: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', type_detail: '', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
   const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
@@ -500,7 +502,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
         </div>
 
         <div style={sectionHeaderStyle}>Donor</div>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div>
             <div style={s.formLabel}>Donor Name *</div>
             <input style={s.formInput} placeholder="Full name" value={form.donor_name} onChange={e => setForm(f => ({ ...f, donor_name: e.target.value }))} />
@@ -508,6 +510,10 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
           <div>
             <div style={s.formLabel}>Donor Email</div>
             <input style={s.formInput} placeholder="donor@email.com" value={form.donor_email} onChange={e => setForm(f => ({ ...f, donor_email: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Donor Phone</div>
+            <input style={s.formInput} placeholder="+65 9123 4567" value={form.donor_phone} onChange={e => setForm(f => ({ ...f, donor_phone: e.target.value }))} />
           </div>
         </div>
 
@@ -545,6 +551,12 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
               <option value="other">Other</option>
             </select>
           </div>
+          {form.type === 'other' && (
+            <div>
+              <div style={{ ...s.formLabel, color: C.red }}>Describe "Other" *</div>
+              <input style={s.formInput} placeholder="e.g. Cheque standing arrangement" value={form.type_detail} onChange={e => setForm(f => ({ ...f, type_detail: e.target.value }))} />
+            </div>
+          )}
           <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Linked Programme / Campaign</div>
             <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
@@ -563,7 +575,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
             <input style={s.formInput} placeholder="e.g. DBS, OCBC" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>{form.type === 'giro' ? 'GIRO Reference / Account' : 'Reference / Account'}</div>
+            <div style={{ ...s.formLabel, color: form.type === 'giro' ? C.red : undefined }}>{form.type === 'giro' ? 'GIRO Reference / Account *' : 'Reference / Account'}</div>
             <input style={s.formInput} placeholder="Optional reference number" value={form.giro_reference} onChange={e => setForm(f => ({ ...f, giro_reference: e.target.value }))} />
           </div>
           <div>
@@ -2093,6 +2105,8 @@ export default function App() {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
+    if (form.type === 'giro' && !form.giro_reference?.trim()) { showToast('GIRO reference / account is required for GIRO gifts', 'error'); return }
+    if (form.type === 'other' && !form.type_detail?.trim()) { showToast('Please describe what "Other" means for this gift', 'error'); return }
     setSavingRecurring(true)
     const donorKey = form.donor_email?.trim() || form.donor_name.trim()
     const nextExpected = computeNextExpectedDate(form.start_date, form.frequency, null)
@@ -2100,6 +2114,7 @@ export default function App() {
       charity_uen: charityUen,
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
+      donor_phone: form.donor_phone?.trim() || null,
       donor_key: donorKey,
       amount: parseFloat(form.amount),
       frequency: form.frequency,
@@ -2108,6 +2123,7 @@ export default function App() {
       next_expected_date: nextExpected,
       giro_reference: form.giro_reference?.trim() || null,
       type: form.type,
+      type_detail: form.type === 'other' ? form.type_detail?.trim() || null : null,
       cause_id: form.cause_id || null,
       bank_name: form.bank_name?.trim() || null,
       authorization_status: form.authorization_status,
@@ -2132,10 +2148,13 @@ export default function App() {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
+    if (form.type === 'giro' && !form.giro_reference?.trim()) { showToast('GIRO reference / account is required for GIRO gifts', 'error'); return }
+    if (form.type === 'other' && !form.type_detail?.trim()) { showToast('Please describe what "Other" means for this gift', 'error'); return }
     setSavingRecurring(true)
     const { data, error } = await supabase.from('recurring_gifts').update({
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
+      donor_phone: form.donor_phone?.trim() || null,
       donor_key: form.donor_email?.trim() || form.donor_name.trim(),
       amount: parseFloat(form.amount),
       frequency: form.frequency,
@@ -2143,6 +2162,7 @@ export default function App() {
       end_date: form.end_date || null,
       giro_reference: form.giro_reference?.trim() || null,
       type: form.type,
+      type_detail: form.type === 'other' ? form.type_detail?.trim() || null : null,
       cause_id: form.cause_id || null,
       bank_name: form.bank_name?.trim() || null,
       authorization_status: form.authorization_status,
@@ -5939,9 +5959,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const rows = filteredGifts.map(g => ({
       'Donor Name': g.donor_name,
       'Email': g.donor_email || '',
+      'Phone': g.donor_phone || '',
       'Amount (SGD)': g.amount,
       'Frequency': g.frequency,
       'Type': g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other',
+      'Type Detail': g.type === 'other' ? (g.type_detail || '') : '',
       'Status': g.status.charAt(0).toUpperCase() + g.status.slice(1),
       'Linked Programme': g.cause_id ? (myCauses.find(c => c.id === g.cause_id)?.title || '') : '',
       'Start Date': g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG') : '',
@@ -5956,11 +5978,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Failed Deductions': (recurringFailedDeductionHistory[g.id] || []).length,
       'Pause Reason': g.pause_reason || '',
       'Pause Resume Date': g.pause_resume_date ? new Date(g.pause_resume_date).toLocaleDateString('en-SG') : '',
+      'Recorded': g.created_at ? new Date(g.created_at).toLocaleDateString('en-SG') : '',
       'Notes': g.notes || '',
     }))
     if (rows.length === 0) { showToast('No recurring gifts to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -13039,11 +13062,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 const statusInfo = statusMap[g.status] || { bg: C.ivory, color: C.muted, label: g.status }
                 const endLabel = g.end_date ? new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : (g.status === 'cancelled' && g.cancelled_at ? new Date(g.cancelled_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Ongoing')
+                const annualMultiplier = { weekly: 52, monthly: 12, quarterly: 4, annually: 1 }[g.frequency] || 12
+                const annualizedValue = Number(g.amount) * annualMultiplier
+                const gapDays = { weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30
+                const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today - new Date(g.start_date)) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
+                const receivedCount = recurringGivenTotals[g.id]?.count || 0
+                const reliabilityPct = Math.min(100, Math.round((receivedCount / cyclesElapsed) * 100))
+                const reliabilityColor = reliabilityPct >= 80 ? C.sage : reliabilityPct >= 50 ? C.gold : C.red
 
                 return (
                   <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{g.donor_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: g.donor_name, email: g.donor_email, total: recurringGivenTotals[g.id]?.total || 0, count: recurringGivenTotals[g.id]?.count || 0, receipts: recurringGivenTotals[g.id]?.count || 0 }); setActiveTab('donors') }}>{g.donor_name}</div>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</span>
@@ -13057,17 +13087,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
                       {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
                     </div>
-                    {(g.donor_email || linkedCause) && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[g.donor_email, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                    {(g.donor_email || g.donor_phone || linkedCause) && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[g.donor_email, g.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
                     )}
 
-                    <div style={{ marginBottom: 10 }}>
+                    <div style={{ marginBottom: 2 }}>
                       <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                       <span style={{ fontSize: 12, color: C.muted }}> / {frequencyLabel}</span>
                       {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Ref: {g.giro_reference}</span>}
                     </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>~${annualizedValue.toLocaleString()} / year</div>
                     {needsBankInfo && g.bank_name && (
                       <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Bank: {g.bank_name}</div>
+                    )}
+                    {g.type === 'other' && g.type_detail && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{g.type_detail}</div>
                     )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
@@ -13104,6 +13138,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                       </div>
                     )}
+                    {g.status !== 'cancelled' && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: reliabilityColor + '1A', border: `1px solid ${reliabilityColor}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 500, color: reliabilityColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {reliabilityPct}% reliability · {receivedCount} of ~{cyclesElapsed} expected
+                          <InfoTip text="Payments received so far divided by roughly how many cycles should have happened since the start date. An estimate, not exact — skipped cycles still count against it." />
+                        </span>
+                      </div>
+                    )}
                     {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
 
                     {(recurringSkipHistory[g.id] || []).length > 0 && (
@@ -13130,6 +13172,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             return `✉ Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× sent`
                           })()}
                         </span>
+                      </div>
+                    )}
+                    {g.created_at && (
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
+                        Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     )}
                     {g.status === 'active' && isLate && (
