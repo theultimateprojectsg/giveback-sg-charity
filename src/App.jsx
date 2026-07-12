@@ -11041,7 +11041,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     {trendData.length >= 2 && (
-                      <div style={s.card}>
+                      <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
                         <ResponsiveContainer width="100%" height={120}>
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -11056,7 +11056,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )}
 
-                    <div style={s.card}>
+                    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
                       {expenseByCategory.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
@@ -11086,9 +11086,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       )}
                     </div>
 
-                    <div style={s.card}>
+                    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
-                      <div style={s.analyticsSubTitleDivider}>By funder type</div>
+                      <div style={s.analyticsSubTitle}>By funder type</div>
                       {funderTypeBreakdown.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
                       ) : (
@@ -11102,7 +11102,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           ))}
                         </div>
                       )}
-                      <div style={s.analyticsSubTitle}>Restricted vs unrestricted</div>
+                      <div style={s.analyticsSubTitleDivider}>Restricted vs unrestricted</div>
                       {(restrictedTotal + unrestrictedTotal) === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
                       ) : (
@@ -11140,7 +11140,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const today = new Date()
 
                 return (
-                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
@@ -11267,7 +11267,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportCompliance, reportComplianceTrend } = grantOverviewStats
+                const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportCompliance } = grantOverviewStats
                 return (
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     <div style={s.card}>
@@ -11310,7 +11310,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
                       ) : (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
                             <span style={{ fontSize: 10.5, color: C.muted }}>Received</span>
                             <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${totalReceived.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 400, fontFamily: 'inherit', color: C.muted }}>of ${totalCommitted.toLocaleString()} committed</span></span>
                           </div>
@@ -11335,7 +11335,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time: this fiscal year's rate vs last fiscal year, plus the longer-run trend line so you can spot a multi-year slide that a single year-over-year comparison would miss." /></div>
+                      <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year." /></div>
                       {reportCompliance.total === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No report deadlines due in {reportCompliance.yr} yet.</div>
                       ) : (
@@ -11353,20 +11353,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.avgDaysLate !== null ? `avg ${reportCompliance.avgDaysLate}d late when late` : 'no late submissions yet'}</div>
                           </div>
                         </div>
-                      )}
-                      {reportComplianceTrend.length >= 2 && (
-                        <>
-                          <div style={s.analyticsSubTitleDivider}>5-year trend</div>
-                          <ResponsiveContainer width="100%" height={110}>
-                            <LineChart data={reportComplianceTrend} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                              <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} width={32} />
-                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value !== null ? `${value}%` : '—', 'On-time rate']} />
-                              <Line type="monotone" dataKey="onTimeRate" stroke={C.gold} strokeWidth={2} dot={{ r: 3, fill: C.gold }} connectNulls isAnimationActive={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </>
                       )}
                       {reportCompliance.overdueCount > 0 && (
                         <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Submit now" />
