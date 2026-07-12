@@ -11125,10 +11125,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {utilizationRate !== null && (
                         <div style={{ marginBottom: 14 }}>
                           <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overall utilization</div>
-                          <div style={{ ...s.analyticsStatNumber, color: C.forest, marginBottom: 4 }}>{utilizationRate}%</div>
+                          <div style={{ ...s.analyticsStatNumber, color: utilizationRate >= 80 ? C.sage : utilizationRate >= 50 ? C.gold : C.red, marginBottom: 4 }}>{utilizationRate}%</div>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalUtilized.toLocaleString()} of ${totalActiveAmount.toLocaleString()}</div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: C.forest, borderRadius: 3 }} />
+                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: utilizationRate >= 80 ? C.sage : utilizationRate >= 50 ? C.gold : C.red, borderRadius: 3 }} />
                           </div>
                         </div>
                       )}
@@ -11258,10 +11258,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active matching grants.</div>
                       ) : (
                         <>
-                          <div style={{ ...s.analyticsStatNumber, color: C.teal, marginBottom: 4 }}>{matchClaimedPct}%</div>
+                          <div style={{ ...s.analyticsStatNumber, color: matchClaimedPct >= 80 ? C.sage : matchClaimedPct >= 50 ? C.gold : C.red, marginBottom: 4 }}>{matchClaimedPct}%</div>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalMatchClaimed.toLocaleString()} claimed of ${totalMatchCap.toLocaleString()} total cap</div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
-                            <div style={{ width: `${matchClaimedPct}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
+                            <div style={{ width: `${matchClaimedPct}%`, height: '100%', background: matchClaimedPct >= 80 ? C.sage : matchClaimedPct >= 50 ? C.gold : C.red, borderRadius: 3 }} />
                           </div>
                           <div style={s.analyticsSubTitle}>Ending within 6 months, unclaimed match remaining</div>
                           {matchingAtRisk.length === 0 ? (
@@ -11290,12 +11290,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
                       {totalCommitted === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
-                      ) : (
+                      ) : (() => {
+                        const receivedPct = Math.round((totalReceived / totalCommitted) * 100)
+                        const receivedColor = receivedPct >= 80 ? C.sage : receivedPct >= 50 ? C.gold : C.red
+                        return (
                         <>
-                          <div style={{ ...s.analyticsStatNumber, color: C.teal, marginBottom: 4 }}>{Math.round((totalReceived / totalCommitted) * 100)}%</div>
+                          <div style={{ ...s.analyticsStatNumber, color: receivedColor, marginBottom: 4 }}>{receivedPct}%</div>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalReceived.toLocaleString()} received of ${totalCommitted.toLocaleString()} committed</div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
-                            <div style={{ width: `${Math.min(100, Math.round((totalReceived / totalCommitted) * 100))}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
+                            <div style={{ width: `${Math.min(100, receivedPct)}%`, height: '100%', background: receivedColor, borderRadius: 3 }} />
                           </div>
                           <div style={s.analyticsSubTitle}>Pending tranches</div>
                           {pendingTranches.length === 0 ? (
@@ -11314,7 +11317,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <ActionBanner tone="danger" text={`${pendingTranches.filter(t => t.overdue).length} tranche${pendingTranches.filter(t => t.overdue).length !== 1 ? 's' : ''} overdue`} sub="Follow up with the funder" />
                           )}
                         </>
-                      )}
+                        )
+                      })()}
                     </div>
 
                     <div style={s.card}>
