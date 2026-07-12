@@ -480,13 +480,14 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
     amount: gift.amount?.toString() || '',
     frequency: gift.frequency || 'monthly',
     start_date: gift.start_date || '',
+    end_date: gift.end_date || '',
     type: gift.type || 'giro',
     cause_id: gift.cause_id || '',
     bank_name: gift.bank_name || '',
     giro_reference: gift.giro_reference || '',
     authorization_status: gift.authorization_status || 'active',
     notes: gift.notes || '',
-  } : { donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', type: 'giro', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
+  } : { donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
   const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
@@ -532,6 +533,10 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
             <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
           </div>
           <div>
+            <div style={s.formLabel}>End Date</div>
+            <input style={s.formInput} type="date" placeholder="Leave blank if ongoing" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+          </div>
+          <div>
             <div style={s.formLabel}>Type</div>
             <select style={s.formInput} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
               <option value="giro">GIRO</option>
@@ -540,7 +545,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
               <option value="other">Other</option>
             </select>
           </div>
-          <div style={{ gridColumn: isMobile ? 'auto' : '2 / -1' }}>
+          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Linked Programme / Campaign</div>
             <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
               <option value="">None — general / unrestricted use</option>
@@ -907,6 +912,7 @@ export default function App() {
   const [recurringReminderSubject, setRecurringReminderSubject] = useState('')
   const [recurringReminderBody, setRecurringReminderBody] = useState('')
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
+  const [recurringReminderPreviewing, setRecurringReminderPreviewing] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
   const [editingRecurringGift, setEditingRecurringGift] = useState(null)
   const [pauseGiftModal, setPauseGiftModal] = useState(null)
@@ -933,6 +939,7 @@ export default function App() {
       setRecurringReminderBody(
         `We noticed we haven't received your usual $${Number(g.amount).toLocaleString()} ${g.frequency} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n${charityName}`
       )
+      setRecurringReminderPreviewing(false)
     }
   }, [showRecurringReminderModal, recurringReminderCandidate])
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
@@ -2097,6 +2104,7 @@ export default function App() {
       amount: parseFloat(form.amount),
       frequency: form.frequency,
       start_date: form.start_date,
+      end_date: form.end_date || null,
       next_expected_date: nextExpected,
       giro_reference: form.giro_reference?.trim() || null,
       type: form.type,
@@ -2132,6 +2140,7 @@ export default function App() {
       amount: parseFloat(form.amount),
       frequency: form.frequency,
       start_date: form.start_date,
+      end_date: form.end_date || null,
       giro_reference: form.giro_reference?.trim() || null,
       type: form.type,
       cause_id: form.cause_id || null,
@@ -5936,6 +5945,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Status': g.status.charAt(0).toUpperCase() + g.status.slice(1),
       'Linked Programme': g.cause_id ? (myCauses.find(c => c.id === g.cause_id)?.title || '') : '',
       'Start Date': g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG') : '',
+      'End Date': g.end_date ? new Date(g.end_date).toLocaleDateString('en-SG') : '',
       'Next Expected': g.next_expected_date ? new Date(g.next_expected_date).toLocaleDateString('en-SG') : '',
       'Last Received': g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG') : '',
       'Total Received (SGD)': recurringGivenTotals[g.id]?.total || 0,
@@ -5950,7 +5960,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }))
     if (rows.length === 0) { showToast('No recurring gifts to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -13022,15 +13032,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
                 const authLabel = { pending: 'Pending bank approval', active: 'Authorized', terminated: 'Terminated by bank' }[g.authorization_status] || null
                 const authColor = g.authorization_status === 'terminated' ? C.red : g.authorization_status === 'pending' ? C.gold : C.sage
+                const statusMap = {
+                  active: { bg: C.successBg, color: '#27500A', label: 'Active' },
+                  paused: { bg: C.warningBg, color: C.warning, label: 'Paused' },
+                  cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
+                }
+                const statusInfo = statusMap[g.status] || { bg: C.ivory, color: C.muted, label: g.status }
+                const endLabel = g.end_date ? new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : (g.status === 'cancelled' && g.cancelled_at ? new Date(g.cancelled_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Ongoing')
 
                 return (
                   <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{g.donor_name}</div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${Number(g.amount).toLocaleString()}</div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</span>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 8px', borderRadius: 20 }}>{typeLabel}</span>
                       {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
                         <span style={{ fontSize: 10, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '2px 8px', borderRadius: 20 }}>{authLabel}</span>
                       )}
@@ -13039,29 +13058,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
                     </div>
                     {(g.donor_email || linkedCause) && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{[g.donor_email, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[g.donor_email, linkedCause?.title].filter(Boolean).join(' · ')}</div>
                     )}
 
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
-                      ${Number(g.amount).toLocaleString()} / {frequencyLabel}
-                      {g.giro_reference && ` · Ref: ${g.giro_reference}`}
+                    <div style={{ marginBottom: 10 }}>
+                      <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
+                      <span style={{ fontSize: 12, color: C.muted }}> / {frequencyLabel}</span>
+                      {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Ref: {g.giro_reference}</span>}
                     </div>
                     {needsBankInfo && g.bank_name && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>Bank: {g.bank_name}</div>
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Bank: {g.bank_name}</div>
                     )}
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
-                      Next expected: {nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Last received</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Next expected</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: isLate ? C.red : C.forest }}>{nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      </div>
                     </div>
-                    {g.last_received_date && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
-                        Last received: {new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
                       </div>
-                    )}
-                    {g.start_date && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
-                        Giving since {new Date(g.start_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>End</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: g.end_date && new Date(g.end_date) < today ? C.red : C.muted }}>{endLabel}</div>
                       </div>
-                    )}
+                    </div>
                     {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (
                       <div style={{ fontSize: 11.5, color: C.gold, background: C.warningBg, borderRadius: 4, padding: '6px 10px', marginBottom: 8 }}>
                         {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
@@ -14681,7 +14709,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {showRecurringReminderModal && recurringReminderCandidate && (
+      {showRecurringReminderModal && recurringReminderCandidate && !recurringReminderPreviewing && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Send reminder</div>
@@ -14695,11 +14723,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={recurringReminderBody} onChange={e => setRecurringReminderBody(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingRecurringReminder || !recurringReminderCandidate.donor_email} onClick={sendRecurringReminder}>
-                {sendingRecurringReminder ? 'Sending...' : '✓ Send reminder'}
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!recurringReminderCandidate.donor_email} onClick={() => setRecurringReminderPreviewing(true)}>
+                Preview email →
               </button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRecurringReminderModal && recurringReminderCandidate && recurringReminderPreviewing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
+            <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{recurringReminderSubject}</div>
+              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{recurringReminderBody}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingRecurringReminder} onClick={sendRecurringReminder}>
+                {sendingRecurringReminder ? 'Sending...' : '✓ Send reminder'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setRecurringReminderPreviewing(false)}>
+                ← Back to edit
               </button>
             </div>
           </div>
