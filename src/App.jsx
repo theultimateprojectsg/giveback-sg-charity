@@ -45,6 +45,7 @@ function useScreenSize() {
   function getSize() {
     const w = window.innerWidth
     if (w <= 640) return 'mobile'
+    if (w <= 1024) return 'tablet'
     return 'desktop'
   }
   const [screenSize, setScreenSize] = useState(getSize())
@@ -3634,6 +3635,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { yr, newDonorChartData, totalNew }
   }, [filterYear, donations])
 
+  const analyticsGoalStats = React.useMemo(() => {
+    const goalYear = new Date().getFullYear()
+    const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+    if (!annualGoal) return { goalYear, totalThisGoalYear, hasGoal: false }
+    const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
+    const yearStart = new Date(goalYear, 0, 1)
+    const now5 = new Date()
+    const yearEnd = new Date(goalYear, 11, 31)
+    const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
+    const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
+    const dailyRate = totalThisGoalYear / daysElapsed
+    const projectedTotal = Math.round(dailyRate * totalDaysInYear)
+    const onTrack = projectedTotal >= annualGoal
+    const gap = Math.abs(annualGoal - projectedTotal)
+    return { goalYear, totalThisGoalYear, hasGoal: true, pct, onTrack, projectedTotal, gap }
+  }, [donations, annualGoal])
+
   const campaignSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
     const statsForYear = (y) => {
@@ -6597,7 +6615,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
                   {/* MTD donations */}
                   <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
@@ -6712,54 +6730,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {(() => {
               const goalYear = new Date().getFullYear()
               const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              if (!annualGoal) return null
+              const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
+              const yearStart = new Date(goalYear, 0, 1)
+              const now5 = new Date()
+              const yearEnd = new Date(goalYear, 11, 31)
+              const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
+              const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
+              const dailyRate = totalThisGoalYear / daysElapsed
+              const projectedTotal = Math.round(dailyRate * totalDaysInYear)
+              const onTrack = projectedTotal >= annualGoal
+              const gap = Math.abs(annualGoal - projectedTotal)
               return (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants." /></div>
-                    {!editingGoal && (
-                      <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
-                        {annualGoal ? 'Edit' : '+ Set Goal'}
-                      </span>
-                    )}
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
                   </div>
-                  {editingGoal ? (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
-                      <button style={{ ...s.issueBtn, flexShrink: 0 }} onClick={saveAnnualGoal}>Save</button>
-                      <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setEditingGoal(false)}>Cancel</button>
-                    </div>
-                  ) : annualGoal ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
-                      </div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, Math.round((totalThisGoalYear / annualGoal) * 100))}%`, height: '100%', background: totalThisGoalYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
-                      {(() => {
-                        const yearStart = new Date(goalYear, 0, 1)
-                        const now5 = new Date()
-                        const yearEnd = new Date(goalYear, 11, 31)
-                        const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
-                        const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
-                        const dailyRate = totalThisGoalYear / daysElapsed
-                        const projectedTotal = Math.round(dailyRate * totalDaysInYear)
-                        const onTrack = projectedTotal >= annualGoal
-                        const gap = Math.abs(annualGoal - projectedTotal)
-                        return (
-                          <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500, marginTop: 10 }}>
-                            {onTrack
-                              ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
-                              : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 11.5, color: C.muted }}>No goal set for this year yet.</div>
-                  )}
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
+                  </div>
                 </div>
               )
             })()}
@@ -6811,7 +6804,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1fr' : 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
@@ -9107,62 +9100,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              {(() => {
-                const goalYear = new Date().getFullYear()
-                const totalThisGoalYear = donations.filter(d => new Date(d.created_at).getFullYear() === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              {analyticsGoalStats.hasGoal && (() => {
+                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
                 return (
                 <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: annualGoal ? 12 : 8 }}>
-                    <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above." /></div>
-                    {!editingGoal && (
-                      <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>
-                        {annualGoal ? 'Edit' : '+ Set Goal'}
-                      </span>
-                    )}
+                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above. Set or change your goal in Settings." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
                   </div>
-                  {editingGoal ? (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
-                      <button style={{ ...s.issueBtn, flexShrink: 0 }} onClick={saveAnnualGoal}>Save</button>
-                      <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => setEditingGoal(false)}>Cancel</button>
-                    </div>
-                  ) : annualGoal ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                        <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
-                      </div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, Math.round((totalThisGoalYear / annualGoal) * 100))}%`, height: '100%', background: totalThisGoalYear >= annualGoal ? C.sage : C.gold, borderRadius: 6 }} />
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{Math.round((totalThisGoalYear / annualGoal) * 100)}% of goal reached</div>
-                      {(() => {
-                        const yearStart = new Date(goalYear, 0, 1)
-                        const now5 = new Date()
-                        const yearEnd = new Date(goalYear, 11, 31)
-                        const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
-                        const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
-                        const dailyRate = totalThisGoalYear / daysElapsed
-                        const projectedTotal = Math.round(dailyRate * totalDaysInYear)
-                        const onTrack = projectedTotal >= annualGoal
-                        const gap = Math.abs(annualGoal - projectedTotal)
-                        return (
-                          <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500, marginTop: 10 }}>
-                            {onTrack
-                              ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
-                              : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 11.5, color: C.muted }}>No goal set for this year yet.</div>
-                  )}
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
+                  </div>
                 </div>
                 )
               })()}
 
-              <div style={isMobile ? s.threeColMobile : s.threeCol}>
+              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {(() => {
                 if (!revenueTrendStats) return <div />
                 const { trendData, firstYr, lastYr, cagr } = revenueTrendStats
@@ -9246,7 +9202,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              <div style={isMobile ? s.threeColMobile : s.threeCol}>
+              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {(() => {
                 const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
                 return (
@@ -10288,7 +10244,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const today = new Date()
 
                 return (
-                  <div style={isMobile ? s.threeColMobile : s.threeCol}>
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     {trendData.length >= 2 && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
@@ -10916,7 +10872,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={{ ...s.card, marginBottom: 0 }}>
                 <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
@@ -13141,6 +13097,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
 
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🎯 Annual Fundraising Goal</div>
+                  {!editingGoal && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>{annualGoal ? 'Edit' : '+ Set Goal'}</button>
+                  )}
+                </div>
+                {editingGoal ? (
+                  <div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Total confirmed donations this calendar year are tracked against this goal on your Dashboard and Analytics pages.</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveAnnualGoal}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingGoal(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : annualGoal ? (
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>${annualGoal.toLocaleString()}</div>
+                ) : (
+                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No goal set yet — used for the progress tracker on Dashboard and Analytics.</div>
+                )}
+              </div>
+
               <div id="monthly-expenses-card" style={{ ...s.card, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
@@ -14290,6 +14271,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
   twoColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
   threeCol: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 },
+  threeColTablet: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
   threeColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
   card: { background: C.white, borderRadius: 4, padding: 20, border: `1px solid ${C.border}`, marginBottom: 0 },
   cardTitle: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, marginBottom: 16 },
