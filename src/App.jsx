@@ -299,6 +299,136 @@ function EditPledgeModal({ pledge, onClose, onSave }) {
   )
 }
 
+function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, categories, s, C, InfoTip,
+  onSaveExpense, onDeleteExpense, onSaveTranche, onToggleTranche, onDeleteTranche,
+  onSaveReport, onToggleReport, onDeleteReport, onSaveClaim, onDeleteClaim, onSaveNote }) {
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Programme Costs' })
+  const [trancheForm, setTrancheForm] = useState({ label: '', amount: '', expected_date: '' })
+  const [reportForm, setReportForm] = useState({ label: '', due_date: '' })
+  const [claimForm, setClaimForm] = useState({ amount: '', claim_date: '', notes: '' })
+  const [noteText, setNoteText] = useState('')
+
+  return (
+    <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Expenses</div>
+      {expenses.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {expenses.map(e => (
+            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+              <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
+        <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}>
+          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" placeholder="Amount" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={expenseForm.expense_date} onChange={e => setExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
+        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { onSaveExpense(expenseForm); setExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Programme Costs' }) }}>Add</button>
+      </div>
+
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Disbursement tranches</div>
+      {tranches.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {tranches.map(t => {
+            const isOverdue = !t.received && new Date(t.expected_date) < new Date()
+            return (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.received ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                <span style={{ color: t.received ? C.muted : isOverdue ? C.red : C.warning, textDecoration: t.received ? 'line-through' : 'none' }}>
+                  {t.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· ${Number(t.amount).toLocaleString()} · {new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => onToggleTranche(t)}>{t.received ? '↺ Undo' : '✓ Received'}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteTranche(t)}>✕</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Tranche 1" value={trancheForm.label} onChange={e => setTrancheForm(f => ({ ...f, label: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={trancheForm.amount} onChange={e => setTrancheForm(f => ({ ...f, amount: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={trancheForm.expected_date} onChange={e => setTrancheForm(f => ({ ...f, expected_date: e.target.value }))} />
+        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { onSaveTranche(trancheForm); setTrancheForm({ label: '', amount: '', expected_date: '' }) }}>Add</button>
+      </div>
+
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Reports & deadlines</div>
+      {reports.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {reports.map(r => {
+            const isOverdue = !r.submitted && new Date(r.due_date) < new Date()
+            return (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: r.submitted ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                <span style={{ color: r.submitted ? C.muted : isOverdue ? C.red : C.warning, textDecoration: r.submitted ? 'line-through' : 'none' }}>
+                  {r.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· {new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => onToggleReport(r)}>{r.submitted ? '↺ Undo' : '✓ Submitted'}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteReport(r)}>✕</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Q1 2026 report" value={reportForm.label} onChange={e => setReportForm(f => ({ ...f, label: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={reportForm.due_date} onChange={e => setReportForm(f => ({ ...f, due_date: e.target.value }))} />
+        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { onSaveReport(reportForm); setReportForm({ label: '', due_date: '' }) }}>Add</button>
+      </div>
+
+      {grant.is_matching && (
+        <>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Matching claims</div>
+          {claims.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+              {claims.map(c => (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                  <span style={{ color: C.text }}>${Number(c.amount).toLocaleString()} <span style={{ color: C.muted }}>· {new Date(c.claim_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.notes ? ` — ${c.notes}` : ''}</span></span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteClaim(c)}>✕</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount claimed" value={claimForm.amount} onChange={e => setClaimForm(f => ({ ...f, amount: e.target.value }))} />
+            <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={claimForm.claim_date} onChange={e => setClaimForm(f => ({ ...f, claim_date: e.target.value }))} />
+            <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Notes (optional)" value={claimForm.notes} onChange={e => setClaimForm(f => ({ ...f, notes: e.target.value }))} />
+            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { onSaveClaim(claimForm); setClaimForm({ amount: '', claim_date: '', notes: '' }) }}>Add</button>
+          </div>
+        </>
+      )}
+
+      <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Notes & updates</div>
+      {notes.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {notes.map(n => (
+            <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+              <div style={{ color: C.text, marginBottom: 2 }}>{n.note}</div>
+              <div style={{ fontSize: 10.5, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{n.created_by ? ` · ${n.created_by}` : ''}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} placeholder="e.g. Funder pushed report deadline to March" value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && noteText.trim()) { onSaveNote(noteText); setNoteText('') } }} />
+        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { if (noteText.trim()) { onSaveNote(noteText); setNoteText('') } }}>Add</button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
@@ -435,13 +565,9 @@ export default function App() {
   const [refundForm, setRefundForm] = useState({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
   const [grantExpenses, setGrantExpenses] = useState([])
   const [grantReports, setGrantReports] = useState({})
-  const [newGrantReportForm, setNewGrantReportForm] = useState({ label: '', due_date: '' })
   const [grantTranches, setGrantTranches] = useState({})
-  const [newGrantTrancheForm, setNewGrantTrancheForm] = useState({ label: '', amount: '', expected_date: '' })
   const [grantMatchClaims, setGrantMatchClaims] = useState({})
-  const [newGrantMatchClaimForm, setNewGrantMatchClaimForm] = useState({ amount: '', claim_date: '', notes: '' })
   const [grantNotes, setGrantNotes] = useState({})
-  const [newGrantNoteText, setNewGrantNoteText] = useState('')
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
   const [grantYearFilter, setGrantYearFilter] = useState('All')
@@ -451,7 +577,6 @@ export default function App() {
   const [grantFunderTypeFilter, setGrantFunderTypeFilter] = useState('All')
   const [grantFundingTypeFilter, setGrantFundingTypeFilter] = useState('All')
   const [grantSortBy, setGrantSortBy] = useState('start_desc')
-  const [grantExpenseForm, setGrantExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: 'Programme Costs' })
   const grantExpenseCategories = ['Programme Costs', 'Staff Costs', 'Administrative Overhead', 'Fundraising Costs', 'Other']
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
@@ -1104,17 +1229,16 @@ export default function App() {
     setGrantNotes(byGrant)
   }
 
-  async function saveGrantNote(grantId) {
-    if (!newGrantNoteText.trim()) return
+  async function saveGrantNote(grantId, noteText) {
+    if (!noteText.trim()) return
     const { data, error } = await supabase.from('grant_notes').insert({
       charity_uen: charityUen,
       grant_id: grantId,
-      note: newGrantNoteText.trim(),
+      note: noteText.trim(),
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving note', 'error'); return }
     setGrantNotes(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
-    setNewGrantNoteText('')
     showToast('Note added ✓')
   }
 
@@ -1128,17 +1252,16 @@ export default function App() {
     setGrantReports(byGrant)
   }
 
-  async function saveGrantReport(grantId) {
-    if (!newGrantReportForm.label.trim() || !newGrantReportForm.due_date) { showToast('Label and due date are required', 'error'); return }
+  async function saveGrantReport(grantId, form) {
+    if (!form.label.trim() || !form.due_date) { showToast('Label and due date are required', 'error'); return }
     const { data, error } = await supabase.from('grant_reports').insert({
       charity_uen: charityUen,
       grant_id: grantId,
-      label: newGrantReportForm.label.trim(),
-      due_date: newGrantReportForm.due_date,
+      label: form.label.trim(),
+      due_date: form.due_date,
     }).select().single()
     if (error) { showToast('Error adding report deadline', 'error'); return }
     setGrantReports(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) }))
-    setNewGrantReportForm({ label: '', due_date: '' })
     showToast('Report deadline added ✓')
   }
 
@@ -1167,18 +1290,17 @@ export default function App() {
     setGrantTranches(byGrant)
   }
 
-  async function saveGrantTranche(grantId) {
-    if (!newGrantTrancheForm.label.trim() || !newGrantTrancheForm.amount || !newGrantTrancheForm.expected_date) { showToast('Label, amount, and expected date are required', 'error'); return }
+  async function saveGrantTranche(grantId, form) {
+    if (!form.label.trim() || !form.amount || !form.expected_date) { showToast('Label, amount, and expected date are required', 'error'); return }
     const { data, error } = await supabase.from('grant_tranches').insert({
       charity_uen: charityUen,
       grant_id: grantId,
-      label: newGrantTrancheForm.label.trim(),
-      amount: parseFloat(newGrantTrancheForm.amount),
-      expected_date: newGrantTrancheForm.expected_date,
+      label: form.label.trim(),
+      amount: parseFloat(form.amount),
+      expected_date: form.expected_date,
     }).select().single()
     if (error) { showToast('Error adding tranche', 'error'); return }
     setGrantTranches(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
-    setNewGrantTrancheForm({ label: '', amount: '', expected_date: '' })
     showToast('Tranche added ✓')
   }
 
@@ -1207,18 +1329,17 @@ export default function App() {
     setGrantMatchClaims(byGrant)
   }
 
-  async function saveGrantMatchClaim(grantId) {
-    if (!newGrantMatchClaimForm.amount || !newGrantMatchClaimForm.claim_date) { showToast('Amount and claim date are required', 'error'); return }
+  async function saveGrantMatchClaim(grantId, form) {
+    if (!form.amount || !form.claim_date) { showToast('Amount and claim date are required', 'error'); return }
     const { data, error } = await supabase.from('grant_match_claims').insert({
       charity_uen: charityUen,
       grant_id: grantId,
-      amount: parseFloat(newGrantMatchClaimForm.amount),
-      claim_date: newGrantMatchClaimForm.claim_date,
-      notes: newGrantMatchClaimForm.notes?.trim() || null,
+      amount: parseFloat(form.amount),
+      claim_date: form.claim_date,
+      notes: form.notes?.trim() || null,
     }).select().single()
     if (error) { showToast('Error adding claim', 'error'); return }
     setGrantMatchClaims(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
-    setNewGrantMatchClaimForm({ amount: '', claim_date: '', notes: '' })
     showToast('Claim logged ✓')
   }
 
@@ -1228,19 +1349,18 @@ export default function App() {
     setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).filter(c => c.id !== claim.id) }))
   }
 
-  async function saveGrantExpense(grantId) {
-    if (!grantExpenseForm.description.trim() || !grantExpenseForm.amount) { showToast('Description and amount are required', 'error'); return }
+  async function saveGrantExpense(grantId, form) {
+    if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
     const { data, error } = await supabase.from('grant_expenses').insert({
       grant_id: grantId,
-      description: grantExpenseForm.description.trim(),
-      amount: parseFloat(grantExpenseForm.amount),
-      expense_date: grantExpenseForm.expense_date,
-      category: grantExpenseForm.category || null,
+      description: form.description.trim(),
+      amount: parseFloat(form.amount),
+      expense_date: form.expense_date,
+      category: form.category || null,
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving expense', 'error'); return }
     setGrantExpenses(prev => [...prev, data])
-    setGrantExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: 'Programme Costs' })
     showToast('Expense logged ✓')
   }
 
@@ -13495,123 +13615,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
                     </div>
                     {isExpanded84 && (
-                      <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Expenses</div>
-                        {myExpenses84.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                            {myExpenses84.map(e => (
-                              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                  {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                                  {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
-                                </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
-                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantExpense(e.id)}>✕</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
-                          <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={grantExpenseForm.category} onChange={e => setGrantExpenseForm(f => ({ ...f, category: e.target.value }))}>
-                            {grantExpenseCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                          </select>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
-                        </div>
-
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Disbursement tranches</div>
-                        {myTranches.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                            {myTranches.map(t => {
-                              const isOverdue = !t.received && new Date(t.expected_date) < new Date()
-                              return (
-                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.received ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                  <span style={{ color: t.received ? C.muted : isOverdue ? C.red : C.warning, textDecoration: t.received ? 'line-through' : 'none' }}>
-                                    {t.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· ${Number(t.amount).toLocaleString()} · {new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
-                                  </span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => toggleGrantTrancheReceived(t)}>{t.received ? '↺ Undo' : '✓ Received'}</span>
-                                    <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantTranche(t)}>✕</span>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Tranche 1" value={newGrantTrancheForm.label} onChange={e => setNewGrantTrancheForm(f => ({ ...f, label: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={newGrantTrancheForm.amount} onChange={e => setNewGrantTrancheForm(f => ({ ...f, amount: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={newGrantTrancheForm.expected_date} onChange={e => setNewGrantTrancheForm(f => ({ ...f, expected_date: e.target.value }))} />
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantTranche(g.id)}>Add</button>
-                        </div>
-
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Reports & deadlines</div>
-                        {myReports.length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                            {myReports.map(r => {
-                              const isOverdue = !r.submitted && new Date(r.due_date) < new Date()
-                              return (
-                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: r.submitted ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                  <span style={{ color: r.submitted ? C.muted : isOverdue ? C.red : C.warning, textDecoration: r.submitted ? 'line-through' : 'none' }}>
-                                    {r.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· {new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
-                                  </span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => toggleGrantReportSubmitted(r)}>{r.submitted ? '↺ Undo' : '✓ Submitted'}</span>
-                                    <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantReport(r)}>✕</span>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Q1 2026 report" value={newGrantReportForm.label} onChange={e => setNewGrantReportForm(f => ({ ...f, label: e.target.value }))} />
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={newGrantReportForm.due_date} onChange={e => setNewGrantReportForm(f => ({ ...f, due_date: e.target.value }))} />
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantReport(g.id)}>Add</button>
-                        </div>
-
-                        {g.is_matching && (
-                          <>
-                            <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Matching claims</div>
-                            {myClaims.length > 0 && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                                {myClaims.map(c => (
-                                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                    <span style={{ color: C.text }}>${Number(c.amount).toLocaleString()} <span style={{ color: C.muted }}>· {new Date(c.claim_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.notes ? ` — ${c.notes}` : ''}</span></span>
-                                    <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteGrantMatchClaim(c)}>✕</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                              <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount claimed" value={newGrantMatchClaimForm.amount} onChange={e => setNewGrantMatchClaimForm(f => ({ ...f, amount: e.target.value }))} />
-                              <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={newGrantMatchClaimForm.claim_date} onChange={e => setNewGrantMatchClaimForm(f => ({ ...f, claim_date: e.target.value }))} />
-                              <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Notes (optional)" value={newGrantMatchClaimForm.notes} onChange={e => setNewGrantMatchClaimForm(f => ({ ...f, notes: e.target.value }))} />
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantMatchClaim(g.id)}>Add</button>
-                            </div>
-                          </>
-                        )}
-
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Notes & updates</div>
-                        {(grantNotes[g.id] || []).length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                            {grantNotes[g.id].map(n => (
-                              <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                                <div style={{ color: C.text, marginBottom: 2 }}>{n.note}</div>
-                                <div style={{ fontSize: 10.5, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{n.created_by ? ` · ${n.created_by}` : ''}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} placeholder="e.g. Funder pushed report deadline to March" value={isExpanded84 ? newGrantNoteText : ''} onChange={e => setNewGrantNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveGrantNote(g.id) }} />
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantNote(g.id)}>Add</button>
-                        </div>
-                      </div>
+                      <GrantLedgerPanel
+                        grant={g} s={s} C={C} InfoTip={InfoTip}
+                        expenses={myExpenses84} tranches={myTranches} reports={myReports} claims={myClaims} notes={grantNotes[g.id] || []}
+                        categories={grantExpenseCategories}
+                        onSaveExpense={form => saveGrantExpense(g.id, form)}
+                        onDeleteExpense={deleteGrantExpense}
+                        onSaveTranche={form => saveGrantTranche(g.id, form)}
+                        onToggleTranche={toggleGrantTrancheReceived}
+                        onDeleteTranche={deleteGrantTranche}
+                        onSaveReport={form => saveGrantReport(g.id, form)}
+                        onToggleReport={toggleGrantReportSubmitted}
+                        onDeleteReport={deleteGrantReport}
+                        onSaveClaim={form => saveGrantMatchClaim(g.id, form)}
+                        onDeleteClaim={deleteGrantMatchClaim}
+                        onSaveNote={noteText => saveGrantNote(g.id, noteText)}
+                      />
                     )}
                   </div>
                 )
