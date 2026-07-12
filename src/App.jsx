@@ -4946,10 +4946,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const activeGrantsCount = grantsWithNextReport.filter(g => g.status === 'active').length
     const tiles = [
+      { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
       { label: 'Grants Awarded', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of grants with a start date in ${yr}, compared to ${yr - 1}.` },
       { label: 'Total Secured', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of grants awarded in ${yr}, compared to ${yr - 1}.` },
       { label: 'Avg Grant Size', val: `$${cur.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avg, prev.avg), tip: `Average grant amount awarded in ${yr}, compared to ${yr - 1}.` },
-      { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
     ]
     return { yr, tiles }
   }, [filterYear, grantsWithNextReport, fyOf])
