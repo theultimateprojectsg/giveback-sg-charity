@@ -6615,7 +6615,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   {/* MTD donations */}
                   <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
@@ -6804,7 +6804,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
 
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isTablet ? '1fr 1fr 1fr' : 'repeat(5, 1fr)', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
@@ -7264,7 +7264,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Summary</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                     <div style={{ background: C.forest, borderRadius: 4, padding: '10px 12px' }}>
                       <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Total Given</div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
@@ -7501,7 +7501,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     return (
                       <div style={{ marginTop: 12 }}>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Visit scheduling (for major donors)</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 6 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 6 }}>
                           <div>
                             <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 3 }}>Last visited</div>
                             <input style={{ ...s.formInput, fontSize: 12 }} type="date" defaultValue={existingContact80?.last_visited_date || ''} id={`last-visited-${donorKey80}`} />
@@ -8869,7 +8869,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               {totalRefunded119 < Number(selectedDonation.amount) && (
                                 showRefundForm ? (
                                   <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 8 }}>
                                       <input style={{ ...s.formInput, fontSize: 12 }} type="number" placeholder="Refund amount" value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
                                       <input style={{ ...s.formInput, fontSize: 12 }} type="date" value={refundForm.refund_date} onChange={e => setRefundForm(f => ({ ...f, refund_date: e.target.value }))} />
                                     </div>
@@ -9579,7 +9579,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 6 }}>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -9671,7 +9671,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Appeal List Health <InfoTip text="Bounces are bad contact data — the message couldn't be delivered. Opt-outs are donors who actively blocked appeals — a stewardship signal, not a data problem." /></div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -9712,7 +9712,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </>
                       )}
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
                           <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
@@ -10673,7 +10673,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
                       <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
                         <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
@@ -10872,7 +10872,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={{ ...s.card, marginBottom: 0 }}>
                 <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
-                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
@@ -11271,7 +11271,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                           {charityIsIpc && (nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing NRIC</span>)}
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                           <div>
                             <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Total Donated</div>
                             <div style={{ ...s.amountText, fontSize: 14 }}>${d.total.toLocaleString()}</div>
@@ -11538,7 +11538,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
                         <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{donorCount}</div>
@@ -11596,7 +11596,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeCauses.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns yet — click "+ New Campaign" to get started.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                         {activeCauses.map(renderCard)}
                       </div>
                     )}
@@ -11612,7 +11612,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Past Campaigns ({pastCauses.length})
                       </div>
                       {showPastCampaigns && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {pastCauses.map(renderCard)}
                         </div>
                       )}
@@ -11638,7 +11638,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.formLabel}>Description *</div>
                     <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 16 }}>
                     <div>
                       <div style={s.formLabel}>Target Amount (SGD)</div>
                       <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
@@ -11897,7 +11897,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
                     )}
                     {g.status === 'active' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 'auto' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
@@ -11922,7 +11922,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {active.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                         {active.map(renderRecurringCard)}
                       </div>
                     )}
@@ -11940,7 +11940,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       paused.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {paused.map(renderRecurringCard)}
                         </div>
                       )
@@ -11957,7 +11957,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledRecurring && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {cancelled.map(renderRecurringCard)}
                         </div>
                       )}
@@ -12276,7 +12276,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {outstanding.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                         {outstanding.map(renderPledgeCard)}
                       </div>
                     )}
@@ -12294,7 +12294,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       fulfilled.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {fulfilled.map(renderPledgeCard)}
                         </div>
                       )
@@ -12311,7 +12311,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledPledges && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {cancelled.map(renderPledgeCard)}
                         </div>
                       )}
@@ -12425,7 +12425,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontSize: 12, color: C.muted }}>({byYear[year].length} appeal{byYear[year].length !== 1 ? 's' : ''})</span>
                         </div>
                         {isExpanded && (
-                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                             {byYear[year].map(renderAppealCard)}
                           </div>
                         )}
@@ -12794,7 +12794,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeGrants.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                         {activeGrants.map(renderGrantCard)}
                       </div>
                     )}
@@ -12810,7 +12810,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Completed / Closed Grants ({pastGrants.length})
                       </div>
                       {showPastGrants && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
                           {pastGrants.map(renderGrantCard)}
                         </div>
                       )}
@@ -13296,7 +13296,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div>
                     <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.forest, marginBottom: 8 }}>✓ File parsed successfully</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
                         <div style={{ fontSize: 12, color: C.forest }}>Total rows: <strong>{migrationPreview.totalRows}</strong></div>
                         <div style={{ fontSize: 12, color: C.forest }}>Ready to import: <strong>{migrationPreview.validRows.length}</strong></div>
                         {migrationPreview.skippedRows > 0 && <div style={{ fontSize: 12, color: C.warning }}>Will skip: <strong>{migrationPreview.skippedRows}</strong></div>}
@@ -13305,7 +13305,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 8 }}>Detected columns</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                         {Object.entries(migrationPreview.detectedColumns).map(([key, val]) => (
                           <div key={key} style={{ fontSize: 11, color: val ? C.sage : C.muted }}>
                             {val ? '✓' : '—'} {key}: <span style={{ fontFamily: 'monospace' }}>{val || 'not found'}</span>
@@ -14261,18 +14261,18 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   pageSub: { fontSize: 13, color: C.muted },
   deadlineBanner: { background: C.red, borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
   bannerBtn: { background: 'white', color: C.red, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 },
-  statsGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 22 },
-  statsGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
+  statsGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginBottom: 22 },
+  statsGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 20 },
   statCard: { background: C.white, borderRadius: 16, padding: 20, border: `1.5px solid ${C.border}` },
   statLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 8 },
   statValue: { fontSize: 28, fontWeight: 800, color: C.forest, letterSpacing: -0.5 },
   statNote: { fontSize: 11, color: C.muted, marginTop: 4 },
-  twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
-  twoColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
-  threeCol: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 },
-  threeColTablet: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 },
-  threeColMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 },
+  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
+  twoColMobile: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, marginBottom: 24 },
+  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
+  threeColTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
+  threeColMobile: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, marginBottom: 24 },
   card: { background: C.white, borderRadius: 4, padding: 20, border: `1px solid ${C.border}`, marginBottom: 0 },
   cardTitle: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, marginBottom: 16 },
   analyticsCardTitle: { fontSize: 12, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
@@ -14291,9 +14291,9 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   irasHeader: { background: C.teal, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   irasStatus: { background: C.gold, color: C.forest, padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 },
   irasBody: { padding: 24 },
-  irasInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 },
-  irasInfoGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 18 },
-  irasInfoGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 },
+  irasInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 },
+  irasInfoGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginBottom: 18 },
+  irasInfoGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 16 },
   irasInfoItem: { background: C.ivory, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` },
   irasInfoLabel: { fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 6 },
   irasInfoValue: { fontSize: 30, fontWeight: 800, color: C.forest },
@@ -14324,7 +14324,7 @@ mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   filterSelect: { padding: '10px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', background: C.white, color: C.text, cursor: 'pointer' },
   exportSmallBtn: { background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
   backBtn: { background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 0 },
+  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 0 },
   infoItem: { background: C.ivory, borderRadius: 10, padding: 12, border: `1px solid ${C.border}` },
   infoLabel: { fontSize: 10, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   infoValue: { fontSize: 18, fontWeight: 800, color: C.forest },
