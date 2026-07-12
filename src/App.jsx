@@ -91,13 +91,15 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete }) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
     funder_name: grant.funder_name || '',
-    amount: grant.amount?.toString() || '',
+    unrestricted_amount: grant.unrestricted_amount?.toString() || '',
+    restricted_amount: grant.restricted_amount?.toString() || '',
     purpose_restriction: grant.purpose_restriction || '',
     disbursement_schedule: grant.disbursement_schedule || '',
     start_date: grant.start_date || '',
     report_due_date: grant.report_due_date || '',
     status: grant.status || 'active',
-  } : { funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '', status: 'active' })
+  } : { funder_name: '', unrestricted_amount: '', restricted_amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '', status: 'active' })
+  const hasRestricted = parseFloat(form.restricted_amount) > 0
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -106,13 +108,17 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete }) {
           <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          <div>
+          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Funder Name *</div>
             <input style={s.formInput} value={form.funder_name} onChange={e => setForm(f => ({ ...f, funder_name: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>Grant Amount (SGD) *</div>
-            <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+            <div style={s.formLabel}>Unrestricted Amount (SGD)</div>
+            <input style={s.formInput} type="number" placeholder="0" value={form.unrestricted_amount} onChange={e => setForm(f => ({ ...f, unrestricted_amount: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Restricted Amount (SGD)</div>
+            <input style={s.formInput} type="number" placeholder="0" value={form.restricted_amount} onChange={e => setForm(f => ({ ...f, restricted_amount: e.target.value }))} />
           </div>
           <div>
             <div style={s.formLabel}>Disbursement Schedule</div>
@@ -136,10 +142,12 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete }) {
               </select>
             </div>
           )}
-          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-            <div style={s.formLabel}>Purpose Restriction</div>
-            <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
-          </div>
+          {hasRestricted && (
+            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+              <div style={s.formLabel}>Purpose Restriction *</div>
+              <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={s.btnForest} onClick={() => onSave(form)}>{isEditing ? 'Save Changes' : 'Save Grant'}</button>
@@ -147,6 +155,50 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete }) {
           {isEditing && (
             <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => onDelete(grant)}>🗑️ Delete</button>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditPledgeModal({ pledge, onClose, onSave }) {
+  const [form, setForm] = useState({
+    donor_name: pledge.donor_name || '',
+    donor_email: pledge.donor_email || '',
+    amount: pledge.amount?.toString() || '',
+    expected_date: pledge.expected_date || '',
+    notes: pledge.notes || '',
+  })
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 Edit Pledge</div>
+          <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Donor Name *</div>
+          <input style={s.formInput} value={form.donor_name} onChange={e => setForm(f => ({ ...f, donor_name: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Donor Email</div>
+          <input style={s.formInput} type="email" value={form.donor_email} onChange={e => setForm(f => ({ ...f, donor_email: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Pledged Amount (SGD) *</div>
+          <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Expected By *</div>
+          <input style={s.formInput} type="date" value={form.expected_date} onChange={e => setForm(f => ({ ...f, expected_date: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={s.formLabel}>Notes</div>
+          <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={s.btnForest} onClick={() => onSave(form)}>Save Changes</button>
+          <button style={s.viewBtn} onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>
@@ -275,6 +327,7 @@ export default function App() {
   })
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
+  const [editingPledge, setEditingPledge] = useState(null)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
   const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [grants, setGrants] = useState([])
@@ -287,6 +340,8 @@ export default function App() {
   const [showRefundForm, setShowRefundForm] = useState(false)
   const [refundForm, setRefundForm] = useState({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
   const [grantExpenses, setGrantExpenses] = useState([])
+  const [grantNotes, setGrantNotes] = useState({})
+  const [newGrantNoteText, setNewGrantNoteText] = useState('')
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
   const [grantYearFilter, setGrantYearFilter] = useState('All')
@@ -675,6 +730,7 @@ export default function App() {
       loadRecurringExpenses()
       loadRefunds()
       loadGrantExpenses()
+      loadGrantNotes()
       loadGivingChangeAcks(session)
     }
   }, [session])
@@ -904,12 +960,55 @@ export default function App() {
     loadPledgeInstalments()
   }
 
+  async function updatePledge(pledgeId, form) {
+    if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
+    if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (!form.expected_date) { showToast('Expected date is required', 'error'); return }
+    const donorKey = form.donor_email?.trim() || form.donor_name.trim()
+    const { data, error } = await supabase.from('pledges').update({
+      donor_name: form.donor_name.trim(),
+      donor_email: form.donor_email?.trim() || null,
+      donor_key: donorKey,
+      amount: parseFloat(form.amount),
+      expected_date: form.expected_date,
+      notes: form.notes?.trim() || null,
+    }).eq('id', pledgeId).select().single()
+    if (error) { showToast('Error updating pledge', 'error'); return }
+    setPledges(prev => prev.map(p => p.id === pledgeId ? data : p).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
+    setEditingPledge(null)
+    showToast('Pledge updated ✓')
+  }
+
   async function loadGrantExpenses() {
     const uen = session?.user?.user_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_expenses').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen)
     if (error) { console.error('Could not load grant expenses:', error); return }
     setGrantExpenses(data || [])
+  }
+
+  async function loadGrantNotes() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('grant_notes').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('created_at', { ascending: false })
+    if (error) { console.error('Could not load grant notes:', error); return }
+    const byGrant = {}
+    ;(data || []).forEach(n => { if (!byGrant[n.grant_id]) byGrant[n.grant_id] = []; byGrant[n.grant_id].push(n) })
+    setGrantNotes(byGrant)
+  }
+
+  async function saveGrantNote(grantId) {
+    if (!newGrantNoteText.trim()) return
+    const { data, error } = await supabase.from('grant_notes').insert({
+      charity_uen: charityUen,
+      grant_id: grantId,
+      note: newGrantNoteText.trim(),
+      created_by: session.user.email,
+    }).select().single()
+    if (error) { showToast('Error saving note', 'error'); return }
+    setGrantNotes(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
+    setNewGrantNoteText('')
+    showToast('Note added ✓')
   }
 
   async function saveGrantExpense(grantId) {
@@ -1005,12 +1104,17 @@ export default function App() {
   }
 
   async function saveGrant(grantForm) {
-    if (!grantForm.funder_name.trim() || !grantForm.amount) { showToast('Funder name and amount are required', 'error'); return }
+    const unrestricted = parseFloat(grantForm.unrestricted_amount) || 0
+    const restricted = parseFloat(grantForm.restricted_amount) || 0
+    if (!grantForm.funder_name.trim() || (unrestricted + restricted) <= 0) { showToast('Funder name and at least one amount are required', 'error'); return }
+    if (restricted > 0 && !grantForm.purpose_restriction?.trim()) { showToast('Purpose restriction is required when there is a restricted amount', 'error'); return }
     const { data, error } = await supabase.from('grants').insert({
       charity_uen: charityUen,
       funder_name: grantForm.funder_name.trim(),
-      amount: parseFloat(grantForm.amount),
-      purpose_restriction: grantForm.purpose_restriction?.trim() || null,
+      amount: unrestricted + restricted,
+      unrestricted_amount: unrestricted,
+      restricted_amount: restricted,
+      purpose_restriction: restricted > 0 ? grantForm.purpose_restriction?.trim() : null,
       disbursement_schedule: grantForm.disbursement_schedule?.trim() || null,
       start_date: grantForm.start_date || null,
       report_due_date: grantForm.report_due_date || null,
@@ -1024,11 +1128,16 @@ export default function App() {
   }
 
   async function updateGrant(grantId, grantForm) {
-    if (!grantForm.funder_name.trim() || !grantForm.amount) { showToast('Funder name and amount are required', 'error'); return }
+    const unrestricted = parseFloat(grantForm.unrestricted_amount) || 0
+    const restricted = parseFloat(grantForm.restricted_amount) || 0
+    if (!grantForm.funder_name.trim() || (unrestricted + restricted) <= 0) { showToast('Funder name and at least one amount are required', 'error'); return }
+    if (restricted > 0 && !grantForm.purpose_restriction?.trim()) { showToast('Purpose restriction is required when there is a restricted amount', 'error'); return }
     const { data, error } = await supabase.from('grants').update({
       funder_name: grantForm.funder_name.trim(),
-      amount: parseFloat(grantForm.amount),
-      purpose_restriction: grantForm.purpose_restriction?.trim() || null,
+      amount: unrestricted + restricted,
+      unrestricted_amount: unrestricted,
+      restricted_amount: restricted,
+      purpose_restriction: restricted > 0 ? grantForm.purpose_restriction?.trim() : null,
       disbursement_schedule: grantForm.disbursement_schedule?.trim() || null,
       start_date: grantForm.start_date || null,
       report_due_date: grantForm.report_due_date || null,
@@ -1052,6 +1161,7 @@ export default function App() {
         if (grantError) { showToast('Error deleting grant', 'error'); return }
         setGrants(prev => prev.filter(g => g.id !== grant.id))
         setGrantExpenses(prev => prev.filter(e => e.grant_id !== grant.id))
+        setGrantNotes(prev => { const next = { ...prev }; delete next[grant.id]; return next })
         setEditingGrant(null)
         showToast('Grant deleted')
       },
@@ -12124,6 +12234,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setShowPledgeForm(true); setPledgeError('') }}>+ Record Pledge</button>
             </div>
 
+            {editingPledge && (
+              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} />
+            )}
+
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeUrgencyFilter} onChange={e => setPledgeUrgencyFilter(e.target.value)}>
@@ -12368,6 +12482,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {p.status === 'pending' && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
+                        {!p.is_multi_year && (
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
+                        )}
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
                       </div>
                     )}
@@ -12842,32 +12959,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, marginBottom: 6 }}>{g.funder_name}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       {statusBadge(g.status)}
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</div>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
+                        <InfoTip text="Total grant amount awarded by this funder." />
+                      </span>
                     </div>
+                    {Number(g.restricted_amount) > 0 && (
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                        {Number(g.unrestricted_amount) > 0 && (
+                          <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.muted }}>${Number(g.unrestricted_amount).toLocaleString()} unrestricted</span>
+                        )}
+                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.warningBg, color: C.warning }}>${Number(g.restricted_amount).toLocaleString()} restricted</span>
+                      </div>
+                    )}
                     {g.disbursement_schedule && <div style={{ fontSize: 12, color: C.text, marginBottom: 4 }}>{g.disbursement_schedule}</div>}
                     {g.purpose_restriction && <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>{g.purpose_restriction}</div>}
-                    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
                       <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Start date</div>
-                        <div style={{ fontSize: 12.5, color: C.text }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start date</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Report due</div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Report due</div>
                         {g.report_due_date ? (
                           <div style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: isReportOverdue83 ? '#FBEEE9' : isReportSoon83 ? C.warningBg : C.ivory, color: isReportOverdue83 ? C.red : isReportSoon83 ? C.warning : C.muted, border: `1px solid ${isReportOverdue83 ? '#E0BBA9' : isReportSoon83 ? C.warningBorder : C.border}` }}>
                             {isReportOverdue83 ? `⚠ Overdue since ${new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </div>
-                        ) : <div style={{ fontSize: 12.5, color: C.muted }}>—</div>}
+                        ) : <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>—</div>}
                       </div>
                     </div>
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, color: C.muted }}>${spent84.toLocaleString()} utilized</span>
+                        <span style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>${spent84.toLocaleString()} utilized <InfoTip text="Sum of all expenses logged against this grant, from the ledger below." /></span>
                         <span style={{ fontSize: 11, fontWeight: 500, color: C.text }}>{pctUtilized}%</span>
                       </div>
                       <div style={{ background: C.ivory, borderRadius: 3, height: 6, overflow: 'hidden' }}>
                         <div style={{ width: `${pctUtilized}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage }} />
                       </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
+                      Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</button>
@@ -12889,11 +13020,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             ))}
                           </div>
                         )}
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
                           <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Description" value={grantExpenseForm.description} onChange={e => setGrantExpenseForm(f => ({ ...f, description: e.target.value }))} />
                           <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={grantExpenseForm.amount} onChange={e => setGrantExpenseForm(f => ({ ...f, amount: e.target.value }))} />
                           <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={grantExpenseForm.expense_date} onChange={e => setGrantExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantExpense(g.id)}>Add</button>
+                        </div>
+
+                        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>Notes & updates</div>
+                        {(grantNotes[g.id] || []).length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                            {grantNotes[g.id].map(n => (
+                              <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                                <div style={{ color: C.text, marginBottom: 2 }}>{n.note}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{n.created_by ? ` · ${n.created_by}` : ''}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} placeholder="e.g. Funder pushed report deadline to March" value={isExpanded84 ? newGrantNoteText : ''} onChange={e => setNewGrantNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveGrantNote(g.id) }} />
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => saveGrantNote(g.id)}>Add</button>
                         </div>
                       </div>
                     )}
