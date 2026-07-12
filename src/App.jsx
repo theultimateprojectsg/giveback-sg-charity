@@ -87,6 +87,50 @@ function colorForDonor(nameOrEmail, palette) {
   return palette[index]
 }
 
+function AddGrantModal({ isMobile, onClose, onSave }) {
+  const [form, setForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ New Grant</div>
+          <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <div>
+            <div style={s.formLabel}>Funder Name *</div>
+            <input style={s.formInput} value={form.funder_name} onChange={e => setForm(f => ({ ...f, funder_name: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Grant Amount (SGD) *</div>
+            <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Disbursement Schedule</div>
+            <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={form.disbursement_schedule} onChange={e => setForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Grant Start Date</div>
+            <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Report Due Date</div>
+            <input style={s.formInput} type="date" value={form.report_due_date} onChange={e => setForm(f => ({ ...f, report_due_date: e.target.value }))} />
+          </div>
+          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+            <div style={s.formLabel}>Purpose Restriction</div>
+            <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={s.btnForest} onClick={() => onSave(form)}>Save Grant</button>
+          <button style={s.viewBtn} onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
@@ -213,7 +257,6 @@ export default function App() {
   const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [grants, setGrants] = useState([])
   const [showGrantForm, setShowGrantForm] = useState(false)
-  const [grantForm, setGrantForm] = useState({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
   const [recurringExpenses, setRecurringExpenses] = useState([])
   const monthlyExpenses = recurringExpenses.reduce((s, e) => s + Number(e.amount), 0)
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
@@ -938,7 +981,7 @@ export default function App() {
     setGrants(data || [])
   }
 
-  async function saveGrant() {
+  async function saveGrant(grantForm) {
     if (!grantForm.funder_name.trim() || !grantForm.amount) { showToast('Funder name and amount are required', 'error'); return }
     const { data, error } = await supabase.from('grants').insert({
       charity_uen: charityUen,
@@ -953,7 +996,6 @@ export default function App() {
     }).select().single()
     if (error) { showToast('Error saving grant', 'error'); return }
     setGrants(prev => [...prev, data].sort((a, b) => new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')))
-    setGrantForm({ funder_name: '', amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', report_due_date: '' })
     setShowGrantForm(false)
     showToast('Grant recorded ✓')
   }
@@ -12635,44 +12677,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {showGrantForm && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowGrantForm(false)}>
-              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ New Grant</div>
-                  <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowGrantForm(false)}>✕</button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                  <div>
-                    <div style={s.formLabel}>Funder Name *</div>
-                    <input style={s.formInput} value={grantForm.funder_name} onChange={e => setGrantForm(f => ({ ...f, funder_name: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Grant Amount (SGD) *</div>
-                    <input style={s.formInput} type="number" value={grantForm.amount} onChange={e => setGrantForm(f => ({ ...f, amount: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Disbursement Schedule</div>
-                    <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={grantForm.disbursement_schedule} onChange={e => setGrantForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Grant Start Date</div>
-                    <input style={s.formInput} type="date" value={grantForm.start_date} onChange={e => setGrantForm(f => ({ ...f, start_date: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Report Due Date</div>
-                    <input style={s.formInput} type="date" value={grantForm.report_due_date} onChange={e => setGrantForm(f => ({ ...f, report_due_date: e.target.value }))} />
-                  </div>
-                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-                    <div style={s.formLabel}>Purpose Restriction</div>
-                    <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={grantForm.purpose_restriction} onChange={e => setGrantForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button style={s.btnForest} onClick={saveGrant}>Save Grant</button>
-                  <button style={s.viewBtn} onClick={() => setShowGrantForm(false)}>Cancel</button>
-                </div>
-              </div>
-              </div>
+              <AddGrantModal isMobile={isMobile} onClose={() => setShowGrantForm(false)} onSave={saveGrant} />
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
@@ -12837,7 +12842,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeGrants.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {activeGrants.map(renderGrantCard)}
                       </div>
                     )}
@@ -12853,7 +12858,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Completed / Closed Grants ({pastGrants.length})
                       </div>
                       {showPastGrants && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {pastGrants.map(renderGrantCard)}
                         </div>
                       )}
