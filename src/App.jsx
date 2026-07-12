@@ -960,8 +960,6 @@ export default function App() {
   }, [showPledgeReminderModal, pledgeReminderCandidate])
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
-  const [recurringForm, setRecurringForm] = useState({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
-  const [recurringError, setRecurringError] = useState('')
   const [savingRecurring, setSavingRecurring] = useState(false)
   const [activeRecurringTab, setActiveRecurringTab] = useState('active')
   const [showMassAppealTool, setShowMassAppealTool] = useState(false)
@@ -5936,17 +5934,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Frequency': g.frequency,
       'Type': g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other',
       'Status': g.status.charAt(0).toUpperCase() + g.status.slice(1),
+      'Linked Programme': g.cause_id ? (myCauses.find(c => c.id === g.cause_id)?.title || '') : '',
       'Start Date': g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG') : '',
       'Next Expected': g.next_expected_date ? new Date(g.next_expected_date).toLocaleDateString('en-SG') : '',
       'Last Received': g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG') : '',
       'Total Received (SGD)': recurringGivenTotals[g.id]?.total || 0,
       'Payments Made': recurringGivenTotals[g.id]?.count || 0,
+      'Bank Name': g.bank_name || '',
       'GIRO Reference': g.giro_reference || '',
+      'Authorization Status': g.authorization_status || '',
+      'Failed Deductions': (recurringFailedDeductionHistory[g.id] || []).length,
+      'Pause Reason': g.pause_reason || '',
+      'Pause Resume Date': g.pause_resume_date ? new Date(g.pause_resume_date).toLocaleDateString('en-SG') : '',
       'Notes': g.notes || '',
     }))
     if (rows.length === 0) { showToast('No recurring gifts to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 30 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 30 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -13014,6 +13018,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const isDueSoon = daysUntil >= -7 && daysUntil <= 7 && g.status === 'active'
                 const frequencyLabel = { weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' }[g.frequency] || g.frequency
                 const typeLabel = g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other'
+                const needsBankInfo = g.type === 'giro' || g.type === 'standing_order'
+                const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
+                const authLabel = { pending: 'Pending bank approval', active: 'Authorized', terminated: 'Terminated by bank' }[g.authorization_status] || null
+                const authColor = g.authorization_status === 'terminated' ? C.red : g.authorization_status === 'pending' ? C.gold : C.sage
 
                 return (
                   <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
@@ -13023,16 +13031,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 8px', borderRadius: 20 }}>{typeLabel}</span>
+                      {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
+                        <span style={{ fontSize: 10, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '2px 8px', borderRadius: 20 }}>{authLabel}</span>
+                      )}
                       {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
                       {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
                       {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
                     </div>
-                    {g.donor_email && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{g.donor_email}</div>}
+                    {(g.donor_email || linkedCause) && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{[g.donor_email, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                    )}
 
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
                       ${Number(g.amount).toLocaleString()} / {frequencyLabel}
                       {g.giro_reference && ` · Ref: ${g.giro_reference}`}
                     </div>
+                    {needsBankInfo && g.bank_name && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>Bank: {g.bank_name}</div>
+                    )}
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 2 }}>
                       Next expected: {nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
@@ -13044,6 +13060,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {g.start_date && (
                       <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>
                         Giving since {new Date(g.start_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (
+                      <div style={{ fontSize: 11.5, color: C.gold, background: C.warningBg, borderRadius: 4, padding: '6px 10px', marginBottom: 8 }}>
+                        {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
+                        {g.pause_resume_date && <div>Expected to resume {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
                       </div>
                     )}
                     {recurringGivenTotals[g.id] && (
@@ -13060,6 +13082,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
                           ⏭ {recurringSkipHistory[g.id].length} cycle{recurringSkipHistory[g.id].length !== 1 ? 's' : ''} skipped
+                        </span>
+                      </div>
+                    )}
+                    {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#FBEEE9', border: `1px solid ${C.red}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.red }}>
+                          ⚠ {recurringFailedDeductionHistory[g.id].length} failed deduction{recurringFailedDeductionHistory[g.id].length !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}
                         </span>
                       </div>
                     )}
@@ -13082,12 +13111,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
                       </div>
                     )}
                     {g.status === 'paused' && (
-                      <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center', marginTop: 'auto' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
+                      </div>
                     )}
                   </div>
                 )
@@ -14688,6 +14722,61 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {skippingCycle ? 'Skipping...' : '⏭ Skip Cycle'}
               </button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pauseGiftModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Pause this recurring gift?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              {pauseGiftModal.donor_name}'s {pauseGiftModal.frequency} gift of ${Number(pauseGiftModal.amount).toLocaleString()} will be paused. You can reactivate it at any time.
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Reason (optional)</div>
+              <input style={s.formInput} placeholder="e.g. Donor going through financial hardship" value={pauseReasonInput} onChange={e => setPauseReasonInput(e.target.value)} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Expected resume date (optional)</div>
+              <input style={s.formInput} type="date" value={pauseResumeDateInput} onChange={e => setPauseResumeDateInput(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={pausingGift} onClick={confirmPauseRecurringGift}>
+                {pausingGift ? 'Pausing...' : '⏸ Pause'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setPauseGiftModal(null); setPauseReasonInput(''); setPauseResumeDateInput('') }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {failedDeductionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Log a failed deduction</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              {failedDeductionModal.donor_name}'s bank rejected this cycle's deduction. This is logged separately from a skip so you can tell "the bank said no" apart from "we haven't confirmed receipt yet." The schedule is not advanced — you'll still see this cycle as due until it's received or skipped.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={s.formLabel}>Reason</div>
+              <select style={s.formInput} value={failedDeductionReason} onChange={e => setFailedDeductionReason(e.target.value)}>
+                <option value="Insufficient funds">Insufficient funds</option>
+                <option value="Account closed">Account closed</option>
+                <option value="Mandate cancelled by bank">Mandate cancelled by bank</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={recordingFailedDeduction} onClick={confirmRecordFailedDeduction}>
+                {recordingFailedDeduction ? 'Logging...' : '⚠ Log Failed Deduction'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setFailedDeductionModal(null)}>
                 Cancel
               </button>
             </div>
