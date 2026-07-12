@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from './supabase'
 import Auth from './CharityAuth'
 import jsPDF from 'jspdf'
@@ -4966,8 +4966,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const today = new Date()
     const activeGrants = grantsWithNextReport.filter(g => g.status === 'active')
 
-    // "Pace vs report deadline" card is scoped to the selected year filter (by grant start date)
-    const yearScopedActiveGrants = filterYear === 'All' ? activeGrants : activeGrants.filter(g => grantYearOf(g) === parseInt(filterYear))
+    // "Pace vs report deadline" card is scoped to the selected FY, but by whether the grant was
+    // ACTIVE DURING that FY (start-to-end range overlaps it) — not just whether it started that year.
+    // Otherwise a multi-year grant that started last FY silently disappears when you switch years.
+    const yearScopedActiveGrants = filterYear === 'All' ? activeGrants : (() => {
+      const { start: fyStart, end: fyEnd } = fiscalYearBounds(parseInt(filterYear), fyEndMonth, fyEndDay)
+      return activeGrants.filter(g => {
+        const gStart = new Date(g.start_date || g.created_at)
+        const gEnd = g.end_date ? new Date(g.end_date) : null
+        return gStart <= fyEnd && (!gEnd || gEnd >= fyStart)
+      })
+    })()
     const totalActiveAmount = yearScopedActiveGrants.reduce((s, g) => s + Number(g.amount), 0)
     const totalUtilized = yearScopedActiveGrants.reduce((s, g) => s + (grantExpensesByGrant[g.id] || []).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
     const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
@@ -5019,27 +5028,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const restrictedPct = restrictedRollupTotal > 0 ? Math.round((restrictedTotal / restrictedRollupTotal) * 100) : 0
 
     const allReports = Object.values(grantReports).flat()
-    const submittedReports = allReports.filter(r => r.submitted)
-    const onTimeReports = submittedReports.filter(r => new Date(r.submitted_at) <= new Date(r.due_date))
-    const lateReports = submittedReports.filter(r => new Date(r.submitted_at) > new Date(r.due_date))
-    const avgDaysLate = lateReports.length > 0 ? Math.round(lateReports.reduce((s, r) => s + Math.ceil((new Date(r.submitted_at) - new Date(r.due_date)) / (1000 * 60 * 60 * 24)), 0) / lateReports.length) : null
+    const reportYearOf = (r) => fyOf(r.due_date)
+    const complianceYr = filterYear === 'All' ? fyOf(today) : parseInt(filterYear)
+    const complianceStatsForYear = (y) => {
+      const yReports = allReports.filter(r => reportYearOf(r) === y)
+      const ySubmitted = yReports.filter(r => r.submitted)
+      const yOnTime = ySubmitted.filter(r => new Date(r.submitted_at) <= new Date(r.due_date))
+      const yLate = ySubmitted.filter(r => new Date(r.submitted_at) > new Date(r.due_date))
+      const yAvgDaysLate = yLate.length > 0 ? Math.round(yLate.reduce((s, r) => s + Math.ceil((new Date(r.submitted_at) - new Date(r.due_date)) / (1000 * 60 * 60 * 24)), 0) / yLate.length) : null
+      return {
+        total: yReports.length,
+        submitted: ySubmitted.length,
+        onTimeRate: ySubmitted.length > 0 ? Math.round((yOnTime.length / ySubmitted.length) * 100) : null,
+        avgDaysLate: yAvgDaysLate,
+      }
+    }
+    const curCompliance = complianceStatsForYear(complianceYr)
+    const prevCompliance = complianceStatsForYear(complianceYr - 1)
     const overdueReports = allReports.filter(r => !r.submitted && new Date(r.due_date) < today)
     const reportCompliance = {
-      total: allReports.length,
-      submitted: submittedReports.length,
-      onTimeRate: submittedReports.length > 0 ? Math.round((onTimeReports.length / submittedReports.length) * 100) : null,
-      avgDaysLate,
+      yr: complianceYr,
+      total: curCompliance.total,
+      submitted: curCompliance.submitted,
+      onTimeRate: curCompliance.onTimeRate,
+      onTimeRateDelta: (curCompliance.onTimeRate !== null && prevCompliance.onTimeRate !== null) ? curCompliance.onTimeRate - prevCompliance.onTimeRate : null,
+      avgDaysLate: curCompliance.avgDaysLate,
       overdueCount: overdueReports.length,
     }
 
-    // Year-over-year on-time rate trend, keyed off each report's due date year (last up to 4 years with data)
-    const reportYearOf = (r) => fyOf(r.due_date)
-    const reportYears = [...new Set(allReports.map(reportYearOf))].sort((a, b) => a - b).slice(-4)
-    const reportComplianceTrend = reportYears.map(y => {
-      const yReports = submittedReports.filter(r => reportYearOf(r) === y)
-      const yOnTime = yReports.filter(r => new Date(r.submitted_at) <= new Date(r.due_date))
-      return { year: y.toString(), onTimeRate: yReports.length > 0 ? Math.round((yOnTime.length / yReports.length) * 100) : null, submitted: yReports.length }
-    })
+    // Multi-year trend (up to 5 fiscal years with data) — for spotting a longer-run pattern that a
+    // single this-year-vs-last-year comparison (reportCompliance above) can't show.
+    const reportYears = [...new Set(allReports.map(reportYearOf))].sort((a, b) => a - b).slice(-5)
+    const reportComplianceTrend = reportYears.map(y => ({ year: y.toString(), ...complianceStatsForYear(y) }))
 
     const byProgramme = {}
     grantsWithNextReport.forEach(g => {
@@ -11015,7 +11035,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant started in the selected year is keeping pace with its report deadline, plus overall utilization for that year's active grants. Switch the year filter above to change scope." /></div>
+                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
                       {utilizationRate !== null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
@@ -11030,7 +11050,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <>
                           <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Pace vs report deadline</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {activeGrants.map((g, i) => {
+                          {(() => { let behindPaceCount = 0; return activeGrants.map((g, i) => {
                             const utilized = (grantExpensesByGrant[g.id] || []).reduce((s, e) => s + Number(e.amount), 0)
                             const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
                             const start = new Date(g.start_date || g.created_at)
@@ -11046,6 +11066,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
                             const behind = gap !== null && gap >= 20
                             const slightlyBehind = gap !== null && gap >= 8 && gap < 20
+                            if (overdue || behind) behindPaceCount++
                             const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
                             const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
                             const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
@@ -11054,21 +11075,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
                             }
                             return (
-                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
-                                  <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                    <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
+                              <div key={i}>
+                                <div style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                    <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
                                   </div>
-                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                      <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
+                                    </div>
+                                    <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
+                                  </div>
+                                  <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
                                 </div>
-                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
+                                {i === activeGrants.length - 1 && behindPaceCount > 0 && (
+                                  <div style={{ marginTop: 10, padding: '6px 12px', background: C.warningBg, borderRadius: 20, fontSize: 11, color: C.warning, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ {behindPaceCount} grant{behindPaceCount !== 1 ? 's' : ''} behind pace — log expenses or check in with the programme team</div>
+                                )}
                               </div>
                             )
-                          })}
+                          }) })()}
                           </div>
                         </>
                       )}
@@ -11085,11 +11111,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <>
                         <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topFunderPct}%</div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 10 }}>
                           <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                         </div>
-                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
-                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
+                        <div style={{ marginBottom: 18 }}>
+                          {highRisk ? (
+                            <div style={{ padding: '6px 12px', background: '#FBEEE9', borderRadius: 20, fontSize: 11, color: C.red, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ High concentration risk — prioritise diversifying your funder base</div>
+                          ) : medRisk ? (
+                            <div style={{ padding: '6px 12px', background: C.warningBg, borderRadius: 20, fontSize: 11, color: C.warning, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ Moderate concentration risk — worth watching</div>
+                          ) : (
+                            <div style={{ padding: '6px 12px', background: C.successBg, borderRadius: 20, fontSize: 11, color: C.sage, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>✓ Well diversified</div>
+                          )}
                         </div>
                       </>
                     )}
@@ -11114,7 +11146,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {expiringSoon.map((g, i) => {
-                          const monthsOut = Math.round((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                          const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
                           return (
                             <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -11172,15 +11204,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, based on every report deadline logged across all grants." /></div>
+                      <div style={s.analyticsCardTitle}>Report Compliance — {reportCompliance.yr} <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year. For the longer-run pattern across more years, see Report Compliance Trend below." /></div>
                       {reportCompliance.total === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No report deadlines logged yet.</div>
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No report deadlines due in {reportCompliance.yr} yet.</div>
                       ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                           <div>
                             <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>On-time rate</div>
                             <div style={{ ...s.analyticsStatNumber, color: reportCompliance.onTimeRate === null ? C.forest : reportCompliance.onTimeRate >= 80 ? C.sage : reportCompliance.onTimeRate >= 50 ? C.gold : C.red }}>{reportCompliance.onTimeRate !== null ? `${reportCompliance.onTimeRate}%` : '—'}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.submitted} of {reportCompliance.total} submitted</div>
+                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.submitted} of {reportCompliance.total} submitted{reportCompliance.onTimeRateDelta !== null && (
+                              <span style={{ color: reportCompliance.onTimeRateDelta >= 0 ? C.sage : C.red, fontWeight: 500 }}> · {reportCompliance.onTimeRateDelta >= 0 ? '▲' : '▼'} {Math.abs(reportCompliance.onTimeRateDelta)}pt vs last FY</span>
+                            )}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overdue now</div>
@@ -11188,6 +11222,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.avgDaysLate !== null ? `avg ${reportCompliance.avgDaysLate}d late when late` : 'no late submissions yet'}</div>
                           </div>
                         </div>
+                      )}
+                      {reportCompliance.overdueCount > 0 && (
+                        <div style={{ marginBottom: 14, padding: '6px 12px', background: '#FBEEE9', borderRadius: 20, fontSize: 11, color: C.red, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ {reportCompliance.overdueCount} report{reportCompliance.overdueCount !== 1 ? 's' : ''} overdue — submit now</div>
                       )}
                       <div style={s.analyticsSubTitleDivider}>Grants by linked programme</div>
                       {programmeGrants.length === 0 ? (
@@ -11210,12 +11247,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
                       ) : (
                         <>
-                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 10 }}>
-                            {expenseByCategory.map((c, i) => (
-                              <div key={i} style={{ width: `${c.pct}%`, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
-                            ))}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <ResponsiveContainer width="100%" height={160}>
+                            <PieChart>
+                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={2} isAnimationActive={false}>
+                                {expenseByCategory.map((c, i) => (
+                                  <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
+                                ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
                             {expenseByCategory.map((c, i) => (
                               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
@@ -11263,6 +11305,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               ))}
                             </div>
                           )}
+                          {matchingAtRisk.length > 0 && (
+                            <div style={{ marginTop: 10, padding: '6px 12px', background: '#FBEEE9', borderRadius: 20, fontSize: 11, color: C.red, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ File claims before these {matchingAtRisk.length} grant{matchingAtRisk.length !== 1 ? 's' : ''} close, or the unclaimed match is gone for good</div>
+                          )}
                         </>
                       )}
                     </div>
@@ -11290,12 +11335,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               ))}
                             </div>
                           )}
+                          {pendingTranches.some(t => t.overdue) && (
+                            <div style={{ marginTop: 10, padding: '6px 12px', background: '#FBEEE9', borderRadius: 20, fontSize: 11, color: C.red, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>→ {pendingTranches.filter(t => t.overdue).length} tranche{pendingTranches.filter(t => t.overdue).length !== 1 ? 's' : ''} overdue — follow up with the funder</div>
+                          )}
                         </>
                       )}
                     </div>
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Report Compliance Trend <InfoTip text="On-time report submission rate by year, based on each report's due date. Shows whether compliance is improving or slipping over time, not just the all-time rate shown above." /></div>
+                      <div style={s.analyticsCardTitle}>Report Compliance Trend <InfoTip text="On-time report submission rate by fiscal year, based on each report's due date, going back up to 5 years. The Report Compliance card above only compares this fiscal year to the one before it — this card is for spotting a longer-run pattern, like a rate that's been sliding for 3 years straight even though last year alone looked fine." /></div>
                       {reportComplianceTrend.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No report deadlines logged yet.</div>
                       ) : (
