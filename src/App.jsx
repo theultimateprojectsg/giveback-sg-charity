@@ -110,15 +110,19 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
     status: grant.status || 'active',
   } : { funder_name: '', funder_type: '', agreement_reference: '', cause_id: '', unrestricted_amount: '', restricted_amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', end_date: '', is_renewable: false, contact_name: '', contact_email: '', contact_phone: '', is_matching: false, match_ratio: '', match_cap: '', status: 'active' })
   const hasRestricted = parseFloat(form.restricted_amount) > 0
+  const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
+  const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
-      <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ {isEditing ? 'Edit Grant' : 'New Grant'}</div>
           <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+
+        <div style={sectionHeaderStyle}>Grant details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div>
             <div style={s.formLabel}>Funder Name *</div>
             <input style={s.formInput} value={form.funder_name} onChange={e => setForm(f => ({ ...f, funder_name: e.target.value }))} />
           </div>
@@ -143,43 +147,31 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
               {(causes || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>
+        </div>
+
+        <div style={dividerStyle} />
+
+        <div style={sectionHeaderStyle}>Funding</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
           <div>
-            <div style={s.formLabel}>Unrestricted Amount (SGD)</div>
+            <div style={s.formLabel}>Unrestricted (SGD)</div>
             <input style={s.formInput} type="number" placeholder="0" value={form.unrestricted_amount} onChange={e => setForm(f => ({ ...f, unrestricted_amount: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>Restricted Amount (SGD)</div>
+            <div style={s.formLabel}>Restricted (SGD)</div>
             <input style={s.formInput} type="number" placeholder="0" value={form.restricted_amount} onChange={e => setForm(f => ({ ...f, restricted_amount: e.target.value }))} />
           </div>
           <div>
             <div style={s.formLabel}>Disbursement Schedule</div>
             <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={form.disbursement_schedule} onChange={e => setForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
           </div>
-          <div>
-            <div style={s.formLabel}>Grant Start Date</div>
-            <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
-          </div>
-          <div>
-            <div style={s.formLabel}>Grant End Date</div>
-            <input style={s.formInput} type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 22 }}>
-            <input type="checkbox" id="grant-renewable" checked={form.is_renewable} onChange={e => setForm(f => ({ ...f, is_renewable: e.target.checked }))} />
-            <label htmlFor="grant-renewable" style={{ fontSize: 12.5, color: C.text, cursor: 'pointer' }}>Likely to renew</label>
-          </div>
-          <div>
-            <div style={s.formLabel}>Contact Name</div>
-            <input style={s.formInput} value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} />
-          </div>
-          <div>
-            <div style={s.formLabel}>Contact Email</div>
-            <input style={s.formInput} type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} />
-          </div>
-          <div>
-            <div style={s.formLabel}>Contact Phone</div>
-            <input style={s.formInput} value={form.contact_phone} onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, gridColumn: isMobile ? 'auto' : '1 / -1', paddingTop: 6 }}>
+          {hasRestricted && (
+            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+              <div style={{ ...s.formLabel, color: C.red }}>Purpose Restriction *</div>
+              <textarea style={{ ...s.formInput, minHeight: 44, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
+            </div>
+          )}
+          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1', display: 'flex', alignItems: 'center', gap: 6, paddingTop: 4 }}>
             <input type="checkbox" id="grant-matching" checked={form.is_matching} onChange={e => setForm(f => ({ ...f, is_matching: e.target.checked }))} />
             <label htmlFor="grant-matching" style={{ fontSize: 12.5, color: C.text, cursor: 'pointer' }}>This is a matching grant (funder matches donations you raise, rather than a fixed award)</label>
           </div>
@@ -205,16 +197,52 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
               </select>
             </div>
           )}
-          {hasRestricted && (
-            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-              <div style={s.formLabel}>Purpose Restriction *</div>
-              <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
-            </div>
-          )}
-          {!isEditing && (
-            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1', fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Report deadlines are added after saving, from the grant's ledger — a grant can have more than one.</div>
-          )}
         </div>
+
+        <div style={dividerStyle} />
+
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 16 }}>
+          <div>
+            <div style={sectionHeaderStyle}>Timeline</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+              <div>
+                <div style={s.formLabel}>Start Date</div>
+                <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+              </div>
+              <div>
+                <div style={s.formLabel}>End Date</div>
+                <input style={s.formInput} type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" id="grant-renewable" checked={form.is_renewable} onChange={e => setForm(f => ({ ...f, is_renewable: e.target.checked }))} />
+              <label htmlFor="grant-renewable" style={{ fontSize: 12.5, color: C.text, cursor: 'pointer' }}>Likely to renew</label>
+            </div>
+          </div>
+
+          <div>
+            <div style={sectionHeaderStyle}>Funder contact</div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={s.formLabel}>Contact Name</div>
+              <input style={s.formInput} value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <div style={s.formLabel}>Email</div>
+                <input style={s.formInput} type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} />
+              </div>
+              <div>
+                <div style={s.formLabel}>Phone</div>
+                <input style={s.formInput} value={form.contact_phone} onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {!isEditing && (
+          <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>Report deadlines and disbursement tranches are added after saving, from the grant's ledger — a grant can have more than one of each.</div>
+        )}
+
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={s.btnForest} onClick={() => onSave(form)}>{isEditing ? 'Save Changes' : 'Save Grant'}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
