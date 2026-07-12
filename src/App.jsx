@@ -4944,13 +4944,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       total: grantsWithNextReport.filter(g => grantYearOf(g) === y).reduce((s, g) => s + Number(g.amount), 0),
     }))
 
-    const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
-    const totalActiveAmount = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
-    const totalUtilized = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
-    const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
-
-    const activeGrants = grantsWithNextReport.filter(g => g.status === 'active')
     const today = new Date()
+    const activeGrants = grantsWithNextReport.filter(g => g.status === 'active')
+
+    // "Pace vs report deadline" card is scoped to the selected year filter (by grant start date)
+    const yearScopedActiveGrants = filterYear === 'All' ? activeGrants : activeGrants.filter(g => grantYearOf(g) === parseInt(filterYear))
+    const totalActiveAmount = yearScopedActiveGrants.reduce((s, g) => s + Number(g.amount), 0)
+    const totalUtilized = yearScopedActiveGrants.reduce((s, g) => s + (grantExpensesByGrant[g.id] || []).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+    const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
 
     const totalActive = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
     const byFunder = activeGrants.map(g => ({
@@ -4965,7 +4966,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const sixMonthsOut = new Date()
     sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
-    const expiringSoon = activeGrants.filter(g => g.report_due_date && new Date(g.report_due_date) >= today && new Date(g.report_due_date) <= sixMonthsOut)
+    // Expiring soon is driven by the grant's own end date, not report deadlines — a grant can be
+    // fully caught up on reports and still be ending soon with no successor funding lined up.
+    const expiringSoon = activeGrants.filter(g => g.end_date && new Date(g.end_date) >= today && new Date(g.end_date) <= sixMonthsOut)
 
     const funderTypeLabelsMap = { government: 'Government / statutory board', corporate: 'Corporate foundation', trust: 'Private trust / individual', other: 'Other' }
     const byFunderType = {}
@@ -5010,6 +5013,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       overdueCount: overdueReports.length,
     }
 
+    // Year-over-year on-time rate trend, keyed off each report's due date year (last up to 4 years with data)
+    const reportYearOf = (r) => new Date(r.due_date).getFullYear()
+    const reportYears = [...new Set(allReports.map(reportYearOf))].sort((a, b) => a - b).slice(-4)
+    const reportComplianceTrend = reportYears.map(y => {
+      const yReports = submittedReports.filter(r => reportYearOf(r) === y)
+      const yOnTime = yReports.filter(r => new Date(r.submitted_at) <= new Date(r.due_date))
+      return { year: y.toString(), onTimeRate: yReports.length > 0 ? Math.round((yOnTime.length / yReports.length) * 100) : null, submitted: yReports.length }
+    })
+
     const byProgramme = {}
     grantsWithNextReport.forEach(g => {
       if (!g.cause_id) return
@@ -5020,8 +5032,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       causeId, title: myCauses.find(c => c.id === causeId)?.title || 'Unknown programme', amount: amt,
     })).sort((a, b) => b.amount - a.amount)
 
-    return { trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, programmeGrants }
-  }, [grantsWithNextReport, grantExpenses, grantReports, myCauses])
+    // Matching-grant claims rollup: how much matched funding is left unclaimed portfolio-wide,
+    // and which matching grants are approaching their end date with claims still behind the cap.
+    const matchingGrants = activeGrants.filter(g => g.is_matching && Number(g.match_cap) > 0)
+    const totalMatchCap = matchingGrants.reduce((s, g) => s + Number(g.match_cap), 0)
+    const totalMatchClaimed = matchingGrants.reduce((s, g) => s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0), 0)
+    const matchClaimedPct = totalMatchCap > 0 ? Math.round((totalMatchClaimed / totalMatchCap) * 100) : null
+    const matchingAtRisk = matchingGrants.map(g => {
+      const claimed = (grantMatchClaims[g.id] || []).reduce((s, c) => s + Number(c.amount), 0)
+      const cap = Number(g.match_cap)
+      const pct = cap > 0 ? Math.round((claimed / cap) * 100) : 0
+      const endingSoon = g.end_date && new Date(g.end_date) >= today && new Date(g.end_date) <= sixMonthsOut
+      return { funder_name: g.funder_name, claimed, cap, pct, end_date: g.end_date, endingSoon }
+    }).filter(m => m.endingSoon && m.pct < 100).sort((a, b) => a.pct - b.pct)
+
+    // Disbursement tranche rollup: committed vs actually received cash across active grants.
+    const grantNameById = {}
+    activeGrants.forEach(g => { grantNameById[g.id] = g.funder_name })
+    const activeTranches = activeGrants.flatMap(g => grantTranches[g.id] || [])
+    const totalCommitted = activeTranches.reduce((s, t) => s + Number(t.amount), 0)
+    const totalReceived = activeTranches.filter(t => t.received).reduce((s, t) => s + Number(t.amount), 0)
+    const pendingTranches = activeTranches.filter(t => !t.received).map(t => ({
+      funder_name: grantNameById[t.grant_id] || 'Unknown', label: t.label, amount: Number(t.amount), expected_date: t.expected_date,
+      overdue: new Date(t.expected_date) < today,
+    })).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date))
+
+    return {
+      trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants: yearScopedActiveGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon,
+      funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct, reportCompliance, reportComplianceTrend, programmeGrants,
+      totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk,
+      totalCommitted, totalReceived, pendingTranches,
+    }
+  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, myCauses, filterYear])
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
@@ -10954,7 +10996,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant is keeping pace with its report deadline, plus overall utilization across all active grants. Totals and YoY change are shown in the tiles above." /></div>
+                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant started in the selected year is keeping pace with its report deadline, plus overall utilization for that year's active grants. Switch the year filter above to change scope." /></div>
 
                       {utilizationRate !== null && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
@@ -10970,7 +11012,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Pace vs report deadline</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {activeGrants.map((g, i) => {
-                            const utilized = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
+                            const utilized = (grantExpensesByGrant[g.id] || []).reduce((s, e) => s + Number(e.amount), 0)
                             const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
                             const start = new Date(g.start_date || g.created_at)
                             const due = g.report_due_date ? new Date(g.report_due_date) : null
@@ -11165,6 +11207,91 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             ))}
                           </div>
                         </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportComplianceTrend } = grantOverviewStats
+                return (
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Matching Grant Claims <InfoTip text="How much matched funding has been claimed against the cap across all active matching grants, and which ones are ending within 6 months with unclaimed match still on the table." /></div>
+                      {totalMatchCap === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active matching grants.</div>
+                      ) : (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: C.teal, marginBottom: 4 }}>{matchClaimedPct}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalMatchClaimed.toLocaleString()} claimed of ${totalMatchCap.toLocaleString()} total cap</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${matchClaimedPct}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
+                          </div>
+                          <div style={s.analyticsSubTitle}>Ending within 6 months, unclaimed match remaining</div>
+                          {matchingAtRisk.length === 0 ? (
+                            <div style={{ fontSize: 12.5, color: C.muted }}>None — all on pace or not ending soon.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {matchingAtRisk.map((m, i) => (
+                                <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{m.funder_name}</span>
+                                    <span style={{ fontSize: 11, color: C.red }}>{m.pct}% claimed</span>
+                                  </div>
+                                  <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>${m.claimed.toLocaleString()} of ${m.cap.toLocaleString()} · ends {new Date(m.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
+                      {totalCommitted === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 10, marginBottom: 10, borderBottom: `1px dashed ${C.border}` }}>
+                            <span style={{ fontSize: 10.5, color: C.muted }}>Received</span>
+                            <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${totalReceived.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 400, fontFamily: 'inherit', color: C.muted }}>of ${totalCommitted.toLocaleString()} committed</span></span>
+                          </div>
+                          <div style={s.analyticsSubTitle}>Pending tranches</div>
+                          {pendingTranches.length === 0 ? (
+                            <div style={{ fontSize: 12.5, color: C.muted }}>All committed tranches received.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {pendingTranches.map((t, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                                  <span style={{ fontSize: 12, color: t.overdue ? C.red : C.text }}>{t.funder_name} <span style={{ color: C.muted }}>· {t.label}</span></span>
+                                  <span style={{ fontSize: 11.5, color: t.overdue ? C.red : C.muted }}>${t.amount.toLocaleString()} · {t.overdue ? 'overdue' : new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Report Compliance Trend <InfoTip text="On-time report submission rate by year, based on each report's due date. Shows whether compliance is improving or slipping over time, not just the all-time rate shown above." /></div>
+                      {reportComplianceTrend.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No report deadlines logged yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {reportComplianceTrend.map((t, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, width: 40 }}>{t.year}</span>
+                              <div style={{ flex: 1, background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                <div style={{ width: `${t.onTimeRate ?? 0}%`, height: '100%', background: t.onTimeRate === null ? C.muted : t.onTimeRate >= 80 ? C.sage : t.onTimeRate >= 50 ? C.gold : C.red, borderRadius: 3 }} />
+                              </div>
+                              <span style={{ fontSize: 11.5, fontWeight: 500, color: C.forest, minWidth: 34, textAlign: 'right' }}>{t.onTimeRate !== null ? `${t.onTimeRate}%` : '—'}</span>
+                              <span style={{ fontSize: 10.5, color: C.muted, minWidth: 60, textAlign: 'right' }}>{t.submitted} submitted</span>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>
