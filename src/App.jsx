@@ -5083,6 +5083,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const curCompliance = complianceStatsForYear(complianceYr)
     const prevCompliance = complianceStatsForYear(complianceYr - 1)
     const overdueReports = allReports.filter(r => !r.submitted && new Date(r.due_date) < today)
+    const grantNameByIdForReports = {}
+    grantsWithNextReport.forEach(g => { grantNameByIdForReports[g.id] = g.funder_name })
+    const overdueReportsList = overdueReports.map(r => ({
+      grant_id: r.grant_id,
+      funder_name: grantNameByIdForReports[r.grant_id] || 'Unknown grant',
+      label: r.label,
+      due_date: r.due_date,
+      daysOverdue: Math.floor((today - new Date(r.due_date)) / (1000 * 60 * 60 * 24)),
+    })).sort((a, b) => b.daysOverdue - a.daysOverdue)
     const reportCompliance = {
       yr: complianceYr,
       total: curCompliance.total,
@@ -5091,6 +5100,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       onTimeRateDelta: (curCompliance.onTimeRate !== null && prevCompliance.onTimeRate !== null) ? curCompliance.onTimeRate - prevCompliance.onTimeRate : null,
       avgDaysLate: curCompliance.avgDaysLate,
       overdueCount: overdueReports.length,
+      overdueReportsList,
     }
 
     // Multi-year trend (up to 5 fiscal years with data) — for spotting a longer-run pattern that a
@@ -11357,6 +11367,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.avgDaysLate !== null ? `avg ${reportCompliance.avgDaysLate}d late when late` : 'no late submissions yet'}</div>
                           </div>
                         </div>
+                      )}
+                      {reportCompliance.overdueCount > 0 && (
+                        <>
+                          <div style={s.analyticsSubTitle}>Overdue reports</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
+                            {reportCompliance.overdueReportsList.map((r, i) => (
+                              <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(r.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.funder_name}</span>
+                                  <span style={{ fontSize: 11, color: C.red }}>{r.daysOverdue}d overdue</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>{r.label} · due {new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
                       )}
                       {reportCompliance.overdueCount > 0 ? (
                         <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Submit now" />
