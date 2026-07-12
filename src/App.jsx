@@ -472,6 +472,121 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
   )
 }
 
+function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving }) {
+  const isEditing = !!gift
+  const [form, setForm] = useState(() => gift ? {
+    donor_name: gift.donor_name || '',
+    donor_email: gift.donor_email || '',
+    amount: gift.amount?.toString() || '',
+    frequency: gift.frequency || 'monthly',
+    start_date: gift.start_date || '',
+    type: gift.type || 'giro',
+    cause_id: gift.cause_id || '',
+    bank_name: gift.bank_name || '',
+    giro_reference: gift.giro_reference || '',
+    authorization_status: gift.authorization_status || 'active',
+    notes: gift.notes || '',
+  } : { donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', type: 'giro', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
+  const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
+  const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
+  const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+      <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 {isEditing ? 'Edit Recurring Gift' : 'New Recurring Gift'}</div>
+          <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={onClose}>✕</button>
+        </div>
+
+        <div style={sectionHeaderStyle}>Donor</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div>
+            <div style={s.formLabel}>Donor Name *</div>
+            <input style={s.formInput} placeholder="Full name" value={form.donor_name} onChange={e => setForm(f => ({ ...f, donor_name: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Donor Email</div>
+            <input style={s.formInput} placeholder="donor@email.com" value={form.donor_email} onChange={e => setForm(f => ({ ...f, donor_email: e.target.value }))} />
+          </div>
+        </div>
+
+        <div style={dividerStyle} />
+
+        <div style={sectionHeaderStyle}>Giving details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div>
+            <div style={s.formLabel}>Amount per Cycle (SGD) *</div>
+            <input style={s.formInput} type="number" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Frequency</div>
+            <select style={s.formInput} value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annually">Annually</option>
+            </select>
+          </div>
+          <div>
+            <div style={s.formLabel}>Start Date *</div>
+            <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Type</div>
+            <select style={s.formInput} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+              <option value="giro">GIRO</option>
+              <option value="habitual_paynow">Habitual PayNow</option>
+              <option value="standing_order">Standing Order</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div style={{ gridColumn: isMobile ? 'auto' : '2 / -1' }}>
+            <div style={s.formLabel}>Linked Programme / Campaign</div>
+            <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
+              <option value="">None — general / unrestricted use</option>
+              {(causes || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={dividerStyle} />
+
+        <div style={sectionHeaderStyle}>Authorization {!needsBankInfo && <span style={{ color: C.muted, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional for {form.type === 'habitual_paynow' ? 'Habitual PayNow' : 'this type'})</span>}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div>
+            <div style={s.formLabel}>Bank Name</div>
+            <input style={s.formInput} placeholder="e.g. DBS, OCBC" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>{form.type === 'giro' ? 'GIRO Reference / Account' : 'Reference / Account'}</div>
+            <input style={s.formInput} placeholder="Optional reference number" value={form.giro_reference} onChange={e => setForm(f => ({ ...f, giro_reference: e.target.value }))} />
+          </div>
+          <div>
+            <div style={s.formLabel}>Authorization Status</div>
+            <select style={s.formInput} value={form.authorization_status} onChange={e => setForm(f => ({ ...f, authorization_status: e.target.value }))}>
+              <option value="pending">Pending bank approval</option>
+              <option value="active">Active</option>
+              <option value="terminated">Terminated by bank</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={dividerStyle} />
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={s.formLabel}>Notes</div>
+          <input style={s.formInput} placeholder="Optional notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={s.btnForest} onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Recurring Gift')}</button>
+          <button style={s.viewBtn} onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
@@ -793,6 +908,15 @@ export default function App() {
   const [recurringReminderBody, setRecurringReminderBody] = useState('')
   const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
   const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
+  const [editingRecurringGift, setEditingRecurringGift] = useState(null)
+  const [pauseGiftModal, setPauseGiftModal] = useState(null)
+  const [pauseReasonInput, setPauseReasonInput] = useState('')
+  const [pauseResumeDateInput, setPauseResumeDateInput] = useState('')
+  const [pausingGift, setPausingGift] = useState(false)
+  const [failedDeductionModal, setFailedDeductionModal] = useState(null)
+  const [failedDeductionReason, setFailedDeductionReason] = useState('Insufficient funds')
+  const [recordingFailedDeduction, setRecordingFailedDeduction] = useState(false)
+  const [recurringFailedDeductionHistory, setRecurringFailedDeductionHistory] = useState({})
   const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
@@ -1922,6 +2046,19 @@ export default function App() {
       })
       setRecurringSkipHistory(skips)
 
+      const { data: failedData } = await supabase
+        .from('recurring_gift_events')
+        .select('recurring_gift_id, skipped_cycle_date, reason, created_at')
+        .eq('event_type', 'failed_deduction')
+        .in('recurring_gift_id', data.map(g => g.id))
+        .order('created_at', { ascending: false })
+      const failed = {}
+      ;(failedData || []).forEach(f => {
+        if (!failed[f.recurring_gift_id]) failed[f.recurring_gift_id] = []
+        failed[f.recurring_gift_id].push(f)
+      })
+      setRecurringFailedDeductionHistory(failed)
+
       const { data: reminderData } = await supabase
         .from('recurring_gift_events')
         .select('recurring_gift_id, sent_at, sent_by')
@@ -1947,41 +2084,68 @@ export default function App() {
     return next.toISOString().split('T')[0]
   }
 
-  async function saveRecurringGift() {
-    if (!recurringForm.donor_name.trim()) { setRecurringError('Donor name is required'); return }
-    if (!recurringForm.amount || parseFloat(recurringForm.amount) <= 0) { setRecurringError('Please enter a valid amount'); return }
-    if (!recurringForm.start_date) { setRecurringError('Start date is required'); return }
+  async function saveRecurringGift(form) {
+    if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
+    if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (!form.start_date) { showToast('Start date is required', 'error'); return }
     setSavingRecurring(true)
-    setRecurringError('')
-    const donorKey = recurringForm.donor_email?.trim() || recurringForm.donor_name.trim()
-    const nextExpected = computeNextExpectedDate(recurringForm.start_date, recurringForm.frequency, null)
+    const donorKey = form.donor_email?.trim() || form.donor_name.trim()
+    const nextExpected = computeNextExpectedDate(form.start_date, form.frequency, null)
     const { data, error } = await supabase.from('recurring_gifts').insert([{
       charity_uen: charityUen,
-      donor_name: recurringForm.donor_name.trim(),
-      donor_email: recurringForm.donor_email?.trim() || null,
+      donor_name: form.donor_name.trim(),
+      donor_email: form.donor_email?.trim() || null,
       donor_key: donorKey,
-      amount: parseFloat(recurringForm.amount),
-      frequency: recurringForm.frequency,
-      start_date: recurringForm.start_date,
+      amount: parseFloat(form.amount),
+      frequency: form.frequency,
+      start_date: form.start_date,
       next_expected_date: nextExpected,
-      giro_reference: recurringForm.giro_reference?.trim() || null,
-      type: recurringForm.type,
-      notes: recurringForm.notes?.trim() || null,
+      giro_reference: form.giro_reference?.trim() || null,
+      type: form.type,
+      cause_id: form.cause_id || null,
+      bank_name: form.bank_name?.trim() || null,
+      authorization_status: form.authorization_status,
+      notes: form.notes?.trim() || null,
       status: 'active',
       created_by: session.user.email,
     }]).select()
     setSavingRecurring(false)
-    if (error) { setRecurringError(`Error: ${error.message}`); return }
+    if (error) { showToast(`Error: ${error.message}`, 'error'); return }
     setRecurringGifts(prev => [...prev, data[0]].sort((a, b) => new Date(a.next_expected_date) - new Date(b.next_expected_date)))
-    setRecurringForm({ donor_name: '', donor_email: '', amount: '', frequency: 'monthly', start_date: '', giro_reference: '', type: 'giro', notes: '' })
     setShowRecurringForm(false)
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'recurring_gift_added',
-      details: { donor_name: recurringForm.donor_name, amount: parseFloat(recurringForm.amount), frequency: recurringForm.frequency, type: recurringForm.type },
+      details: { donor_name: form.donor_name, amount: parseFloat(form.amount), frequency: form.frequency, type: form.type },
     })
     showToast('Recurring gift recorded ✓')
+  }
+
+  async function updateRecurringGift(giftId, form) {
+    if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
+    if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (!form.start_date) { showToast('Start date is required', 'error'); return }
+    setSavingRecurring(true)
+    const { data, error } = await supabase.from('recurring_gifts').update({
+      donor_name: form.donor_name.trim(),
+      donor_email: form.donor_email?.trim() || null,
+      donor_key: form.donor_email?.trim() || form.donor_name.trim(),
+      amount: parseFloat(form.amount),
+      frequency: form.frequency,
+      start_date: form.start_date,
+      giro_reference: form.giro_reference?.trim() || null,
+      type: form.type,
+      cause_id: form.cause_id || null,
+      bank_name: form.bank_name?.trim() || null,
+      authorization_status: form.authorization_status,
+      notes: form.notes?.trim() || null,
+    }).eq('id', giftId).select().single()
+    setSavingRecurring(false)
+    if (error) { showToast(`Error: ${error.message}`, 'error'); return }
+    setRecurringGifts(prev => prev.map(g => g.id === giftId ? data : g))
+    setEditingRecurringGift(null)
+    showToast('Recurring gift updated ✓')
   }
 
   function markRecurringReceived(gift) {
@@ -2236,25 +2400,33 @@ export default function App() {
     setLapsedReminderCandidate(null)
   }
 
-  async function pauseRecurringGift(gift) {
-    setConfirmModal({
-      title: 'Pause this recurring gift?',
-      description: `${gift.donor_name}'s ${gift.frequency} gift of $${gift.amount.toLocaleString()} will be paused. You can reactivate it at any time.`,
-      confirmLabel: 'Pause',
-      onConfirm: async () => {
-        const { error } = await supabase.from('recurring_gifts').update({ status: 'paused' }).eq('id', gift.id)
-        if (error) { showToast('Error pausing', 'error'); return }
-        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'paused' } : g))
-        showToast(`${gift.donor_name}'s recurring gift paused`)
-      },
-    })
+  function pauseRecurringGift(gift) {
+    setPauseReasonInput('')
+    setPauseResumeDateInput('')
+    setPauseGiftModal(gift)
+  }
+
+  async function confirmPauseRecurringGift() {
+    if (!pauseGiftModal) return
+    setPausingGift(true)
+    const gift = pauseGiftModal
+    const { error } = await supabase.from('recurring_gifts').update({
+      status: 'paused',
+      pause_reason: pauseReasonInput.trim() || null,
+      pause_resume_date: pauseResumeDateInput || null,
+    }).eq('id', gift.id)
+    setPausingGift(false)
+    if (error) { showToast('Error pausing', 'error'); return }
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'paused', pause_reason: pauseReasonInput.trim() || null, pause_resume_date: pauseResumeDateInput || null } : g))
+    showToast(`${gift.donor_name}'s recurring gift paused`)
+    setPauseGiftModal(null)
   }
 
   async function reactivateRecurringGift(gift) {
     const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
-    const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected }).eq('id', gift.id)
+    const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null }).eq('id', gift.id)
     if (error) { showToast('Error reactivating', 'error'); return }
-    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected } : g))
+    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null } : g))
     showToast(`${gift.donor_name}'s recurring gift reactivated ✓`)
   }
 
@@ -2264,12 +2436,41 @@ export default function App() {
       description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked as cancelled. The record is kept for reference.`,
       confirmLabel: 'Cancel Arrangement',
       onConfirm: async () => {
-        const { error } = await supabase.from('recurring_gifts').update({ status: 'cancelled' }).eq('id', gift.id)
+        const { error } = await supabase.from('recurring_gifts').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', gift.id)
         if (error) { showToast('Error cancelling', 'error'); return }
-        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'cancelled' } : g))
+        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'cancelled', cancelled_at: new Date().toISOString() } : g))
         showToast('Recurring gift cancelled')
       },
     })
+  }
+
+  function recordFailedDeduction(gift) {
+    setFailedDeductionReason('Insufficient funds')
+    setFailedDeductionModal(gift)
+  }
+
+  async function confirmRecordFailedDeduction() {
+    if (!failedDeductionModal) return
+    setRecordingFailedDeduction(true)
+    const gift = failedDeductionModal
+    const { data: inserted, error } = await supabase.from('recurring_gift_events').insert({
+      recurring_gift_id: gift.id,
+      event_type: 'failed_deduction',
+      skipped_cycle_date: gift.next_expected_date,
+      reason: failedDeductionReason,
+      created_by: session.user.email,
+    }).select().single()
+    setRecordingFailedDeduction(false)
+    if (error) { showToast('Error recording failed deduction', 'error'); return }
+    setRecurringFailedDeductionHistory(prev => ({ ...prev, [gift.id]: [inserted, ...(prev[gift.id] || [])] }))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_failed_deduction',
+      details: { donor_name: gift.donor_name, reason: failedDeductionReason },
+    })
+    showToast('Failed deduction logged')
+    setFailedDeductionModal(null)
   }
 
   async function loadMassAppeals(activeSession = session) {
@@ -4123,7 +4324,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const giroMissedCycles = React.useMemo(() => {
     const now26 = new Date()
     return recurringGifts.filter(g => g.status === 'active').map(g => {
-      const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'yearly' || g.frequency === 'annual' ? 365 : 30
+      const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
       const daysLate = Math.floor((now26 - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24))
       if (daysLate <= 7) return null
       const missedCycles = Math.floor(daysLate / gapDays) + 1
@@ -4878,7 +5079,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, donations, recurringGifts, fyOf])
 
   const recurringMrrStats = React.useMemo(() => {
-    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
     const mrrAsOfEndOfYear = (y) => {
       const yearEnd = fiscalYearBounds(y, fyEndMonth, fyEndDay).end
       const activeAtYearEnd = recurringGifts.filter(g => new Date(g.created_at) <= yearEnd && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > yearEnd)))
@@ -4906,11 +5107,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const giftCountDiff = activeGifts.length - activeGiftsAgo.length
 
     const mrr = activeGifts.reduce((s, g) => {
-      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
       return s + monthly
     }, 0)
     const mrrAgo = activeGiftsAgo.reduce((s, g) => {
-      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'yearly' || g.frequency === 'annual' ? Number(g.amount) / 12 : Number(g.amount)
+      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
       return s + monthly
     }, 0)
     const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
@@ -4925,7 +5126,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const atRiskMrr = atRiskGifts.reduce((s, g) => {
       const gift = recurringGifts.find(rg => rg.id === g.gift_id)
       if (!gift) return s
-      const monthly = gift.frequency === 'weekly' ? Number(gift.amount) * 4.33 : gift.frequency === 'quarterly' ? Number(gift.amount) / 3 : gift.frequency === 'yearly' || gift.frequency === 'annual' ? Number(gift.amount) / 12 : Number(gift.amount)
+      const monthly = gift.frequency === 'weekly' ? Number(gift.amount) * 4.33 : gift.frequency === 'quarterly' ? Number(gift.amount) / 3 : gift.frequency === 'annually' ? Number(gift.amount) / 12 : Number(gift.amount)
       return s + monthly
     }, 0)
 
@@ -7589,7 +7790,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const amt = Number(g.amount) || 0
                 if (g.frequency === 'weekly') return s + amt * 4.33
                 if (g.frequency === 'quarterly') return s + amt / 3
-                if (g.frequency === 'yearly' || g.frequency === 'annual') return s + amt / 12
+                if (g.frequency === 'annually') return s + amt / 12
                 return s + amt
               }, 0)
               const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
@@ -11929,7 +12130,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const amt = Number(g.amount) || 0
                   if (g.frequency === 'weekly') return s + amt * 4.33
                   if (g.frequency === 'quarterly') return s + amt / 3
-                  if (g.frequency === 'yearly' || g.frequency === 'annual') return s + amt / 12
+                  if (g.frequency === 'annually') return s + amt / 12
                   return s + amt
                 }, 0)
 
@@ -12117,7 +12318,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const amt = Number(g.amount) || 0
                   if (g.frequency === 'weekly') return amt * 4.33
                   if (g.frequency === 'quarterly') return amt / 3
-                  if (g.frequency === 'yearly' || g.frequency === 'annual') return amt / 12
+                  if (g.frequency === 'annually') return amt / 12
                   return amt
                 }
                 const giroMonthly6 = activeRecurring6.filter(g => g.type === 'giro').reduce((s, g) => s + monthlyize6(g), 0)
@@ -12691,67 +12892,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Recurring Giving</div>
                 <div style={s.pageSub}>{recurringGifts.filter(g => g.status === 'active').length} active · ${recurringGifts.filter(g => g.status === 'active').reduce((s, g) => s + g.amount, 0).toLocaleString()} expected/cycle</div>
               </div>
-              <button style={s.btnGold} onClick={() => { setShowRecurringForm(true); setRecurringError('') }}>+ Add Recurring Gift</button>
+              <button style={s.btnGold} onClick={() => setShowRecurringForm(true)}>+ Add Recurring Gift</button>
             </div>
 
             {showRecurringForm && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>
-              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 New Recurring Gift</div>
-                  <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>✕</button>
-                </div>
-                {recurringError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{recurringError}</div>}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div>
-                    <div style={s.formLabel}>Donor Name *</div>
-                    <input style={s.formInput} placeholder="Full name" value={recurringForm.donor_name} onChange={e => setRecurringForm(f => ({ ...f, donor_name: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Donor Email</div>
-                    <input style={s.formInput} placeholder="donor@email.com" value={recurringForm.donor_email} onChange={e => setRecurringForm(f => ({ ...f, donor_email: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Amount per Cycle (SGD) *</div>
-                    <input style={s.formInput} type="number" placeholder="0.00" value={recurringForm.amount} onChange={e => setRecurringForm(f => ({ ...f, amount: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Frequency</div>
-                    <select style={s.formInput} value={recurringForm.frequency} onChange={e => setRecurringForm(f => ({ ...f, frequency: e.target.value }))}>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="annually">Annually</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Start Date *</div>
-                    <input style={s.formInput} type="date" value={recurringForm.start_date} onChange={e => setRecurringForm(f => ({ ...f, start_date: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Type</div>
-                    <select style={s.formInput} value={recurringForm.type} onChange={e => setRecurringForm(f => ({ ...f, type: e.target.value }))}>
-                      <option value="giro">GIRO</option>
-                      <option value="habitual_paynow">Habitual PayNow</option>
-                      <option value="standing_order">Standing Order</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>GIRO Reference / Account</div>
-                    <input style={s.formInput} placeholder="Optional reference number" value={recurringForm.giro_reference} onChange={e => setRecurringForm(f => ({ ...f, giro_reference: e.target.value }))} />
-                  </div>
-                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-                    <div style={s.formLabel}>Notes</div>
-                    <input style={s.formInput} placeholder="Optional notes" value={recurringForm.notes} onChange={e => setRecurringForm(f => ({ ...f, notes: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveRecurringGift} disabled={savingRecurring}>{savingRecurring ? 'Saving...' : '✓ Save'}</button>
-                  <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowRecurringForm(false); setRecurringError('') }}>Cancel</button>
-                </div>
-              </div>
-              </div>
+              <RecurringGiftModal
+                isMobile={isMobile}
+                onClose={() => setShowRecurringForm(false)}
+                onSave={saveRecurringGift}
+                causes={myCauses.filter(c => c.type === 'campaign')}
+                saving={savingRecurring}
+              />
+            )}
+            {editingRecurringGift && (
+              <RecurringGiftModal
+                isMobile={isMobile}
+                gift={editingRecurringGift}
+                onClose={() => setEditingRecurringGift(null)}
+                onSave={(form) => updateRecurringGift(editingRecurringGift.id, form)}
+                causes={myCauses.filter(c => c.type === 'campaign')}
+                saving={savingRecurring}
+              />
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
