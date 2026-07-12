@@ -127,7 +127,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
             <input style={s.formInput} value={form.funder_name} onChange={e => setForm(f => ({ ...f, funder_name: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>Funder Type</div>
+            <div style={s.formLabel}>Funder Type *</div>
             <select style={s.formInput} value={form.funder_type} onChange={e => setForm(f => ({ ...f, funder_type: e.target.value }))}>
               <option value="">Select...</option>
               <option value="government">Government / statutory board</option>
@@ -206,7 +206,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
             <div style={sectionHeaderStyle}>Timeline</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
               <div>
-                <div style={s.formLabel}>Start Date</div>
+                <div style={s.formLabel}>Start Date *</div>
                 <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
               </div>
               <div>
@@ -1321,6 +1321,8 @@ export default function App() {
     const restricted = parseFloat(grantForm.restricted_amount) || 0
     const matchCap = parseFloat(grantForm.match_cap) || 0
     if (!grantForm.funder_name.trim()) { showToast('Funder name is required', 'error'); return }
+    if (!grantForm.funder_type) { showToast('Funder type is required', 'error'); return }
+    if (!grantForm.start_date) { showToast('Start date is required', 'error'); return }
     if (grantForm.is_matching && matchCap <= 0) { showToast('Match cap is required for a matching grant', 'error'); return }
     if (!grantForm.is_matching && (unrestricted + restricted) <= 0) { showToast('At least one amount is required', 'error'); return }
     if (restricted > 0 && !grantForm.purpose_restriction?.trim()) { showToast('Purpose restriction is required when there is a restricted amount', 'error'); return }
@@ -1359,6 +1361,8 @@ export default function App() {
     const restricted = parseFloat(grantForm.restricted_amount) || 0
     const matchCap = parseFloat(grantForm.match_cap) || 0
     if (!grantForm.funder_name.trim()) { showToast('Funder name is required', 'error'); return }
+    if (!grantForm.funder_type) { showToast('Funder type is required', 'error'); return }
+    if (!grantForm.start_date) { showToast('Start date is required', 'error'); return }
     if (grantForm.is_matching && matchCap <= 0) { showToast('Match cap is required for a matching grant', 'error'); return }
     if (!grantForm.is_matching && (unrestricted + restricted) <= 0) { showToast('At least one amount is required', 'error'); return }
     if (restricted > 0 && !grantForm.purpose_restriction?.trim()) { showToast('Purpose restriction is required when there is a restricted amount', 'error'); return }
