@@ -4908,6 +4908,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
   }, [grants, grantReports])
 
+  const grantExpensesByGrant = React.useMemo(() => {
+    const m = {}
+    grantExpenses.forEach(e => { (m[e.grant_id] = m[e.grant_id] || []).push(e) })
+    return m
+  }, [grantExpenses])
+
   const grantSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? new Date().getFullYear() : parseInt(filterYear)
     const grantYearOf = (g) => new Date(g.start_date || g.created_at).getFullYear()
@@ -13525,7 +13531,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const renderGrantCard = (g) => {
                 const isHighlighted = highlightedGrantId === g.id
-                const myExpenses84 = grantExpenses.filter(e => e.grant_id === g.id)
+                const myExpenses84 = grantExpensesByGrant[g.id] || []
                 const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
                 const remaining84 = Number(g.amount) - spent84
                 const pctUtilized = Number(g.amount) > 0 ? Math.min(100, Math.round((spent84 / Number(g.amount)) * 100)) : 0
