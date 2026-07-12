@@ -8350,6 +8350,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div>
                       {paginatedDonations.map(d => {
                         const isPaid = d.payment_status === 'confirmed'
+                        const isReceipted = d.receipt_issued
                         const railColor = !isPaid ? C.red : !d.thank_you_sent ? C.gold : C.sage
                         return (
                         <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
