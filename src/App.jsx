@@ -201,8 +201,10 @@ export default function App() {
   const [taskForm, setTaskForm] = useState({ title: '', date: '' })
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })  
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  useEffect(() => { if (isTablet) setSidebarCollapsed(true) }, [isTablet])
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 0
+    return w > 640 && w <= 1024
+  })
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
