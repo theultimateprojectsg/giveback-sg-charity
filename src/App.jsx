@@ -1231,6 +1231,14 @@ export default function App() {
   const [fyEndMonthInput, setFyEndMonthInput] = useState('12')
   const [fyEndDayInput, setFyEndDayInput] = useState('31')
   const fyOf = React.useCallback((dateInput) => fiscalYearOf(dateInput, fyEndMonth, fyEndDay), [fyEndMonth, fyEndDay])
+  useEffect(() => {
+    if (!charityIpcLoaded) return
+    const calendarYear = new Date().getFullYear().toString()
+    const correctFiscalYear = fyOf(new Date()).toString()
+    if (filterYear === calendarYear && filterYear !== correctFiscalYear) {
+      setFilterYear(correctFiscalYear)
+    }
+  }, [charityIpcLoaded, fyEndMonth, fyEndDay])
   const selectedRowRef = useRef(null)
   
   const [confirmModal, setConfirmModal] = useState(null)
@@ -13853,6 +13861,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
                 const donorCount = new Set(donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
                 const grantFunding = grants.filter(g => g.cause_id === c.id).reduce((s, g) => s + Number(g.amount), 0)
+                const loggedExpenses = campaignExpensesByCause[c.id] || []
+                const spent = loggedExpenses.reduce((s, e) => s + Number(e.amount), 0)
+                const costForRoi = spent > 0 ? spent : Number(c.cost) || 0
                 const pct = c.target_amount > 0 ? Math.min(100, Math.round((raised / c.target_amount) * 100)) : null
                 const daysLeft = c.end_date ? Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
                 const isActive = c.status === 'approved' && !isPast(c)
@@ -13904,8 +13915,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </span>
                             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
-                              {c.cost > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
-                              {c.cost > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: raised >= c.cost ? C.sage : C.red }}>ROI {(raised / c.cost).toFixed(1)}×</span>}
+                              {costForRoi > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
+                              {costForRoi > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>}
                             </span>
                           </div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
@@ -13937,9 +13948,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                     )}
-                    {c.cost > 0 && (
+                    {costForRoi > 0 && (
                       <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, marginBottom: 10 }}>
-                        Cost ${Number(c.cost).toLocaleString()}
+                        {spent > 0 ? `Spent $${spent.toLocaleString()}` : `Budgeted cost $${Number(c.cost).toLocaleString()}`}
+                        {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
                       </div>
                     )}
                     {grantFunding > 0 && (
