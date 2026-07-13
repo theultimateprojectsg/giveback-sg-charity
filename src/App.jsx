@@ -13391,7 +13391,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{c.title}</div>
                       {(() => {
                         const campaignStatusMap = {
-                          approved: { bg: C.successBg, color: '#27500A', label: '✓ Live' },
+                          approved: { bg: C.successBg, color: '#27500A', label: 'Active' },
                           pending: { bg: C.warningBg, color: C.warning, label: '⏳ Pending' },
                           rejected: { bg: '#FBEEE9', color: C.red, label: '✕ Rejected' },
                           deleted: { bg: C.ivory, color: C.muted, label: '🗑 Deleted' },
