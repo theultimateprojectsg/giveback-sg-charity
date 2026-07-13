@@ -929,6 +929,13 @@ export default function App() {
     setDonorReceiptNameOverrides(overrideMap)
   }
   const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
+  const [massAppealAmountFilter, setMassAppealAmountFilter] = useState('All')
+  const [massAppealProgrammeFilter, setMassAppealProgrammeFilter] = useState('All')
+  const [massAppealStatusFilter, setMassAppealStatusFilter] = useState('All')
+  const [massAppealSortBy, setMassAppealSortBy] = useState('created_desc')
+  const [showAllBounceReasons, setShowAllBounceReasons] = useState(false)
+  const [showAllFatigueList, setShowAllFatigueList] = useState(false)
+  const [showAllOverGivers, setShowAllOverGivers] = useState(false)
   const [allAppealRecipients, setAllAppealRecipients] = useState([])
 
   async function openAppealDetail(appeal) {
@@ -5017,7 +5024,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const byDonor = {}
     allAppealRecipients.forEach(r => {
       const key = r.donor_email?.trim() || r.donor_name
-      if (!byDonor[key]) byDonor[key] = { name: r.donor_name, recipientRows: [] }
+      if (!byDonor[key]) byDonor[key] = { name: r.donor_name, email: r.donor_email, recipientRows: [] }
       byDonor[key].recipientRows.push(r)
     })
     const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
@@ -5028,7 +5035,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const gaveCount = gaveFlags.filter(Boolean).length
       const lastGave = gaveFlags[gaveFlags.length - 1]
       const isFatigued = gaveFlags.length >= 2 && gaveFlags.slice(0, -1).some(Boolean) && !lastGave
-      return { name: d.name, totalAppeals: sorted.length, gaveCount, isFatigued }
+      return { name: d.name, email: d.email, totalAppeals: sorted.length, gaveCount, isFatigued }
     }).sort((a, b) => (b.isFatigued ? 1 : 0) - (a.isFatigued ? 1 : 0))
 
     const overGivers = allAppealRecipients.filter(r => {
@@ -5036,6 +5043,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return donation && Number(donation.amount) > Number(r.amount) * 1.5
     }).map(r => ({
       name: r.donor_name,
+      email: r.donor_email,
       asked: Number(r.amount),
       gave: Number(donations.find(d => d.payment_ref === r.payment_ref).amount)
     }))
@@ -10845,7 +10853,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               )
                             })}
                           </div>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 12 }}>{within24h + within7d >= respTotal * 0.7 ? 'Results are mostly in within a week — safe to report final numbers after 7 days.' : 'A meaningful share of responses arrive after a week — wait longer before reporting final numbers.'}</div>
+                          {within24h + within7d >= respTotal * 0.7 ? (
+                            <ActionBanner tone="success" text="Results are mostly in within a week" sub="Safe to report final numbers after 7 days" />
+                          ) : (
+                            <ActionBanner tone="warning" text="A meaningful share of responses arrive late" sub="Wait longer than a week before reporting final numbers" />
+                          )}
                         </>
                       )}
                     </div>
@@ -10941,6 +10953,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           )}
                         </>
                       )}
+                      {scopedAppeals.length > 0 && (
+                        overallConversion >= 25 ? (
+                          <ActionBanner tone="success" text="Strong conversion" sub="Appeals are converting well" />
+                        ) : overallConversion >= 15 ? (
+                          <ActionBanner tone="warning" text="Moderate conversion" sub="Room to improve messaging, targeting, or ask amount" />
+                        ) : (
+                          <ActionBanner tone="danger" text="Low conversion" sub="Worth revisiting ask amount, messaging, or list quality" />
+                        )
+                      )}
                     </div>
                   )
                 })()}
@@ -10984,12 +11005,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <>
                           <div style={s.analyticsSubTitleDivider}>Top bounce reasons</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                            {bounceReasons.slice(0, 5).map((r, i) => (
+                            {(showAllBounceReasons ? bounceReasons : bounceReasons.slice(0, 5)).map((r, i) => (
                               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                                 <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{r.reason}</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.count}</span>
                               </div>
                             ))}
+                            {bounceReasons.length > 5 && (
+                              <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllBounceReasons(v => !v)}>
+                                {showAllBounceReasons ? 'Show fewer' : `Show all ${bounceReasons.length}`}
+                              </button>
+                            )}
                           </div>
                         </>
                       )}
@@ -11012,14 +11038,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {fatigueList.slice(0, 5).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                          {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: 0, count: d.gaveCount, receipts: d.gaveCount }); setActiveTab('donors') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
                                 <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
                               </div>
                             </div>
                           ))}
+                          {fatigueList.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllFatigueList(v => !v)}>
+                              {showAllFatigueList ? 'Show fewer' : `Show all ${fatigueList.length}`}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -11028,14 +11059,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {overGivers.slice(0, 5).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
+                          {(showAllOverGivers ? overGivers : overGivers.slice(0, 5)).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: d.gave, count: 1, receipts: 1 }); setActiveTab('donors') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                               <span style={{ fontSize: 11, color: C.muted }}>asked ${d.asked} · gave ${d.gave}</span>
                             </div>
                           ))}
+                          {overGivers.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllOverGivers(v => !v)}>
+                              {showAllOverGivers ? 'Show fewer' : `Show all ${overGivers.length}`}
+                            </button>
+                          )}
                         </div>
                       )}
+                      {(() => {
+                        const bounceHigh = curDelivery.bouncedPct >= 20 || curDelivery.blockedPct >= 20
+                        const bounceMed = !bounceHigh && (curDelivery.bouncedPct >= 10 || curDelivery.blockedPct >= 10)
+                        return curDelivery.total === 0 ? null : bounceHigh ? (
+                          <ActionBanner tone="danger" text="List health needs attention" sub="High bounce or opt-out rate — clean up contact data before your next appeal" />
+                        ) : bounceMed ? (
+                          <ActionBanner tone="warning" text="List health worth watching" sub="Bounce or opt-out rate is creeping up" />
+                        ) : (
+                          <ActionBanner tone="success" text="List healthy" sub="Low bounce and opt-out rates" />
+                        )
+                      })()}
                     </div>
                   )
                 })()}
@@ -14291,15 +14338,52 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
-                {(massAppealSearchTerm !== '' || massAppealYearFilter !== 'All') && (
-                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setMassAppealSearchTerm(''); setMassAppealYearFilter('All') }}>✕ Clear Filters</button>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealAmountFilter} onChange={e => setMassAppealAmountFilter(e.target.value)}>
+                  <option value="All">All amounts</option>
+                  <option value="Under 20">Under $20</option>
+                  <option value="20-50">$20 – $50</option>
+                  <option value="50-100">$50 – $100</option>
+                  <option value="Over 100">Over $100</option>
+                </select>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 190 }} value={massAppealProgrammeFilter} onChange={e => setMassAppealProgrammeFilter(e.target.value)}>
+                  <option value="All">All programmes</option>
+                  <option value="__none__">General appeal</option>
+                  {myCauses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 150 }} value={massAppealStatusFilter} onChange={e => setMassAppealStatusFilter(e.target.value)}>
+                  <option value="All">All statuses</option>
+                  <option value="Sent">Fully sent</option>
+                  <option value="Partial">Partial (some failed)</option>
+                  <option value="Sending">Still sending</option>
+                </select>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={massAppealSortBy} onChange={e => setMassAppealSortBy(e.target.value)}>
+                  <option value="created_desc">Sort: Newest first</option>
+                  <option value="created_asc">Sort: Oldest first</option>
+                  <option value="amount_desc">Sort: Amount (high–low)</option>
+                  <option value="amount_asc">Sort: Amount (low–high)</option>
+                  <option value="sent_desc">Sort: Most sent</option>
+                  <option value="failed_desc">Sort: Most failed</option>
+                </select>
+                {(massAppealSearchTerm !== '' || massAppealYearFilter !== 'All' || massAppealAmountFilter !== 'All' || massAppealProgrammeFilter !== 'All' || massAppealStatusFilter !== 'All') && (
+                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setMassAppealSearchTerm(''); setMassAppealYearFilter('All'); setMassAppealAmountFilter('All'); setMassAppealProgrammeFilter('All'); setMassAppealStatusFilter('All') }}>✕ Clear Filters</button>
                 )}
                 <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                   const q = massAppealSearchTerm.toLowerCase().trim()
                   const filtered = massAppeals.filter(a => {
                     const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
                     const matchesYear = massAppealYearFilter === 'All' || fyOf(a.created_at).toString() === massAppealYearFilter
-                    return matchesSearch && matchesYear
+                    const amt = Number(a.amount)
+                    const matchesAmt = massAppealAmountFilter === 'All'
+                      || (massAppealAmountFilter === 'Under 20' && amt < 20)
+                      || (massAppealAmountFilter === '20-50' && amt >= 20 && amt <= 50)
+                      || (massAppealAmountFilter === '50-100' && amt > 50 && amt <= 100)
+                      || (massAppealAmountFilter === 'Over 100' && amt > 100)
+                    const matchesProgramme = massAppealProgrammeFilter === 'All' || (massAppealProgrammeFilter === '__none__' ? !a.cause_id : a.cause_id === massAppealProgrammeFilter)
+                    const matchesStatus = massAppealStatusFilter === 'All'
+                      || (massAppealStatusFilter === 'Sending' && a.status === 'sending')
+                      || (massAppealStatusFilter === 'Sent' && a.status === 'sent' && a.failed_count === 0)
+                      || (massAppealStatusFilter === 'Partial' && a.status === 'sent' && a.failed_count > 0)
+                    return matchesSearch && matchesYear && matchesAmt && matchesProgramme && matchesStatus
                   })
                   exportMassAppealsExcel(filtered)
                 }}>⬇️ Export to Excel</button>
@@ -14313,7 +14397,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const q = massAppealSearchTerm.toLowerCase().trim()
                 const matchesSearch = !q || [a.cause_name, a.message].some(f => f?.toLowerCase().includes(q))
                 const matchesYear = massAppealYearFilter === 'All' || fyOf(a.created_at).toString() === massAppealYearFilter
-                return matchesSearch && matchesYear
+                const amt = Number(a.amount)
+                const matchesAmt = massAppealAmountFilter === 'All'
+                  || (massAppealAmountFilter === 'Under 20' && amt < 20)
+                  || (massAppealAmountFilter === '20-50' && amt >= 20 && amt <= 50)
+                  || (massAppealAmountFilter === '50-100' && amt > 50 && amt <= 100)
+                  || (massAppealAmountFilter === 'Over 100' && amt > 100)
+                const matchesProgramme = massAppealProgrammeFilter === 'All' || (massAppealProgrammeFilter === '__none__' ? !a.cause_id : a.cause_id === massAppealProgrammeFilter)
+                const matchesStatus = massAppealStatusFilter === 'All'
+                  || (massAppealStatusFilter === 'Sending' && a.status === 'sending')
+                  || (massAppealStatusFilter === 'Sent' && a.status === 'sent' && a.failed_count === 0)
+                  || (massAppealStatusFilter === 'Partial' && a.status === 'sent' && a.failed_count > 0)
+                return matchesSearch && matchesYear && matchesAmt && matchesProgramme && matchesStatus
+              }).sort((a, b) => {
+                if (massAppealSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
+                if (massAppealSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
+                if (massAppealSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
+                if (massAppealSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+                if (massAppealSortBy === 'sent_desc') return b.sent_count - a.sent_count
+                if (massAppealSortBy === 'failed_desc') return b.failed_count - a.failed_count
+                return 0
               })
               const byYear = {}
               searchedAppeals.forEach(a => {
