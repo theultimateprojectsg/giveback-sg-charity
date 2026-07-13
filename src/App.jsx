@@ -810,6 +810,8 @@ export default function App() {
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
+  const [pledgeDonationLinks, setPledgeDonationLinks] = useState({})
+  const [expandedPledgeId, setExpandedPledgeId] = useState(null)
   const [pledgeRescheduleHistory, setPledgeRescheduleHistory] = useState({})
   const [rescheduleModal, setRescheduleModal] = useState(null)
   const [rescheduleNewDate, setRescheduleNewDate] = useState('')
@@ -1350,13 +1352,16 @@ export default function App() {
     if (data && data.length > 0) {
       const { data: linkData } = await supabase
         .from('pledge_donations')
-        .select('pledge_id, amount_applied')
+        .select('pledge_id, donation_id, amount_applied, created_at')
         .in('pledge_id', data.map(p => p.id))
       const totals = {}
+      const links = {}
       ;(linkData || []).forEach(l => {
         totals[l.pledge_id] = (totals[l.pledge_id] || 0) + Number(l.amount_applied)
+        ;(links[l.pledge_id] = links[l.pledge_id] || []).push(l)
       })
       setPledgeGivenTotals(totals)
+      setPledgeDonationLinks(links)
 
       const { data: reminderData } = await supabase
         .from('pledge_reminders')
@@ -1983,13 +1988,14 @@ export default function App() {
 
     if (donationError) { showToast('Error recording donation', 'error'); return }
 
-    const { error: linkError } = await supabase.from('pledge_donations').insert({
+    const { data: linkData, error: linkError } = await supabase.from('pledge_donations').insert({
       pledge_id: pledge.id,
       donation_id: donationData.id,
       amount_applied: amount,
       created_by: session.user.email,
-    })
+    }).select().single()
     if (linkError) { showToast('Donation recorded, but error linking to pledge', 'error') }
+    else setPledgeDonationLinks(prev => ({ ...prev, [pledge.id]: [...(prev[pledge.id] || []), linkData] }))
 
     setDonations(prev => [donationData, ...prev])
     setPledgeGivenTotals(prev => ({ ...prev, [pledge.id]: (prev[pledge.id] || 0) + amount }))
@@ -3335,18 +3341,19 @@ export default function App() {
     const wouldReach = alreadyApplied + Number(donation.amount)
 
     // Link this donation to the pledge regardless of whether it completes it
-    const { error: linkError } = await supabase.from('pledge_donations').insert({
+    const { data: linkData, error: linkError } = await supabase.from('pledge_donations').insert({
       pledge_id: matchingPledge.id,
       donation_id: donation.id,
       amount_applied: donation.amount,
       created_by: session.user.email,
-    })
+    }).select().single()
     if (linkError) { console.error('Could not link donation to pledge:', linkError); return null }
 
     setPledgeGivenTotals(prev => ({
       ...prev,
       [matchingPledge.id]: (prev[matchingPledge.id] || 0) + Number(donation.amount)
     }))
+    setPledgeDonationLinks(prev => ({ ...prev, [matchingPledge.id]: [...(prev[matchingPledge.id] || []), linkData] }))
 
     if (wouldReach >= Number(matchingPledge.amount)) {
       return matchingPledge
@@ -3373,13 +3380,14 @@ export default function App() {
       return
     }
 
-    const { error: linkError } = await supabase.from('pledge_donations').insert({
+    const { data: linkData, error: linkError } = await supabase.from('pledge_donations').insert({
       pledge_id: pledge.id,
       donation_id: donation.id,
       amount_applied: donation.amount,
       created_by: session.user.email,
-    })
+    }).select().single()
     if (linkError) { showToast('Error linking donation to pledge', 'error'); setLinkingPledgeManually(false); return }
+    setPledgeDonationLinks(prev => ({ ...prev, [pledge.id]: [...(prev[pledge.id] || []), linkData] }))
 
     setPledgeGivenTotals(prev => ({
       ...prev,
@@ -5378,6 +5386,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     Object.values(m).forEach(list => list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
     return m
   }, [donations])
+
+  const donationsByPledge = React.useMemo(() => {
+    const m = {}
+    Object.entries(pledgeDonationLinks).forEach(([pledgeId, links]) => {
+      m[pledgeId] = links.map(l => {
+        const donation = donations.find(d => d.id === l.donation_id)
+        return { ...l, payment_status: donation?.payment_status }
+      }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    })
+    return m
+  }, [pledgeDonationLinks, donations])
 
   const grantSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -13976,10 +13995,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
                     )}
 
-                    <div style={{ marginBottom: 2 }}>
-                      <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${(p.is_multi_year ? pledgedAmount / p.total_years : pledgedAmount).toLocaleString()}</span>
-                      {p.is_multi_year && <span style={{ fontSize: 12, color: C.muted }}> / year</span>}
-                    </div>
+                    {(p.is_multi_year || p.status !== 'pending') && (
+                      <div style={{ marginBottom: 2 }}>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${(p.is_multi_year ? pledgedAmount / p.total_years : pledgedAmount).toLocaleString()}</span>
+                        {p.is_multi_year && <span style={{ fontSize: 12, color: C.muted }}> / year</span>}
+                      </div>
+                    )}
                     {p.is_multi_year && (
                       <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>${pledgedAmount.toLocaleString()} total over {p.total_years} years</div>
                     )}
@@ -14028,6 +14049,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {p.notes && ` · ${p.notes}`}
                     </div>
                     <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+
+                    {(donationsByPledge[p.id] || []).length > 0 && (
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
+                        {expandedPledgeId === p.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByPledge[p.id].length})`}
+                      </button>
+                    )}
+                    {expandedPledgeId === p.id && (
+                      <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                        {donationsByPledge[p.id].map((l, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                            <span style={{ color: C.text }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {l.payment_status}</span>}</span>
+                            <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {p.status === 'pending' && (pledgeReminderHistory[p.id] || []).length > 0 && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
