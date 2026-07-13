@@ -13599,9 +13599,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       )}
                       {isActive && (
                         <>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 Appeal</button>
                           <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 Appeal</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
                         </>
                       )}
                       {c.status === 'deleted' && (
@@ -14091,14 +14091,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                     {g.status === 'active' && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
                         {isLate && (
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
                         )}
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
                       </div>
                     )}
                     {g.status === 'paused' && (
@@ -14531,11 +14531,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                     {p.status === 'pending' && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
                         {(isOverdue || isDueSoon) && (
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
                         )}
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
                       </div>
                     )}
