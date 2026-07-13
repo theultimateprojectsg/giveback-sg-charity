@@ -5206,28 +5206,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth }
   }, [pledges, pledgeInstalments])
 
-  const pledgeSourceStats = React.useMemo(() => {
-    const sourceLabels = { event: 'Event', referral: 'Referral', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
-    const bySource = {}
-    pledges.forEach(p => {
-      const key = p.source || '__none__'
-      if (!bySource[key]) bySource[key] = { count: 0, amount: 0, fulfilled: 0, cancelled: 0 }
-      bySource[key].count += 1
-      bySource[key].amount += Number(p.amount)
-      if (p.status === 'fulfilled') bySource[key].fulfilled += 1
-      if (p.status === 'cancelled') bySource[key].cancelled += 1
-    })
-    const rows = Object.entries(bySource).map(([key, v]) => {
-      const resolved = v.fulfilled + v.cancelled
-      return {
-        key, label: key === '__none__' ? 'Not specified' : (sourceLabels[key] || key),
-        count: v.count, amount: v.amount,
-        fulfillmentRate: resolved > 0 ? Math.round((v.fulfilled / resolved) * 100) : null,
-      }
-    }).sort((a, b) => b.amount - a.amount)
-    return { rows }
-  }, [pledges])
-
   const recurringSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
     const statsForYear = (y) => {
@@ -11056,39 +11034,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {(() => {
                 const { yr, tiles } = pledgeSnapshotStats
-                return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
-                        ) : (
-                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
-                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
-                          </div>
-                        )}
+                const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
+                const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
+                const genericTile = (t) => (
+                  <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                    <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                    {t.d === null ? (
+                      <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                    ) : (
+                      <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                        {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )
-              })()}
-
-              {(() => {
-                const { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, multiYearCount, multiYearTotalCommitted, multiYearRemaining } = pledgeStatsAndTrend
-
                 return (
                   <>
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
-                          {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>pending pledges past their due date</div>
-                      </div>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      {genericTile(pledgesMadeTile)}
+                      {genericTile(amountPledgedTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
@@ -11101,6 +11066,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                       </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
+                          {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted }}>pending pledges past their due date</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      {genericTile(fulfilledTile)}
+                      {genericTile(fulfilledOnTimeTile)}
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
@@ -11110,123 +11088,93 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Multi-Year Commitments <InfoTip text="Total value still owed across active multi-year pledges — the unpaid instalments on commitments that span more than one year. This is future revenue you can count on, separate from what's already been received." /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${multiYearRemaining.toLocaleString()}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{multiYearCount > 0 ? `remaining across ${multiYearCount} pledge${multiYearCount !== 1 ? 's' : ''} · $${multiYearTotalCommitted.toLocaleString()} total committed` : 'no active multi-year pledges'}</div>
-                      </div>
-                    </div>
-
-                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                      <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
-                            <span style={{ fontSize: 12, color: '#27500A' }}>+ New pledges committed</span>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newPledgeValue).toLocaleString()}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
-                            <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
-                        </div>
-                        {netPledgeValue >= 0 ? (
-                          <ActionBanner tone="success" text="Net pledge value growing" sub={`New commitments are outpacing cancellations so far in ${yr}`} />
-                        ) : (
-                          <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
-                        )}
-                      </div>
-
-                      {(() => {
-                        const { rows } = pledgeSourceStats
-                        return (
-                          <div style={s.card}>
-                            <div style={s.analyticsCardTitle}>Pledges by Source <InfoTip text="How pledges were made, and how reliably each channel converts to a fulfilled pledge. Fulfillment rate is fulfilled ÷ (fulfilled + cancelled) — pending pledges aren't counted yet since their outcome isn't known." /></div>
-                            {rows.length === 0 ? (
-                              <div style={{ fontSize: 12.5, color: C.muted }}>No pledges recorded yet.</div>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {rows.map((r, i) => (
-                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: C.ivory, borderRadius: 4 }}>
-                                    <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
-                                    <span style={{ fontSize: 11, color: C.muted }}>{r.count} pledge{r.count !== 1 ? 's' : ''}</span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.forest, minWidth: 70, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
-                                    <span style={{ fontSize: 11, fontWeight: 500, minWidth: 60, textAlign: 'right', color: r.fulfillmentRate === null ? C.muted : r.fulfillmentRate >= 80 ? C.sage : r.fulfillmentRate >= 50 ? C.gold : C.red }}>{r.fulfillmentRate !== null ? `${r.fulfillmentRate}% kept` : '—'}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })()}
-                    </div>
-
-                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                      {trendData.length >= 2 && (
-                        <div style={s.card}>
-                          <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
-                          <ResponsiveContainer width="100%" height={140}>
-                            <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                              <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                              <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'pledged' ? 'Pledged' : 'Fulfilled']} />
-                              <Bar dataKey="pledged" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                              <Bar dataKey="fulfilled" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                          <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginTop: 8 }}>
-                            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />Fulfilled</span>
-                            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />Pledged</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Overdue Pledges <InfoTip text="Pending pledges (or unpaid instalments) whose expected date has passed, sorted by how overdue they are." /></div>
-                        {overdueUnits.length === 0 ? (
-                          <div style={{ fontSize: 12.5, color: C.muted }}>No overdue pledges right now.</div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {overdueUnits.slice(0, 5).map((u, i) => (
-                              <div key={i} style={{ padding: '9px 11px', background: '#FBEEE9', borderRadius: 4 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
-                                  <span style={{ fontSize: 12, fontWeight: 500, color: C.red }}>${u.amount.toLocaleString()}</span>
-                                </div>
-                                <div style={{ fontSize: 10.5, color: C.red }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
-                              </div>
-                            ))}
-                            {overdueUnits.length > 5 && (
-                              <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{overdueUnits.length - 5} more</div>
-                            )}
-                          </div>
-                        )}
-                        {overdueUnits.length > 0 ? (
-                          <ActionBanner tone="danger" text={`${overdueUnits.length} pledge${overdueUnits.length !== 1 ? 's' : ''} overdue`} sub={`$${overdueTotal.toLocaleString()} past due — send reminders or check in with these donors`} />
-                        ) : (
-                          <ActionBanner tone="success" text="No overdue pledges" sub="Everything outstanding is still within its expected date" />
-                        )}
-                      </div>
                     </div>
                   </>
+                )
+              })()}
+
+              {(() => {
+                const { yr, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue } = pledgeStatsAndTrend
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'pledged' ? 'Pledged' : 'Fulfilled']} />
+                            <Bar dataKey="pledged" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            <Bar dataKey="fulfilled" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginTop: 8 }}>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />Fulfilled</span>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />Pledged</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New pledges committed</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
+                      </div>
+                      {netPledgeValue >= 0 ? (
+                        <ActionBanner tone="success" text="Net pledge value growing" sub={`New commitments are outpacing cancellations so far in ${yr}`} />
+                      ) : (
+                        <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
+                      )}
+                    </div>
+                  </div>
                 )
               })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
+                const { overdueUnits, overdueTotal } = pledgeStatsAndTrend
 
                 return (
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
 
                     {lastYearPledges.length > 0 && (
                       <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearPledges.length} pledge{lastYearPledges.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} pledged{lastYearOnTimeRate !== null ? ` · ${lastYearOnTimeRate}% fulfilled on time` : ''}</div>
+                    )}
+
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Currently overdue</div>
+                    {overdueUnits.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No overdue pledges right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                        {overdueUnits.slice(0, 5).map((u, i) => (
+                          <div key={i} style={{ padding: '9px 11px', background: '#FBEEE9', borderRadius: 4 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: C.red }}>${u.amount.toLocaleString()}</span>
+                            </div>
+                            <div style={{ fontSize: 10.5, color: C.red }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
+                          </div>
+                        ))}
+                        {overdueUnits.length > 5 && (
+                          <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{overdueUnits.length - 5} more</div>
+                        )}
+                      </div>
                     )}
 
                     {fulfilledWithDates.length > 0 && (
