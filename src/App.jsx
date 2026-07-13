@@ -13635,7 +13635,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeCauses.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns yet — click "+ New Campaign" to get started.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {activeCauses.map(renderCard)}
                       </div>
                     )}
@@ -13651,7 +13651,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Past Campaigns ({pastCauses.length})
                       </div>
                       {showPastCampaigns && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {pastCauses.map(renderCard)}
                         </div>
                       )}
@@ -14122,7 +14122,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {active.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {active.map(renderRecurringCard)}
                       </div>
                     )}
@@ -14140,7 +14140,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       paused.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {paused.map(renderRecurringCard)}
                         </div>
                       )
@@ -14157,7 +14157,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledRecurring && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {cancelled.map(renderRecurringCard)}
                         </div>
                       )}
@@ -14603,7 +14603,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {outstanding.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {outstanding.map(renderPledgeCard)}
                       </div>
                     )}
@@ -14621,7 +14621,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       fulfilled.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {fulfilled.map(renderPledgeCard)}
                         </div>
                       )
@@ -14638,7 +14638,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledPledges && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                           {cancelled.map(renderPledgeCard)}
                         </div>
                       )}
@@ -14808,7 +14808,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontSize: 12, color: C.muted }}>({byYear[year].length} appeal{byYear[year].length !== 1 ? 's' : ''})</span>
                         </div>
                         {isExpanded && (
-                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                             {byYear[year].map(renderAppealCard)}
                           </div>
                         )}
