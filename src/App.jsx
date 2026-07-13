@@ -857,6 +857,9 @@ export default function App() {
   const [showPastCampaigns, setShowPastCampaigns] = useState(false)
   const [showPastGrants, setShowPastGrants] = useState(false)
   const [campaignYearFilter, setCampaignYearFilter] = useState('All')
+  const [campaignAmountFilter, setCampaignAmountFilter] = useState('All')
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState('All')
+  const [campaignSortBy, setCampaignSortBy] = useState('created_desc')
   const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
   const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
   const [showCancelledPledges, setShowCancelledPledges] = useState(false)
@@ -10728,6 +10731,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             })}
                           </div>
                         )}
+                        {(() => {
+                          const behindCount = campaignRows.filter(r => r.behind).length
+                          const withGoalCount = campaignRows.filter(r => r.hasGoal).length
+                          if (withGoalCount === 0) return null
+                          return behindCount > 0 ? (
+                            <ActionBanner tone="danger" text={`${behindCount} campaign${behindCount !== 1 ? 's' : ''} behind pace`} sub="Consider a mass appeal or check in with the campaign owner" />
+                          ) : (
+                            <ActionBanner tone="success" text="All campaigns on pace" sub={`${withGoalCount} campaign${withGoalCount !== 1 ? 's' : ''} tracking toward its goal`} />
+                          )
+                        })()}
                       </div>
 
                       <div>
@@ -13282,8 +13295,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
-                {(campaignSearchTerm !== '' || campaignYearFilter !== 'All') && (
-                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setCampaignSearchTerm(''); setCampaignYearFilter('All') }}>✕ Clear Filters</button>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={campaignAmountFilter} onChange={e => setCampaignAmountFilter(e.target.value)}>
+                  <option value="All">All goal sizes</option>
+                  <option value="Under 1000">Under $1,000</option>
+                  <option value="1000-5000">$1,000 – $5,000</option>
+                  <option value="5000-20000">$5,000 – $20,000</option>
+                  <option value="Over 20000">Over $20,000</option>
+                </select>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 150 }} value={campaignStatusFilter} onChange={e => setCampaignStatusFilter(e.target.value)}>
+                  <option value="All">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Live</option>
+                  <option value="completed">Ended / Completed</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+                <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={campaignSortBy} onChange={e => setCampaignSortBy(e.target.value)}>
+                  <option value="created_desc">Sort: Newest first</option>
+                  <option value="created_asc">Sort: Oldest first</option>
+                  <option value="raised_desc">Sort: Amount raised (high–low)</option>
+                  <option value="raised_asc">Sort: Amount raised (low–high)</option>
+                  <option value="ending_soon">Sort: Ending soonest</option>
+                  <option value="title_az">Sort: Title A–Z</option>
+                </select>
+                {(campaignSearchTerm !== '' || campaignYearFilter !== 'All' || campaignAmountFilter !== 'All' || campaignStatusFilter !== 'All') && (
+                  <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setCampaignSearchTerm(''); setCampaignYearFilter('All'); setCampaignAmountFilter('All'); setCampaignStatusFilter('All') }}>✕ Clear Filters</button>
                 )}
                 <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                   const q = campaignSearchTerm.toLowerCase().trim()
@@ -13291,7 +13327,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (c.type !== 'campaign') return false
                     const matchesSearch = !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
                     const matchesYear = campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
-                    return matchesSearch && matchesYear
+                    const amt = Number(c.target_amount) || 0
+                    const matchesAmt = campaignAmountFilter === 'All'
+                      || (campaignAmountFilter === 'Under 1000' && amt < 1000)
+                      || (campaignAmountFilter === '1000-5000' && amt >= 1000 && amt <= 5000)
+                      || (campaignAmountFilter === '5000-20000' && amt > 5000 && amt <= 20000)
+                      || (campaignAmountFilter === 'Over 20000' && amt > 20000)
+                    const matchesStatus = campaignStatusFilter === 'All' || c.status === campaignStatusFilter
+                    return matchesSearch && matchesYear && matchesAmt && matchesStatus
                   })
                   exportCampaignsExcel(filtered)
                 }}>⬇️ Export to Excel</button>
@@ -13302,9 +13345,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const q = campaignSearchTerm.toLowerCase().trim()
               const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
               const matchesYear = c => campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
+              const matchesAmt = c => {
+                const amt = Number(c.target_amount) || 0
+                return campaignAmountFilter === 'All'
+                  || (campaignAmountFilter === 'Under 1000' && amt < 1000)
+                  || (campaignAmountFilter === '1000-5000' && amt >= 1000 && amt <= 5000)
+                  || (campaignAmountFilter === '5000-20000' && amt > 5000 && amt <= 20000)
+                  || (campaignAmountFilter === 'Over 20000' && amt > 20000)
+              }
+              const matchesStatus = c => campaignStatusFilter === 'All' || c.status === campaignStatusFilter
+              const raisedFor = c => donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              const sortCauses = arr => [...arr].sort((a, b) => {
+                if (campaignSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
+                if (campaignSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
+                if (campaignSortBy === 'raised_desc') return raisedFor(b) - raisedFor(a)
+                if (campaignSortBy === 'raised_asc') return raisedFor(a) - raisedFor(b)
+                if (campaignSortBy === 'ending_soon') return new Date(a.end_date || '9999-12-31') - new Date(b.end_date || '9999-12-31')
+                if (campaignSortBy === 'title_az') return a.title.localeCompare(b.title)
+                return 0
+              })
               const isPast = c => c.status === 'rejected' || c.status === 'deleted' || c.status === 'completed' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
-              const activeCauses = myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c))
-              const pastCauses = myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c))
+              const activeCauses = sortCauses(myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c) && matchesAmt(c) && matchesStatus(c)))
+              const pastCauses = sortCauses(myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c) && matchesAmt(c) && matchesStatus(c)))
 
               const renderCard = c => {
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
@@ -13327,15 +13389,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{c.title}</div>
-                      <span style={
-                        c.status === 'approved' ? s.badgeIssued :
-                        c.status === 'completed' ? (goalMet ? s.badgeIssued : { ...s.badgePending, color: C.muted, background: C.ivory }) :
-                        c.status === 'rejected' ? { ...s.badgePending, color: C.red, background: '#FBEEE9' } :
-                        c.status === 'deleted' ? { ...s.badgePending, color: C.muted, background: C.ivory } :
-                        s.badgePending
-                      }>
-                        {c.status === 'approved' ? '✓ Live' : c.status === 'completed' ? (goalMet ? '✓ Goal Met!' : '◻ Ended') : c.status === 'rejected' ? '✕ Rejected' : c.status === 'deleted' ? '🗑 Deleted' : '⏳ Pending'}
-                      </span>
+                      {(() => {
+                        const campaignStatusMap = {
+                          approved: { bg: C.successBg, color: '#27500A', label: '✓ Live' },
+                          pending: { bg: C.warningBg, color: C.warning, label: '⏳ Pending' },
+                          rejected: { bg: '#FBEEE9', color: C.red, label: '✕ Rejected' },
+                          deleted: { bg: C.ivory, color: C.muted, label: '🗑 Deleted' },
+                          completed: goalMet ? { bg: C.successBg, color: '#27500A', label: '✓ Goal Met!' } : { bg: C.ivory, color: C.muted, label: '◻ Ended' },
+                        }
+                        const info = campaignStatusMap[c.status] || { bg: C.ivory, color: C.muted, label: c.status }
+                        return <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: info.bg, color: info.color, flexShrink: 0 }}>{info.label}</span>
+                      })()}
                     </div>
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
                     {c.target_amount > 0 && (
@@ -13385,24 +13449,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
                       Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
                       {c.status === 'pending' && (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => startEditCause(c)}>Edit</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => startEditCause(c)}>✏️ Edit</button>
                       )}
                       {isActive && (
                         <>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>Edit</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 Appeal</button>
-                          <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 Appeal</button>
+                          <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
                         </>
                       )}
-                      {c.status === 'deleted' ? (
+                      {c.status === 'deleted' && (
                         <>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
                         </>
-                      ) : (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                      )}
+                      {(c.status === 'completed' || c.status === 'rejected') && (
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
                     </div>
                   </div>
@@ -13475,6 +13540,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => { await submitCause(); setShowCampaignModal(false) }} disabled={savingCause}>{savingCause ? 'Saving...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Create Campaign')}</button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
+                    {causeForm.editingId && (
+                      <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => { deleteCause(causeForm.editingId); setShowCampaignModal(false) }}>✕ Delete Campaign</button>
+                    )}
                   </div>
                 </div>
               </div>
