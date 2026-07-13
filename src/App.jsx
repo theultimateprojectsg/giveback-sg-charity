@@ -1013,6 +1013,7 @@ export default function App() {
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
   const [pledgeReminderBody, setPledgeReminderBody] = useState('')
   const [sendingPledgeReminder, setSendingPledgeReminder] = useState(false)
+  const [pledgeReminderPreviewing, setPledgeReminderPreviewing] = useState(false)
 
   useEffect(() => {
     if (showPledgeReminderModal && pledgeReminderCandidate) {
@@ -1025,6 +1026,7 @@ export default function App() {
           ? `Just a friendly note — we haven't yet received your pledge of $${Number(p.amount).toLocaleString()}, which was expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n${charityName}`
           : `Just a friendly reminder that your pledge of $${Number(p.amount).toLocaleString()} is expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n${charityName}`
       )
+      setPledgeReminderPreviewing(false)
     }
   }, [showPledgeReminderModal, pledgeReminderCandidate])
   const [recurringGifts, setRecurringGifts] = useState([])
@@ -13853,7 +13855,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }}>⬇️ Export to Excel</button>
             </div>
 
-            {showPledgeReminderModal && pledgeReminderCandidate && (
+            {showPledgeReminderModal && pledgeReminderCandidate && !pledgeReminderPreviewing && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Send pledge reminder</div>
@@ -13867,11 +13869,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeReminderBody} onChange={e => setPledgeReminderBody(e.target.value)} />
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeReminder || !pledgeReminderCandidate.donor_email} onClick={sendPledgeReminder}>
-                      {sendingPledgeReminder ? 'Sending...' : '✓ Send reminder'}
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeReminderCandidate.donor_email} onClick={() => setPledgeReminderPreviewing(true)}>
+                      Preview email →
                     </button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>
                       Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showPledgeReminderModal && pledgeReminderCandidate && pledgeReminderPreviewing && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
+                  <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} />
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{pledgeReminderSubject}</div>
+                    <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pledgeReminderBody}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeReminder} onClick={sendPledgeReminder}>
+                      {sendingPledgeReminder ? 'Sending...' : '✓ Send reminder'}
+                    </button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setPledgeReminderPreviewing(false)}>
+                      ← Back to edit
                     </button>
                   </div>
                 </div>
