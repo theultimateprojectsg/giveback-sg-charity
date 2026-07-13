@@ -5082,6 +5082,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cancelledCount = scopedPledgesForYr.filter(p => p.status === 'cancelled').length
     const cancellationRate = scopedPledgesForYr.length > 0 ? Math.round((cancelledCount / scopedPledgesForYr.length) * 100) : 0
 
+    // New pledges are scoped by when they were made (created_at); cancelled value is scoped
+    // by expected year (same as cancellationRate above) since pledges have no cancelled_at
+    // timestamp to scope by when the cancellation actually happened.
+    const newPledgesThisYear = pledges.filter(p => fyOf(p.created_at) === yr)
+    const newPledgeValue = newPledgesThisYear.reduce((s, p) => s + Number(p.amount), 0)
+    const cancelledPledgeValue = scopedPledgesForYr.filter(p => p.status === 'cancelled').reduce((s, p) => s + Number(p.amount), 0)
+    const netPledgeValue = newPledgeValue - cancelledPledgeValue
+
+    const activeMultiYearPledges = pledges.filter(p => p.is_multi_year && p.status === 'pending')
+    const multiYearCount = activeMultiYearPledges.length
+    const multiYearTotalCommitted = activeMultiYearPledges.reduce((s, p) => s + Number(p.amount), 0)
+    const multiYearRemaining = activeMultiYearPledges.reduce((s, p) => {
+      return s + pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s2, i) => s2 + Number(i.amount), 0)
+    }, 0)
+
     const pledgeDonorKey = (p) => p.donor_email?.trim() || p.donor_name
     const pledgeCountByDonor = {}
     pledges.forEach(p => {
@@ -5101,7 +5116,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
     })
 
-    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData }
+    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, multiYearCount, multiYearTotalCommitted, multiYearRemaining }
   }, [filterYear, pledges, pledgeInstalments, fyOf])
 
   const pledgeReliabilityStats = React.useMemo(() => {
@@ -5150,13 +5165,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const pledgeConcentrationStats = React.useMemo(() => {
     const outstandingUnits = []
     pledges.filter(p => p.status === 'pending').forEach(p => {
+      const donorKey = p.donor_email?.trim() || p.donor_name
       if (p.is_multi_year) {
         const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received)
         myInstalments.forEach(inst => {
-          outstandingUnits.push({ donor_name: p.donor_name, amount: Number(inst.amount), expected_date: inst.expected_date, pledge_id: p.id })
+          outstandingUnits.push({ donor_name: p.donor_name, donorKey, amount: Number(inst.amount), expected_date: inst.expected_date, pledge_id: p.id })
         })
       } else {
-        outstandingUnits.push({ donor_name: p.donor_name, amount: Number(p.amount), expected_date: p.expected_date, pledge_id: p.id })
+        outstandingUnits.push({ donor_name: p.donor_name, donorKey, amount: Number(p.amount), expected_date: p.expected_date, pledge_id: p.id })
       }
     })
 
@@ -5164,10 +5180,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const byDonorOutstanding = {}
     outstandingUnits.forEach(u => {
-      if (!byDonorOutstanding[u.donor_name]) byDonorOutstanding[u.donor_name] = 0
-      byDonorOutstanding[u.donor_name] += u.amount
+      if (!byDonorOutstanding[u.donorKey]) byDonorOutstanding[u.donorKey] = { name: u.donor_name, amount: 0 }
+      byDonorOutstanding[u.donorKey].amount += u.amount
     })
-    const donorRanked = Object.entries(byDonorOutstanding).map(([name, amount]) => ({
+    const donorRanked = Object.values(byDonorOutstanding).map(({ name, amount }) => ({
       name, amount, pct: totalOutstanding > 0 ? Math.round((amount / totalOutstanding) * 100) : 0,
     })).sort((a, b) => b.amount - a.amount)
 
@@ -5189,6 +5205,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     return { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth }
   }, [pledges, pledgeInstalments])
+
+  const pledgeSourceStats = React.useMemo(() => {
+    const sourceLabels = { event: 'Event', referral: 'Referral', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+    const bySource = {}
+    pledges.forEach(p => {
+      const key = p.source || '__none__'
+      if (!bySource[key]) bySource[key] = { count: 0, amount: 0, fulfilled: 0, cancelled: 0 }
+      bySource[key].count += 1
+      bySource[key].amount += Number(p.amount)
+      if (p.status === 'fulfilled') bySource[key].fulfilled += 1
+      if (p.status === 'cancelled') bySource[key].cancelled += 1
+    })
+    const rows = Object.entries(bySource).map(([key, v]) => {
+      const resolved = v.fulfilled + v.cancelled
+      return {
+        key, label: key === '__none__' ? 'Not specified' : (sourceLabels[key] || key),
+        count: v.count, amount: v.amount,
+        fulfillmentRate: resolved > 0 ? Math.round((v.fulfilled / resolved) * 100) : null,
+      }
+    }).sort((a, b) => b.amount - a.amount)
+    return { rows }
+  }, [pledges])
 
   const recurringSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -11038,7 +11076,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData } = pledgeStatsAndTrend
+                const { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, multiYearCount, multiYearTotalCommitted, multiYearRemaining } = pledgeStatsAndTrend
 
                 return (
                   <>
@@ -11072,6 +11110,59 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Multi-Year Commitments <InfoTip text="Total value still owed across active multi-year pledges — the unpaid instalments on commitments that span more than one year. This is future revenue you can count on, separate from what's already been received." /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${multiYearRemaining.toLocaleString()}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{multiYearCount > 0 ? `remaining across ${multiYearCount} pledge${multiYearCount !== 1 ? 's' : ''} · $${multiYearTotalCommitted.toLocaleString()} total committed` : 'no active multi-year pledges'}</div>
+                      </div>
+                    </div>
+
+                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: '#27500A' }}>+ New pledges committed</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
+                        </div>
+                        {netPledgeValue >= 0 ? (
+                          <ActionBanner tone="success" text="Net pledge value growing" sub={`New commitments are outpacing cancellations so far in ${yr}`} />
+                        ) : (
+                          <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
+                        )}
+                      </div>
+
+                      {(() => {
+                        const { rows } = pledgeSourceStats
+                        return (
+                          <div style={s.card}>
+                            <div style={s.analyticsCardTitle}>Pledges by Source <InfoTip text="How pledges were made, and how reliably each channel converts to a fulfilled pledge. Fulfillment rate is fulfilled ÷ (fulfilled + cancelled) — pending pledges aren't counted yet since their outcome isn't known." /></div>
+                            {rows.length === 0 ? (
+                              <div style={{ fontSize: 12.5, color: C.muted }}>No pledges recorded yet.</div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {rows.map((r, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: C.ivory, borderRadius: 4 }}>
+                                    <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
+                                    <span style={{ fontSize: 11, color: C.muted }}>{r.count} pledge{r.count !== 1 ? 's' : ''}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.forest, minWidth: 70, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                                    <span style={{ fontSize: 11, fontWeight: 500, minWidth: 60, textAlign: 'right', color: r.fulfillmentRate === null ? C.muted : r.fulfillmentRate >= 80 ? C.sage : r.fulfillmentRate >= 50 ? C.gold : C.red }}>{r.fulfillmentRate !== null ? `${r.fulfillmentRate}% kept` : '—'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
 
                     <div style={isMobile ? s.twoColMobile : s.twoCol}>
