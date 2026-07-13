@@ -869,6 +869,7 @@ export default function App() {
   const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
   const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
   const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
+  const [pledgeThankYouPreviewing, setPledgeThankYouPreviewing] = useState(false)
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
   const [pledgeDonationLinks, setPledgeDonationLinks] = useState({})
   const [expandedPledgeId, setExpandedPledgeId] = useState(null)
@@ -927,6 +928,7 @@ export default function App() {
   const [lapsedReminderSubject, setLapsedReminderSubject] = useState('')
   const [lapsedReminderBody, setLapsedReminderBody] = useState('')
   const [sendingLapsedReminder, setSendingLapsedReminder] = useState(false)
+  const [lapsedReminderPreviewing, setLapsedReminderPreviewing] = useState(false)
   const [lapsedReminderHistory, setLapsedReminderHistory] = useState({})
   const [lapsedDismissals, setLapsedDismissals] = useState({})
   const [showLapsedDismissModal, setShowLapsedDismissModal] = useState(null)
@@ -1039,6 +1041,7 @@ export default function App() {
           `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
         )
       }
+      setLapsedReminderPreviewing(false)
     }
   }, [showLapsedReminderModal, lapsedReminderCandidate])
   const [skipCycleModal, setSkipCycleModal] = useState(null)
@@ -1235,6 +1238,7 @@ export default function App() {
       setPledgeThankYouBody(
         `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
       )
+      setPledgeThankYouPreviewing(false)
     }
   }, [showPledgeThankYouModal, pledgeCompletionCandidate])
 
@@ -14292,7 +14296,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-            {showPledgeThankYouModal && pledgeCompletionCandidate && (
+            {showPledgeThankYouModal && pledgeCompletionCandidate && !pledgeThankYouPreviewing && (
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>🎉 Pledge completed</div>
@@ -14308,11 +14312,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeThankYouBody} onChange={e => setPledgeThankYouBody(e.target.value)} />
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeThankYou} onClick={sendPledgeThankYou}>
-                      {sendingPledgeThankYou ? 'Sending...' : '✓ Mark fulfilled & send'}
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeCompletionCandidate.donation.donor_email} onClick={() => setPledgeThankYouPreviewing(true)}>
+                      Preview email →
                     </button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={skipPledgeThankYou}>
                       Skip — just mark fulfilled
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showPledgeThankYouModal && pledgeCompletionCandidate && pledgeThankYouPreviewing && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
+                  <SenderIdentityLine recipientName={pledgeCompletionCandidate.donation.donor_name} recipientEmail={pledgeCompletionCandidate.donation.donor_email} />
+                  <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{pledgeThankYouSubject}</div>
+                    <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pledgeThankYouBody}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingPledgeThankYou} onClick={sendPledgeThankYou}>
+                      {sendingPledgeThankYou ? 'Sending...' : '✓ Mark fulfilled & send'}
+                    </button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setPledgeThankYouPreviewing(false)}>
+                      ← Back to edit
                     </button>
                   </div>
                 </div>
@@ -15814,7 +15839,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {showLapsedReminderModal && lapsedReminderCandidate && (
+      {showLapsedReminderModal && lapsedReminderCandidate && !lapsedReminderPreviewing && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>{lapsedReminderCandidate.givingChangeMeta ? 'Check in about decreased giving' : 'Reach out to a lapsed donor'}</div>
@@ -15833,11 +15858,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={lapsedReminderBody} onChange={e => setLapsedReminderBody(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingLapsedReminder || !lapsedReminderCandidate.email} onClick={sendLapsedReminder}>
-                {sendingLapsedReminder ? 'Sending...' : '✓ Send message'}
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!lapsedReminderCandidate.email} onClick={() => setLapsedReminderPreviewing(true)}>
+                Preview email →
               </button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLapsedReminderModal && lapsedReminderCandidate && lapsedReminderPreviewing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
+            <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{lapsedReminderSubject}</div>
+              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{lapsedReminderBody}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingLapsedReminder} onClick={sendLapsedReminder}>
+                {sendingLapsedReminder ? 'Sending...' : '✓ Send message'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setLapsedReminderPreviewing(false)}>
+                ← Back to edit
               </button>
             </div>
           </div>
