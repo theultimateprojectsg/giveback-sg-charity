@@ -901,6 +901,9 @@ export default function App() {
   const [appealRecipients, setAppealRecipients] = useState([])
   const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
   const [retryingAppealRecipients, setRetryingAppealRecipients] = useState(false)
+  const [retryPreviewList, setRetryPreviewList] = useState(null)
+  const [appealRecipientSearchTerm, setAppealRecipientSearchTerm] = useState('')
+  const [appealRecipientStatusFilter, setAppealRecipientStatusFilter] = useState('All')
   const [showMassAppealModal, setShowMassAppealModal] = useState(false)
   const [donorContacts, setDonorContacts] = useState([])
   const [showAddDonorModal, setShowAddDonorModal] = useState(false)
@@ -942,6 +945,8 @@ export default function App() {
   async function openAppealDetail(appeal) {
     setSelectedAppealDetail(appeal)
     setLoadingAppealDetail(true)
+    setAppealRecipientSearchTerm('')
+    setAppealRecipientStatusFilter('All')
     const { data, error } = await supabase
       .from('mass_appeal_recipients')
       .select('*')
@@ -3272,14 +3277,13 @@ export default function App() {
     showToast(`Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
   }
 
-  async function retryFailedAppealRecipients(appeal) {
-    const failedRecipients = appealRecipients.filter(r => r.status === 'failed')
-    if (failedRecipients.length === 0) return
+  async function retryAppealRecipients(appeal, recipientsToRetry) {
+    if (recipientsToRetry.length === 0) return
     setRetryingAppealRecipients(true)
     let retriedSent = 0
     let retriedFailed = 0
 
-    for (const recipient of failedRecipients) {
+    for (const recipient of recipientsToRetry) {
       const qrValue = `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${recipient.amount}&ref=${recipient.payment_ref}`
       const { error } = await sendCharityEmail({
         type: 'mass_appeal',
@@ -3315,7 +3319,8 @@ export default function App() {
     }
 
     setRetryingAppealRecipients(false)
-    showToast(`Retried ${failedRecipients.length} — ${retriedSent} sent${retriedFailed > 0 ? `, ${retriedFailed} still failed` : ''}`)
+    setRetryPreviewList(null)
+    showToast(`Retried ${recipientsToRetry.length} — ${retriedSent} sent${retriedFailed > 0 ? `, ${retriedFailed} still failed` : ''}`)
   }
 
   async function downloadMassAppealQRZip() {
@@ -15818,7 +15823,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {selectedAppealDetail && (
+      {selectedAppealDetail && !retryPreviewList && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setSelectedAppealDetail(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 600, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${C.border}` }}>
@@ -15836,6 +15841,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {selectedAppealDetail.message}
                 </div>
               )}
+              {(() => {
+                const sentN = appealRecipients.filter(r => r.status === 'sent').length
+                const failedN = appealRecipients.filter(r => r.status === 'failed').length
+                const blockedN = appealRecipients.filter(r => r.status === 'blocked').length
+                return (
+                  <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 12 }}>
+                    <span style={{ color: C.sage, fontWeight: 500 }}>{sentN} sent</span>
+                    {failedN > 0 && <span style={{ color: C.red, fontWeight: 500 }}>{failedN} failed</span>}
+                    {blockedN > 0 && <span style={{ color: C.gold, fontWeight: 500 }}>{blockedN} blocked</span>}
+                    <span style={{ color: C.muted }}>{appealRecipients.length} total</span>
+                  </div>
+                )
+              })()}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
                   style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }}
@@ -15854,38 +15872,92 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {appealRecipients.filter(r => r.status === 'failed').length > 0 && (
                   <button
                     style={{ ...s.viewBtn, flex: 1, justifyContent: 'center', color: C.red, borderColor: C.red }}
-                    disabled={retryingAppealRecipients}
-                    onClick={() => retryFailedAppealRecipients(selectedAppealDetail)}
+                    onClick={() => setRetryPreviewList(appealRecipients.filter(r => r.status === 'failed'))}
                   >
-                    {retryingAppealRecipients ? 'Retrying...' : `🔁 Retry ${appealRecipients.filter(r => r.status === 'failed').length} Failed`}
+                    🔁 Retry {appealRecipients.filter(r => r.status === 'failed').length} Failed
                   </button>
                 )}
               </div>
             </div>
-            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+            <div style={{ padding: '16px 24px 8px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input style={{ ...s.searchBox, flex: 1, minWidth: 160 }} placeholder="🔍 Search recipients..." value={appealRecipientSearchTerm} onChange={e => setAppealRecipientSearchTerm(e.target.value)} />
+              <select style={{ ...s.formInput, width: 140 }} value={appealRecipientStatusFilter} onChange={e => setAppealRecipientStatusFilter(e.target.value)}>
+                <option value="All">All statuses</option>
+                <option value="sent">Sent</option>
+                <option value="failed">Failed</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+            <div style={{ padding: '8px 24px 16px', overflowY: 'auto', flex: 1 }}>
               {loadingAppealDetail ? (
                 <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Loading recipients...</div>
               ) : appealRecipients.length === 0 ? (
                 <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No recipient details available for this appeal.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {appealRecipients.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.ivory, borderRadius: 4 }}>
-                      <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
+              ) : (() => {
+                const q = appealRecipientSearchTerm.toLowerCase().trim()
+                const filteredRecipients = appealRecipients.filter(r => {
+                  const matchesSearch = !q || [r.donor_name, r.donor_email].some(f => f?.toLowerCase().includes(q))
+                  const matchesStatus = appealRecipientStatusFilter === 'All' || r.status === appealRecipientStatusFilter
+                  return matchesSearch && matchesStatus
+                })
+                if (filteredRecipients.length === 0) {
+                  return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No recipients match your search or filter.</div>
+                }
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {filteredRecipients.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: r.donor_name, email: r.donor_email, total: 0, count: 0, receipts: 0 }); setActiveTab('donors') }}>
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            fontSize: 10.5, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
+                            color: r.status === 'sent' ? C.sage : r.status === 'blocked' ? C.gold : C.red,
+                            background: r.status === 'sent' ? '#EAF3EC' : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
+                          }}>
+                            {r.status === 'sent' ? '✓ Sent' : r.status === 'blocked' ? '🚫 Blocked' : '✕ Failed'}
+                          </span>
+                          {r.status === 'failed' && (
+                            <span style={{ fontSize: 11, color: C.red, textDecoration: 'underline', cursor: 'pointer' }} onClick={e => { e.stopPropagation(); setRetryPreviewList([r]) }}>↺ Retry</span>
+                          )}
+                        </div>
                       </div>
-                      <span style={{
-                        fontSize: 10.5, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
-                        color: r.status === 'sent' ? C.sage : r.status === 'blocked' ? C.gold : C.red,
-                        background: r.status === 'sent' ? '#EAF3EC' : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
-                      }}>
-                        {r.status === 'sent' ? '✓ Sent' : r.status === 'blocked' ? '🚫 Blocked' : '✕ Failed'}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {retryPreviewList && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !retryingAppealRecipients && setRetryPreviewList(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Retry {retryPreviewList.length} recipient{retryPreviewList.length !== 1 ? 's' : ''}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>The same message and QR code will be resent to:</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16, maxHeight: 200, overflowY: 'auto' }}>
+              {retryPreviewList.map((r, i) => (
+                <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
                 </div>
-              )}
+              ))}
+            </div>
+            {selectedAppealDetail?.message && (
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+                <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedAppealDetail.message}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={retryingAppealRecipients} onClick={() => retryAppealRecipients(selectedAppealDetail, retryPreviewList)}>
+                {retryingAppealRecipients ? 'Sending...' : '✓ Confirm Retry'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={retryingAppealRecipients} onClick={() => setRetryPreviewList(null)}>
+                ← Back
+              </button>
             </div>
           </div>
         </div>
