@@ -900,6 +900,7 @@ export default function App() {
   const [selectedAppealDetail, setSelectedAppealDetail] = useState(null)
   const [appealRecipients, setAppealRecipients] = useState([])
   const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
+  const [retryingAppealRecipients, setRetryingAppealRecipients] = useState(false)
   const [showMassAppealModal, setShowMassAppealModal] = useState(false)
   const [donorContacts, setDonorContacts] = useState([])
   const [showAddDonorModal, setShowAddDonorModal] = useState(false)
@@ -3262,6 +3263,50 @@ export default function App() {
     setMassAppealStep('done')
     setMassAppealProgress(null)
     showToast(`Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
+  }
+
+  async function retryFailedAppealRecipients(appeal) {
+    const failedRecipients = appealRecipients.filter(r => r.status === 'failed')
+    if (failedRecipients.length === 0) return
+    setRetryingAppealRecipients(true)
+    let retriedSent = 0
+    let retriedFailed = 0
+
+    for (const recipient of failedRecipients) {
+      const qrValue = `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${recipient.amount}&ref=${recipient.payment_ref}`
+      const { error } = await sendCharityEmail({
+        type: 'mass_appeal',
+        donor_name: recipient.donor_name,
+        donor_email: recipient.donor_email,
+        charity_name: charityName,
+        charity_uen: charityUen,
+        amount: recipient.amount,
+        payment_ref: recipient.payment_ref,
+        cause_title: appeal.cause_name,
+        custom_message: appeal.message
+          ? appeal.message.replace(/\[name\]/gi, recipient.donor_name?.split(' ')[0] || 'there')
+          : null,
+        paynow_url: qrValue,
+      })
+      const newStatus = error ? 'failed' : 'sent'
+      if (error) retriedFailed++; else retriedSent++
+      await supabase.from('mass_appeal_recipients').update({ status: newStatus, error_message: error?.message || null }).eq('id', recipient.id)
+    }
+
+    const { data: refreshedRecipients } = await supabase.from('mass_appeal_recipients').select('*').eq('appeal_id', appeal.id).order('created_at', { ascending: true })
+    setAppealRecipients(refreshedRecipients || [])
+
+    const { data: updatedAppeal } = await supabase.from('mass_appeals').update({
+      sent_count: appeal.sent_count + retriedSent,
+      failed_count: appeal.failed_count - retriedSent,
+    }).eq('id', appeal.id).select()
+    if (updatedAppeal?.[0]) {
+      setMassAppeals(prev => prev.map(a => a.id === appeal.id ? updatedAppeal[0] : a))
+      setSelectedAppealDetail(updatedAppeal[0])
+    }
+
+    setRetryingAppealRecipients(false)
+    showToast(`Retried ${failedRecipients.length} — ${retriedSent} sent${retriedFailed > 0 ? `, ${retriedFailed} still failed` : ''}`)
   }
 
   async function downloadMassAppealQRZip() {
@@ -6348,11 +6393,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Donors Targeted': a.donor_count,
       'Sent': a.sent_count,
       'Failed': a.failed_count,
+      'Status': a.status === 'sending' ? 'Sending' : a.failed_count > 0 ? 'Partial' : 'Sent',
       'Sent By': a.created_by,
     }))
     if (rows.length === 0) { showToast('No appeals to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 14 }, { wch: 25 }, { wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 24 }]
+    ws['!cols'] = [{ wch: 14 }, { wch: 25 }, { wch: 18 }, { wch: 40 }, { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 24 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Mass Appeals')
     XLSX.writeFile(wb, `GivingTree-MassAppeals-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -14495,7 +14541,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {massAppealStep === 'setup' ? 'New Appeal' : massAppealStep === 'preview' && !massAppealProgress ? `${massAppealRefs.filter(r => r.selected).length} donors selected` : massAppealProgress ? 'Sending appeals...' : 'Appeal sent'}
                     </div>
                     {!massAppealProgress && (
-                      <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>✕</span>
+                      <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>✕</button>
                     )}
                   </div>
 
@@ -14570,9 +14616,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {/* Preview step */}
                   {massAppealStep === 'preview' && !massAppealProgress && (
                     <div style={{ marginTop: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: true })))}>Select All</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: false })))}>Deselect All</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealStep('setup')}>← Back to edit</button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: true })))}>Select All</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => setMassAppealRefs(prev => prev.map(r => ({ ...r, selected: false })))}>Deselect All</button>
+                        </div>
                       </div>
                       <div style={{ maxHeight: 320, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 6, marginBottom: 16 }}>
                         {massAppealRefs.map((r, i) => (
@@ -15771,27 +15820,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {new Date(selectedAppealDetail.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · SGD ${Number(selectedAppealDetail.amount).toLocaleString()} default
                   </div>
                 </div>
-                <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => setSelectedAppealDetail(null)}>✕</span>
+                <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setSelectedAppealDetail(null)}>✕</button>
               </div>
               {selectedAppealDetail.message && (
                 <div style={{ marginTop: 12, padding: 12, background: C.ivory, borderRadius: 6, fontSize: 12.5, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                   {selectedAppealDetail.message}
                 </div>
               )}
-              <button
-                style={{ ...s.viewBtn, marginTop: 12, width: '100%', justifyContent: 'center' }}
-                onClick={() => {
-                  setMassAppealForm({
-                    cause_id: selectedAppealDetail.cause_id || '',
-                    amount: String(selectedAppealDetail.amount || ''),
-                    message: selectedAppealDetail.message || '',
-                  })
-                  setMassAppealStep('setup')
-                  setMassAppealRefs([])
-                  setSelectedAppealDetail(null)
-                  setShowMassAppealModal(true)
-                }}
-              >📋 Clone this Appeal</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button
+                  style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }}
+                  onClick={() => {
+                    setMassAppealForm({
+                      cause_id: selectedAppealDetail.cause_id || '',
+                      amount: String(selectedAppealDetail.amount || ''),
+                      message: selectedAppealDetail.message || '',
+                    })
+                    setMassAppealStep('setup')
+                    setMassAppealRefs([])
+                    setSelectedAppealDetail(null)
+                    setShowMassAppealModal(true)
+                  }}
+                >📋 Clone this Appeal</button>
+                {appealRecipients.filter(r => r.status === 'failed').length > 0 && (
+                  <button
+                    style={{ ...s.viewBtn, flex: 1, justifyContent: 'center', color: C.red, borderColor: C.red }}
+                    disabled={retryingAppealRecipients}
+                    onClick={() => retryFailedAppealRecipients(selectedAppealDetail)}
+                  >
+                    {retryingAppealRecipients ? 'Retrying...' : `🔁 Retry ${appealRecipients.filter(r => r.status === 'failed').length} Failed`}
+                  </button>
+                )}
+              </div>
             </div>
             <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
               {loadingAppealDetail ? (
@@ -15835,7 +15895,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div>
                   <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>Email Preview — showing as {sampleDonor?.donor_name || 'a sample donor'} would see it</div>
-                    <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => setShowAppealPreview(false)}>✕</span>
+                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setShowAppealPreview(false)}>✕</button>
                   </div>
                   <div style={{ padding: 24, background: C.ivory }}>
                     <div style={{ background: C.forest, borderRadius: 12, padding: 24, textAlign: 'center', marginBottom: 16 }}>
