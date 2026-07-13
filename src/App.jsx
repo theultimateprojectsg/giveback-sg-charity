@@ -130,6 +130,10 @@ function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
   return { start, end }
 }
 
+const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'Social & Welfare', 'Arts & Heritage', 'Sports', 'Environment', 'Advancement of Religion', 'Others']
+
+const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
+
 function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
@@ -1139,7 +1143,7 @@ export default function App() {
   const [auditDateFilter, setAuditDateFilter] = useState('30')
   const [myCauses, setMyCauses] = useState([])
   const [showCauseForm, setShowCauseForm] = useState(false)
-  const [causeForm, setCauseForm] = useState({ title: '', description: '', target_amount: '', end_date: '', cost: '' })
+  const [causeForm, setCauseForm] = useState(EMPTY_CAUSE_FORM)
   const [causeError, setCauseError] = useState('')
   const [savingCause, setSavingCause] = useState(false)
   const [showSponsoredForm, setShowSponsoredForm] = useState(false)
@@ -2755,7 +2759,21 @@ export default function App() {
   }
 
   function startEditCause(c) {
-    setCauseForm({ title: c.title, description: c.description, target_amount: c.target_amount?.toString() || '', end_date: c.end_date || '', cost: c.cost?.toString() || '', editingId: c.id })
+    setCauseForm({
+      title: c.title,
+      description: c.description,
+      target_amount: c.target_amount?.toString() || '',
+      start_date: c.start_date || '',
+      end_date: c.end_date || '',
+      cost: c.cost?.toString() || '',
+      category: c.category || '',
+      tax_deductible: c.tax_deductible !== false,
+      benefit_value: c.benefit_value?.toString() || '',
+      permit_number: c.permit_number || '',
+      permit_status: c.permit_status || 'not_required',
+      permit_expiry: c.permit_expiry || '',
+      editingId: c.id,
+    })
     setShowCampaignModal(true)
   }
 
@@ -2774,8 +2792,15 @@ export default function App() {
         title: causeForm.title,
         description: causeForm.description,
         target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
+        start_date: causeForm.start_date || null,
         end_date: causeForm.end_date || null,
         cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
+        category: causeForm.category || null,
+        tax_deductible: charityIsIpc ? causeForm.tax_deductible : false,
+        benefit_value: causeForm.benefit_value ? parseFloat(causeForm.benefit_value) : 0,
+        permit_number: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_number || null),
+        permit_status: causeForm.permit_status,
+        permit_expiry: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_expiry || null),
       }).eq('id', causeForm.editingId)
       setSavingCause(false)
       if (error) { setCauseError(`Error: ${error.message}`); return }
@@ -2785,7 +2810,7 @@ export default function App() {
         action: 'cause_edited',
         details: { title: causeForm.title, charity_uen: charityUen },
       })
-      setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
+      setCauseForm(EMPTY_CAUSE_FORM)
       setShowCauseForm(false)
       loadMyCauses()
       showToast('Submission updated ✓')
@@ -2798,8 +2823,15 @@ export default function App() {
       charity_name: charityName,
       charity_uen: charityUen,
       target_amount: causeForm.target_amount ? parseFloat(causeForm.target_amount) : null,
+      start_date: causeForm.start_date || null,
       end_date: causeForm.end_date || null,
       cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
+      category: causeForm.category || null,
+      tax_deductible: charityIsIpc ? causeForm.tax_deductible : false,
+      benefit_value: causeForm.benefit_value ? parseFloat(causeForm.benefit_value) : 0,
+      permit_number: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_number || null),
+      permit_status: causeForm.permit_status,
+      permit_expiry: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_expiry || null),
       type: 'campaign',
       status: 'approved',
       active: true,
@@ -2812,7 +2844,7 @@ export default function App() {
       action: 'cause_created',
       details: { title: causeForm.title, charity_uen: charityUen },
     })
-    setCauseForm({ title: '', description: '', target_amount: '', end_date: '' })
+    setCauseForm(EMPTY_CAUSE_FORM)
     setShowCauseForm(false)
     loadMyCauses()
     showToast('Cause submitted for approval ✓')
@@ -6386,16 +6418,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return {
         'Title': c.title,
         'Description': c.description || '',
+        'Category': c.category || '',
         'Status': c.status.charAt(0).toUpperCase() + c.status.slice(1),
         'Target Amount (SGD)': c.target_amount || '',
         'Raised (SGD)': raised,
-        'Created': new Date(c.created_at).toLocaleDateString('en-SG'),
+        'Start Date': c.start_date ? new Date(c.start_date).toLocaleDateString('en-SG') : '',
         'End Date': c.end_date ? new Date(c.end_date).toLocaleDateString('en-SG') : '',
+        'Created': new Date(c.created_at).toLocaleDateString('en-SG'),
+        'Tax-Deductible': charityIsIpc ? (c.tax_deductible === false ? 'No' : 'Yes') : 'N/A (non-IPC)',
+        'Benefit Value per Gift (SGD)': c.benefit_value || '',
+        'Permit Status': c.permit_status === 'obtained' ? 'Obtained' : c.permit_status === 'pending' ? 'Pending' : 'Not required',
+        'Permit Number': c.permit_number || '',
+        'Permit Expiry': c.permit_expiry ? new Date(c.permit_expiry).toLocaleDateString('en-SG') : '',
       }
     })
     if (rows.length === 0) { showToast('No campaigns to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 30 }, { wch: 45 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }]
+    ws['!cols'] = [{ wch: 30 }, { wch: 45 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 18 }, { wch: 14 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Campaigns')
     XLSX.writeFile(wb, `GivingTree-Campaigns-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -13283,7 +13322,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Campaigns</div>
                 <div style={s.pageSub}>{myCauses.filter(c => c.type === 'campaign').length} campaign{myCauses.filter(c => c.type === 'campaign').length !== 1 ? 's' : ''} · Trackable goals for Mass Appeal and manual donations</div>
               </div>
-              <button style={s.btnGold} onClick={() => { setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }); setShowCampaignModal(true) }}>+ New Campaign</button>
+              <button style={s.btnGold} onClick={() => { setCauseForm(EMPTY_CAUSE_FORM); setShowCampaignModal(true) }}>+ New Campaign</button>
             </div>
 
             {myCauses.length > 0 && (
@@ -13379,8 +13418,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 let behindPace = false
                 if (isActive && c.target_amount > 0 && c.end_date) {
-                  const totalDuration = new Date(c.end_date) - new Date(c.created_at)
-                  const elapsed = new Date() - new Date(c.created_at)
+                  const periodStart = new Date(c.start_date || c.created_at)
+                  const totalDuration = new Date(c.end_date) - periodStart
+                  const elapsed = new Date() - periodStart
                   const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
                   behindPace = pct < elapsedPct - 15
                 }
@@ -13401,6 +13441,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         return <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: info.bg, color: info.color, flexShrink: 0 }}>{info.label}</span>
                       })()}
                     </div>
+                    {(c.category || (charityIsIpc && c.tax_deductible === false) || (c.permit_status === 'pending') || (c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date())) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                        {c.category && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.ivory, color: C.muted }}>{c.category}</span>}
+                        {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
+                        {c.permit_status === 'pending' && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
+                        {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
+                      </div>
+                    )}
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
                     {c.target_amount > 0 && (() => {
                       const progressColor = goalMet ? C.sage : behindPace ? C.gold : C.sage
@@ -13519,7 +13567,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{causeForm.editingId ? 'Edit Campaign' : 'New Campaign'}</div>
-                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>✕</button>
+                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>✕</button>
                   </div>
                   {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
                   <div style={{ marginTop: 12, marginBottom: 10 }}>
@@ -13530,23 +13578,73 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.formLabel}>Description *</div>
                     <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
                     <div>
-                      <div style={s.formLabel}>Target Amount (SGD)</div>
-                      <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
+                      <div style={s.formLabel}>Start Date</div>
+                      <input style={s.formInput} type="date" value={causeForm.start_date} onChange={e => setCauseForm(f => ({ ...f, start_date: e.target.value }))} />
                     </div>
                     <div>
                       <div style={s.formLabel}>End Date</div>
                       <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
                     </div>
                   </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
+                    <div>
+                      <div style={s.formLabel}>Target Amount (SGD)</div>
+                      <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
+                    </div>
+                    <div>
+                      <div style={s.formLabel}>Campaign Cost (SGD)</div>
+                      <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue" value={causeForm.cost} onChange={e => setCauseForm(f => ({ ...f, cost: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={s.formLabel}>Category</div>
+                    <select style={s.formInput} value={causeForm.category} onChange={e => setCauseForm(f => ({ ...f, category: e.target.value }))}>
+                      <option value="">Select a category...</option>
+                      {CAMPAIGN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                  {charityIsIpc && (
+                    <div style={{ marginBottom: 10, background: C.ivory, borderRadius: 6, padding: '10px 12px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.forest, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={causeForm.tax_deductible} onChange={e => setCauseForm(f => ({ ...f, tax_deductible: e.target.checked }))} />
+                        Donations to this campaign are tax-deductible
+                      </label>
+                      {!causeForm.tax_deductible && (
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Uncheck this if the campaign benefits a named individual, or if donors receive something in return (e.g. a gala dinner) — IRAS does not treat these as tax-deductible.</div>
+                      )}
+                      {causeForm.tax_deductible && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ ...s.formLabel, fontSize: 11 }}>Benefit value given to donor per gift (SGD, if any)</div>
+                          <input style={s.formInput} type="number" placeholder="e.g. dinner/gift value — reduces the deductible amount" value={causeForm.benefit_value} onChange={e => setCauseForm(f => ({ ...f, benefit_value: e.target.value }))} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div style={{ marginBottom: 16 }}>
-                    <div style={s.formLabel}>Campaign Cost (SGD)</div>
-                    <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue — optional" value={causeForm.cost} onChange={e => setCauseForm(f => ({ ...f, cost: e.target.value }))} />
+                    <div style={s.formLabel}>Fundraising Permit</div>
+                    <select style={s.formInput} value={causeForm.permit_status} onChange={e => setCauseForm(f => ({ ...f, permit_status: e.target.value }))}>
+                      <option value="not_required">Not required (no physical/street collection)</option>
+                      <option value="pending">Permit applied for — pending</option>
+                      <option value="obtained">Permit obtained</option>
+                    </select>
+                    {causeForm.permit_status !== 'not_required' && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 8 }}>
+                        <div>
+                          <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Number</div>
+                          <input style={s.formInput} placeholder="e.g. HHSC permit no." value={causeForm.permit_number} onChange={e => setCauseForm(f => ({ ...f, permit_number: e.target.value }))} />
+                        </div>
+                        <div>
+                          <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Expiry</div>
+                          <input style={s.formInput} type="date" value={causeForm.permit_expiry} onChange={e => setCauseForm(f => ({ ...f, permit_expiry: e.target.value }))} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => { await submitCause(); setShowCampaignModal(false) }} disabled={savingCause}>{savingCause ? 'Saving...' : (causeForm.editingId ? '✓ Save Changes' : '✓ Create Campaign')}</button>
-                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>Cancel</button>
+                    <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>Cancel</button>
                     {causeForm.editingId && (
                       <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => { deleteCause(causeForm.editingId); setShowCampaignModal(false) }}>✕ Delete Campaign</button>
                     )}
