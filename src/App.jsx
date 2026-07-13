@@ -11207,6 +11207,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
+                const { giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
+                const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
+
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>MRR</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Avg. lifespan</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>At risk</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
+                        {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk` : 'gifts flagged at risk'}</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
                 const { trendData } = recurringMrrStats
                 const { byProgrammeRows, byTypeRows } = recurringCompositionStats
 
@@ -11289,51 +11329,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
+                  const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
                   return (
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Recurring Revenue Health <InfoTip text="Active recurring gifts and monthly recurring revenue vs 90 days ago, average time a recurring gift lasts before cancellation, and donors whose giving has consistently increased or decreased over recent cycles." /></div>
+                      <div style={s.analyticsCardTitle}>Giving Trend <InfoTip text="Donors whose recurring giving has consistently increased or decreased over recent cycles." /></div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Active gifts</div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={s.analyticsStatNumber}>{activeGifts.length}</span>
-                            <span style={{ fontSize: 10.5, fontWeight: 500, color: giftCountDiff >= 0 ? C.sage : C.red }}>{giftCountDiff === 0 ? '—' : giftCountDiff > 0 ? `↑${giftCountDiff}` : `↓${Math.abs(giftCountDiff)}`}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>MRR</div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={s.analyticsStatNumber}>${Math.round(mrr).toLocaleString()}</span>
-                            {mrrDiffPct !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct >= 0 ? '↑' : '↓'}{Math.abs(mrrDiffPct)}%</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
-                          <div style={{ ...s.analyticsStatNumber, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                            <span style={{ ...s.analyticsStatNumber, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
-                            {reliabilityDelta !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta >= 0 ? '↑' : '↓'}{Math.abs(reliabilityDelta)}pt</span>}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Avg. lifespan</div>
-                          <div style={s.analyticsStatNumber}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
-                        </div>
-                        <div style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>At risk</div>
-                          <div style={{ ...s.analyticsStatNumber, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount} {atRiskCount > 0 && <span style={{ fontSize: 15, fontWeight: 400 }}>· ${Math.round(atRiskMrr).toLocaleString()} MRR</span>}</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>Active gifts and MRR vs 90 days ago{cancelledGifts.length > 0 ? ` · lifespan based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : ''}</div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                        <div style={s.analyticsSubTitle}>Giving trend</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 2 }}>
+                        <div style={s.analyticsSubTitle}>Sustained upgrades &amp; downgrades</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
                           <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringTrendCycles} onChange={async e => { const v = Number(e.target.value); setRecurringTrendCycles(v); const { error } = await supabase.from('charity_contacts').update({ recurring_trend_cycles: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
