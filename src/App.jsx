@@ -7479,7 +7479,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { id: 'pledges',    icon: '🤝', label: 'Pledges' },
                 { id: 'recurring',  icon: '🔁', label: 'Recurring' },
                 { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
-                { id: 'grants',     icon: '🏛️', label: 'Grants' },
+                { id: 'grants',     icon: '💰', label: 'Grants' },
               ].map(item => (
                 <div key={item.id}
                   title={item.label}
@@ -7542,11 +7542,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.mobileOverflowMenu}>
             {(userRole === 'staff' || userRole === 'ed') && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Campaigns</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fundraising</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Compliance</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('reports'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Reports</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>🗒️ Audit Log</div>
@@ -8371,7 +8372,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       return matchesSearch && matchesTag && matchesStatus && matchesYear
                     })
                     showToast('Preparing export...')
-                    await exportDonorsExcel(combinedDonorList)
+                    await exportDonorsExcel(filtered)
                   }}>⬇️ Export to Excel</button>
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
@@ -8589,7 +8590,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                     <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
                       <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Avg. Donation</div>
-                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${(selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
                     </div>
                     <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
                       <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Receipts</div>
@@ -10275,7 +10276,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
                             disabled={sendingThankYouId === selectedDonation.id}
                             onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
-                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : '💌 Send Thank You + Receipt'}</button>
+                          >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : selectedDonation.thank_you_sent ? '💌 Resend Thank You + Receipt' : '💌 Send Thank You + Receipt'}</button>
                         )}
                         {selectedDonation.source === 'manual' && !editingManual && (
                           <button style={s.viewBtn} onClick={() => { setEditingManual(true); setEditForm({}) }}>✏️ Edit Entry</button>
