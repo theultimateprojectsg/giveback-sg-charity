@@ -1,6 +1,5 @@
 -- Seeds test campaigns covering every new field, so you can exercise the Campaigns tab.
--- Replace YOUR_CHARITY_UEN / YOUR_CHARITY_NAME with your actual values before running
--- (find them in charity_contacts, or on any existing row in causes/grants).
+-- Seeded for Singapore Cancer Society (UEN 196900494K).
 
 with new_causes as (
   insert into causes (
@@ -13,7 +12,7 @@ with new_causes as (
   -- 1. Straightforward IPC-deductible campaign, on pace
   (
     'Winter Meal Drive', 'Providing hot meals to low-income families this winter.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     10000, 1500, current_date - interval '10 days', current_date + interval '20 days',
     'Social & Welfare', true, 0,
     null, 'not_required', null,
@@ -22,7 +21,7 @@ with new_causes as (
   -- 2. Non-tax-deductible campaign (donor gets a benefit in return) — tests the IPC-only badge
   (
     'Charity Gala Dinner', 'Annual fundraising dinner with entertainment and a 4-course meal.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     20000, 8000, current_date - interval '5 days', current_date + interval '40 days',
     'Arts & Heritage', false, 88,
     null, 'not_required', null,
@@ -31,7 +30,7 @@ with new_causes as (
   -- 3. Street collection campaign with a pending permit — tests permit badge
   (
     'Flag Day Street Collection', 'Volunteers collecting donations door-to-door and on the street.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     5000, 300, current_date, current_date + interval '14 days',
     'Community Development', true, 0,
     'HHSC-2026-0042', 'pending', current_date + interval '90 days',
@@ -40,7 +39,7 @@ with new_causes as (
   -- 4. Campaign with an expired permit — tests the expired-permit warning badge
   (
     'Neighbourhood Collection Box Drive', 'Physical donation boxes placed around the neighbourhood.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     3000, 200, current_date - interval '120 days', current_date - interval '30 days',
     'Community Development', true, 0,
     'HHSC-2025-1187', 'obtained', current_date - interval '10 days',
@@ -49,7 +48,7 @@ with new_causes as (
   -- 5. Behind-pace campaign, no category set, no permit — tests default/blank states
   (
     'Emergency Relief Fund', 'Rapid-response fund for families affected by recent flooding.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     15000, 0, current_date - interval '25 days', current_date + interval '5 days',
     null, true, 0,
     null, 'not_required', null,
@@ -58,7 +57,7 @@ with new_causes as (
   -- 6. Pending approval campaign — tests the pending workflow state
   (
     'Youth Mentorship Programme Launch', 'New mentorship pairing programme for at-risk youth.',
-    'YOUR_CHARITY_NAME', 'YOUR_CHARITY_UEN',
+    'Singapore Cancer Society', '196900494K',
     8000, 0, current_date + interval '10 days', current_date + interval '100 days',
     'Education', true, 0,
     null, 'not_required', null,

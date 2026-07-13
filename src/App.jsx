@@ -1575,7 +1575,7 @@ export default function App() {
       category: form.category || null,
       created_by: session.user.email,
     }).select().single()
-    if (error) { showToast('Error saving expense', 'error'); return }
+    if (error) { console.error('Could not save campaign expense:', error); showToast('Error saving expense', 'error'); return }
     setCampaignExpenses(prev => [...prev, data])
     showToast('Expense logged ✓')
   }
