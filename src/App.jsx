@@ -13954,7 +13954,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
                 const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
                 const pledgeStatusMap = {
-                  pending: { bg: C.ivory, color: C.forest, label: 'Outstanding' },
+                  pending: { bg: C.ivory, color: C.forest, label: 'Active' },
                   fulfilled: { bg: C.successBg, color: '#27500A', label: 'Fulfilled' },
                   cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
                 }
@@ -14002,23 +14002,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     })()}
 
                     {p.status === 'pending' && (() => {
-                      const progressColor = (() => {
-                        const brick = [160, 71, 47]
-                        const gold = [180, 135, 14]
-                        const sage = [61, 122, 92]
-                        const lerp = (a, b, t) => Math.round(a + (b - a) * t)
-                        const mix = (c1, c2, t) => `rgb(${lerp(c1[0], c2[0], t)}, ${lerp(c1[1], c2[1], t)}, ${lerp(c1[2], c2[2], t)})`
-                        if (pct <= 50) return mix(brick, gold, pct / 50)
-                        return mix(gold, sage, (pct - 50) / 50)
-                      })()
+                      const progressColor = pct >= 80 ? C.sage : pct >= 50 ? C.gold : C.red
                       return (
-                        <div style={{ marginBottom: 4 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                            <span style={{ fontSize: 11.5, fontWeight: 500, color: progressColor, display: 'flex', alignItems: 'center', gap: 4 }}>{pct}% given <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." /></span>
-                            <span style={{ fontSize: 11, color: C.muted }}>${given.toLocaleString()} of ${pledgedAmount.toLocaleString()}</span>
+                        <div style={{ marginBottom: 5 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${given.toLocaleString()}</span>
+                              <span style={{ fontSize: 12, color: C.muted }}>of</span>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${pledgedAmount.toLocaleString()}</span>
+                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
                           </div>
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
                             <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            given <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." />
                           </div>
                         </div>
                       )
