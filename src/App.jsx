@@ -13460,7 +13460,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <span style={{ fontSize: 12, color: C.muted }}>of</span>
                               <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(c.target_amount).toLocaleString()}</span>
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
+                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
+                              {c.cost > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: raised >= c.cost ? C.sage : C.red }}>ROI {(raised / c.cost).toFixed(1)}×</span>}
+                            </span>
                           </div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
                             <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
@@ -13484,8 +13487,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     </div>
                     {c.cost > 0 && (
-                      <div style={{ fontSize: 11.5, color: raised >= c.cost ? C.sage : C.red, fontWeight: 500, marginBottom: 10 }}>
-                        Cost ${Number(c.cost).toLocaleString()} · ROI {(raised / c.cost).toFixed(1)}×
+                      <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, marginBottom: 10 }}>
+                        Cost ${Number(c.cost).toLocaleString()}
                       </div>
                     )}
                     {grantFunding > 0 && (
