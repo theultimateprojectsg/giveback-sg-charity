@@ -11320,10 +11320,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(churnedMrr).toLocaleString()}</span>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
                         <span style={{ fontSize: 11.5, color: C.muted }}>Net MRR change</span>
                         <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netMrr >= 0 ? C.sage : C.red }}>{netMrr >= 0 ? '+' : '−'}${Math.abs(Math.round(netMrr)).toLocaleString()}</span>
                       </div>
+                      {netMrr >= 0 ? (
+                        <ActionBanner tone="success" text="Net MRR growing" sub={`New recurring gifts are outpacing churn so far in ${yr}`} />
+                      ) : (
+                        <ActionBanner tone="danger" text="Net MRR shrinking" sub="Churn is outpacing new recurring gifts — worth investigating why donors are cancelling" />
+                      )}
                     </div>
                   )
                 })()}
@@ -11359,6 +11364,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           ))}
                         </div>
+                      )}
+                      {downgrades.length > 0 ? (
+                        <ActionBanner tone="danger" text={`${downgrades.length} donor${downgrades.length !== 1 ? 's' : ''} trending down`} sub="Worth a check-in before the pattern turns into a cancellation" />
+                      ) : (
+                        <ActionBanner tone="success" text="No sustained downgrades" sub={upgrades.length > 0 ? `${upgrades.length} donor${upgrades.length !== 1 ? 's' : ''} trending up instead` : 'Recurring giving is holding steady'} />
                       )}
                     </div>
                   )
