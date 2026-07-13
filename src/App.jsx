@@ -11456,6 +11456,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )
                           })}
+                          {missedFiltered.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{missedFiltered.length - 5} more</div>
+                          )}
                         </div>
                       )}
 
@@ -11473,6 +11476,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )
                           })}
+                          {endingSoon.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{endingSoon.length - 5} more</div>
+                          )}
                         </div>
                       )}
 
@@ -11487,6 +11493,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <span style={{ fontSize: 11.5, color: C.muted }}>{g.pause_reason ? ` — ${g.pause_reason}` : ''}{g.pause_resume_date ? ` · resume ${new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}</span>
                             </div>
                           ))}
+                          {pausedGifts.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{pausedGifts.length - 5} more</div>
+                          )}
                         </div>
                       )}
 
@@ -11506,6 +11515,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             </div>
                           ))}
+                          {frequentSkippers.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{frequentSkippers.length - 5} more</div>
+                          )}
                         </div>
                       )}
 
@@ -11520,6 +11532,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
                             </div>
                           ))}
+                          {recurringPatternSuggestions.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{recurringPatternSuggestions.length - 5} more</div>
+                          )}
                         </div>
                       )}
 
