@@ -11177,7 +11177,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               {(() => {
-                const { trendData, yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
+                const { trendData } = recurringMrrStats
+                const { byProgrammeRows, byTypeRows } = recurringCompositionStats
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
@@ -11198,6 +11199,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
+                      <div style={s.analyticsSubTitleDivider}>By programme</div>
+                      {byProgrammeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {byProgrammeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={s.analyticsSubTitleDivider}>By type</div>
+                      {byTypeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {byTypeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const { yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
+
+                  return (
+                    <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
@@ -11214,11 +11255,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netMrr >= 0 ? C.sage : C.red }}>{netMrr >= 0 ? '+' : '−'}${Math.abs(Math.round(netMrr)).toLocaleString()}</span>
                       </div>
                     </div>
-                  </div>
-                )
-              })()}
+                  )
+                })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
@@ -11284,7 +11323,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
+              </div>
 
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const { pendingCount, authorizedCount, terminatedCount, terminatedGifts, terminatedMrr } = recurringAuthStats
 
@@ -11326,9 +11367,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-              </div>
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {(() => {
                   const { missedFiltered, frequentSkippers, endingSoon, pausedGifts } = recurringRiskStats
                   const today = new Date()
@@ -11438,44 +11477,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <ActionBanner tone="danger" text={`${missedFiltered.length + frequentSkippers.length + endingSoon.length} donor${(missedFiltered.length + frequentSkippers.length + endingSoon.length) !== 1 ? 's' : ''} need follow-up`} sub="A missed GIRO cycle usually means a bank authorization issue; PayNow is often just forgetfulness" />
                       ) : (
                         <ActionBanner tone="success" text="No risk signals right now" sub="No missed payments, expiring gifts, or frequent skippers" />
-                      )}
-                    </div>
-                  )
-                })()}
-
-                {(() => {
-                  const { byProgrammeRows, byTypeRows } = recurringCompositionStats
-
-                  return (
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
-                      <div style={s.analyticsSubTitleDivider}>By programme</div>
-                      {byProgrammeRows.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {byProgrammeRows.map((r, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div style={s.analyticsSubTitleDivider}>By type</div>
-                      {byTypeRows.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {byTypeRows.map((r, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
                       )}
                     </div>
                   )
