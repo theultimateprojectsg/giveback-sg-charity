@@ -5392,7 +5392,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     Object.entries(pledgeDonationLinks).forEach(([pledgeId, links]) => {
       m[pledgeId] = links.map(l => {
         const donation = donations.find(d => d.id === l.donation_id)
-        return { ...l, payment_status: donation?.payment_status }
+        return { ...l, payment_status: donation?.payment_status, notes: donation?.notes }
       }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     })
     return m
@@ -14058,9 +14058,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {expandedPledgeId === p.id && (
                       <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
                         {donationsByPledge[p.id].map((l, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                            <span style={{ color: C.text }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {l.payment_status}</span>}</span>
-                            <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                          <div key={i} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: C.text }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {l.payment_status}</span>}</span>
+                              <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                            </div>
+                            {l.notes && <div style={{ color: C.muted, marginTop: 2 }}>{l.notes}</div>}
                           </div>
                         ))}
                       </div>
