@@ -11213,7 +11213,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>MRR</div>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
                     </div>
@@ -11230,12 +11230,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Avg. lifespan</div>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>At risk</div>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                         {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
