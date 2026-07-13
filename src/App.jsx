@@ -298,7 +298,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   )
 }
 
-function EditPledgeModal({ pledge, onClose, onSave, causes }) {
+function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
   const [form, setForm] = useState({
     donor_name: pledge.donor_name || '',
     donor_email: pledge.donor_email || '',
@@ -329,14 +329,22 @@ function EditPledgeModal({ pledge, onClose, onSave, causes }) {
           <div style={s.formLabel}>Donor Phone</div>
           <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={form.donor_phone} onChange={e => setForm(f => ({ ...f, donor_phone: e.target.value }))} />
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <div style={s.formLabel}>Pledged Amount (SGD) *</div>
-          <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <div style={s.formLabel}>Expected By *</div>
-          <input style={s.formInput} type="date" value={form.expected_date} onChange={e => setForm(f => ({ ...f, expected_date: e.target.value }))} />
-        </div>
+        {pledge.is_multi_year ? (
+          <div style={{ marginBottom: 12, fontSize: 12, color: C.muted, background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+            Amount and dates for multi-year pledges are governed by the yearly instalments and can't be edited here.
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Pledged Amount (SGD) *</div>
+              <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={s.formLabel}>Expected By *</div>
+              <input style={s.formInput} type="date" value={form.expected_date} onChange={e => setForm(f => ({ ...f, expected_date: e.target.value }))} />
+            </div>
+          </>
+        )}
         <div style={{ marginBottom: 12 }}>
           <div style={s.formLabel}>Linked Programme / Campaign</div>
           <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
@@ -369,6 +377,9 @@ function EditPledgeModal({ pledge, onClose, onSave, causes }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={s.btnForest} onClick={() => onSave(form)}>Save Changes</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
+          {pledge.status === 'pending' && (
+            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { onCancelPledge(pledge); onClose() }}>✕ Cancel Pledge</button>
+          )}
         </div>
       </div>
     </div>
@@ -505,7 +516,7 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
   )
 }
 
-function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving }) {
+function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, onCancelGift }) {
   const isEditing = !!gift
   const [form, setForm] = useState(() => gift ? {
     donor_name: gift.donor_name || '',
@@ -631,6 +642,9 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving })
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={s.btnForest} onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Recurring Gift')}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
+          {isEditing && gift.status === 'active' && (
+            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { onCancelGift(gift); onClose() }}>✕ Cancel Gift</button>
+          )}
         </div>
       </div>
     </div>
@@ -13389,6 +13403,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 onSave={(form) => updateRecurringGift(editingRecurringGift.id, form)}
                 causes={myCauses.filter(c => c.type === 'campaign')}
                 saving={savingRecurring}
+                onCancelGift={cancelRecurringGift}
               />
             )}
 
@@ -13578,7 +13593,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <span style={{ fontSize: 12, color: C.muted }}> / {frequencyLabel}</span>
                       {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Ref: {g.giro_reference}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>~${annualizedValue.toLocaleString()} / year</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>~${annualizedValue.toLocaleString()} / year{g.notes && ` · ${g.notes}`}</div>
                     {needsBankInfo && g.bank_name && (
                       <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Bank: {g.bank_name}</div>
                     )}
@@ -13628,8 +13643,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                       </div>
                     )}
-                    {g.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>{g.notes}</div>}
-
                     {(recurringSkipHistory[g.id] || []).length > 0 && (
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
@@ -13697,23 +13710,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         ))}
                       </div>
                     )}
-                    {g.status === 'active' && isLate && (
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
-                    )}
                     {g.status === 'active' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => cancelRecurringGift(g)}>✕ Cancel</button>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+                        {isLate && (
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
+                        )}
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
                       </div>
                     )}
                     {g.status === 'paused' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
                       </div>
                     )}
                   </div>
@@ -13790,7 +13802,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {editingPledge && (
-              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} causes={myCauses} />
+              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} causes={myCauses} onCancelPledge={cancelPledge} />
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
@@ -14024,15 +14036,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
                 const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
                 const pledgeStatusMap = {
-                  pending: { bg: C.ivory, color: C.forest, label: 'Active' },
-                  fulfilled: { bg: C.successBg, color: '#27500A', label: 'Fulfilled' },
+                  pending: { bg: C.successBg, color: '#27500A', label: 'Active' },
+                  fulfilled: { bg: C.sage, color: C.white, label: 'Fulfilled' },
                   cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
                 }
                 const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
                 return (
                   <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{p.donor_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: p.donor_name, email: p.donor_email, total: pledgeGivenTotals[p.id] || 0, count: (donationsByPledge[p.id] || []).length, receipts: (donationsByPledge[p.id] || []).length }); setActiveTab('donors') }}>{p.donor_name}</div>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
                         {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
@@ -14138,19 +14150,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {pledgeRescheduleHistory[p.id][0].reason && ` — "${pledgeRescheduleHistory[p.id][0].reason}"`}
                       </div>
                     )}
-                    {p.status === 'pending' && (isOverdue || isDueSoon) && (
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
-                    )}
                     {p.status === 'pending' && (
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 6 }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
-                    )}
-                    {p.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
-                        {!p.is_multi_year && (
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+                        {(isOverdue || isDueSoon) && (
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
                         )}
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => cancelPledge(p)}>✕ Cancel</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
+                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
                       </div>
                     )}
                     {p.resolution_notes && (
