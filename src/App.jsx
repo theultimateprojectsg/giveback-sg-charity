@@ -5737,7 +5737,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk,
       totalCommitted, totalReceived, pendingTranches,
     }
-  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, filterYear, fyOf])
+  }, [grantsWithNextReport, grantExpenses, grantExpensesByGrant, grantReports, grantMatchClaims, grantTranches, filterYear, fyOf, fyEndMonth, fyEndDay])
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -7587,6 +7587,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>{greeting}, {charityName}</div>
                 <div style={{ ...s.pageSub, marginTop: 4 }}>Here's what's happening right now</div>
               </div>
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportBoardPacket}>📄 Export Board Packet</button>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
