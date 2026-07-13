@@ -13402,20 +13402,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       })()}
                     </div>
                     {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
-                    {c.target_amount > 0 && (
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
-                            <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
-                          </span>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>of ${Number(c.target_amount).toLocaleString()}</span>
+                    {c.target_amount > 0 && (() => {
+                      const progressColor = goalMet ? C.sage : behindPace ? C.gold : C.sage
+                      return (
+                        <div style={{ marginBottom: 5 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
+                              <span style={{ fontSize: 12, color: C.muted }}>of</span>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(c.target_amount).toLocaleString()}</span>
+                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
+                          </div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
+                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            raised <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
+                          </div>
                         </div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: goalMet ? C.sage : behindPace ? C.gold : C.sage, borderRadius: 3 }} />
-                        </div>
-                      </div>
-                    )}
+                      )
+                    })()}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
