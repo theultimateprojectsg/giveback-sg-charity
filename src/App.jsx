@@ -134,6 +134,24 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
+function SenderIdentityLine({ recipientName, recipientEmail, senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail }) {
+  const isVerified = senderDomainStatus === 'verified' && senderDomain
+  const fromAddress = isVerified ? `${senderEmailLocalPart}@${senderDomain}` : 'Giving Tree'
+  return (
+    <div style={{ marginBottom: 14, background: isVerified ? '#EAF3EC' : (C.gold + '1A'), border: `1px solid ${isVerified ? C.sage : C.gold}`, borderRadius: 6, padding: '10px 12px' }}>
+      <div style={{ fontSize: 12.5, fontWeight: 500, color: isVerified ? C.sage : C.gold, marginBottom: 3 }}>
+        {isVerified ? '✓' : '✉'} From: {fromAddress}
+      </div>
+      <div style={{ fontSize: 12.5, color: C.muted }}>
+        To: {recipientName} {recipientEmail ? `(${recipientEmail})` : '(no email on file)'}
+      </div>
+      {!isVerified && (
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Replies go to {replyToEmail}</div>
+      )}
+    </div>
+  )
+}
+
 function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
@@ -390,7 +408,7 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
   )
 }
 
-function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, categories, s, C, InfoTip,
+function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, categories, s, C,
   onSaveExpense, onDeleteExpense, onSaveTranche, onToggleTranche, onDeleteTranche,
   onSaveReport, onToggleReport, onDeleteReport, onSaveClaim, onDeleteClaim, onSaveNote }) {
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Programme Costs' })
@@ -816,7 +834,6 @@ export default function App() {
   const [localEds, setLocalEds] = useState([])
   const [localBoardMembers, setLocalBoardMembers] = useState([])
   const [localStaff, setLocalStaff] = useState([])
-  const [monthlyExpensesRaw, setMonthlyExpensesRaw] = useState(0)
   const [customObligations, setCustomObligations] = useState([])
   const [customTasks, setCustomTasks] = useState([])
   const [showAddTask, setShowAddTask] = useState(false)
@@ -862,7 +879,6 @@ export default function App() {
   const [expandedCampaignId, setExpandedCampaignId] = useState(null)
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
-  const [activePledgeTab, setActivePledgeTab] = useState('pending')
   
   const [pledgeCompletionCandidate, setPledgeCompletionCandidate] = useState(null)
   const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState(false)
@@ -1111,15 +1127,12 @@ export default function App() {
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [savingRecurring, setSavingRecurring] = useState(false)
-  const [activeRecurringTab, setActiveRecurringTab] = useState('active')
-  const [showMassAppealTool, setShowMassAppealTool] = useState(false)
   const [massAppealForm, setMassAppealForm] = useState({ cause_id: '', amount: '', message: '', customLabel: '' })
   const [massAppealRefs, setMassAppealRefs] = useState([])
   const [massAppealStep, setMassAppealStep] = useState('setup')
   const [massAppealProgress, setMassAppealProgress] = useState(null)
   const massAppealCancelRef = useRef(false)
   const [massAppeals, setMassAppeals] = useState([])
-  const [selectedAppeal, setSelectedAppeal] = useState(null)
   const [showMigrationTool, setShowMigrationTool] = useState(false)
   const [migrationFile, setMigrationFile] = useState(null)
   const [migrationPreview, setMigrationPreview] = useState(null)
@@ -1187,13 +1200,9 @@ export default function App() {
   const [auditActionFilter, setAuditActionFilter] = useState('All')
   const [auditDateFilter, setAuditDateFilter] = useState('30')
   const [myCauses, setMyCauses] = useState([])
-  const [showCauseForm, setShowCauseForm] = useState(false)
   const [causeForm, setCauseForm] = useState(EMPTY_CAUSE_FORM)
   const [causeError, setCauseError] = useState('')
   const [savingCause, setSavingCause] = useState(false)
-  const [showSponsoredForm, setShowSponsoredForm] = useState(false)
-  const [sponsoredError, setSponsoredError] = useState('')
-  const [savingSponsored, setSavingSponsored] = useState(false)
   const [bulkActionInProgress, setBulkActionInProgress] = useState(false)
   const [bulkProgress, setBulkProgress] = useState(null) // { done, total }
   const bulkCancelRef = useRef(false)
@@ -1216,7 +1225,6 @@ export default function App() {
   const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
-  const [explainerOpen, setExplainerOpen] = useState(null)
   const [fyEndMonth, setFyEndMonth] = useState(12)
   const [fyEndDay, setFyEndDay] = useState(31)
   const [editingFyEnd, setEditingFyEnd] = useState(false)
@@ -1228,7 +1236,6 @@ export default function App() {
   const [confirmModal, setConfirmModal] = useState(null)
   const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
   const [thankYouDraft, setThankYouDraft] = useState(null)
-  const [dashboardDonationsPage, setDashboardDonationsPage] = useState(0)
   
 
   useEffect(() => {
@@ -1954,23 +1961,7 @@ export default function App() {
     setRescheduleReason('')
   }
 
-  function SenderIdentityLine({ recipientName, recipientEmail }) {
-    const isVerified = senderDomainStatus === 'verified' && senderDomain
-    const fromAddress = isVerified ? `${senderEmailLocalPart}@${senderDomain}` : 'Giving Tree'
-    return (
-      <div style={{ marginBottom: 14, background: isVerified ? '#EAF3EC' : (C.gold + '1A'), border: `1px solid ${isVerified ? C.sage : C.gold}`, borderRadius: 6, padding: '10px 12px' }}>
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: isVerified ? C.sage : C.gold, marginBottom: 3 }}>
-          {isVerified ? '✓' : '✉'} From: {fromAddress}
-        </div>
-        <div style={{ fontSize: 12.5, color: C.muted }}>
-          To: {recipientName} {recipientEmail ? `(${recipientEmail})` : '(no email on file)'}
-        </div>
-        {!isVerified && (
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Replies go to {session?.user?.email}</div>
-        )}
-      </div>
-    )
-  }
+  const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email }
 
   async function sendCharityEmail(body) {
     const targetEmail = body.donor_email?.trim()
@@ -2886,13 +2877,12 @@ export default function App() {
         details: { title: causeForm.title, charity_uen: charityUen },
       })
       setCauseForm(EMPTY_CAUSE_FORM)
-      setShowCauseForm(false)
       loadMyCauses()
-      showToast('Submission updated ✓')
+      showToast('Campaign updated ✓')
       return
     }
 
-    const { data, error } = await supabase.from('causes').insert([{
+    const { error } = await supabase.from('causes').insert([{
       title: causeForm.title,
       description: causeForm.description,
       charity_name: charityName,
@@ -2920,36 +2910,10 @@ export default function App() {
       details: { title: causeForm.title, charity_uen: charityUen },
     })
     setCauseForm(EMPTY_CAUSE_FORM)
-    setShowCauseForm(false)
     loadMyCauses()
-    showToast('Cause submitted for approval ✓')
+    showToast('Campaign created ✓')
   }
 
-  async function submitSponsoredRequest() {
-    setSavingSponsored(true)
-    setSponsoredError('')
-    const { data, error } = await supabase.from('causes').insert([{
-      title: `${charityName} — Sponsored Spot`,
-      description: `Sponsored banner request from ${charityName}.`,
-      charity_name: charityName,
-      charity_uen: charityUen,
-      type: 'sponsored',
-      status: 'pending',
-      active: true,
-    }]).select()
-    setSavingSponsored(false)
-    if (error) { setSponsoredError(`Error: ${error.message}`); return }
-    supabase.functions.invoke('notify-pending-approval', { body: { title: `${charityName} — Sponsored Spot`, charity_name: charityName, type: 'sponsored', id: data[0].id } }).catch(err => console.error(err))
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'sponsored_requested',
-      details: { charity_uen: charityUen },
-    })
-    setShowSponsoredForm(false)
-    loadMyCauses()
-    showToast('Sponsored banner request submitted for approval ✓')
-  }
 
   async function loadAuditLog() {
     setAuditLoading(true)
@@ -4085,16 +4049,6 @@ export default function App() {
     setBulkEditMode(false)
   }
 
-  function goToDonation(donation) {
-    if (bulkActionInProgress) { showToast('Please wait for the current bulk action to finish', 'error'); return }
-    const hadActiveFilters = activeDonationFilterCount > 0
-    clearDonationFilters()
-    setSelectedDonation(donation)
-    setQuickEmailInput('')
-    setQuickNricInput('')
-    setActiveTab('donations') 
-    if (hadActiveFilters) showToast('Filters cleared to show this donation')
-  }
 
   async function ensureDonorContact(donor) {
     const key = donor.email?.trim() || donor.name
@@ -7589,7 +7543,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {(userRole === 'staff' || userRole === 'ed') && (
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Campaigns</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Promotions</div>
+                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>
@@ -8355,119 +8309,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             
 
             </div>
-
-            
-            
-
-            
-
-            
-
-            {false && (() => { return (
-                <div style={s.tableCard}>
-                  <div style={s.tableHeader}>
-                    <div style={s.tableTitle}>Needs your attention</div>
-                  </div>
-                  {false ? (
-                    <div style={s.empty}>Nothing needs action right now.</div>
-                  ) : (isMobile || isTablet) ? (
-                    <div>
-                      {pageDonations.map(d => (
-                        <div key={d.id} style={s.donationCard} onClick={() => goToDonation(d)}>
-                          <div style={s.donationCardTop}>
-                            <div style={s.donationCardDonor}>
-                              <div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage }}>{d.donor_name?.charAt(0)}</div>
-                              <div>
-                                <div style={s.donationCardName}>{d.donor_name}</div>
-                                <div style={s.donationCardDate}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                              </div>
-                            </div>
-                            <div style={s.donationCardAmount}>${Number(d.amount).toLocaleString()}</div>
-                          </div>
-                          <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginBottom: 6 }}>{d.payment_ref || d.receipt_number || '—'}</div>
-                          <div style={s.donationCardBadges}>
-                            {causeNameForDonation(d) && <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block' }}>🎯 {causeNameForDonation(d)}</span>}
-                            {d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Receipt pending</span>}
-                            {charityIsIpc && !d.donor_nric && <span style={s.badgePending}>⚠️ NRIC missing</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <table style={s.table}>
-                      <thead>
-                        <tr>{(charityIsIpc ? (isTablet ? ['Donor', 'Amount', 'Date', 'NRIC', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'NRIC', 'Payment', 'Receipt', 'Receipt No.', 'Thank You']) : (isTablet ? ['Donor', 'Amount', 'Date', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Cause', 'Source', 'Payment', 'Receipt', 'Receipt No.', 'Thank You'])).map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
-                      </thead>
-                      <tbody>
-                        {pageDonations.map(d => {
-                          const railColor = d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage
-                          return (
-                          <tr key={d.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => goToDonation(d)}>
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : !d.thank_you_sent ? C.gold : C.sage }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
-                            {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
-                            {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
-                            {isTablet ? (
-                              <>
-                                {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
-                                <td style={s.td}>
-                                  {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
-                                </td>
-                                <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
-                              </>
-                            ) : (() => {
-                              const cellRenderers = {
-                                cause: (
-                                  <td key="cause" style={s.td}>
-                                    {causeNameForDonation(d) ? (
-                                      <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
-                                    ) : (
-                                      <span style={{ fontSize: 11, color: C.muted }}>General</span>
-                                    )}
-                                  </td>
-                                ),
-                                source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
-                                nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
-                                payment: (
-                                  <td key="payment" style={s.td}>
-                                    {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
-                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                                        <span style={s.badgePending}>⚠️ Unverified</span>
-                                        <button
-                                          style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: 'white', border: `1px solid ${C.teal}`, borderRadius: 20, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            setConfirmModal({
-                                              title: 'Confirm this payment?',
-                                              subtitle: 'Check the transaction reference against your bank or PayNow statement before confirming.',
-                                              donorName: d.donor_name,
-                                              amount: d.amount,
-                                              reference: d.payment_ref || d.receipt_number,
-                                              steps: ['Mark payment as confirmed', 'Issue a receipt'],
-                                              receiptPreviewDonation: d,
-                                              confirmLabel: 'Confirm payment',
-                                              onConfirm: () => confirmPaymentFlow(d),
-                                            })
-                                          }}
-                                        >✓ Confirm</button>
-                                      </div>
-                                    )}
-                                  </td>
-                                ),
-                                receipt: <td key="receipt" style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>,
-                                receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.payment_ref || d.receipt_number || '—'}</span></td>,
-                                thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
-                              }
-                              return selectedDonationColumns.map(key => cellRenderers[key]).filter(Boolean)
-                            })()}
-                          </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                  </div>
-              )
-            })()}
 
             </div>
         )}
@@ -14254,7 +14095,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Send pledge reminder</div>
-                  <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} />
+                  <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} {...senderIdentity} />
                   <div style={{ marginBottom: 12 }}>
                     <div style={s.formLabel}>Subject</div>
                     <input style={s.formInput} value={pledgeReminderSubject} onChange={e => setPledgeReminderSubject(e.target.value)} />
@@ -14279,7 +14120,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
-                  <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} />
+                  <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} {...senderIdentity} />
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{pledgeReminderSubject}</div>
                     <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pledgeReminderBody}</div>
@@ -14327,7 +14168,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
-                  <SenderIdentityLine recipientName={pledgeCompletionCandidate.donation.donor_name} recipientEmail={pledgeCompletionCandidate.donation.donor_email} />
+                  <SenderIdentityLine recipientName={pledgeCompletionCandidate.donation.donor_name} recipientEmail={pledgeCompletionCandidate.donation.donor_email} {...senderIdentity} />
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{pledgeThankYouSubject}</div>
                     <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{pledgeThankYouBody}</div>
@@ -15229,7 +15070,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                     {isExpanded84 && (
                       <GrantLedgerPanel
-                        grant={g} s={s} C={C} InfoTip={InfoTip}
+                        grant={g} s={s} C={C}
                         expenses={myExpenses84} tranches={myTranches} reports={myReports} claims={myClaims} notes={grantNotes[g.id] || []}
                         categories={grantExpenseCategories}
                         onSaveExpense={form => saveGrantExpense(g.id, form)}
@@ -15848,7 +15689,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 💛 This could be financial hardship, a change in circumstances, or simply a busy season — not necessarily a loss of interest. Suggested framing: a genuine check-in on how they're doing, not a question about why they gave less.
               </div>
             )}
-            <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} />
+            <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} {...senderIdentity} />
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={lapsedReminderSubject} onChange={e => setLapsedReminderSubject(e.target.value)} />
@@ -15873,7 +15714,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
-            <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} />
+            <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} {...senderIdentity} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{lapsedReminderSubject}</div>
               <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{lapsedReminderBody}</div>
@@ -15894,7 +15735,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Send reminder</div>
-            <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} />
+            <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} {...senderIdentity} />
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={recurringReminderSubject} onChange={e => setRecurringReminderSubject(e.target.value)} />
@@ -15919,7 +15760,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Preview email</div>
-            <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} />
+            <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} {...senderIdentity} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{recurringReminderSubject}</div>
               <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{recurringReminderBody}</div>
@@ -16427,7 +16268,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and edit before sending. This won't be sent as-is.</div>
-            <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} />
+            <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} {...senderIdentity} />
             <textarea
               style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
               value={thankYouDraft.text}
