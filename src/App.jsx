@@ -5182,6 +5182,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, recurringGifts, fyOf, fyEndMonth, fyEndDay])
 
   const recurringHealthStats = React.useMemo(() => {
+    const today = new Date()
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
     const activeGifts = recurringGifts.filter(g => g.status === 'active')
@@ -5228,8 +5229,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const upgrades = trendFlagsFiltered.filter(f => f.direction === 'upgrade')
     const downgrades = trendFlagsFiltered.filter(f => f.direction === 'downgrade')
 
-    return { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades }
-  }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, recurringTrendCycles, donations])
+    // Portfolio-wide reliability: payments actually received vs how many cycles should have
+    // happened, for every gift that was live at some point during the fiscal year — same
+    // received/expected math as the per-gift reliability shown on the Recurring Giving tab
+    // cards, just rolled up and scoped to a fiscal year instead of since-inception.
+    const gapDaysFor = (g) => ({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30)
+    const reliabilityForYear = (yr) => {
+      const { start, end } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+      const windowEnd = end < today ? end : today
+      let totalExpected = 0, totalReceived = 0
+      recurringGifts.forEach(g => {
+        if (!g.start_date) return
+        const gStart = new Date(g.start_date)
+        if (gStart > windowEnd) return
+        if (g.cancelled_at && new Date(g.cancelled_at) < start) return
+        const windowStart = gStart > start ? gStart : start
+        if (windowStart > windowEnd) return
+        const gapMs = gapDaysFor(g) * 24 * 60 * 60 * 1000
+        const expected = Math.max(1, Math.floor((windowEnd - windowStart) / gapMs) + 1)
+        const received = donations.filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed' && new Date(d.created_at) >= windowStart && new Date(d.created_at) <= windowEnd).length
+        totalExpected += expected
+        totalReceived += Math.min(received, expected)
+      })
+      return totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : null
+    }
+    const curFy = fyOf(today)
+    const reliabilityPct = reliabilityForYear(curFy)
+    const reliabilityPctPrevYear = reliabilityForYear(curFy - 1)
+    const reliabilityDelta = (reliabilityPct !== null && reliabilityPctPrevYear !== null) ? reliabilityPct - reliabilityPctPrevYear : null
+
+    return { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades, reliabilityPct, reliabilityDelta, reliabilityYr: curFy }
+  }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, recurringTrendCycles, donations, fyOf, fyEndMonth, fyEndDay])
 
   const recurringRiskStats = React.useMemo(() => {
     const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
@@ -11259,7 +11289,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
+                  const { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
 
                   return (
                     <div style={s.card}>
@@ -11283,6 +11313,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
                           <div style={{ ...s.analyticsStatNumber, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
+                            {reliabilityDelta !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta >= 0 ? '↑' : '↓'}{Math.abs(reliabilityDelta)}pt</span>}
+                          </div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Avg. lifespan</div>
