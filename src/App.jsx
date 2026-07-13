@@ -13952,29 +13952,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const given = pledgeGivenTotals[p.id] || 0
                 const pledgedAmount = Number(p.amount)
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
+                const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
+                const pledgeStatusMap = {
+                  pending: { bg: C.ivory, color: C.forest, label: 'Outstanding' },
+                  fulfilled: { bg: C.successBg, color: '#27500A', label: 'Fulfilled' },
+                  cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
+                }
+                const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
                 return (
                   <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{p.donor_name}</div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${pledgedAmount.toLocaleString()}</div>
-                    </div>
-                    {(p.donor_email || p.donor_phone) && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>{[p.donor_email, p.donor_phone].filter(Boolean).join(' · ')}</div>}
-                    {(p.is_anonymous || p.cause_id) && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                        {p.is_anonymous && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.ivory, color: C.muted, padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase' }}>Anonymous</span>}
-                        {p.cause_id && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.ivory, color: C.teal, padding: '2px 7px', borderRadius: 3 }}>{myCauses.find(c => c.id === p.cause_id)?.title || 'Linked programme'}</span>}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
+                        {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
+                        {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                        {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
+                        {isDueSoon && !isOverdue && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
+                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
                       </div>
+                    </div>
+                    {(p.donor_email || p.donor_phone || linkedCause) && (
+                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                    )}
+
+                    <div style={{ marginBottom: 2 }}>
+                      <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${(p.is_multi_year ? pledgedAmount / p.total_years : pledgedAmount).toLocaleString()}</span>
+                      {p.is_multi_year && <span style={{ fontSize: 12, color: C.muted }}> / year</span>}
+                    </div>
+                    {p.is_multi_year && (
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>${pledgedAmount.toLocaleString()} total over {p.total_years} years</div>
                     )}
 
                     {p.is_multi_year && (() => {
                       const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id).sort((a, b) => a.year_number - b.year_number)
                       const nextDue = myInstalments.find(i => !i.received)
                       return (
-                        <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 12px', marginBottom: 10 }}>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, marginBottom: 6 }}>{p.total_years}-year commitment · ${(Number(p.amount) / p.total_years).toLocaleString()}/year</div>
+                        <div style={{ marginBottom: 10 }}>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             {myInstalments.map(i => (
-                              <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.white), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
+                              <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.ivory), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
                                 Year {i.year_number}{i.received ? ' ✓' : ` · ${new Date(i.expected_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}`}
                               </span>
                             ))}
@@ -14007,10 +14024,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       )
                     })()}
 
-                    <div style={{ marginTop: 10, marginBottom: 4 }}>
-                      {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ Overdue by {Math.abs(daysUntil)}d</span>}
-                      {isDueSoon && <span style={s.badgePending}>⏰ Due in {daysUntil}d</span>}
-                    </div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
                       Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                       {p.notes && ` · ${p.notes}`}
