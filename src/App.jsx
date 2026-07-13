@@ -378,7 +378,7 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
           <button style={s.btnForest} onClick={() => onSave(form)}>Save Changes</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
           {pledge.status === 'pending' && (
-            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { onCancelPledge(pledge); onClose() }}>✕ Cancel Pledge</button>
+            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => { onCancelPledge(pledge); onClose() }}>✕ Cancel Pledge</button>
           )}
         </div>
       </div>
@@ -643,7 +643,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
           <button style={s.btnForest} onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Recurring Gift')}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
           {isEditing && gift.status === 'active' && (
-            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { onCancelGift(gift); onClose() }}>✕ Cancel Gift</button>
+            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => { onCancelGift(gift); onClose() }}>✕ Cancel Gift</button>
           )}
         </div>
       </div>
