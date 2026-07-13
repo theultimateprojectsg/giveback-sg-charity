@@ -5090,13 +5090,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cancelledPledgeValue = scopedPledgesForYr.filter(p => p.status === 'cancelled').reduce((s, p) => s + Number(p.amount), 0)
     const netPledgeValue = newPledgeValue - cancelledPledgeValue
 
-    const activeMultiYearPledges = pledges.filter(p => p.is_multi_year && p.status === 'pending')
-    const multiYearCount = activeMultiYearPledges.length
-    const multiYearTotalCommitted = activeMultiYearPledges.reduce((s, p) => s + Number(p.amount), 0)
-    const multiYearRemaining = activeMultiYearPledges.reduce((s, p) => {
-      return s + pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s2, i) => s2 + Number(i.amount), 0)
-    }, 0)
-
     const pledgeDonorKey = (p) => p.donor_email?.trim() || p.donor_name
     const pledgeCountByDonor = {}
     pledges.forEach(p => {
@@ -5116,7 +5109,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
     })
 
-    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, multiYearCount, multiYearTotalCommitted, multiYearRemaining }
+    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue }
   }, [filterYear, pledges, pledgeInstalments, fyOf])
 
   const pledgeReliabilityStats = React.useMemo(() => {
