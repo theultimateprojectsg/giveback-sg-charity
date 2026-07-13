@@ -11271,7 +11271,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {[...upgrades, ...downgrades].slice(0, 5).map((f, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? '#EAF3DE' : '#FBEEE9', borderRadius: 4 }}>
+                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? '#EAF3DE' : '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(f.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.donor_name}</span>
                                 <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
@@ -11311,7 +11311,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {terminatedGifts.slice(0, 5).map((g, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}{g.bank_name ? ` · ${g.bank_name}` : ''}</span>
                               <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{{ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' }[g.frequency] || 'mo'}</span>
                             </div>
@@ -11355,7 +11355,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {missedFiltered.slice(0, 5).map((g, i) => {
                             const fullGift = recurringGifts.find(rg => rg.id === g.gift_id)
                             return (
-                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4 }}>
+                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
                                     {g.donor_name}
@@ -11378,7 +11378,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {endingSoon.slice(0, 5).map((g, i) => {
                             const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
                             return (
-                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
                                 <span style={{ fontSize: 11.5, color: C.warning }}>ends in {monthsOut} mo</span>
                               </div>
@@ -11393,7 +11393,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {pausedGifts.slice(0, 5).map((g, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
                               <span style={{ fontSize: 11.5, color: C.muted }}>{g.pause_reason ? ` — ${g.pause_reason}` : ''}{g.pause_resume_date ? ` · resume ${new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}</span>
                             </div>
@@ -11407,7 +11407,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {frequentSkippers.slice(0, 5).map((g, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>
                                   {g.donor_name}
@@ -11426,7 +11426,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {recurringPatternSuggestions.slice(0, 5).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between' }}>
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email }); setActiveTab('donors') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                               <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
                             </div>
@@ -11756,7 +11756,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {matchingAtRisk.map((m, i) => (
-                                <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                                <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(m.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                     <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{m.funder_name}</span>
                                     <span style={{ fontSize: 11, color: C.red }}>{m.pct}% claimed</span>
@@ -11795,7 +11795,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {pendingTranches.map((t, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4 }}>
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(t.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <span style={{ fontSize: 12, color: t.overdue ? C.red : C.text }}>{t.funder_name} <span style={{ color: C.muted }}>· {t.label}</span></span>
                                   <span style={{ fontSize: 11.5, color: t.overdue ? C.red : C.muted }}>${t.amount.toLocaleString()} · {t.overdue ? 'overdue' : new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
                                 </div>
