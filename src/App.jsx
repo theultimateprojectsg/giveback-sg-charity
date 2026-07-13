@@ -5150,11 +5150,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
     const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const activeGiftsCount = recurringGifts.filter(g => g.status === 'active').length
     const tiles = [
+      { label: 'Active Recurring Gifts', val: activeGiftsCount, tip: 'Recurring gifts currently marked active, as of today. Not scoped to a year — this reflects your live portfolio right now.' },
       { label: 'Total Raised (Recurring)', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations collected through recurring gifts in ${yr}, compared to ${yr - 1}.` },
       { label: 'New Recurring Gifts', val: cur.newGifts, d: delta(cur.newGifts, prev.newGifts), tip: `Number of new recurring gifts (GIRO or habitual PayNow) started in ${yr}, compared to ${yr - 1}.` },
       { label: 'Recurring Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who made at least one recurring donation in ${yr}, compared to ${yr - 1}.` },
-      { label: 'Recurring Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of individual confirmed recurring donation charges collected in ${yr}, compared to ${yr - 1}.` },
     ]
     return { yr, tiles }
   }, [filterYear, donations, recurringGifts, fyOf])
@@ -5236,8 +5237,53 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const gift = recurringGifts.find(g => g.id === giftId)
       return gift ? { ...gift, skipCount: skips.length } : null
     }).filter(Boolean)
-    return { missedFiltered, frequentSkippers }
+
+    const today = new Date()
+    const sixMonthsOut = new Date()
+    sixMonthsOut.setMonth(sixMonthsOut.getMonth() + 6)
+    const endingSoon = recurringGifts.filter(g => g.status === 'active' && g.end_date && new Date(g.end_date) >= today && new Date(g.end_date) <= sixMonthsOut)
+    const pausedGifts = recurringGifts.filter(g => g.status === 'paused')
+
+    return { missedFiltered, frequentSkippers, endingSoon, pausedGifts }
   }, [giroMissedCycles, recurringSkipHistory, recurringGifts])
+
+  const recurringAuthStats = React.useMemo(() => {
+    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
+    const bankGifts = recurringGifts.filter(g => g.status === 'active' && (g.type === 'giro' || g.type === 'standing_order'))
+    const pendingCount = bankGifts.filter(g => g.authorization_status === 'pending').length
+    const authorizedCount = bankGifts.filter(g => !g.authorization_status || g.authorization_status === 'active').length
+    const terminatedGifts = bankGifts.filter(g => g.authorization_status === 'terminated')
+    return { pendingCount, authorizedCount, terminatedCount: terminatedGifts.length, terminatedGifts, terminatedMrr: terminatedGifts.reduce((s, g) => s + monthlyEquivalent(g), 0) }
+  }, [recurringGifts])
+
+  const recurringCompositionStats = React.useMemo(() => {
+    const activeGifts = recurringGifts.filter(g => g.status === 'active')
+    const totalActive = activeGifts.reduce((s, g) => s + Number(g.amount), 0)
+
+    const byProgramme = {}
+    activeGifts.forEach(g => {
+      const key = g.cause_id || 'none'
+      if (!byProgramme[key]) byProgramme[key] = 0
+      byProgramme[key] += Number(g.amount)
+    })
+    const byProgrammeRows = Object.entries(byProgramme).map(([key, amt]) => ({
+      key, title: key === 'none' ? 'General / unrestricted' : (myCauses.find(c => c.id === key)?.title || 'Unknown programme'),
+      amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+
+    const typeLabels = { giro: 'GIRO', habitual_paynow: 'Habitual PayNow', standing_order: 'Standing Order', other: 'Other' }
+    const byType = {}
+    activeGifts.forEach(g => {
+      const key = g.type || 'other'
+      if (!byType[key]) byType[key] = 0
+      byType[key] += Number(g.amount)
+    })
+    const byTypeRows = Object.entries(byType).map(([key, amt]) => ({
+      key, label: typeLabels[key] || key, amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+
+    return { byProgrammeRows, byTypeRows }
+  }, [recurringGifts, myCauses])
 
   const grantsWithNextReport = React.useMemo(() => {
     return grants.map(g => {
@@ -11240,11 +11286,56 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
 
                 {(() => {
-                  const { missedFiltered, frequentSkippers } = recurringRiskStats
+                  const { pendingCount, authorizedCount, terminatedCount, terminatedGifts, terminatedMrr } = recurringAuthStats
 
                   return (
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Recurring Gift Risk <InfoTip text="Recurring donors who've missed payments, who frequently use Skip Cycle, and donors giving recurring-shaped manual gifts who aren't yet set up as a formal recurring gift." /></div>
+                      <div style={s.analyticsCardTitle}>Authorization & Mandate Risk <InfoTip text="GIRO and Standing Order gifts by bank authorization status. A terminated mandate means the bank has cut off the deduction — the donor needs to be contacted to re-authorize, or the gift will keep silently failing." /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pending</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.gold }}>{pendingCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Authorized</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.sage }}>{authorizedCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Terminated</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.red }}>{terminatedCount}</div>
+                        </div>
+                      </div>
+                      <div style={s.analyticsSubTitleDivider}>Terminated by bank — needs follow-up</div>
+                      {terminatedGifts.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>None right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {terminatedGifts.slice(0, 5).map((g, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}{g.bank_name ? ` · ${g.bank_name}` : ''}</span>
+                              <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{{ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' }[g.frequency] || 'mo'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {terminatedCount > 0 ? (
+                        <ActionBanner tone="danger" text={`${terminatedCount} mandate${terminatedCount !== 1 ? 's' : ''} terminated`} sub={`~$${Math.round(terminatedMrr).toLocaleString()} MRR at risk — contact donors to re-authorize`} />
+                      ) : (
+                        <ActionBanner tone="success" text="All bank mandates in good standing" sub="No terminated authorizations right now" />
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const { missedFiltered, frequentSkippers, endingSoon, pausedGifts } = recurringRiskStats
+                  const today = new Date()
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Recurring Gift Risk <InfoTip text="Everything that needs a human decision: missed payments, gifts ending soon, currently paused gifts, donors who frequently skip, and manual gifts that look recurring but aren't tagged as one." /></div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div style={s.analyticsSubTitle}>Missed payments</div>
@@ -11258,18 +11349,53 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                       {missedFiltered.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No missed recurring payments right now.</div>
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No missed recurring payments right now.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {missedFiltered.slice(0, 5).map((g, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
-                                  {g.donor_name}
-                                  {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
-                                </span>
-                                <span style={{ fontSize: 11.5, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.missedCycles} cycle{g.missedCycles !== 1 ? 's' : ''} missed{g.missedCycles >= 2 ? ' — possible cancellation' : ''}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {missedFiltered.slice(0, 5).map((g, i) => {
+                            const fullGift = recurringGifts.find(rg => rg.id === g.gift_id)
+                            return (
+                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
+                                    {g.donor_name}
+                                    {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
+                                  </span>
+                                  <span style={{ fontSize: 11.5, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.missedCycles} cycle{g.missedCycles !== 1 ? 's' : ''} missed{g.missedCycles >= 2 ? ' — possible cancellation' : ''}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: g.missedCycles >= 2 ? C.red : C.warning, marginTop: 2 }}>{fullGift?.donor_phone ? `Call ${fullGift.donor_phone}` : 'No phone on file — email only'}</div>
                               </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitleDivider}>Ending within 6 months</div>
+                      {endingSoon.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active gifts with an end date in the next 6 months.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {endingSoon.slice(0, 5).map((g, i) => {
+                            const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                            return (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 11.5, color: C.warning }}>ends in {monthsOut} mo</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitleDivider}>Currently paused ({pausedGifts.length})</div>
+                      {pausedGifts.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No paused gifts right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {pausedGifts.slice(0, 5).map((g, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                              <span style={{ fontSize: 11.5, color: C.muted }}>{g.pause_reason ? ` — ${g.pause_reason}` : ''}{g.pause_resume_date ? ` · resume ${new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}</span>
                             </div>
                           ))}
                         </div>
@@ -11277,9 +11403,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       <div style={s.analyticsSubTitleDivider}>Frequent skippers</div>
                       {frequentSkippers.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have skipped 2+ cycles this year.</div>
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No donors have skipped 2+ cycles this year.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {frequentSkippers.slice(0, 5).map((g, i) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -11289,15 +11415,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 </span>
                                 <span style={{ fontSize: 11, color: C.muted }}>{g.skipCount} cycles skipped</span>
                               </div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Still active — using Skip Cycle rather than missing silently</div>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      <div style={s.analyticsSubTitleDivider}>Looks recurring, not yet tagged</div>
+                      <div style={s.analyticsSubTitleDivider}>Not yet tagged as recurring</div>
                       {recurringPatternSuggestions.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No untagged recurring patterns detected.</div>
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No untagged recurring patterns detected.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {recurringPatternSuggestions.slice(0, 5).map((d, i) => (
@@ -11309,8 +11434,48 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      {(missedFiltered.length > 0 || frequentSkippers.length > 0) && (
-                        <div style={{ fontSize: 10.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 10 }}>A missed GIRO cycle usually means a bank authorization issue — worth a direct follow-up. A missed PayNow cycle is often just forgetfulness.</div>
+                      {(missedFiltered.length > 0 || frequentSkippers.length > 0 || endingSoon.length > 0) ? (
+                        <ActionBanner tone="danger" text={`${missedFiltered.length + frequentSkippers.length + endingSoon.length} donor${(missedFiltered.length + frequentSkippers.length + endingSoon.length) !== 1 ? 's' : ''} need follow-up`} sub="A missed GIRO cycle usually means a bank authorization issue; PayNow is often just forgetfulness" />
+                      ) : (
+                        <ActionBanner tone="success" text="No risk signals right now" sub="No missed payments, expiring gifts, or frequent skippers" />
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const { byProgrammeRows, byTypeRows } = recurringCompositionStats
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
+                      <div style={s.analyticsSubTitleDivider}>By programme</div>
+                      {byProgrammeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {byProgrammeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={s.analyticsSubTitleDivider}>By type</div>
+                      {byTypeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {byTypeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )
