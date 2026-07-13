@@ -3230,7 +3230,7 @@ export default function App() {
       }
 
       if (appealId) {
-        await supabase.from('mass_appeal_recipients').insert({
+        const { error: insertError } = await supabase.from('mass_appeal_recipients').insert({
           appeal_id: appealId,
           donor_name: donor.donor_name,
           donor_email: donor.donor_email,
@@ -3239,6 +3239,7 @@ export default function App() {
           status: recipientStatus,
           error_message: error?.message || null,
         })
+        if (insertError) console.error('Failed to record appeal recipient row for', donor.donor_email, insertError)
       }
 
       setMassAppealProgress({ done: i + 1, total: selected.length, sent, failed, blocked })
@@ -3252,9 +3253,15 @@ export default function App() {
     })
 
     if (appealId) {
+      // Derive final counts from the recipient rows that actually persisted, rather than the
+      // in-memory counters, so mass_appeals never overstates what mass_appeal_recipients has —
+      // a recipient insert above can fail independently of the send itself.
+      const { data: persistedRecipients } = await supabase.from('mass_appeal_recipients').select('status').eq('appeal_id', appealId)
+      const persistedSent = (persistedRecipients || []).filter(r => r.status === 'sent').length
+      const persistedFailed = (persistedRecipients || []).filter(r => r.status === 'failed').length
       const { data: updatedAppeal } = await supabase.from('mass_appeals').update({
-        sent_count: sent,
-        failed_count: failed,
+        sent_count: persistedSent,
+        failed_count: persistedFailed,
         status: 'sent',
       }).eq('id', appealId).select()
       if (updatedAppeal?.[0]) setMassAppeals(prev => [updatedAppeal[0], ...prev.filter(a => a.id !== appealId)])
@@ -3296,9 +3303,11 @@ export default function App() {
     const { data: refreshedRecipients } = await supabase.from('mass_appeal_recipients').select('*').eq('appeal_id', appeal.id).order('created_at', { ascending: true })
     setAppealRecipients(refreshedRecipients || [])
 
+    const persistedSent = (refreshedRecipients || []).filter(r => r.status === 'sent').length
+    const persistedFailed = (refreshedRecipients || []).filter(r => r.status === 'failed').length
     const { data: updatedAppeal } = await supabase.from('mass_appeals').update({
-      sent_count: appeal.sent_count + retriedSent,
-      failed_count: appeal.failed_count - retriedSent,
+      sent_count: persistedSent,
+      failed_count: persistedFailed,
     }).eq('id', appeal.id).select()
     if (updatedAppeal?.[0]) {
       setMassAppeals(prev => prev.map(a => a.id === appeal.id ? updatedAppeal[0] : a))
