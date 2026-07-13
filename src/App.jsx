@@ -1587,12 +1587,25 @@ export default function App() {
       created_by: session.user.email,
     }).select().single()
     if (error) { console.error('Could not save campaign expense:', error); showToast('Error saving expense', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'campaign_expense_logged',
+      details: { campaign_title: myCauses.find(c => c.id === causeId)?.title, description: form.description.trim(), amount: parseFloat(form.amount), category: form.category || null, charity_uen: charityUen },
+    })
     setCampaignExpenses(prev => [...prev, data])
     showToast('Expense logged ✓')
   }
 
   async function deleteCampaignExpense(id) {
+    const expense = campaignExpenses.find(e => e.id === id)
     await supabase.from('campaign_expenses').delete().eq('id', id)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'campaign_expense_deleted',
+      details: { campaign_title: expense ? myCauses.find(c => c.id === expense.cause_id)?.title : null, description: expense?.description, amount: expense?.amount, charity_uen: charityUen },
+    })
     setCampaignExpenses(prev => prev.filter(e => e.id !== id))
   }
 
@@ -1615,6 +1628,12 @@ export default function App() {
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving note', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_note_added',
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, note: noteText.trim(), charity_uen: charityUen },
+    })
     setGrantNotes(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
     showToast('Note added ✓')
   }
@@ -1638,6 +1657,12 @@ export default function App() {
       due_date: form.due_date,
     }).select().single()
     if (error) { showToast('Error adding report deadline', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_report_added',
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), due_date: form.due_date, charity_uen: charityUen },
+    })
     setGrantReports(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) }))
     showToast('Report deadline added ✓')
   }
@@ -1648,12 +1673,24 @@ export default function App() {
       submitted_at: !report.submitted ? new Date().toISOString() : null,
     }).eq('id', report.id).select().single()
     if (error) { showToast('Error updating report', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: data.submitted ? 'grant_report_submitted' : 'grant_report_unsubmitted',
+      details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, label: report.label, due_date: report.due_date, charity_uen: charityUen },
+    })
     setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map(r => r.id === report.id ? data : r) }))
   }
 
   async function deleteGrantReport(report) {
     const { error } = await supabase.from('grant_reports').delete().eq('id', report.id)
     if (error) { showToast('Error deleting report', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_report_deleted',
+      details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, label: report.label, due_date: report.due_date, charity_uen: charityUen },
+    })
     setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).filter(r => r.id !== report.id) }))
   }
 
@@ -1677,6 +1714,12 @@ export default function App() {
       expected_date: form.expected_date,
     }).select().single()
     if (error) { showToast('Error adding tranche', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_tranche_added',
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), amount: parseFloat(form.amount), expected_date: form.expected_date, charity_uen: charityUen },
+    })
     setGrantTranches(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
     showToast('Tranche added ✓')
   }
@@ -1687,12 +1730,24 @@ export default function App() {
       received_at: !tranche.received ? new Date().toISOString() : null,
     }).eq('id', tranche.id).select().single()
     if (error) { showToast('Error updating tranche', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: data.received ? 'grant_tranche_received' : 'grant_tranche_unreceived',
+      details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, label: tranche.label, amount: tranche.amount, charity_uen: charityUen },
+    })
     setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map(t => t.id === tranche.id ? data : t) }))
   }
 
   async function deleteGrantTranche(tranche) {
     const { error } = await supabase.from('grant_tranches').delete().eq('id', tranche.id)
     if (error) { showToast('Error deleting tranche', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_tranche_deleted',
+      details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, label: tranche.label, amount: tranche.amount, charity_uen: charityUen },
+    })
     setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).filter(t => t.id !== tranche.id) }))
   }
 
@@ -1716,6 +1771,12 @@ export default function App() {
       notes: form.notes?.trim() || null,
     }).select().single()
     if (error) { showToast('Error adding claim', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_match_claim_added',
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, amount: parseFloat(form.amount), claim_date: form.claim_date, charity_uen: charityUen },
+    })
     setGrantMatchClaims(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
     showToast('Claim logged ✓')
   }
@@ -1723,6 +1784,12 @@ export default function App() {
   async function deleteGrantMatchClaim(claim) {
     const { error } = await supabase.from('grant_match_claims').delete().eq('id', claim.id)
     if (error) { showToast('Error deleting claim', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_match_claim_deleted',
+      details: { funder_name: grants.find(g => g.id === claim.grant_id)?.funder_name, amount: claim.amount, claim_date: claim.claim_date, charity_uen: charityUen },
+    })
     setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).filter(c => c.id !== claim.id) }))
   }
 
@@ -1737,12 +1804,25 @@ export default function App() {
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving expense', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_expense_logged',
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, description: form.description.trim(), amount: parseFloat(form.amount), category: form.category || null, charity_uen: charityUen },
+    })
     setGrantExpenses(prev => [...prev, data])
     showToast('Expense logged ✓')
   }
 
   async function deleteGrantExpense(id) {
+    const expense = grantExpenses.find(e => e.id === id)
     await supabase.from('grant_expenses').delete().eq('id', id)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_expense_deleted',
+      details: { funder_name: expense ? grants.find(g => g.id === expense.grant_id)?.funder_name : null, description: expense?.description, amount: expense?.amount, charity_uen: charityUen },
+    })
     setGrantExpenses(prev => prev.filter(e => e.id !== id))
     showToast('Removed')
   }
@@ -1799,13 +1879,26 @@ export default function App() {
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving expense', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'monthly_expense_added',
+      details: { name: newExpenseForm.name.trim(), amount: parseFloat(newExpenseForm.amount), charity_uen: charityUen },
+    })
     setRecurringExpenses(prev => [...prev, data].sort((a, b) => b.amount - a.amount))
     setNewExpenseForm({ name: '', amount: '' })
     showToast('Expense added ✓')
   }
 
   async function deleteRecurringExpense(id) {
+    const expense = recurringExpenses.find(e => e.id === id)
     await supabase.from('recurring_expenses').delete().eq('id', id)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'monthly_expense_deleted',
+      details: { name: expense?.name, amount: expense?.amount, charity_uen: charityUen },
+    })
     setRecurringExpenses(prev => prev.filter(e => e.id !== id))
     showToast('Removed')
   }
@@ -1853,6 +1946,12 @@ export default function App() {
       created_by: session.user.email,
     }).select().single()
     if (error) { showToast('Error saving grant', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_created',
+      details: { funder_name: data.funder_name, amount, unrestricted_amount: unrestricted, restricted_amount: restricted, is_matching: data.is_matching, charity_uen: charityUen },
+    })
     setGrants(prev => [...prev, data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
     setShowGrantForm(false)
     showToast('Grant recorded ✓')
@@ -1891,6 +1990,12 @@ export default function App() {
       status: grantForm.status || 'active',
     }).eq('id', grantId).select().single()
     if (error) { showToast('Error updating grant', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_edited',
+      details: { funder_name: data.funder_name, amount, unrestricted_amount: unrestricted, restricted_amount: restricted, status: data.status, charity_uen: charityUen },
+    })
     setGrants(prev => prev.map(g => g.id === grantId ? data : g).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
     setEditingGrant(null)
     showToast('Grant updated ✓')
@@ -1906,6 +2011,12 @@ export default function App() {
         if (error) { showToast('Error deleting grant', 'error'); return }
         const { error: grantError } = await supabase.from('grants').delete().eq('id', grant.id)
         if (grantError) { showToast('Error deleting grant', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'grant_deleted',
+          details: { funder_name: grant.funder_name, amount: grant.amount, charity_uen: charityUen },
+        })
         setGrants(prev => prev.filter(g => g.id !== grant.id))
         setGrantExpenses(prev => prev.filter(e => e.grant_id !== grant.id))
         setGrantNotes(prev => { const next = { ...prev }; delete next[grant.id]; return next })
@@ -2017,6 +2128,13 @@ export default function App() {
       return
     }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'sender_domain_registered',
+      details: { domain: senderDomainInput.trim(), charity_uen: charityUen },
+    })
+
     setSenderDomain(senderDomainInput.trim())
     setSenderDomainStatus('pending')
     setDnsRecords(data.records)
@@ -2044,6 +2162,12 @@ export default function App() {
 
     if (data.status === 'verified') {
       await supabase.from('charity_contacts').update({ sender_domain_status: 'verified' }).eq('charity_uen', charityUen)
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'sender_domain_verified',
+        details: { domain: senderDomain, charity_uen: charityUen },
+      })
       setSenderDomainStatus('verified')
       showToast('Domain verified! 🎉 Emails will now send from your own address.')
     } else {
@@ -2158,6 +2282,13 @@ export default function App() {
         [p.id]: [inserted, ...(prev[p.id] || [])]
       }))
     }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_reminder_sent',
+      details: { donor_name: p.donor_name, donor_email: p.donor_email, amount: p.amount, charity_uen: charityUen },
+    })
 
     setSendingPledgeReminder(false)
     showToast(`Reminder sent to ${p.donor_email}`)
@@ -2334,6 +2465,12 @@ export default function App() {
     }).eq('id', giftId).select().single()
     setSavingRecurring(false)
     if (error) { showToast(`Error: ${error.message}`, 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_edited',
+      details: { donor_name: form.donor_name.trim(), amount: parseFloat(form.amount), frequency: form.frequency, charity_uen: charityUen },
+    })
     setRecurringGifts(prev => prev.map(g => g.id === giftId ? data : g))
     setEditingRecurringGift(null)
     showToast('Recurring gift updated ✓')
@@ -2467,6 +2604,12 @@ export default function App() {
       next_expected_date: lastSkip.skipped_cycle_date,
     }).eq('id', gift.id)
     if (giftError) { showToast('Skip event removed, but error reverting next expected date', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_skip_undone',
+      details: { donor_name: gift.donor_name, restored_next_expected_date: lastSkip.skipped_cycle_date, charity_uen: charityUen },
+    })
     setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, next_expected_date: lastSkip.skipped_cycle_date } : g))
     setRecurringSkipHistory(prev => ({ ...prev, [gift.id]: history.slice(1) }))
     showToast('Skip undone ✓')
@@ -2475,6 +2618,12 @@ export default function App() {
   async function undoFailedDeduction(gift, event) {
     const { error } = await supabase.from('recurring_gift_events').delete().eq('id', event.id)
     if (error) { showToast('Error undoing failed deduction', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_failed_deduction_undone',
+      details: { donor_name: gift.donor_name, reason: event.reason, charity_uen: charityUen },
+    })
     setRecurringFailedDeductionHistory(prev => ({
       ...prev,
       [gift.id]: (prev[gift.id] || []).filter(e => e.id !== event.id),
@@ -2518,6 +2667,13 @@ export default function App() {
       }))
     }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_reminder_sent',
+      details: { donor_name: g.donor_name, donor_email: g.donor_email, charity_uen: charityUen },
+    })
+
     setSendingRecurringReminder(false)
     showToast(`Reminder sent to ${g.donor_email}`)
     setShowRecurringReminderModal(false)
@@ -2542,6 +2698,13 @@ export default function App() {
 
     if (error) { showToast('Error dismissing donor', 'error'); setDismissingLapsed(false); return }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'lapsed_donor_dismissed',
+      details: { donor_name: d.name, reason_category: lapsedDismissCategory, reason: lapsedDismissReason || null, charity_uen: charityUen },
+    })
+
     setLapsedDismissals(prev => ({ ...prev, [donorKey]: inserted }))
     showToast(`${d.name} marked as not interested`)
     setDismissingLapsed(false)
@@ -2552,6 +2715,12 @@ export default function App() {
   async function undismissLapsedDonor(donorKey) {
     const { error } = await supabase.from('lapsed_donor_events').delete().eq('charity_uen', charityUen).eq('donor_key', donorKey).eq('event_type', 'dismissal')
     if (error) { showToast('Error undoing dismissal', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'lapsed_donor_dismissal_undone',
+      details: { donor_key: donorKey, charity_uen: charityUen },
+    })
     setLapsedDismissals(prev => {
       const next = { ...prev }
       delete next[donorKey]
@@ -2610,6 +2779,13 @@ export default function App() {
       }
     }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: d.givingChangeMeta ? 'giving_change_checkin_sent' : 'lapsed_donor_reminder_sent',
+      details: { donor_name: d.name, donor_email: d.email, charity_uen: charityUen },
+    })
+
     setSendingLapsedReminder(false)
     showToast(`Reminder sent to ${d.email}`)
     setShowLapsedReminderModal(false)
@@ -2633,6 +2809,12 @@ export default function App() {
     }).eq('id', gift.id)
     setPausingGift(false)
     if (error) { showToast('Error pausing', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_paused',
+      details: { donor_name: gift.donor_name, pause_reason: pauseReasonInput.trim() || null, pause_resume_date: pauseResumeDateInput || null, charity_uen: charityUen },
+    })
     setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'paused', pause_reason: pauseReasonInput.trim() || null, pause_resume_date: pauseResumeDateInput || null } : g))
     showToast(`${gift.donor_name}'s recurring gift paused`)
     setPauseGiftModal(null)
@@ -2642,6 +2824,12 @@ export default function App() {
     const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
     const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null }).eq('id', gift.id)
     if (error) { showToast('Error reactivating', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'recurring_gift_reactivated',
+      details: { donor_name: gift.donor_name, charity_uen: charityUen },
+    })
     setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null } : g))
     showToast(`${gift.donor_name}'s recurring gift reactivated ✓`)
   }
@@ -2975,6 +3163,12 @@ export default function App() {
       created_by: session.user.email,
     }]).select()
     if (error) { showToast('Error saving note', 'error'); setSavingNote(false); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_note_added',
+      details: { donor_name: selectedDonor.name, note_type: newNoteType, charity_uen: charityUen },
+    })
     setDonorNotes(prev => [data[0], ...prev])
     setNewNoteText('')
     setNewNoteType('note')
@@ -2983,8 +3177,15 @@ export default function App() {
   }
 
   async function deleteDonorNote(noteId) {
+    const note = donorNotes.find(n => n.id === noteId)
     const { error } = await supabase.from('donor_notes').delete().eq('id', noteId)
     if (error) { showToast('Error deleting note', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_note_deleted',
+      details: { donor_key: note?.donor_key, note: note?.note, charity_uen: charityUen },
+    })
     setDonorNotes(prev => prev.filter(n => n.id !== noteId))
     showToast('Note deleted')
   }
@@ -3006,6 +3207,12 @@ export default function App() {
       setSavingTag(false)
       return
     }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_tag_added',
+      details: { donor_name: donor.name, tag, charity_uen: charityUen },
+    })
     setDonorTagsMap(prev => ({
       ...prev,
       [donorKey]: [...(prev[donorKey] || []), data[0]],
@@ -3017,8 +3224,15 @@ export default function App() {
 
   async function deleteDonorTag(donor, tagId) {
     const donorKey = donor.email?.trim() || donor.name
+    const removedTag = (donorTagsMap[donorKey] || []).find(t => t.id === tagId)
     const { error } = await supabase.from('donor_tags').delete().eq('id', tagId)
     if (error) { showToast('Error removing tag', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_tag_removed',
+      details: { donor_name: donor.name, tag: removedTag?.tag, charity_uen: charityUen },
+    })
     setDonorTagsMap(prev => ({
       ...prev,
       [donorKey]: (prev[donorKey] || []).filter(t => t.id !== tagId),
@@ -3240,7 +3454,7 @@ export default function App() {
       const donorKey44b = donor.email?.trim() || donor.name
       const contact44b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44b)
       const restrictions44b = contact44b?.communication_restrictions?.toLowerCase() || ''
-      const flaggedRestricted = /no mass|no appeal|do not send appeal|no bulk/.test(restrictions44b)
+      const flaggedRestricted = donor.doNotContact || /no mass|no appeal|do not send appeal|no bulk/.test(restrictions44b)
       return {
         donor_name: donor.name,
         donor_email: donor.email,
@@ -3248,7 +3462,7 @@ export default function App() {
         amount: parseFloat(massAppealForm.amount),
         qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${ref}`,
         selected: !flaggedRestricted,
-        restrictionNote: flaggedRestricted ? contact44b.communication_restrictions : null,
+        restrictionNote: donor.doNotContact ? 'Marked Do Not Contact' : (flaggedRestricted ? contact44b.communication_restrictions : null),
       }
     })
     setMassAppealRefs(finalRefs)
@@ -4076,6 +4290,12 @@ export default function App() {
     await supabase.from('charity_donor_contacts').update({ household_id: householdId }).eq('id', contactA.id)
     await supabase.from('charity_donor_contacts').update({ household_id: householdId }).eq('id', contactB.id)
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_household_linked',
+      details: { donor_a: donorA.name, donor_b: donorB.name, charity_uen: charityUen },
+    })
     showToast(`Linked ${donorA.name} and ${donorB.name} as a household ✓`)
     await loadDonorContacts()
   }
@@ -4085,6 +4305,12 @@ export default function App() {
     const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === key)
     if (!contact) return
     await supabase.from('charity_donor_contacts').update({ household_id: null }).eq('id', contact.id)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_household_unlinked',
+      details: { donor_name: donor.name, charity_uen: charityUen },
+    })
     showToast('Removed from household')
     await loadDonorContacts()
   }
@@ -6591,11 +6817,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast('Analytics view updated ✓')
   }
 
+  function removeTeamMember(role, email) {
+    const proceed = async () => {
+      const columnMap = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+      const currentMap = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
+      const setterMap = { ed: setLocalEds, staff: setLocalStaff, board: setLocalBoardMembers, volunteer: setLocalVolunteers }
+      const updated = currentMap[role].filter(e => e !== email)
+      const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
+      if (error) { showToast('Error removing', 'error'); return }
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'team_member_removed',
+        details: { email, role, charity_uen: charityUen },
+      })
+      setterMap[role](updated)
+      showToast('Removed')
+    }
+    if (email === session?.user?.email) {
+      setConfirmModal({
+        title: 'Remove your own access?',
+        description: `You're about to remove yourself as ${role === 'ed' ? 'Executive Director' : role === 'staff' ? 'Staff' : role === 'board' ? 'a Board Member' : 'a Volunteer'}. You'll immediately lose that access level and may be logged out of parts of the app.`,
+        confirmLabel: 'Remove My Access',
+        onConfirm: proceed,
+      })
+    } else {
+      proceed()
+    }
+  }
+
   async function saveAnnualGoal() {
     const val = parseFloat(goalInput)
     if (!goalInput || isNaN(val) || val <= 0) { showToast('Enter a valid goal amount', 'error'); return }
     const { error } = await supabase.from('charity_contacts').update({ annual_goal: val }).eq('charity_uen', charityUen)
     if (error) { showToast('Could not save goal', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'annual_goal_updated',
+      details: { new_goal: val, charity_uen: charityUen },
+    })
     setAnnualGoal(val)
     setEditingGoal(false)
     showToast('Annual goal updated ✓')
@@ -6609,6 +6870,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (!day || day < 1 || day > daysInMonth) { showToast(`Enter a valid day for that month (1-${daysInMonth})`, 'error'); return }
     const { error } = await supabase.from('charity_contacts').update({ fy_end_month: month, fy_end_day: day }).eq('charity_uen', charityUen)
     if (error) { showToast('Could not save financial year end', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'fiscal_year_end_changed',
+      details: { old_month: fyEndMonth, old_day: fyEndDay, new_month: month, new_day: day, charity_uen: charityUen },
+    })
     setFyEndMonth(month)
     setFyEndDay(day)
     setEditingFyEnd(false)
@@ -7372,6 +7639,250 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
 
     doc.save(`GivingTree-YearEnd-${charityName}-${filterYear}.pdf`)
+  }
+
+  function exportGrantsComplianceReport() {
+    const doc = new jsPDF()
+    const activeGrants92 = grants.filter(g => g.status === 'active')
+    const today92 = new Date()
+
+    const allReportRows = []
+    activeGrants92.forEach(g => {
+      (grantReports[g.id] || []).forEach(r => {
+        const isOverdue = !r.submitted && new Date(r.due_date) < today92
+        allReportRows.push([
+          g.funder_name,
+          r.label,
+          new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }),
+          r.submitted ? `Submitted ${r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-SG') : ''}` : (isOverdue ? 'OVERDUE' : 'Upcoming'),
+        ])
+      })
+    })
+    allReportRows.sort((a, b) => (a[3] === 'OVERDUE' ? -1 : 1) - (b[3] === 'OVERDUE' ? -1 : 1))
+
+    const allTrancheRows = []
+    activeGrants92.forEach(g => {
+      (grantTranches[g.id] || []).forEach(t => {
+        const isOverdue = !t.received && new Date(t.expected_date) < today92
+        allTrancheRows.push([
+          g.funder_name,
+          t.label,
+          `$${Number(t.amount).toLocaleString()}`,
+          new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }),
+          t.received ? 'Received' : (isOverdue ? 'OVERDUE' : 'Pending'),
+        ])
+      })
+    })
+
+    const matchingGrants92 = activeGrants92.filter(g => g.is_matching)
+    const overdueReportCount = allReportRows.filter(r => r[3] === 'OVERDUE').length
+    const overdueTrancheCount = allTrancheRows.filter(r => r[4] === 'OVERDUE').length
+
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Grants Compliance Report', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`${charityName} · ${activeGrants92.length} active grant${activeGrants92.length !== 1 ? 's' : ''}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${new Date().toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Summary', 14, 56)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    let y92 = 66
+    ;[
+      ['Active Grants', `${activeGrants92.length}`],
+      ['Overdue Reports', `${overdueReportCount}`],
+      ['Overdue Disbursements', `${overdueTrancheCount}`],
+      ['Matching Grants', `${matchingGrants92.length}`],
+    ].forEach(([label, value]) => {
+      doc.setFont('helvetica', 'normal'); doc.text(label, 14, y92)
+      doc.setFont('helvetica', 'bold'); doc.text(value, 90, y92)
+      y92 += 8
+    })
+
+    y92 += 6
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Report Deadlines', 14, y92)
+    y92 += 4
+    autoTable(doc, {
+      startY: y92,
+      head: [['Funder', 'Report', 'Due Date', 'Status']],
+      body: allReportRows.length ? allReportRows : [['No report deadlines recorded', '', '', '']],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3 && data.cell.raw === 'OVERDUE') {
+          data.cell.styles.textColor = [160, 71, 47]
+          data.cell.styles.fontStyle = 'bold'
+        }
+      },
+    })
+    y92 = doc.lastAutoTable.finalY + 14
+
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Disbursement Tranches', 14, y92)
+    y92 += 4
+    autoTable(doc, {
+      startY: y92,
+      head: [['Funder', 'Tranche', 'Amount', 'Expected', 'Status']],
+      body: allTrancheRows.length ? allTrancheRows : [['No tranches recorded', '', '', '', '']],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4 && data.cell.raw === 'OVERDUE') {
+          data.cell.styles.textColor = [160, 71, 47]
+          data.cell.styles.fontStyle = 'bold'
+        }
+      },
+    })
+    y92 = doc.lastAutoTable.finalY + 14
+
+    if (matchingGrants92.length > 0) {
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+      doc.text('Matching Grant Claims', 14, y92)
+      y92 += 4
+      autoTable(doc, {
+        startY: y92,
+        head: [['Funder', 'Ratio', 'Claimed', 'Cap', '% Claimed']],
+        body: matchingGrants92.map(g => {
+          const claimed = (grantMatchClaims[g.id] || []).reduce((s, c) => s + Number(c.amount), 0)
+          const cap = Number(g.match_cap) || 0
+          return [g.funder_name, g.match_ratio || '—', `$${claimed.toLocaleString()}`, `$${cap.toLocaleString()}`, cap > 0 ? `${Math.round((claimed / cap) * 100)}%` : '—']
+        }),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+      })
+      y92 = doc.lastAutoTable.finalY + 14
+    }
+
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, y92)
+    doc.save(`GivingTree-GrantsCompliance-${charityName}-${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
+  function exportPermitRegister() {
+    const doc = new jsPDF()
+    const campaigns92 = myCauses.filter(c => c.type === 'campaign')
+    const permitLabel = (status) => status === 'obtained' ? 'Permit Obtained' : status === 'pending' ? 'Permit Pending' : 'Not Required'
+    const rows92 = campaigns92.map(c => {
+      const expired = c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date()
+      return [
+        c.title,
+        c.status === 'approved' ? 'Active' : c.status === 'completed' ? 'Ended' : c.status,
+        expired ? 'EXPIRED' : permitLabel(c.permit_status),
+        c.permit_number || '—',
+        c.permit_expiry ? new Date(c.permit_expiry).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+      ]
+    })
+
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Fundraising Permit Register', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`${charityName} · ${campaigns92.length} campaign${campaigns92.length !== 1 ? 's' : ''}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${new Date().toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal')
+    doc.text('Register of fundraising permit status for all campaigns, for compliance with the House to House and Street Collections Act and Charities Act.', 14, 54, { maxWidth: 182 })
+
+    autoTable(doc, {
+      startY: 64,
+      head: [['Campaign', 'Status', 'Permit Status', 'Permit Number', 'Expiry']],
+      body: rows92.length ? rows92 : [['No campaigns recorded', '', '', '', '']],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2 && data.cell.raw === 'EXPIRED') {
+          data.cell.styles.textColor = [160, 71, 47]
+          data.cell.styles.fontStyle = 'bold'
+        }
+      },
+    })
+
+    const finalY92 = doc.lastAutoTable.finalY + 14
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY92)
+    doc.save(`GivingTree-PermitRegister-${charityName}-${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
+  function exportRestrictedFundStatement() {
+    if (filterYear === 'All') { showToast('Select a specific year first'); return }
+    const { start: fyStart, end: fyEnd } = fiscalYearBounds(parseInt(filterYear), fyEndMonth, fyEndDay)
+    const restrictedGrants92 = grants.filter(g => Number(g.restricted_amount) > 0)
+
+    let totalOpening = 0, totalReceipts = 0, totalExpenditure = 0
+    const fundRows = restrictedGrants92.map(g => {
+      const restrictedAmt = Number(g.restricted_amount)
+      const grantStart = new Date(g.start_date || g.created_at)
+      const expenses = grantExpensesByGrant[g.id] || []
+      const expensesBefore = expenses.filter(e => new Date(e.expense_date) < fyStart).reduce((s, e) => s + Number(e.amount), 0)
+      const expensesDuring = expenses.filter(e => new Date(e.expense_date) >= fyStart && new Date(e.expense_date) <= fyEnd).reduce((s, e) => s + Number(e.amount), 0)
+
+      const opening = grantStart < fyStart ? Math.max(0, restrictedAmt - Math.min(expensesBefore, restrictedAmt)) : 0
+      const receipts = (grantStart >= fyStart && grantStart <= fyEnd) ? restrictedAmt : 0
+      const availableForExpenditure = opening + receipts
+      const expenditure = Math.min(expensesDuring, availableForExpenditure)
+      const closing = availableForExpenditure - expenditure
+
+      totalOpening += opening
+      totalReceipts += receipts
+      totalExpenditure += expenditure
+
+      return [g.funder_name, g.purpose_restriction || '—', `$${opening.toLocaleString()}`, `$${receipts.toLocaleString()}`, `$${expenditure.toLocaleString()}`, `$${closing.toLocaleString()}`]
+    })
+
+    const doc = new jsPDF()
+    doc.setFillColor(27, 67, 50)
+    doc.rect(0, 0, 210, 42, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold')
+    doc.text('Statement of Restricted Funds', 14, 20)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    doc.text(`${charityName} · FY ${filterYear}`, 14, 30)
+    doc.setFontSize(9)
+    doc.text(`Generated ${new Date().toLocaleDateString('en-SG')}`, 14, 37)
+
+    doc.setTextColor(28, 28, 28)
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('Movement Summary', 14, 56)
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal')
+    let y93 = 66
+    ;[
+      ['Opening Balance', `$${totalOpening.toLocaleString()}`],
+      ['Receipts This Year', `$${totalReceipts.toLocaleString()}`],
+      ['Expenditure This Year', `$${totalExpenditure.toLocaleString()}`],
+      ['Closing Balance', `$${(totalOpening + totalReceipts - totalExpenditure).toLocaleString()}`],
+    ].forEach(([label, value]) => {
+      doc.setFont('helvetica', 'normal'); doc.text(label, 14, y93)
+      doc.setFont('helvetica', 'bold'); doc.text(value, 90, y93)
+      y93 += 8
+    })
+
+    y93 += 6
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold')
+    doc.text('By Restricted Fund', 14, y93)
+    y93 += 4
+    autoTable(doc, {
+      startY: y93,
+      head: [['Funder', 'Purpose', 'Opening', 'Receipts', 'Expenditure', 'Closing']],
+      body: fundRows.length ? fundRows : [['No restricted grants recorded', '', '', '', '', '']],
+      styles: { fontSize: 8.5 },
+      headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
+    })
+    const finalY93 = doc.lastAutoTable.finalY + 12
+
+    doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
+    doc.text('Methodology: for each restricted grant, expenditure is drawn from its restricted balance first (up to the restricted amount). This statement does not distinguish restricted vs. unrestricted spend within a single expense entry — review with your treasurer/auditor before use in audited financial statements.', 14, finalY93, { maxWidth: 182 })
+    doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY93 + 18)
+    doc.save(`GivingTree-RestrictedFunds-${charityName}-${filterYear}.pdf`)
   }
 
   async function handleSetNewPassword() {
@@ -8685,6 +9196,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, preferred_channel: channel || null, preferred_timing: timing || null, communication_restrictions: restrictions || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_contact_prefs_edited', details: { donor_name: selectedDonor.name, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save Preferences</button>
@@ -8779,6 +9291,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             if (error) { showToast('Error saving', 'error'); return }
                           }
                           setDonorReceiptNameOverrides(prev => ({ ...prev, [donorKey31]: value }))
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_receipt_name_override_edited', details: { donor_name: selectedDonor.name, receipt_name_override: value || null, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save</button>
@@ -8804,6 +9317,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, linked_family_contact: value || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_family_contact_edited', details: { donor_name: selectedDonor.name, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save</button>
@@ -8834,6 +9348,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, last_visited_date: lastVisited || null, next_visit_planned_date: nextVisit || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_visit_schedule_edited', details: { donor_name: selectedDonor.name, last_visited_date: lastVisited || null, next_visit_planned_date: nextVisit || null, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save</button>
@@ -8859,6 +9374,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, birth_date: value || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_birthday_edited', details: { donor_name: selectedDonor.name, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save</button>
@@ -8884,6 +9400,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, tax_residency_country: value || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_tax_residency_edited', details: { donor_name: selectedDonor.name, tax_residency_country: value || null, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save</button>
@@ -8909,6 +9426,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           } else {
                             await supabase.from('charity_donor_contacts').insert({ charity_uen: charityUen, full_name: selectedDonor.name, email: selectedDonor.email || null, mailing_address: value || null, created_by: session.user.email })
                           }
+                          await supabase.from('audit_log').insert({ actor_type: 'charity', actor_email: session.user.email, action: 'donor_mailing_address_edited', details: { donor_name: selectedDonor.name, charity_uen: charityUen } })
                           showToast('Saved ✓')
                           loadDonorContacts()
                         }}>Save Address</button>
@@ -14745,14 +15263,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
                         <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => {
-                          if (d.deactivated || !d.email?.trim()) return false
+                          if (d.deactivated || d.doNotContact || !d.email?.trim()) return false
                           if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
                             const dk45 = d.email?.trim() || d.name
                             return (donorTagsMap[dk45] || []).some(t => t.tag === massAppealForm.targetTag)
                           }
                           return true
                         }).length}</strong> donor{(donorList.filter(d => {
-                          if (d.deactivated || !d.email?.trim()) return false
+                          if (d.deactivated || d.doNotContact || !d.email?.trim()) return false
                           if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
                             const dk45b = d.email?.trim() || d.name
                             return (donorTagsMap[dk45b] || []).some(t => t.tag === massAppealForm.targetTag)
@@ -14761,6 +15279,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         }).length) !== 1 ? 's' : ''} with email on file{massAppealForm.targetTag && massAppealForm.targetTag !== 'All' ? ` tagged "${massAppealForm.targetTag}"` : ''}</div>
                         {donorList.filter(d => !d.deactivated && !d.email?.trim()).length > 0 && (
                           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{donorList.filter(d => !d.deactivated && !d.email?.trim()).length} donors without email excluded — downloadable via QR ZIP</div>
+                        )}
+                        {donorList.filter(d => !d.deactivated && d.doNotContact && d.email?.trim()).length > 0 && (
+                          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{donorList.filter(d => !d.deactivated && d.doNotContact && d.email?.trim()).length} donor{donorList.filter(d => !d.deactivated && d.doNotContact && d.email?.trim()).length !== 1 ? 's' : ''} excluded — marked Do Not Contact</div>
                         )}
                       </div>
                       <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={generateMassAppealRefs}>Next — Preview Donor List →</button>
@@ -15266,6 +15787,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            {/* Grants Compliance Report */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>💰 Grants Compliance Report</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Every active grant's report deadlines, disbursement tranches, and matching claims in one view — overdue items flagged in red. Review before a board meeting.
+              </div>
+              <button style={s.btnForest} onClick={exportGrantsComplianceReport}>📄 Download Grants Compliance PDF</button>
+            </div>
+
+            {/* Fundraising Permit Register */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>🪪 Fundraising Permit Register</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Permit status for every campaign — expired permits flagged in red. Evidence of compliance with the House to House and Street Collections Act.
+              </div>
+              <button style={s.btnForest} onClick={exportPermitRegister}>📄 Download Permit Register PDF</button>
+            </div>
+
+            {/* Restricted Fund Statement */}
+            <div style={{ ...s.card, marginBottom: 16 }}>
+              <div style={s.cardTitle}>🔒 Statement of Restricted Funds</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Opening balance, receipts, expenditure, and closing balance for every restricted grant — the fund movement statement your annual accounts need. Select a year before exporting.
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option value="All">Select a year</option>
+                  {[...new Set(grants.map(g => fyOf(g.start_date || g.created_at)))].sort((a, b) => b - a).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <button style={s.btnForest} onClick={exportRestrictedFundStatement}>📄 Download Restricted Funds PDF</button>
+              </div>
+            </div>
+
             {/* Audit Trail */}
             <div style={s.card}>
               <div style={s.cardTitle}>🗒️ Audit Trail Export</div>
@@ -15476,49 +16032,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {localEds.map(email => (
                     <div key={`ed-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 13, color: C.forest }}>👑 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Executive Director</span></span>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                        const updated = localEds.filter(e => e !== email)
-                        const { error } = await supabase.from('charity_contacts').update({ ed_emails: updated }).eq('charity_uen', charityUen)
-                        if (error) { showToast('Error removing', 'error'); return }
-                        setLocalEds(updated)
-                        showToast('Removed')
-                      }}>Remove</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeTeamMember('ed', email)}>Remove</button>
                     </div>
                   ))}
                   {localStaff.map(email => (
                     <div key={`staff-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 13, color: C.forest }}>💼 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Staff</span></span>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                        const updated = localStaff.filter(e => e !== email)
-                        const { error } = await supabase.from('charity_contacts').update({ staff_emails: updated }).eq('charity_uen', charityUen)
-                        if (error) { showToast('Error removing', 'error'); return }
-                        setLocalStaff(updated)
-                        showToast('Removed')
-                      }}>Remove</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeTeamMember('staff', email)}>Remove</button>
                     </div>
                   ))}
                   {localBoardMembers.map(email => (
                     <div key={`board-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 13, color: C.forest }}>📋 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Board Member</span></span>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                        const updated = localBoardMembers.filter(e => e !== email)
-                        const { error } = await supabase.from('charity_contacts').update({ board_emails: updated }).eq('charity_uen', charityUen)
-                        if (error) { showToast('Error removing', 'error'); return }
-                        setLocalBoardMembers(updated)
-                        showToast('Removed')
-                      }}>Remove</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeTeamMember('board', email)}>Remove</button>
                     </div>
                   ))}
                   {localVolunteers.map(email => (
                     <div key={`vol-${email}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 8, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 13, color: C.forest }}>👤 {email} <span style={{ fontSize: 10.5, color: C.muted }}>· Volunteer</span></span>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={async () => {
-                        const updated = localVolunteers.filter(e => e !== email)
-                        const { error } = await supabase.from('charity_contacts').update({ volunteer_emails: updated }).eq('charity_uen', charityUen)
-                        if (error) { showToast('Error removing', 'error'); return }
-                        setLocalVolunteers(updated)
-                        showToast('Removed')
-                      }}>Remove</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', color: C.red, borderColor: C.red }} onClick={() => removeTeamMember('volunteer', email)}>Remove</button>
                     </div>
                   ))}
                 </div>
@@ -16508,6 +17040,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 const { error: inviteError } = await supabase.functions.invoke('invite-team-member', {
                   body: { email, charity_uen: charityUen, charity_name: charityName },
+                })
+
+                await supabase.from('audit_log').insert({
+                  actor_type: 'charity',
+                  actor_email: session.user.email,
+                  action: 'team_member_added',
+                  details: { email, role, charity_uen: charityUen },
                 })
 
                 if (role === 'ed') setLocalEds(updated)
