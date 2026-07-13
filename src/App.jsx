@@ -12238,7 +12238,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div id="lapsed-donors-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
-                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
                       <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); supabase.from('charity_contacts').update({ lapsed_min_gifts: v }).eq('charity_uen', charityUen) }} />
@@ -12320,7 +12320,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const quiet = quietDonorsStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>🤫 Quiet Donors</div>
+                    <div style={s.analyticsCardTitle}>🤫 Quiet Donors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
                     {quiet.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
@@ -12345,7 +12345,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const quietlyPaying75 = quietlyPayingStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Quietly Paying Donors</div>
+                    <div style={s.analyticsCardTitle}>Quietly Paying Donors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
                     {quietlyPaying75.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
@@ -12371,7 +12371,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 5)
                 return (
                   <div id="giving-changes-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
-                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
                       <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
@@ -12413,7 +12413,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>🌟 Donor Highlights — {filterYear}</div>
+                    <div style={s.analyticsCardTitle}>🌟 Donor Highlights — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
                       {cards.map((c, i) => (
@@ -12440,7 +12440,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const streaks = givingStreaksStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>🔥 Giving Streaks</div>
+                    <div style={s.analyticsCardTitle}>🔥 Giving Streaks</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors who've given in 3 or more consecutive months — your most dependable supporters, regardless of gift size.</div>
                     {streaks.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
@@ -12467,7 +12467,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (owedDonations.length === 0) return null
                 return (
                   <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}` }}>
-                    <div style={s.cardTitle}>💌 Silent Thank-You Debt</div>
+                    <div style={s.analyticsCardTitle}>💌 Silent Thank-You Debt</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
                     <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
                     <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
@@ -12479,7 +12479,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
@@ -12522,7 +12522,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Sources</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -12546,7 +12546,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>💳 How Donors Are Paying — {filterYear}</div>
+                    <div style={s.analyticsCardTitle}>💳 How Donors Are Paying — {filterYear}</div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
                       {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
                     </div>
@@ -12592,7 +12592,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ ...s.cardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
                       <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
                         <option value={5}>Top 5</option>
                         <option value={10}>Top 10</option>
@@ -12638,13 +12638,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const rows78 = topConnectorsStats
                 if (rows78.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Top Connectors</div>
+                    <div style={s.analyticsCardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
                   </div>
                 )
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Top Connectors</div>
+                    <div style={s.analyticsCardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows78.slice(0, 8).map((r, i) => (
@@ -12662,13 +12662,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const rows57 = acquisitionSourceStats
                 if (rows57.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
                   </div>
                 )
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Donor Acquisition Sources</div>
+                    <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows57.map((r, i) => (
@@ -12683,7 +12683,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               <div style={{ ...s.card, marginBottom: 0 }}>
-                <div style={s.cardTitle}>💰 Donation Size Breakdown</div>
+                <div style={s.analyticsCardTitle}>💰 Donation Size Breakdown</div>
                 <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
@@ -12714,7 +12714,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 if (historicalMonthTotals79.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Monthly Forecast</div>
+                    <div style={s.analyticsCardTitle}>Monthly Forecast</div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least one prior year of data for this month to build a forecast.</div>
                   </div>
                 )
@@ -12738,7 +12738,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Monthly Forecast</div>
+                    <div style={s.analyticsCardTitle}>Monthly Forecast</div>
                     <div style={{ fontSize: 13, color: C.forest, marginBottom: 10, lineHeight: 1.6 }}>
                       You typically receive <strong>${lowRange79.toLocaleString()}–${highRange79.toLocaleString()}</strong> in {monthName79}.
                     </div>
@@ -12762,7 +12762,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
                 if (years58.length < 2) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Seasonality Trend</div>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
                   </div>
                 )
@@ -12776,7 +12776,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Seasonality Trend</div>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100, marginBottom: 8 }}>
                       {byMonth58.map((m, i) => (
@@ -12799,7 +12799,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const dismissalsList62 = Object.values(lapsedDismissals).filter(d => d.reason_category)
                 if (dismissalsList62.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Why Donors Lapse</div>
+                    <div style={s.analyticsCardTitle}>Why Donors Lapse</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No lapsed donors marked with a reason yet.</div>
                   </div>
                 )
@@ -12808,7 +12808,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const rows62 = Object.entries(counts62).map(([cat, count]) => ({ label: categoryLabels62[cat] || cat, count })).sort((a, b) => b.count - a.count)
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Why Donors Lapse</div>
+                    <div style={s.analyticsCardTitle}>Why Donors Lapse</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Based on {dismissalsList62.length} donor{dismissalsList62.length !== 1 ? 's' : ''} marked not interested.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {rows62.map((r, i) => (
@@ -12830,7 +12830,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const runwayMonths = monthlyExpenses > 0 ? (trailingAvgMonthly / monthlyExpenses) : null
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>🛢️ Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover — not your actual bank balance." /></div>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>🛢️ Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover — not your actual bank balance." /></div>
                     {runwayMonths === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Set your monthly expenses in Settings to see this.</div>
@@ -12854,7 +12854,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (withTiming.length === 0) {
                   return (
                     <div style={{ ...s.card, marginBottom: 24 }}>
-                      <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                      <div style={s.analyticsCardTitle}>Gift Acknowledgment Timing</div>
                       <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
                     </div>
                   )
@@ -12865,7 +12865,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const overSla = avgHours > 48
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Gift Acknowledgment Timing</div>
+                    <div style={s.analyticsCardTitle}>Gift Acknowledgment Timing</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
                     <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
                       {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
@@ -12884,7 +12884,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (daysElapsed / totalDays11 < 0.75) {
                   return (
                     <div style={{ ...s.card, marginBottom: 24 }}>
-                      <div style={s.cardTitle}>Year-End Projection</div>
+                      <div style={s.analyticsCardTitle}>Year-End Projection</div>
                       <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available once at least 75% of the fiscal year has elapsed.</div>
                     </div>
                   )
@@ -12896,7 +12896,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const trendPct = lastYearTotal > 0 ? Math.round(((projectedTotal - lastYearTotal) / lastYearTotal) * 100) : null
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Year-End Projection</div>
+                    <div style={s.analyticsCardTitle}>Year-End Projection</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 8 }}>${projectedTotal.toLocaleString()}</div>
                     <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where FY{fyNow11} is likely to land.</div>
                     {lastYearTotal > 0 ? (
@@ -12925,7 +12925,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const totalMonthly6 = giroMonthly6 + habitualMonthly6 + otherMonthly6
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.cardTitle}>Monthly Recurring Revenue</div>
+                    <div style={s.analyticsCardTitle}>Monthly Recurring Revenue</div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>${Math.round(totalMonthly6).toLocaleString()}</div>
                     <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>per month, from {activeRecurring6.length} active recurring gift{activeRecurring6.length !== 1 ? 's' : ''} — separate from one-off donations</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -13447,7 +13447,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{causeForm.editingId ? 'Edit Campaign' : 'New Campaign'}</div>
-                    <span style={{ cursor: 'pointer', color: C.muted, fontSize: 18 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>✕</span>
+                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm({ title: '', description: '', target_amount: '', end_date: '' }) }}>✕</button>
                   </div>
                   {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
                   <div style={{ marginTop: 12, marginBottom: 10 }}>
