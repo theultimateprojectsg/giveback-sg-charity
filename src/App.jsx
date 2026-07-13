@@ -520,6 +520,45 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
   )
 }
 
+function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense, onDeleteExpense }) {
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Other' })
+  const spent = expenses.reduce((s2, e) => s2 + Number(e.amount), 0)
+
+  return (
+    <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expenses</div>
+        {cause.cost > 0 && <div style={{ fontSize: 11, color: C.muted }}>${spent.toLocaleString()} logged of ${Number(cause.cost).toLocaleString()} budget</div>}
+      </div>
+      {expenses.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {expenses.map(e => (
+            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+              <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
+        <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}>
+          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" placeholder="Amount" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={expenseForm.expense_date} onChange={e => setExpenseForm(f => ({ ...f, expense_date: e.target.value }))} />
+        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { onSaveExpense(expenseForm); setExpenseForm({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Other' }) }}>Add</button>
+      </div>
+    </div>
+  )
+}
+
 function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, onCancelGift }) {
   const isEditing = !!gift
   const [form, setForm] = useState(() => gift ? {
@@ -818,6 +857,9 @@ export default function App() {
   const [grantFundingTypeFilter, setGrantFundingTypeFilter] = useState('All')
   const [grantSortBy, setGrantSortBy] = useState('start_desc')
   const grantExpenseCategories = ['Programme Costs', 'Staff Costs', 'Administrative Overhead', 'Fundraising Costs', 'Other']
+  const campaignExpenseCategories = ['Printing & Materials', 'Venue & Logistics', 'Marketing & Promotion', 'Volunteer/Staff Costs', 'Other']
+  const [campaignExpenses, setCampaignExpenses] = useState([])
+  const [expandedCampaignId, setExpandedCampaignId] = useState(null)
   const [pledgeError, setPledgeError] = useState('')
   const [savingPledge, setSavingPledge] = useState(false)
   const [activePledgeTab, setActivePledgeTab] = useState('pending')
@@ -1243,6 +1285,7 @@ export default function App() {
       loadRecurringExpenses()
       loadRefunds()
       loadGrantExpenses()
+      loadCampaignExpenses()
       loadGrantNotes()
       loadGrantReports()
       loadGrantTranches()
@@ -1512,6 +1555,34 @@ export default function App() {
     const { data, error } = await supabase.from('grant_expenses').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen)
     if (error) { console.error('Could not load grant expenses:', error); return }
     setGrantExpenses(data || [])
+  }
+
+  async function loadCampaignExpenses() {
+    const uen = session?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('campaign_expenses').select('*, causes!inner(charity_uen)').eq('causes.charity_uen', uen)
+    if (error) { console.error('Could not load campaign expenses:', error); return }
+    setCampaignExpenses(data || [])
+  }
+
+  async function saveCampaignExpense(causeId, form) {
+    if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
+    const { data, error } = await supabase.from('campaign_expenses').insert({
+      cause_id: causeId,
+      description: form.description.trim(),
+      amount: parseFloat(form.amount),
+      expense_date: form.expense_date,
+      category: form.category || null,
+      created_by: session.user.email,
+    }).select().single()
+    if (error) { showToast('Error saving expense', 'error'); return }
+    setCampaignExpenses(prev => [...prev, data])
+    showToast('Expense logged ✓')
+  }
+
+  async function deleteCampaignExpense(id) {
+    await supabase.from('campaign_expenses').delete().eq('id', id)
+    setCampaignExpenses(prev => prev.filter(e => e.id !== id))
   }
 
   async function loadGrantNotes() {
@@ -5514,6 +5585,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     grantExpenses.forEach(e => { (m[e.grant_id] = m[e.grant_id] || []).push(e) })
     return m
   }, [grantExpenses])
+
+  const campaignExpensesByCause = React.useMemo(() => {
+    const m = {}
+    campaignExpenses.forEach(e => { (m[e.cause_id] = m[e.cause_id] || []).push(e) })
+    return m
+  }, [campaignExpenses])
 
   const donationsByRecurringGift = React.useMemo(() => {
     const m = {}
@@ -13462,7 +13539,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </span>
                             <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                               <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
-                              {c.cost > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: raised >= c.cost ? C.sage : C.red }}>ROI {(raised / c.cost).toFixed(1)}×</span>}
+                              {c.cost > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
+                              {c.cost > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: raised >= c.cost ? C.sage : C.red }}>ROI {(raised / c.cost).toFixed(1)}×</span>}
                             </span>
                           </div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
@@ -13486,6 +13564,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                     </div>
+                    {(c.start_date || c.end_date) && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                          {c.start_date ? new Date(c.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                        </div>
+                      </div>
+                    )}
                     {c.cost > 0 && (
                       <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, marginBottom: 10 }}>
                         Cost ${Number(c.cost).toLocaleString()}
@@ -13527,7 +13613,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {(c.status === 'completed' || c.status === 'rejected') && (
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setExpandedCampaignId(expandedCampaignId === c.id ? null : c.id)}>{expandedCampaignId === c.id ? '▲ Hide ledger' : '▼ View ledger'}</button>
                     </div>
+                    {expandedCampaignId === c.id && (
+                      <CampaignExpensePanel
+                        cause={c} s={s} C={C}
+                        expenses={campaignExpensesByCause[c.id] || []}
+                        categories={campaignExpenseCategories}
+                        onSaveExpense={form => saveCampaignExpense(c.id, form)}
+                        onDeleteExpense={deleteCampaignExpense}
+                      />
+                    )}
                   </div>
                 )
               }
