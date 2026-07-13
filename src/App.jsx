@@ -298,13 +298,17 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   )
 }
 
-function EditPledgeModal({ pledge, onClose, onSave }) {
+function EditPledgeModal({ pledge, onClose, onSave, causes }) {
   const [form, setForm] = useState({
     donor_name: pledge.donor_name || '',
     donor_email: pledge.donor_email || '',
+    donor_phone: pledge.donor_phone || '',
     amount: pledge.amount?.toString() || '',
     expected_date: pledge.expected_date || '',
     notes: pledge.notes || '',
+    cause_id: pledge.cause_id || '',
+    is_anonymous: pledge.is_anonymous || false,
+    source: pledge.source || '',
   })
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
@@ -322,12 +326,41 @@ function EditPledgeModal({ pledge, onClose, onSave }) {
           <input style={s.formInput} type="email" value={form.donor_email} onChange={e => setForm(f => ({ ...f, donor_email: e.target.value }))} />
         </div>
         <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Donor Phone</div>
+          <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={form.donor_phone} onChange={e => setForm(f => ({ ...f, donor_phone: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
           <div style={s.formLabel}>Pledged Amount (SGD) *</div>
           <input style={s.formInput} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
         </div>
         <div style={{ marginBottom: 12 }}>
           <div style={s.formLabel}>Expected By *</div>
           <input style={s.formInput} type="date" value={form.expected_date} onChange={e => setForm(f => ({ ...f, expected_date: e.target.value }))} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>Linked Programme / Campaign</div>
+          <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
+            <option value="">None — general / unrestricted use</option>
+            {(causes || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={s.formLabel}>How was this pledge made? (optional)</div>
+          <select style={s.formInput} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
+            <option value="">Not specified</option>
+            <option value="event">Event</option>
+            <option value="referral">Referral</option>
+            <option value="social_media">Social Media</option>
+            <option value="walk_in">Walk-in</option>
+            <option value="corporate_partner">Corporate Partner</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.is_anonymous} onChange={e => setForm(f => ({ ...f, is_anonymous: e.target.checked }))} />
+            This pledge is anonymous
+          </label>
         </div>
         <div style={{ marginBottom: 16 }}>
           <div style={s.formLabel}>Notes</div>
@@ -740,7 +773,7 @@ export default function App() {
   const [pledges, setPledges] = useState([])
   const [showPledgeForm, setShowPledgeForm] = useState(false)
   const [editingPledge, setEditingPledge] = useState(null)
-  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
+  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
   const [pledgeInstalments, setPledgeInstalments] = useState([])
   const [grants, setGrants] = useState([])
   const [showGrantForm, setShowGrantForm] = useState(false)
@@ -798,6 +831,9 @@ export default function App() {
   const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
   const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
+  const [pledgeTypeFilter, setPledgeTypeFilter] = useState('All')
+  const [pledgeProgrammeFilter, setPledgeProgrammeFilter] = useState('All')
+  const [pledgeSortBy, setPledgeSortBy] = useState('expected_asc')
   const [massAppealSearchTerm, setMassAppealSearchTerm] = useState('')
   const [recurringYearFilter, setRecurringYearFilter] = useState('All')
   const [showCampaignModal, setShowCampaignModal] = useState(false)
@@ -1364,6 +1400,7 @@ export default function App() {
       charity_uen: charityUen,
       donor_name: pledgeForm.donor_name.trim(),
       donor_email: pledgeForm.donor_email?.trim() || null,
+      donor_phone: pledgeForm.donor_phone?.trim() || null,
       donor_key: donorKey,
       amount: perYearAmount * years,
       expected_date: pledgeForm.expected_date,
@@ -1372,6 +1409,9 @@ export default function App() {
       created_by: session.user.email,
       is_multi_year: pledgeForm.is_multi_year || false,
       total_years: pledgeForm.is_multi_year ? years : null,
+      cause_id: pledgeForm.cause_id || null,
+      is_anonymous: pledgeForm.is_anonymous || false,
+      source: pledgeForm.source || null,
     }]).select()
     setSavingPledge(false)
     if (error) { setPledgeError(`Error: ${error.message}`); return }
@@ -1388,7 +1428,7 @@ export default function App() {
     }
 
     setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
-    setPledgeForm({ donor_name: '', donor_email: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3' })
+    setPledgeForm({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
     setShowPledgeForm(false)
     showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
     loadPledgeInstalments()
@@ -1402,10 +1442,14 @@ export default function App() {
     const { data, error } = await supabase.from('pledges').update({
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
+      donor_phone: form.donor_phone?.trim() || null,
       donor_key: donorKey,
       amount: parseFloat(form.amount),
       expected_date: form.expected_date,
       notes: form.notes?.trim() || null,
+      cause_id: form.cause_id || null,
+      is_anonymous: form.is_anonymous || false,
+      source: form.source || null,
     }).eq('id', pledgeId).select().single()
     if (error) { showToast('Error updating pledge', 'error'); return }
     setPledges(prev => prev.map(p => p.id === pledgeId ? data : p).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
@@ -6047,12 +6091,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   function exportPledgesExcel(searchedPledges) {
     const rows = searchedPledges.map(p => ({
-      'Donor Name': p.donor_name,
+      'Donor Name': p.is_anonymous ? `${p.donor_name} (Anonymous)` : p.donor_name,
       'Email': p.donor_email || '',
+      'Phone': p.donor_phone || '',
       'Amount (SGD)': p.amount,
       'Expected Date': new Date(p.expected_date).toLocaleDateString('en-SG'),
       'Status': p.status.charAt(0).toUpperCase() + p.status.slice(1),
       'Given So Far (SGD)': pledgeGivenTotals[p.id] || 0,
+      'Multi-Year': p.is_multi_year ? `Yes (${p.total_years}y)` : 'No',
+      'Programme': p.cause_id ? (myCauses.find(c => c.id === p.cause_id)?.title || '') : 'General / unrestricted',
+      'Source': p.source || '',
       'Notes': p.notes || '',
       'Resolution Notes': p.resolution_notes || '',
       'Recorded By': p.created_by,
@@ -6060,7 +6108,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }))
     if (rows.length === 0) { showToast('No pledges to export with current filters', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 30 }, { wch: 30 }, { wch: 24 }, { wch: 14 }]
+    ws['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 30 }, { wch: 30 }, { wch: 24 }, { wch: 14 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Pledges')
     XLSX.writeFile(wb, `GivingTree-Pledges-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -7376,8 +7424,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
               const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
               const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
-              if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+              if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
+              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
               const wasRecurringRecentlyReminded = (g) => {
                 const history = recurringReminderHistory[g.id]
@@ -11043,7 +11091,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <div style={{ fontSize: 10.5, color: C.red }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
                               </div>
                             ))}
+                            {overdueUnits.length > 5 && (
+                              <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{overdueUnits.length - 5} more</div>
+                            )}
                           </div>
+                        )}
+                        {overdueUnits.length > 0 ? (
+                          <ActionBanner tone="danger" text={`${overdueUnits.length} pledge${overdueUnits.length !== 1 ? 's' : ''} overdue`} sub={`$${overdueTotal.toLocaleString()} past due — send reminders or check in with these donors`} />
+                        ) : (
+                          <ActionBanner tone="success" text="No overdue pledges" sub="Everything outstanding is still within its expected date" />
                         )}
                       </div>
                     </div>
@@ -11108,7 +11164,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           </div>
                         ))}
+                        {watchList.length > 5 && (
+                          <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{watchList.length - 5} more</div>
+                        )}
                       </div>
+                    )}
+                    {watchList.length > 0 ? (
+                      <ActionBanner tone="danger" text={`${watchList.length} donor${watchList.length !== 1 ? 's' : ''} worth watching`} sub="A pattern of broken or overdue pledges — worth a conversation before the next ask" />
+                    ) : (
+                      <ActionBanner tone="success" text="No donors flagged" sub="No one currently meets your broken-pledge threshold" />
                     )}
                   </div>
                 )
@@ -11130,9 +11194,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                         </div>
-                        <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 18 }}>
-                          {highRisk ? '⚠ High concentration risk' : medRisk ? '⚠ Moderate concentration risk' : '✓ Well diversified'}
-                        </div>
                       </>
                     )}
 
@@ -11146,6 +11207,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
                             </div>
                           ))}
+                          {donorRanked.length > 5 && (
+                            <div style={{ fontSize: 11, color: C.muted, padding: '2px 10px' }}>+{donorRanked.length - 5} more</div>
+                          )}
                         </div>
                       </>
                     )}
@@ -11171,6 +11235,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         })}
                       </div>
                     )}
+                    {(() => {
+                      const byProgramme = {}
+                      let programmeTotal = 0
+                      pledges.filter(p => p.status === 'pending').forEach(p => {
+                        const key = p.cause_id || '__none__'
+                        byProgramme[key] = (byProgramme[key] || 0) + Number(p.amount)
+                        programmeTotal += Number(p.amount)
+                      })
+                      const rows = Object.entries(byProgramme).map(([key, amount]) => ({
+                        key, amount,
+                        title: key === '__none__' ? 'General / unrestricted' : (myCauses.find(c => c.id === key)?.title || 'Unknown programme'),
+                        pct: programmeTotal > 0 ? Math.round((amount / programmeTotal) * 100) : 0,
+                      })).sort((a, b) => b.amount - a.amount)
+                      return rows.length > 0 && (
+                        <>
+                          <div style={{ ...s.analyticsSubTitle, marginTop: 18 }}>Outstanding pledges by programme</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {rows.map((r, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
+                                <span style={{ fontSize: 12, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )
+                    })()}
+                    {!tooFewDonors && (highRisk ? (
+                      <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
+                    ) : medRisk ? (
+                      <ActionBanner tone="warning" text="Moderate pledge concentration" sub="Worth watching as your pledge portfolio grows" />
+                    ) : (
+                      <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
+                    ))}
                   </div>
                 )
               })()}
@@ -13642,7 +13741,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {editingPledge && (
-              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} />
+              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} causes={myCauses} />
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
@@ -13666,21 +13765,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-              {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All' || pledgeYearFilter !== 'All') && (
-                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All') }}>✕ Clear Filters</button>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 150 }} value={pledgeTypeFilter} onChange={e => setPledgeTypeFilter(e.target.value)}>
+                <option value="All">Single & multi-year</option>
+                <option value="Single">Single-year only</option>
+                <option value="Multi-year">Multi-year only</option>
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 190 }} value={pledgeProgrammeFilter} onChange={e => setPledgeProgrammeFilter(e.target.value)}>
+                <option value="All">All programmes</option>
+                <option value="__none__">General / unrestricted</option>
+                {myCauses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+              <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={pledgeSortBy} onChange={e => setPledgeSortBy(e.target.value)}>
+                <option value="expected_asc">Sort: Expected soonest</option>
+                <option value="expected_desc">Sort: Expected latest</option>
+                <option value="amount_desc">Sort: Amount (high–low)</option>
+                <option value="amount_asc">Sort: Amount (low–high)</option>
+                <option value="created_desc">Sort: Newest recorded</option>
+                <option value="created_asc">Sort: Oldest recorded</option>
+                <option value="donor_az">Sort: Donor A–Z</option>
+              </select>
+              {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All' || pledgeYearFilter !== 'All' || pledgeTypeFilter !== 'All' || pledgeProgrammeFilter !== 'All') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All') }}>✕ Clear Filters</button>
               )}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = pledgeSearchTerm.toLowerCase().trim()
                 const filtered = pledges.filter(p => {
                   const matchesSearch = !q || [p.donor_name, p.donor_email, p.notes].some(f => f?.toLowerCase().includes(q))
                   const matchesYear = pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
+                  const matchesType = pledgeTypeFilter === 'All' || (pledgeTypeFilter === 'Multi-year' ? !!p.is_multi_year : !p.is_multi_year)
+                  const matchesProgramme = pledgeProgrammeFilter === 'All' || (pledgeProgrammeFilter === '__none__' ? !p.cause_id : p.cause_id === pledgeProgrammeFilter)
                   const amt = Number(p.amount)
                   const matchesAmt = pledgeAmountFilter === 'All'
                     || (pledgeAmountFilter === 'Under 100' && amt < 100)
                     || (pledgeAmountFilter === '100-500' && amt >= 100 && amt <= 500)
                     || (pledgeAmountFilter === '500-1000' && amt > 500 && amt <= 1000)
                     || (pledgeAmountFilter === 'Over 1000' && amt > 1000)
-                  return matchesSearch && matchesYear && matchesAmt
+                  return matchesSearch && matchesYear && matchesType && matchesProgramme && matchesAmt
                 })
                 exportPledgesExcel(filtered)
               }}>⬇️ Export to Excel</button>
@@ -13755,6 +13875,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.formLabel}>Donor Email</div>
                     <input style={s.formInput} placeholder="donor@email.com" value={pledgeForm.donor_email} onChange={e => setPledgeForm(f => ({ ...f, donor_email: e.target.value }))} />
                   </div>
+                  <div>
+                    <div style={s.formLabel}>Donor Phone</div>
+                    <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={pledgeForm.donor_phone} onChange={e => setPledgeForm(f => ({ ...f, donor_phone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Linked Programme / Campaign</div>
+                    <select style={s.formInput} value={pledgeForm.cause_id} onChange={e => setPledgeForm(f => ({ ...f, cause_id: e.target.value }))}>
+                      <option value="">None — general / unrestricted use</option>
+                      {(myCauses || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>How was this pledge made? (optional)</div>
+                    <select style={s.formInput} value={pledgeForm.source} onChange={e => setPledgeForm(f => ({ ...f, source: e.target.value }))}>
+                      <option value="">Not specified</option>
+                      <option value="event">Event</option>
+                      <option value="referral">Referral</option>
+                      <option value="social_media">Social Media</option>
+                      <option value="walk_in">Walk-in</option>
+                      <option value="corporate_partner">Corporate Partner</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={pledgeForm.is_anonymous} onChange={e => setPledgeForm(f => ({ ...f, is_anonymous: e.target.checked }))} />
+                      This pledge is anonymous
+                    </label>
+                  </div>
                   <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer' }}>
                       <input type="checkbox" checked={pledgeForm.is_multi_year} onChange={e => setPledgeForm(f => ({ ...f, is_multi_year: e.target.checked }))} />
@@ -13809,7 +13958,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{p.donor_name}</div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${pledgedAmount.toLocaleString()}</div>
                     </div>
-                    {p.donor_email && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{p.donor_email}</div>}
+                    {(p.donor_email || p.donor_phone) && <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>{[p.donor_email, p.donor_phone].filter(Boolean).join(' · ')}</div>}
+                    {(p.is_anonymous || p.cause_id) && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {p.is_anonymous && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.ivory, color: C.muted, padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase' }}>Anonymous</span>}
+                        {p.cause_id && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.ivory, color: C.teal, padding: '2px 7px', borderRadius: 3 }}>{myCauses.find(c => c.id === p.cause_id)?.title || 'Linked programme'}</span>}
+                      </div>
+                    )}
 
                     {p.is_multi_year && (() => {
                       const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id).sort((a, b) => a.year_number - b.year_number)
@@ -13931,11 +14086,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (pledgeAmountFilter === 'Over 1000') return amt > 1000
                 return true
               }
-              const searchedPledges = pledges.filter(p => matchesSearch(p) && matchesUrgency(p) && matchesAmount(p))
+              const matchesYear = (p) => pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
+              const matchesType = (p) => pledgeTypeFilter === 'All' || (pledgeTypeFilter === 'Multi-year' ? !!p.is_multi_year : !p.is_multi_year)
+              const matchesProgramme = (p) => pledgeProgrammeFilter === 'All' || (pledgeProgrammeFilter === '__none__' ? !p.cause_id : p.cause_id === pledgeProgrammeFilter)
 
-              const outstanding = searchedPledges.filter(p => p.status === 'pending')
-              const fulfilled = searchedPledges.filter(p => p.status === 'fulfilled')
-              const cancelled = searchedPledges.filter(p => p.status === 'cancelled')
+              const sortPledges = (arr) => [...arr].sort((a, b) => {
+                if (pledgeSortBy === 'expected_asc') return new Date(a.expected_date) - new Date(b.expected_date)
+                if (pledgeSortBy === 'expected_desc') return new Date(b.expected_date) - new Date(a.expected_date)
+                if (pledgeSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
+                if (pledgeSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+                if (pledgeSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
+                if (pledgeSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
+                if (pledgeSortBy === 'donor_az') return a.donor_name.localeCompare(b.donor_name)
+                return 0
+              })
+
+              const searchedPledges = pledges.filter(p => matchesSearch(p) && matchesUrgency(p) && matchesAmount(p) && matchesYear(p) && matchesType(p) && matchesProgramme(p))
+
+              const outstanding = sortPledges(searchedPledges.filter(p => p.status === 'pending'))
+              const fulfilled = sortPledges(searchedPledges.filter(p => p.status === 'fulfilled'))
+              const cancelled = sortPledges(searchedPledges.filter(p => p.status === 'cancelled'))
 
               return (
                 <>
