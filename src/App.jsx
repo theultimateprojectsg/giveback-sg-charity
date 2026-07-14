@@ -1233,6 +1233,10 @@ export default function App() {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
   }, [enabledModules, activeTab])
+  const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
+  useEffect(() => {
+    if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
+  }, [roleLoaded, userRole, activeTab])
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
   const [fyEndMonth, setFyEndMonth] = useState(12)
@@ -8039,7 +8043,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board', 'volunteer'] },
+            { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
             { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
@@ -8146,11 +8150,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       {isMobile && (
       <div style={s.mobileTabBar}>
         {[
-          { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-          { id: 'analytics', icon: '📈', label: 'Analytics' },
-          { id: 'donations', icon: '💳', label: 'Donations' },
-          { id: 'donors',    icon: '👥', label: 'Donors' },
-        ].map(item => (
+          { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
+          { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+          { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
+          { id: 'donors',    icon: '👥', label: 'Donors', roles: ['ed', 'staff'] },
+        ].filter(item => item.roles.includes(userRole)).map(item => (
           <div key={item.id} style={s.mobileTabItem} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
             <div style={{ fontSize: 18, opacity: activeTab === item.id ? 1 : 0.5 }}>{item.icon}</div>
             <div style={{ ...s.mobileTabLabel, color: activeTab === item.id ? C.sage : 'rgba(255,255,255,0.5)' }}>{item.label}</div>
@@ -17101,12 +17105,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       })()}
 
       {volunteerEditEntry && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setVolunteerEditEntry(null)}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 440, width: '100%' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Your Entry</div>
-              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setVolunteerEditEntry(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Your Entry</div>
+              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
             </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Correct the details below, or remove this entry if it was made in error.</div>
             {volunteerEditEntry.payment_status === 'confirmed' ? (
               <div>
                 <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
@@ -17133,48 +17138,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             ) : (
               <div>
                 {volunteerEditError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{volunteerEditError}</div>}
-                <div style={{ marginBottom: 12 }}>
-                  <div style={s.formLabel}>Donor Name *</div>
-                  <input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                  <div>
-                    <div style={s.formLabel}>Amount (SGD) *</div>
-                    <input style={s.formInput} type="number" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} />
-                  </div>
-                  <div>
-                    <div style={s.formLabel}>Date</div>
-                    <input style={s.formInput} type="date" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                  <div>
-                    <div style={s.formLabel}>Payment Method</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
+                  {charityIsIpc && (
+                    <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
+                  )}
+                  <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} /></div>
+                  <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} /></div>
+                  <div><div style={s.formLabel}>Payment Method</div>
                     <select style={s.formInput} value={volunteerEditForm.payment_method} onChange={e => setVolunteerEditForm(f => ({ ...f, payment_method: e.target.value }))}>
                       <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                     </select>
                   </div>
-                  <div>
-                    <div style={s.formLabel}>Donor Email</div>
-                    <input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} />
+                  <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
+                  <div><div style={s.formLabel}>Cause (Optional)</div>
+                    <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
+                      <option value="">General Donation</option>
+                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-                {charityIsIpc && (
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={s.formLabel}>NRIC / FIN</div>
-                    <input style={s.formInput} placeholder="e.g. S1234567A" maxLength={9} value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} />
-                  </div>
-                )}
-                <div style={{ marginBottom: 12 }}>
-                  <div style={s.formLabel}>Linked Campaign (Optional)</div>
-                  <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
-                    <option value="">None — general / unrestricted use</option>
-                    {(myCauses || []).filter(c => c.type === 'campaign').map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={s.formLabel}>Notes</div>
-                  <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} />
+                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => {
