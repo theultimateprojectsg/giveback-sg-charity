@@ -754,7 +754,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
+  const [donorProfileTab, setDonorProfileTab] = useState('overview')
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
+  useEffect(() => { setDonorProfileTab('overview') }, [selectedDonor?.email, selectedDonor?.name])
 
   // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
@@ -9308,8 +9310,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>🚫 Do Not Contact — this donor is excluded from all emails, appeals, and outreach.</span>
               </div>
             )}
-            <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              <div>
+            <div style={{ marginBottom: 16 }}>
                 <div style={{ background: C.forest, borderRadius: 4, padding: '20px 18px', marginBottom: 16 }}>
                   <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: C.fontVoice, fontWeight: 500, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
                   <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
@@ -9403,7 +9404,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
+            </div>
 
+            <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 20, flexWrap: 'wrap' }}>
+              {[
+                { key: 'overview', icon: '📊', label: 'Overview' },
+                { key: 'details', icon: '📇', label: 'Details & Preferences' },
+                { key: 'notes', icon: '📝', label: 'Notes' },
+                { key: 'donations', icon: '💳', label: 'Donations' },
+                { key: 'account', icon: '⚙️', label: 'Account' },
+              ].map(sec => (
+                <div
+                  key={sec.key}
+                  onClick={() => setDonorProfileTab(sec.key)}
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: donorProfileTab === sec.key ? C.forest : C.muted,
+                    borderBottom: donorProfileTab === sec.key ? `2px solid ${C.forest}` : '2px solid transparent',
+                    marginBottom: -1,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span>{sec.icon}</span> {sec.label}
+                </div>
+              ))}
+            </div>
+
+            <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              <div>
+                {donorProfileTab === 'account' && (
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
@@ -9443,7 +9478,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )
                   })()}
                 </div>
+                )}
 
+                {donorProfileTab === 'details' && (<>
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Communication Preferences</div>
                   {(() => {
@@ -9580,12 +9617,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
-                  {selectedDonor.deceased && (() => {
+                </div>
+
+                {selectedDonor.deceased && (
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Family / Estate Contact</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Who to reach instead, since this donor is marked deceased.</div>
+                  {(() => {
                     const donorKey41b = selectedDonor.email?.trim() || selectedDonor.name
                     const existingContact41b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey41b)
                     return (
-                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${C.border}` }}>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Family member / estate executor contact (optional)</div>
+                      <div>
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           placeholder="Name and contact info"
@@ -9606,12 +9648,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
+                </div>
+                )}
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Visit Scheduling</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>For major donors — track in-person visits.</div>
                   {(() => {
                     const donorKey80 = selectedDonor.email?.trim() || selectedDonor.name
                     const existingContact80 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey80)
                     return (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Visit scheduling (for major donors)</div>
+                      <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 6 }}>
                           <div>
                             <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 3 }}>Last visited</div>
@@ -9637,12 +9684,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Birthday</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Optional — used to flag upcoming birthdays.</div>
                   {(() => {
                     const donorKey70 = selectedDonor.email?.trim() || selectedDonor.name
                     const existingContact70 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey70)
                     return (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Birthday (optional — used to flag upcoming birthdays)</div>
+                      <div>
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           type="date"
@@ -9663,12 +9714,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Tax Residency</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Informational — for donors requesting specific documentation formats.</div>
                   {(() => {
                     const donorKey48 = selectedDonor.email?.trim() || selectedDonor.name
                     const existingContact48 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey48)
                     return (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Tax residency country (informational — for donors requesting specific documentation formats)</div>
+                      <div>
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           placeholder="e.g. Singapore, Malaysia, Australia"
@@ -9689,12 +9744,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Mailing Address</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Only needed if this donor wants receipts mailed physically.</div>
                   {(() => {
                     const donorKey31b = selectedDonor.email?.trim() || selectedDonor.name
                     const existingContact31b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey31b)
                     return (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Mailing address (for donors who want a physical copy)</div>
+                      <div>
                         <textarea
                           style={{ ...s.formInput, minHeight: 60, resize: 'vertical', fontSize: 12 }}
                           placeholder="Optional — only needed if this donor wants receipts mailed"
@@ -9740,7 +9799,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )
                   })()}
                 </div>
-                {(() => {
+                </>)}
+
+                {donorProfileTab === 'overview' && (() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
                   const outreachHistory = lapsedReminderHistory[donorKey] || []
                   const dismissal = lapsedDismissals[donorKey]
@@ -9778,7 +9839,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {(() => {
+                {donorProfileTab === 'overview' && (() => {
                   const donorKeyForFlag = selectedDonor.email?.trim() || selectedDonor.name
                   const flagMatch = allGivingChangeFlags.find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
                   if (!flagMatch) return null
@@ -9828,7 +9889,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {(() => {
+                {donorProfileTab === 'overview' && (() => {
                   const key = selectedDonor.email?.trim() || selectedDonor.name
                   const b = donorBadgeMap[key]
                   if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
@@ -9851,6 +9912,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )
                 })()}
               </div>
+              <div>
+              {donorProfileTab === 'notes' && (<>
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
                 {(() => {
@@ -9965,7 +10028,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )}
               </div>
+              </>)}
 
+              {donorProfileTab === 'donations' && (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -9990,7 +10055,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       )
                     })}
                 </div>
-                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              </div>
+              )}
+
+              {donorProfileTab === 'account' && (
+              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Account Actions</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {selectedDonor.isContactOnly && (
                     <button
                       style={{ ...s.viewBtn, color: C.red, borderColor: C.red }}
@@ -10140,6 +10211,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${selectedDonor.name}`)
                   }}>{(issuing || bulkActionInProgress) ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
                 </div>
+              </div>
+              )}
               </div>
             </div>
           {deactivatedDonorList.length > 0 && (
