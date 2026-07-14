@@ -194,7 +194,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
   const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+    <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ {isEditing ? 'Edit Grant' : 'New Grant'}</div>
@@ -362,7 +362,7 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
     Promise.resolve(onSave(form)).finally(() => setSaving(false))
   }
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+    <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 Edit Pledge</div>
@@ -635,7 +635,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
   const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+    <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 {isEditing ? 'Edit Recurring Gift' : 'New Recurring Gift'}</div>
@@ -777,6 +777,40 @@ export default function App() {
     const saved = tabScrollPositions.current[activeTab] || 0
     requestAnimationFrame(() => window.scrollTo(0, saved))
   }, [activeTab])
+
+  // Shared keyboard handling for every modal: Escape triggers the topmost overlay's own
+  // backdrop-click handler (so each modal's existing close/guard logic — e.g. blocking
+  // close mid-migration — is reused rather than duplicated), and Tab is trapped within
+  // the topmost overlay so focus can't silently leak into the page behind it.
+  useEffect(() => {
+    function getTopOverlay() {
+      const overlays = document.querySelectorAll('[data-modal-overlay="true"]')
+      return overlays.length ? overlays[overlays.length - 1] : null
+    }
+    function onKeyDown(e) {
+      const overlay = getTopOverlay()
+      if (!overlay) return
+      if (e.key === 'Escape') {
+        overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+        return
+      }
+      if (e.key === 'Tab') {
+        const focusable = overlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   useEffect(() => {
     if (!session) return
@@ -9151,7 +9185,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <button style={s.exportSmallBtn} onClick={() => setShowColumnPicker(v => !v)}>⚙️ Columns</button>
                       {showColumnPicker && (
                         <>
-                          <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowColumnPicker(false)} />
+                          <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowColumnPicker(false)} />
                           <div style={{ position: 'absolute', top: '110%', right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 10, zIndex: 50, minWidth: 200 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show columns</div>
                             {DONOR_COLUMN_OPTIONS.map(opt => (
@@ -10315,7 +10349,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showManualForm && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setShowManualForm(false); setManualError('') }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setShowManualForm(false); setManualError('') }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>New Manual Entry</div>
@@ -10417,7 +10451,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {payNowQrDonation && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', textAlign: 'center', position: 'relative' }} onClick={e => e.stopPropagation()}>
                   <button style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>✕</button>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
@@ -10492,7 +10526,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <button style={s.exportSmallBtn} onClick={() => setShowDonationColumnPicker(v => !v)}>⚙️ Columns</button>
                   {showDonationColumnPicker && (
                     <>
-                      <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowDonationColumnPicker(false)} />
+                      <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowDonationColumnPicker(false)} />
                       <div style={{ position: 'absolute', top: '110%', right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 10, zIndex: 50, minWidth: 200 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show columns</div>
                         {DONATION_COLUMN_OPTIONS.filter(opt => opt.key !== 'nric' || charityIsIpc).map(opt => (
@@ -10804,7 +10838,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               {(userRole === 'staff' || userRole === 'ed') && selectedDonation && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
+                <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>
                 <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 760, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
                   <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.white, borderRadius: 8, overflow: 'hidden', maxHeight: '96vh', display: 'flex', flexDirection: 'column', padding: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexShrink: 0 }}>
@@ -13901,7 +13935,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── IRAS ── */}
-        {activeTab === 'iras' && charityIsIpc && (
+        {activeTab === 'iras' && charityIsIpc && donations.length === 0 && (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div style={s.pageTitle}>🏛️ IRAS Export</div>
+            </div>
+            <EmptyState
+              icon="🏛️"
+              title="No donations to export yet"
+              description="Once you've recorded confirmed donations with donor NRICs on file, this tab will generate your IRAS 250% tax deduction submission file."
+              ctaLabel="+ Record a Donation"
+              onCta={() => { setActiveTab('donations'); setShowManualForm(true) }}
+            />
+          </div>
+        )}
+
+        {activeTab === 'iras' && charityIsIpc && donations.length > 0 && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -14503,7 +14552,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             })()}
 
             {showCampaignModal && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{causeForm.editingId ? 'Edit Campaign' : 'New Campaign'}</div>
@@ -14962,6 +15011,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               }
 
+              if (recurringGifts.length === 0) {
+                return (
+                  <EmptyState
+                    icon="🔁"
+                    title="No recurring gifts yet"
+                    description="Track GIRO and habitual PayNow donors who give on a regular schedule — you'll see missed cycles and get reminders to follow up."
+                    ctaLabel="+ Add Recurring Gift"
+                    onCta={() => setShowRecurringForm(true)}
+                  />
+                )
+              }
+
               const active = filtered.filter(g => g.status === 'active')
               const paused = filtered.filter(g => g.status === 'paused')
               const cancelled = filtered.filter(g => g.status === 'cancelled')
@@ -15098,7 +15159,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {showPledgeReminderModal && pledgeReminderCandidate && !pledgeReminderPreviewing && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send pledge reminder</div>
@@ -15126,7 +15187,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showPledgeReminderModal && pledgeReminderCandidate && pledgeReminderPreviewing && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
@@ -15150,7 +15211,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showPledgeThankYouModal && pledgeCompletionCandidate && !pledgeThankYouPreviewing && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>🎉 Pledge completed</div>
@@ -15181,7 +15242,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showPledgeThankYouModal && pledgeCompletionCandidate && pledgeThankYouPreviewing && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
@@ -15205,7 +15266,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {logContactModal && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Log a follow-up</div>
@@ -15235,7 +15296,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             {showPledgeForm && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>
               <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 New Pledge</div>
@@ -15757,7 +15818,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             })()}
 
             {showMassAppealModal && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { if (!massAppealProgress) { setShowMassAppealModal(false); setMassAppealStep('setup') } }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { if (!massAppealProgress) { setShowMassAppealModal(false); setMassAppealStep('setup') } }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>
@@ -16819,7 +16880,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       
 
       {showMigrationTool && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!migrationProgress) setShowMigrationTool(false) }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { if (!migrationProgress) setShowMigrationTool(false) }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Migration Tool</div>
@@ -16924,7 +16985,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showLapsedDismissModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedDismissModal(null); setLapsedDismissReason('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedDismissModal(null); setLapsedDismissReason('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Mark {showLapsedDismissModal.name} as not interested?</div>
@@ -16962,7 +17023,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showLapsedReminderModal && lapsedReminderCandidate && !lapsedReminderPreviewing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{lapsedReminderCandidate.givingChangeMeta ? 'Check in about decreased giving' : 'Reach out to a lapsed donor'}</div>
@@ -16995,7 +17056,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showLapsedReminderModal && lapsedReminderCandidate && lapsedReminderPreviewing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
@@ -17019,7 +17080,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showRecurringReminderModal && recurringReminderCandidate && !recurringReminderPreviewing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send reminder</div>
@@ -17047,7 +17108,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showRecurringReminderModal && recurringReminderCandidate && recurringReminderPreviewing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
@@ -17071,7 +17132,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {skipCycleModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Skip this cycle?</div>
@@ -17097,7 +17158,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {pauseGiftModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setPauseGiftModal(null); setPauseReasonInput(''); setPauseResumeDateInput('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setPauseGiftModal(null); setPauseReasonInput(''); setPauseResumeDateInput('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Pause this recurring gift?</div>
@@ -17127,7 +17188,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {failedDeductionModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setFailedDeductionModal(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setFailedDeductionModal(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Log a failed deduction</div>
@@ -17158,7 +17219,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {markReceivedModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Mark payment as received</div>
@@ -17184,7 +17245,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showDomainSetup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowDomainSetup(false); setDnsRecords(null); setSenderDomainInput('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowDomainSetup(false); setDnsRecords(null); setSenderDomainInput('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Set up your own sending domain</div>
@@ -17226,7 +17287,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {rescheduleModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setRescheduleModal(null); setRescheduleNewDate(''); setRescheduleReason('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setRescheduleModal(null); setRescheduleNewDate(''); setRescheduleReason('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Reschedule pledge</div>
@@ -17256,7 +17317,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {pledgeResolutionModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 440, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>
@@ -17297,7 +17358,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {selectedAppealDetail && !retryPreviewList && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setSelectedAppealDetail(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setSelectedAppealDetail(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 600, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '20px 24px', borderBottom: `1px solid ${C.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -17407,7 +17468,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {retryPreviewList && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !retryingAppealRecipients && setRetryPreviewList(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => !retryingAppealRecipients && setRetryPreviewList(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Retry {retryPreviewList.length} recipient{retryPreviewList.length !== 1 ? 's' : ''}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>The same message and QR code will be resent to:</div>
@@ -17437,7 +17498,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showAppealPreview && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAppealPreview(false)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAppealPreview(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 0, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             {(() => {
               const sampleDonor = massAppealRefs.find(r => r.selected) || massAppealRefs[0]
@@ -17473,7 +17534,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showAddDonorModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAddDonorModal(false)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => setShowAddDonorModal(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Add a Donor</div>
             <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>Track someone you know but haven't received a donation from yet — a major donor prospect, or someone you met in person. They'll automatically merge with their real record once they give.</div>
@@ -17500,7 +17561,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showManualPledgeLinkModal && selectedDonation && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Link this donation to a pledge</div>
@@ -17537,7 +17598,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showVoidModal && selectedDonation && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.red, marginBottom: 4 }}>Void & Reissue Receipt</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
@@ -17581,7 +17642,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {thankYouDraft && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Thank-you note for {thankYouDraft.donor.name}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and edit before sending. This won't be sent as-is.</div>
@@ -17632,7 +17693,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showCustomizeAnalytics && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Customize Analytics</div>
@@ -17700,7 +17761,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         const previewBodyHtml = buildThankYouPreviewHtml(d, thankYouCustomMessage)
         const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
         return (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setThankYouPreviewModal(null)}>
+          <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setThankYouPreviewModal(null)}>
             <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
@@ -17738,7 +17799,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       })()}
 
       {volunteerEditEntry && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setVolunteerEditEntry(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setVolunteerEditEntry(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Your Entry</div>
@@ -17855,7 +17916,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {showAddTeamMemberModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowAddTeamMemberModal(false)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowAddTeamMemberModal(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Add Team Member</div>
@@ -17918,7 +17979,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {duplicateDonationWarning && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDuplicateDonationWarning(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDuplicateDonationWarning(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '90%' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.warningBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
               <span style={{ fontSize: 18, color: C.warning }}>⚠</span>
@@ -17945,7 +18006,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {confirmModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setConfirmModal(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 400, width: '90%' }} onClick={e => e.stopPropagation()}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
               <span style={{ fontSize: 18, color: C.forest }}>✓</span>
