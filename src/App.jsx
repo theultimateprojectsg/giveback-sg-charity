@@ -221,11 +221,11 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
 
         <div style={sectionHeaderStyle}>Grant details</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Funder Name *</div>
             <input style={s.formInput} value={form.funder_name} onChange={e => setForm(f => ({ ...f, funder_name: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Funder Type *</div>
             <select style={s.formInput} value={form.funder_type} onChange={e => setForm(f => ({ ...f, funder_type: e.target.value }))}>
               <option value="">Select...</option>
@@ -234,41 +234,41 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
               <option value="trust">Private trust / individual</option>
               <option value="other">Other</option>
             </select>
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Agreement Reference</div>
             <input style={s.formInput} placeholder="e.g. Letter of Award no." value={form.agreement_reference} onChange={e => setForm(f => ({ ...f, agreement_reference: e.target.value }))} />
-          </div>
-          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+          </label>
+          <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Linked Programme / Campaign</div>
             <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
               <option value="">None — general / unrestricted use</option>
               {(causes || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
-          </div>
+          </label>
         </div>
 
         <div style={dividerStyle} />
 
         <div style={sectionHeaderStyle}>Funding</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
-          <div>
+          <label style={{ display: 'block' }}>
             <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Unrestricted (SGD) <InfoTip text="Funds the funder lets you spend on any programme or overhead, at your discretion." /></div>
             <input style={s.formInput} type="number" placeholder="0" value={form.unrestricted_amount} onChange={e => setForm(f => ({ ...f, unrestricted_amount: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Restricted (SGD) <InfoTip text="Funds the funder requires you to spend only on a specific purpose (see Purpose Restriction below)." /></div>
             <input style={s.formInput} type="number" placeholder="0" value={form.restricted_amount} onChange={e => setForm(f => ({ ...f, restricted_amount: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Disbursement Schedule <InfoTip text="How and when the funder pays out the grant, e.g. in tranches over time rather than as one lump sum." /></div>
             <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={form.disbursement_schedule} onChange={e => setForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
-          </div>
+          </label>
           {hasRestricted && (
-            <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+            <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}>
               <div style={{ ...s.formLabel, color: C.red, display: 'flex', alignItems: 'center', gap: 5 }}>Purpose Restriction * <InfoTip text="Required whenever there's a restricted amount — describe exactly what the funder will and won't let this money be spent on." /></div>
               <textarea style={{ ...s.formInput, minHeight: 44, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
-            </div>
+            </label>
           )}
           <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1', display: 'flex', alignItems: 'center', gap: 6, paddingTop: 4 }}>
             <input type="checkbox" id="grant-matching" checked={form.is_matching} onChange={e => setForm(f => ({ ...f, is_matching: e.target.checked }))} />
@@ -10405,7 +10405,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                       <input style={s.formInput} placeholder={manualForm.is_anonymous ? 'Leave blank, or add a private note' : 'Full name'} value={manualForm.donor_name} onChange={e => setManualForm(f => ({ ...f, donor_name: e.target.value }))} />
                     </div>
-                    <div>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>How did they find you? (optional)</div>
                       <select style={s.formInput} value={manualForm.acquisition_source} onChange={e => setManualForm(f => ({ ...f, acquisition_source: e.target.value }))}>
                         <option value="">Not specified</option>
@@ -10416,9 +10416,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <option value="corporate_partner">Corporate Partner</option>
                         <option value="other">Other</option>
                       </select>
-                    </div>
+                    </label>
                     {manualForm.acquisition_source === 'referral' && (
-                      <div>
+                      <label style={{ display: 'block' }}>
                         <div style={s.formLabel}>Referred by</div>
                         <select style={s.formInput} value={manualForm.referred_by_donor_key} onChange={e => setManualForm(f => ({ ...f, referred_by_donor_key: e.target.value }))}>
                           <option value="">Select existing donor...</option>
@@ -10426,32 +10426,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <option key={i} value={d.email?.trim() || d.name}>{d.name}</option>
                           ))}
                         </select>
-                      </div>
+                      </label>
                     )}
                     {charityIsIpc && (
-                      <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
+                      <label style={{ display: 'block' }}><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={manualForm.donor_nric} onChange={e => setManualForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></label>
                     )}
-                    <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} /></div>
-                    <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></div>
-                    <div><div style={s.formLabel}>Payment Method</div>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} /></label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={manualForm.date} onChange={e => setManualForm(f => ({ ...f, date: e.target.value }))} /></label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Payment Method</div>
                       <select style={s.formInput} value={manualForm.payment_method} onChange={e => setManualForm(f => ({ ...f, payment_method: e.target.value }))}>
                         <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                       </select>
                       {manualForm.payment_method === 'PayNow Direct' && (
                         <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Generates a scannable QR — payment confirms in a second step</div>
                       )}
-                    </div>
-                    <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={manualForm.donor_email || ''} onChange={e => setManualForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
-                    <div><div style={s.formLabel}>Cause (Optional)</div>
+                    </label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={manualForm.donor_email || ''} onChange={e => setManualForm(f => ({ ...f, donor_email: e.target.value }))} /></label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Cause (Optional)</div>
                       <select style={s.formInput} value={manualForm.cause_id} onChange={e => setManualForm(f => ({ ...f, cause_id: e.target.value }))}>
                         <option value="">General Donation</option>
                         {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
                           <option key={c.id} value={c.id}>{c.title}</option>
                         ))}
                       </select>
-                    </div>
-                    <div><div style={s.formLabel}>Receipt Name</div><input style={s.formInput} placeholder="Leave blank to use donor name" value={manualForm.receipt_name} onChange={e => setManualForm(f => ({ ...f, receipt_name: e.target.value }))} /><div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Only fill this if the receipt should show a different name (e.g. a company name)</div></div>
-<div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                    </label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>Receipt Name</div><input style={s.formInput} placeholder="Leave blank to use donor name" value={manualForm.receipt_name} onChange={e => setManualForm(f => ({ ...f, receipt_name: e.target.value }))} /><div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Only fill this if the receipt should show a different name (e.g. a company name)</div></label>
+<label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} /></label>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     {manualForm.payment_method === 'PayNow Direct' ? (
@@ -15324,26 +15324,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 {pledgeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{pledgeError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>Donor Name *</div>
                     <input style={s.formInput} placeholder="Full name" value={pledgeForm.donor_name} onChange={e => setPledgeForm(f => ({ ...f, donor_name: e.target.value }))} />
-                  </div>
-                  <div>
+                  </label>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>Donor Email</div>
                     <input style={s.formInput} placeholder="donor@email.com" value={pledgeForm.donor_email} onChange={e => setPledgeForm(f => ({ ...f, donor_email: e.target.value }))} />
-                  </div>
-                  <div>
+                  </label>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>Donor Phone</div>
                     <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={pledgeForm.donor_phone} onChange={e => setPledgeForm(f => ({ ...f, donor_phone: e.target.value }))} />
-                  </div>
-                  <div>
+                  </label>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>Linked Programme / Campaign</div>
                     <select style={s.formInput} value={pledgeForm.cause_id} onChange={e => setPledgeForm(f => ({ ...f, cause_id: e.target.value }))}>
                       <option value="">None — general / unrestricted use</option>
                       {(myCauses || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
-                  </div>
-                  <div>
+                  </label>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>How was this pledge made? (optional)</div>
                     <select style={s.formInput} value={pledgeForm.source} onChange={e => setPledgeForm(f => ({ ...f, source: e.target.value }))}>
                       <option value="">Not specified</option>
@@ -15354,7 +15354,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <option value="corporate_partner">Corporate Partner</option>
                       <option value="other">Other</option>
                     </select>
-                  </div>
+                  </label>
                   <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer' }}>
                       <input type="checkbox" checked={pledgeForm.is_anonymous} onChange={e => setPledgeForm(f => ({ ...f, is_anonymous: e.target.checked }))} />
@@ -15367,29 +15367,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       This is a multi-year pledge (e.g. $10K/year for 3 years)
                     </label>
                   </div>
-                  <div>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>{pledgeForm.is_multi_year ? 'Amount Per Year (SGD) *' : 'Pledged Amount (SGD) *'}</div>
                     <input style={s.formInput} type="number" placeholder="0.00" value={pledgeForm.amount} onChange={e => setPledgeForm(f => ({ ...f, amount: e.target.value }))} />
-                  </div>
+                  </label>
                   {pledgeForm.is_multi_year && (
-                    <div>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Number of Years *</div>
                       <input style={s.formInput} type="number" min="2" placeholder="3" value={pledgeForm.total_years} onChange={e => setPledgeForm(f => ({ ...f, total_years: e.target.value }))} />
-                    </div>
+                    </label>
                   )}
-                  <div>
+                  <label style={{ display: 'block' }}>
                     <div style={s.formLabel}>{pledgeForm.is_multi_year ? 'First Instalment Due *' : 'Expected By *'}</div>
                     <input style={s.formInput} type="date" min={new Date().toISOString().split('T')[0]} value={pledgeForm.expected_date} onChange={e => setPledgeForm(f => ({ ...f, expected_date: e.target.value }))} />
-                  </div>
+                  </label>
                   {pledgeForm.is_multi_year && pledgeForm.amount && pledgeForm.total_years && (
                     <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1', background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 10, fontSize: 12, color: C.forest }}>
                       Total commitment: <strong>${(parseFloat(pledgeForm.amount) * parseInt(pledgeForm.total_years)).toLocaleString()}</strong> over {pledgeForm.total_years} years
                     </div>
                   )}
-                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                  <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                     <div style={s.formLabel}>Notes</div>
                     <input style={s.formInput} placeholder="e.g. Verbally committed at gala dinner" value={pledgeForm.notes} onChange={e => setPledgeForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} />
-                  </div>
+                  </label>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={savePledge} disabled={savingPledge}>{savingPledge ? 'Saving...' : '✓ Save Pledge'}</button>
