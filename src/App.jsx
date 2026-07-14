@@ -752,6 +752,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
 
@@ -16155,9 +16156,38 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             ) : (
               <div style={{ maxWidth: 1000 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
+              <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 24, flexWrap: 'wrap' }}>
+                {[
+                  { key: 'general', icon: '🏛️', label: 'General' },
+                  { key: 'modules', icon: '🧩', label: 'Feature Modules' },
+                  { key: 'thresholds', icon: '🎯', label: 'Thresholds & Goals' },
+                  { key: 'financial', icon: '💸', label: 'Financial & Data' },
+                ].map(sec => (
+                  <div
+                    key={sec.key}
+                    onClick={() => setSettingsSection(sec.key)}
+                    style={{
+                      padding: '9px 16px',
+                      fontSize: 12.5,
+                      fontWeight: 500,
+                      color: settingsSection === sec.key ? C.forest : C.muted,
+                      borderBottom: settingsSection === sec.key ? `2px solid ${C.forest}` : '2px solid transparent',
+                      marginBottom: -1,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span>{sec.icon}</span> {sec.label}
+                  </div>
+                ))}
+              </div>
+
+              {settingsSection === 'general' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
               <div>
-            <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12 }}>Charity & Account</div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Charity Details</div>
                 <div style={{ background: C.ivory, borderRadius: 8, border: `1px solid ${C.border}`, padding: '4px 14px', marginBottom: 12 }}>
@@ -16226,193 +16256,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div>
-              <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12 }}>Operations</div>
               <div style={{ ...s.card, marginBottom: 16 }}>
-                <div style={s.cardTitle}>Feature Modules</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                  Turn off features your charity doesn't use — they'll disappear from the sidebar, Dashboard, and Analytics. You can turn them back on anytime.
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {[
-                    { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals', count: myCauses.filter(c => c.type === 'campaign').length },
-                    { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk PayNow QR appeals to your donor base', count: massAppeals.length },
-                    { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
-                    { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
-                    { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },
-                  ].map(m => {
-                    const isOn = enabledModules[m.key] !== false
-                    const locked = isOn && m.count > 0
-                    return (
-                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: locked ? 'default' : 'pointer' }}>
-                      <input type="checkbox" checked={isOn} disabled={locked} onChange={() => toggleEnabledModule(m.key)} />
-                      <span style={{ fontSize: 15 }}>{m.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{m.label}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{m.desc}</div>
-                      </div>
-                      {locked && <span style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>{m.count} record{m.count !== 1 ? 's' : ''} — can't hide</span>}
-                    </label>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div style={{ ...s.card, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Donor Thresholds</div>
-                  {!editingDonorThresholds && (
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setThankYouThresholdInput(thankYouThreshold.toString()); setMajorDonorThresholdInput(majorDonorThreshold.toString()); setEditingDonorThresholds(true) }}>Edit</button>
-                  )}
-                </div>
-                {editingDonorThresholds ? (
-                  <div>
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={s.formLabel}>Major Gift (SGD) — a single donation this size or more gets a personal thank-you flag</div>
-                      <input style={s.formInput} type="number" value={thankYouThresholdInput} onChange={e => setThankYouThresholdInput(e.target.value)} />
-                    </div>
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={s.formLabel}>Major Donor (SGD, lifetime total) — flags who needs a relationship visit</div>
-                      <input style={s.formInput} type="number" value={majorDonorThresholdInput} onChange={e => setMajorDonorThresholdInput(e.target.value)} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.issueBtn} onClick={saveDonorThresholds}>Save</button>
-                      <button style={s.viewBtn} onClick={() => setEditingDonorThresholds(false)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: 24 }}>
-                    <div>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Gift</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${thankYouThreshold.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Donor (lifetime)</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${majorDonorThreshold.toLocaleString()}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ ...s.card, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Cumulative Giving Milestones</div>
-                  {!editingCumulativeThresholds && (
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setCumulativeThresholdsInput(cumulativeThresholds.map(v => v.toString())); setEditingCumulativeThresholds(true) }}>Edit</button>
-                  )}
-                </div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
-                  Flags a donor on the Dashboard when their lifetime giving crosses one of these amounts this week.
-                </div>
-                {editingCumulativeThresholds ? (
-                  <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-                      {cumulativeThresholdsInput.map((v, i) => (
-                        <div key={i}>
-                          <div style={s.formLabel}>Milestone {i + 1}</div>
-                          <input style={s.formInput} type="number" value={v} onChange={e => setCumulativeThresholdsInput(prev => prev.map((p, pi) => pi === i ? e.target.value : p))} />
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.issueBtn} onClick={saveCumulativeThresholds}>Save</button>
-                      <button style={s.viewBtn} onClick={() => setEditingCumulativeThresholds(false)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    {cumulativeThresholds.map((t, i) => (
-                      <span key={i} style={{ fontSize: 13, fontWeight: 600, color: C.forest, background: C.ivory, borderRadius: 4, padding: '4px 10px', border: `1px solid ${C.border}` }}>${t.toLocaleString()}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div style={s.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
-                  {!editingFyEnd && (
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setFyEndMonthInput(fyEndMonth.toString()); setFyEndDayInput(fyEndDay.toString()); setEditingFyEnd(true) }}>Edit</button>
-                  )}
-                </div>
-                {editingFyEnd ? (
-                  <div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Used to calculate your COC Annual Submission deadline (6 months after financial year end).</div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      <select style={s.formInput} value={fyEndMonthInput} onChange={e => setFyEndMonthInput(e.target.value)}>
-                        {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
-                          <option key={i} value={i + 1}>{m}</option>
-                        ))}
-                      </select>
-                      <input style={{ ...s.formInput, width: 90 }} type="number" min="1" max="31" placeholder="Day" value={fyEndDayInput} onChange={e => setFyEndDayInput(e.target.value)} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.issueBtn} onClick={saveFyEnd}>Save</button>
-                      <button style={s.viewBtn} onClick={() => setEditingFyEnd(false)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
-                    {['January','February','March','April','May','June','July','August','September','October','November','December'][fyEndMonth - 1]} {fyEndDay}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🎯 Annual Fundraising Goal</div>
-                  {!editingGoal && (
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>{annualGoal ? 'Edit' : '+ Set Goal'}</button>
-                  )}
-                </div>
-                {editingGoal ? (
-                  <div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Total confirmed donations this calendar year are tracked against this goal on your Dashboard and Analytics pages.</div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button style={s.issueBtn} onClick={saveAnnualGoal}>Save</button>
-                      <button style={s.viewBtn} onClick={() => setEditingGoal(false)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : annualGoal ? (
-                  <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>${annualGoal.toLocaleString()}</div>
-                ) : (
-                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No goal set yet — used for the progress tracker on Dashboard and Analytics.</div>
-                )}
-              </div>
-
-              <div id="monthly-expenses-card" style={{ ...s.card, marginTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={s.cardTitle}>💸 Monthly Expenses</div>
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.forest }}>
-                  {recurringExpenses.length > 0 ? `SGD $${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}/month` : <span style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>}
-                </div>
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
-                  {recurringExpenses.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                      {recurringExpenses.map(e => (
-                        <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px' }}>
-                          <span style={{ fontSize: 12.5, color: C.text }}>{e.name}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
-                            <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteRecurringExpense(e.id)}>✕</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Rent, Salaries, Utilities" value={newExpenseForm.name} onChange={e => setNewExpenseForm(f => ({ ...f, name: e.target.value }))} />
-                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={newExpenseForm.amount} onChange={e => setNewExpenseForm(f => ({ ...f, amount: e.target.value }))} />
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={saveRecurringExpense}>Add</button>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ ...s.card, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>👥 Team Access</div>
                   <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setVolunteerInput(''); setNewTeamMemberRole('ed'); setShowAddTeamMemberModal(true) }}>+ Add Person</button>
@@ -16450,17 +16294,217 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ))}
                 </div>
               </div>
+              </div>
+              </div>
+              )}
 
-              <div style={{ ...s.card, marginTop: 16 }}>
+              {settingsSection === 'modules' && (
+              <div style={{ ...s.card, maxWidth: 600 }}>
+                <div style={s.cardTitle}>Feature Modules</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  Turn off features your charity doesn't use — they'll disappear from the sidebar, Dashboard, and Analytics. You can turn them back on anytime.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals', count: myCauses.filter(c => c.type === 'campaign').length },
+                    { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk PayNow QR appeals to your donor base', count: massAppeals.length },
+                    { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
+                    { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
+                    { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },
+                  ].map(m => {
+                    const isOn = enabledModules[m.key] !== false
+                    const locked = isOn && m.count > 0
+                    return (
+                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: locked ? 'default' : 'pointer' }}>
+                      <input type="checkbox" checked={isOn} disabled={locked} onChange={() => toggleEnabledModule(m.key)} />
+                      <span style={{ fontSize: 15 }}>{m.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{m.label}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{m.desc}</div>
+                      </div>
+                      {locked && <span style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>{m.count} record{m.count !== 1 ? 's' : ''} — can't hide</span>}
+                    </label>
+                    )
+                  })}
+                </div>
+              </div>
+              )}
+
+              {settingsSection === 'thresholds' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
+              <div>
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Donor Thresholds</div>
+                  {!editingDonorThresholds && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setThankYouThresholdInput(thankYouThreshold.toString()); setMajorDonorThresholdInput(majorDonorThreshold.toString()); setEditingDonorThresholds(true) }}>Edit</button>
+                  )}
+                </div>
+                {editingDonorThresholds ? (
+                  <div>
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={s.formLabel}>Major Gift (SGD) — a single donation this size or more gets a personal thank-you flag</div>
+                      <input style={s.formInput} type="number" value={thankYouThresholdInput} onChange={e => setThankYouThresholdInput(e.target.value)} />
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={s.formLabel}>Major Donor (SGD, lifetime total) — flags who needs a relationship visit</div>
+                      <input style={s.formInput} type="number" value={majorDonorThresholdInput} onChange={e => setMajorDonorThresholdInput(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveDonorThresholds}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingDonorThresholds(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 24 }}>
+                    <div>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Gift</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${thankYouThreshold.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Donor (lifetime)</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${majorDonorThreshold.toLocaleString()}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Cumulative Giving Milestones</div>
+                  {!editingCumulativeThresholds && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setCumulativeThresholdsInput(cumulativeThresholds.map(v => v.toString())); setEditingCumulativeThresholds(true) }}>Edit</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+                  Flags a donor on the Dashboard when their lifetime giving crosses one of these amounts this week.
+                </div>
+                {editingCumulativeThresholds ? (
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+                      {cumulativeThresholdsInput.map((v, i) => (
+                        <div key={i}>
+                          <div style={s.formLabel}>Milestone {i + 1}</div>
+                          <input style={s.formInput} type="number" value={v} onChange={e => setCumulativeThresholdsInput(prev => prev.map((p, pi) => pi === i ? e.target.value : p))} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveCumulativeThresholds}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingCumulativeThresholds(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {cumulativeThresholds.map((t, i) => (
+                      <span key={i} style={{ fontSize: 13, fontWeight: 600, color: C.forest, background: C.ivory, borderRadius: 4, padding: '4px 10px', border: `1px solid ${C.border}` }}>${t.toLocaleString()}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              </div>
+
+              <div>
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
+                  {!editingFyEnd && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setFyEndMonthInput(fyEndMonth.toString()); setFyEndDayInput(fyEndDay.toString()); setEditingFyEnd(true) }}>Edit</button>
+                  )}
+                </div>
+                {editingFyEnd ? (
+                  <div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Used to calculate your COC Annual Submission deadline (6 months after financial year end).</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      <select style={s.formInput} value={fyEndMonthInput} onChange={e => setFyEndMonthInput(e.target.value)}>
+                        {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                          <option key={i} value={i + 1}>{m}</option>
+                        ))}
+                      </select>
+                      <input style={{ ...s.formInput, width: 90 }} type="number" min="1" max="31" placeholder="Day" value={fyEndDayInput} onChange={e => setFyEndDayInput(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveFyEnd}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingFyEnd(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>
+                    {['January','February','March','April','May','June','July','August','September','October','November','December'][fyEndMonth - 1]} {fyEndDay}
+                  </div>
+                )}
+              </div>
+
+              <div style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>🎯 Annual Fundraising Goal</div>
+                  {!editingGoal && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setGoalInput(annualGoal?.toString() || ''); setEditingGoal(true) }}>{annualGoal ? 'Edit' : '+ Set Goal'}</button>
+                  )}
+                </div>
+                {editingGoal ? (
+                  <div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Total confirmed donations this calendar year are tracked against this goal on your Dashboard and Analytics pages.</div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveAnnualGoal}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingGoal(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : annualGoal ? (
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${annualGoal.toLocaleString()}</div>
+                ) : (
+                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No goal set yet — used for the progress tracker on Dashboard and Analytics.</div>
+                )}
+              </div>
+              </div>
+              </div>
+              )}
+
+              {settingsSection === 'financial' && (
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, alignItems: 'start' }}>
+              <div id="monthly-expenses-card" style={s.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={s.cardTitle}>💸 Monthly Expenses</div>
+                </div>
+                <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>
+                  {recurringExpenses.length > 0 ? `SGD $${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}/month` : <span style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 400, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>}
+                </div>
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
+                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
+                  {recurringExpenses.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                      {recurringExpenses.map(e => (
+                        <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px' }}>
+                          <span style={{ fontSize: 12.5, color: C.text }}>{e.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                            <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteRecurringExpense(e.id)}>✕</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Rent, Salaries, Utilities" value={newExpenseForm.name} onChange={e => setNewExpenseForm(f => ({ ...f, name: e.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={newExpenseForm.amount} onChange={e => setNewExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={saveRecurringExpense}>Add</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={s.card}>
                 <div style={s.cardTitle}>📥 Import Historical Data</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
                   Import existing donor records and transactions from a Google Sheets or Excel CSV export. Use this once during onboarding to migrate your historical data.
                 </div>
                 <button style={s.btnForest} onClick={() => { setShowMigrationTool(true); setMigrationPreview(null); setMigrationErrors([]); setMigrationComplete(null); setMigrationProgress(null) }}>📥 Open Migration Tool</button>
               </div>
+              </div>
+              )}
 
-              </div>
-              </div>
               </div>
             )}
           </div>
