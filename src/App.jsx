@@ -783,6 +783,8 @@ export default function App() {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
   const [filterSource, setFilterSource] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
+  const [filterMinAmount, setFilterMinAmount] = useState(null)
+  const [donationFilterLabel, setDonationFilterLabel] = useState(null)
   const [selectedDonationIds, setSelectedDonationIds] = useState([])
   const [donationsPage, setDonationsPage] = useState(0)
   const [donationsPerPage, setDonationsPerPage] = useState(25)
@@ -4370,6 +4372,8 @@ export default function App() {
     if (!opts.keepYear) setFilterYear('All')
     setFilterSource('All')
     setFilterThankYou('All')
+    setFilterMinAmount(null)
+    setDonationFilterLabel(null)
     setSelectedDonationIds([])
     setDonationSortBy(null)
     setDonationSortDir('desc')
@@ -6475,7 +6479,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterThankYou === 'Sent' && d.thank_you_sent)
       || (filterThankYou === 'Not Sent' && !d.thank_you_sent && d.donor_email?.trim())
       || (filterThankYou === 'No Email' && !d.donor_email?.trim())
-    return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou
+    const matchMinAmount = !filterMinAmount || d.amount >= filterMinAmount
+    return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou && matchMinAmount
   }).sort((a, b) => {
     if (!donationSortBy) return new Date(b.created_at) - new Date(a.created_at)
     let cmp = 0
@@ -6491,7 +6496,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   useEffect(() => {
     setDonationsPage(0)
-  }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou, donationSortBy, donationSortDir])
+  }, [searchTerm, filterType, filterNric, filterYear, filterSource, filterThankYou, filterMinAmount, donationSortBy, donationSortDir])
 
   const filteredDonorList = React.useMemo(() => {
     const q = searchTerm.toLowerCase()
@@ -8361,7 +8366,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for ${recurringTrendCycles} cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent && d.donor_email?.trim())
-              if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
+              if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setFilterMinAmount(thankYouThreshold); setDonationFilterLabel(`Showing ${thankYouThreshold}+ gifts awaiting a personal thank-you`); setActiveTab('donations') } })
 
               if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
@@ -10123,6 +10128,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <button style={s.btnGold} onClick={() => setShowManualForm(true)}>+ Manual Entry</button>
               </div>
             </div>
+
+            {filterMinAmount && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donationFilterLabel || `Showing donations of $${filterMinAmount}+`}</span>
+                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterMinAmount(null); setDonationFilterLabel(null) }}>✕ Clear</button>
+              </div>
+            )}
 
             {showManualForm && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setShowManualForm(false); setManualError('') }}>
