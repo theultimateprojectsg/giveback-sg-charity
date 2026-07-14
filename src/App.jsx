@@ -76,6 +76,21 @@ function InfoTip({ text }) {
   )
 }
 
+function EmptyState({ icon, title, description, ctaLabel, onCta }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '48px 24px', background: C.ivory, borderRadius: 8, border: `1px dashed ${C.border}` }}>
+      <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: onCta ? 18 : 0, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>{description}</div>
+      {onCta && (
+        <button style={{ background: C.forest, color: 'white', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={onCta}>
+          {ctaLabel}
+        </button>
+      )}
+    </div>
+  )
+}
+
 const ACTION_BANNER_TONES = {
   danger: { fill: '#A0472F' },
   warning: { fill: '#96700B' },
@@ -177,7 +192,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
   const [saving, setSaving] = useState(false)
   const hasRestricted = parseFloat(form.restricted_amount) > 0
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
-  const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
+  const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -220,20 +235,20 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
         <div style={sectionHeaderStyle}>Funding</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
           <div>
-            <div style={s.formLabel}>Unrestricted (SGD)</div>
+            <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Unrestricted (SGD) <InfoTip text="Funds the funder lets you spend on any programme or overhead, at your discretion." /></div>
             <input style={s.formInput} type="number" placeholder="0" value={form.unrestricted_amount} onChange={e => setForm(f => ({ ...f, unrestricted_amount: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>Restricted (SGD)</div>
+            <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Restricted (SGD) <InfoTip text="Funds the funder requires you to spend only on a specific purpose (see Purpose Restriction below)." /></div>
             <input style={s.formInput} type="number" placeholder="0" value={form.restricted_amount} onChange={e => setForm(f => ({ ...f, restricted_amount: e.target.value }))} />
           </div>
           <div>
-            <div style={s.formLabel}>Disbursement Schedule</div>
+            <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Disbursement Schedule <InfoTip text="How and when the funder pays out the grant, e.g. in tranches over time rather than as one lump sum." /></div>
             <input style={s.formInput} placeholder="e.g. 3 tranches over 12 months" value={form.disbursement_schedule} onChange={e => setForm(f => ({ ...f, disbursement_schedule: e.target.value }))} />
           </div>
           {hasRestricted && (
             <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-              <div style={{ ...s.formLabel, color: C.red }}>Purpose Restriction *</div>
+              <div style={{ ...s.formLabel, color: C.red, display: 'flex', alignItems: 'center', gap: 5 }}>Purpose Restriction * <InfoTip text="Required whenever there's a restricted amount — describe exactly what the funder will and won't let this money be spent on." /></div>
               <textarea style={{ ...s.formInput, minHeight: 44, resize: 'vertical' }} placeholder="e.g. Must be spent on tutoring program costs, not administrative overhead" value={form.purpose_restriction} onChange={e => setForm(f => ({ ...f, purpose_restriction: e.target.value }))} />
             </div>
           )}
@@ -244,11 +259,11 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
           {form.is_matching && (
             <>
               <div>
-                <div style={s.formLabel}>Match Ratio</div>
+                <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Match Ratio <InfoTip text="How much the funder contributes per dollar you raise, e.g. $1:$1 means they match every donor dollar with one of their own." /></div>
                 <input style={s.formInput} placeholder="e.g. $1 : $1" value={form.match_ratio} onChange={e => setForm(f => ({ ...f, match_ratio: e.target.value }))} />
               </div>
               <div>
-                <div style={s.formLabel}>Match Cap (SGD) *</div>
+                <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Match Cap (SGD) * <InfoTip text="The most the funder will contribute in total, no matter how much more you raise beyond this." /></div>
                 <input style={s.formInput} type="number" placeholder="Maximum funder will match" value={form.match_cap} onChange={e => setForm(f => ({ ...f, match_cap: e.target.value }))} />
               </div>
             </>
@@ -611,7 +626,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
     notes: gift.notes || '',
   } : { donor_name: '', donor_email: '', donor_phone: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', type_detail: '', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
-  const dividerStyle = { borderTop: `1px dashed ${C.border}`, marginBottom: 16 }
+  const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
@@ -1249,7 +1264,7 @@ export default function App() {
   const [goalInput, setGoalInput] = useState('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
   const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
-  const DEFAULT_ENABLED_MODULES = { campaigns: true, massappeal: true, pledges: true, recurring: true, grants: true }
+  const DEFAULT_ENABLED_MODULES = { campaigns: false, massappeal: false, pledges: false, recurring: false, grants: false }
   const [enabledModules, setEnabledModules] = useState(DEFAULT_ENABLED_MODULES)
   const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
   useEffect(() => {
@@ -9084,7 +9099,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.tableTitle}>All Donors</div>
                 <div style={s.tableCount}>{filteredDonorList.length > donorsPerPage ? `${paginatedDonorList.length} of ${filteredDonorList.length} records` : `${filteredDonorList.length} records`}</div>
               </div>
-              {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? <div style={s.empty}>No donors yet.</div> : filteredDonorList.length === 0 ? <div style={s.empty}>No donors match your filters.</div> : (isMobile || isTablet) ? (
+              {loading ? <div style={s.empty}>Loading...</div> : activeDonorList.length === 0 ? (
+                <EmptyState
+                  icon="👥"
+                  title="No donors yet"
+                  description="Donors appear automatically here as soon as you record your first donation — there's nothing separate to set up."
+                  ctaLabel="+ Record a Donation"
+                  onCta={() => { setActiveTab('donations'); setShowManualForm(true) }}
+                />
+              ) : filteredDonorList.length === 0 ? <div style={s.empty}>No donors match your filters.</div> : (isMobile || isTablet) ? (
                 <div>
                   {paginatedDonorList.map((d, i) => (
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
@@ -14207,8 +14230,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <>
                   <div style={{ marginBottom: 32 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Active Campaigns ({activeCauses.length})</div>
-                    {activeCauses.length === 0 ? (
-                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns yet — click "+ New Campaign" to get started.</div>
+                    {activeCauses.length === 0 && myCauses.length === 0 ? (
+                      <EmptyState
+                        icon="📣"
+                        title="No campaigns yet"
+                        description="Campaigns let you track fundraising for a specific goal or event — set a target, log costs, and see performance separately from general giving."
+                        ctaLabel="+ New Campaign"
+                        onCta={() => { setCauseForm(EMPTY_CAUSE_FORM); setShowCampaignModal(true) }}
+                      />
+                    ) : activeCauses.length === 0 ? (
+                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns right now — click "+ New Campaign" to start one.</div>
                     ) : (
                       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
                         {activeCauses.map(renderCard)}
@@ -15208,6 +15239,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const fulfilled = sortPledges(searchedPledges.filter(p => p.status === 'fulfilled'))
               const cancelled = sortPledges(searchedPledges.filter(p => p.status === 'cancelled'))
 
+              if (pledges.length === 0) {
+                return (
+                  <EmptyState
+                    icon="🤝"
+                    title="No pledges yet"
+                    description="Record a pledge when a donor commits to a future gift — you'll get reminders as the expected date approaches and can link it to the donation once it comes in."
+                    ctaLabel="+ Record Pledge"
+                    onCta={() => { setShowPledgeForm(true); setPledgeError('') }}
+                  />
+                )
+              }
+
               return (
                 <>
                   <div style={{ marginBottom: 32 }}>
@@ -15848,7 +15891,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
 
               if (filteredGrants.length === 0) {
-                return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{grants.length === 0 ? 'No grants recorded yet.' : 'No grants match your filters.'}</div>
+                if (grants.length === 0) {
+                  return (
+                    <EmptyState
+                      icon="💰"
+                      title="No grants recorded yet"
+                      description="Track institutional funding here — government, corporate, or foundation grants — including matching grants, disbursement schedules, and reporting deadlines."
+                      ctaLabel="+ Record Grant"
+                      onCta={() => setShowGrantForm(true)}
+                    />
+                  )
+                }
+                return <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No grants match your filters.</div>
               }
 
               return (
