@@ -16356,14 +16356,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: 24 }}>
-                    <div>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Gift</div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${thankYouThreshold.toLocaleString()}</div>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, marginBottom: 8 }}>Major Gift</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${thankYouThreshold.toLocaleString()}</div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Donor (lifetime)</div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${majorDonorThreshold.toLocaleString()}</div>
+                    <div style={{ flex: 1, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', color: C.muted, marginBottom: 8 }}>Major Donor (lifetime)</div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${majorDonorThreshold.toLocaleString()}</div>
                     </div>
                   </div>
                 )}
@@ -16429,8 +16429,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>
-                    {['January','February','March','April','May','June','July','August','September','October','November','December'][fyEndMonth - 1]} {fyEndDay}
+                  <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px' }}>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'][fyEndMonth - 1]} {fyEndDay}
+                    </div>
                   </div>
                 )}
               </div>
@@ -16454,7 +16456,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                 ) : annualGoal ? (
-                  <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>${annualGoal.toLocaleString()}</div>
+                  <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '14px 16px' }}>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${annualGoal.toLocaleString()}</div>
+                  </div>
                 ) : (
                   <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No goal set yet — used for the progress tracker on Dashboard and Analytics.</div>
                 )}
@@ -16469,8 +16473,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={s.cardTitle}>💸 Monthly Expenses</div>
                 </div>
-                <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest }}>
-                  {recurringExpenses.length > 0 ? `SGD $${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}/month` : <span style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 400, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>}
+                <div style={{ background: recurringExpenses.length > 0 ? C.ivory : 'transparent', border: recurringExpenses.length > 0 ? `1px solid ${C.border}` : 'none', borderRadius: 4, padding: recurringExpenses.length > 0 ? '14px 16px' : 0 }}>
+                  {recurringExpenses.length > 0 ? (
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>SGD ${recurringExpenses.reduce((s, e) => s + Number(e.amount), 0).toLocaleString()}<span style={{ fontFamily: 'inherit', fontSize: 14, color: C.muted }}>/month</span></div>
+                  ) : (
+                    <span style={{ fontSize: 13, fontWeight: 400, color: C.muted, fontStyle: 'italic' }}>Add items below to calculate this — used for coverage ratio on dashboard</span>
+                  )}
                 </div>
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.border}` }}>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>Itemised expenses — add rent, salaries, utilities, etc.</div>
