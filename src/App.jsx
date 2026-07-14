@@ -798,6 +798,18 @@ export default function App() {
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
   const tabScrollPositions = useRef({})
   const intentionalSignOutRef = useRef(false)
+  // Warns before the browser navigates away entirely (Back button, closing the tab, typing a new
+  // URL) — this is a single-page app with no per-tab history entries, so Back doesn't switch tabs,
+  // it exits the app outright. A native confirm dialog is the simplest guard against that surprise.
+  useEffect(() => {
+    if (!session) return
+    function onBeforeUnload(e) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [session])
   useEffect(() => {
     const onScroll = () => { tabScrollPositions.current[activeTab] = window.scrollY }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -4295,17 +4307,10 @@ export default function App() {
     }).eq('id', donation.id)
     if (voidError) { showToast('Error voiding receipt', 'error'); setVoidingReceipt(false); return }
 
-    // Step 2 — generate new sequential receipt number
+    // Step 2 — generate new sequential receipt number, claimed atomically in the database
     const entryYear = new Date(donation.created_at).getFullYear()
-    const { count, error: countError } = await supabase
-      .from('donations')
-      .select('id', { count: 'exact', head: true })
-      .eq('charity_uen', charityUen)
-      .eq('source', 'manual')
-      .gte('created_at', `${entryYear}-01-01`)
-      .lt('created_at', `${entryYear + 1}-01-01`)
+    const { data: newReceiptNumber, error: countError } = await supabase.rpc('next_receipt_number', { p_charity_uen: charityUen, p_year: entryYear })
     if (countError) { showToast('Error generating new receipt number', 'error'); setVoidingReceipt(false); return }
-    const newReceiptNumber = `MR-${entryYear}-${String((count || 0) + 1).padStart(6, '0')}`
 
     // Step 3 — issue new receipt with corrected number
     const { error: reissueError } = await supabase.from('donations').update({
@@ -4602,59 +4607,35 @@ export default function App() {
   setManualError('')
   setManualDuplicateWarning(null)
     const entryYear = new Date(manualForm.date).getFullYear()
-    async function nextReceiptNumber() {
-      const { data: existingReceipts, error: countError } = await supabase
-        .from('donations')
-        .select('receipt_number')
-        .eq('charity_uen', charityUen)
-        .like('receipt_number', `MR-${entryYear}-%`)
-      if (countError) return { error: countError }
-      const maxSeq = (existingReceipts || []).reduce((max, d) => {
-        const parts = d.receipt_number?.split('-')
-        const seq = parts?.length === 3 ? parseInt(parts[2]) : 0
-        return seq > max ? seq : max
-      }, 0)
-      return { receiptNumber: `MR-${entryYear}-${String(maxSeq + 1).padStart(6, '0')}` }
-    }
-    let data, error
-    const MAX_ATTEMPTS = 5
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const { receiptNumber, error: seqError } = await nextReceiptNumber()
-      if (seqError) { console.error('Could not generate receipt number:', seqError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
-      const insertResult = await supabase.from('donations').insert([{
-        donor_name: manualForm.is_anonymous ? 'Anonymous' : manualForm.donor_name,
-        donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
-        charity_name: charityName,
-        charity_uen: charityUen,
-        cause_id: manualForm.cause_id || null,
-        amount: parseFloat(manualForm.amount),
-        status: 'awaiting_donor_confirmation',
-        payment_status: 'pending',
-        receipt_issued: false,
-        source: 'manual',
-        payment_method: manualForm.payment_method,
-        notes: manualForm.notes,
-        donor_email: manualForm.is_anonymous ? null : (manualForm.donor_email?.trim().toLowerCase() || null),
-        created_at: manualForm.date,
-        receipt_number: receiptNumber,
-        receipt_name: manualForm.receipt_name?.trim() || null,
-        is_anonymous: manualForm.is_anonymous || false,
-        acquisition_source: manualForm.acquisition_source || null,
-        referred_by_donor_key: manualForm.referred_by_donor_key || null,
-        created_by: session.user.email,
-      }]).select()
-      data = insertResult.data
-      error = insertResult.error
-      if (!error || error.code !== '23505') break
-      // Receipt number collision (concurrent entry) — loop to regenerate and retry
-    }
+    // Receipt number is claimed atomically in the database (next_receipt_number RPC) so
+    // concurrent manual entries can never be handed the same number — no client-side retry needed.
+    const { data: receiptNumber, error: seqError } = await supabase.rpc('next_receipt_number', { p_charity_uen: charityUen, p_year: entryYear })
+    if (seqError) { console.error('Could not generate receipt number:', seqError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
+    const { data, error } = await supabase.from('donations').insert([{
+      donor_name: manualForm.is_anonymous ? 'Anonymous' : manualForm.donor_name,
+      donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      cause_id: manualForm.cause_id || null,
+      amount: parseFloat(manualForm.amount),
+      status: 'awaiting_donor_confirmation',
+      payment_status: 'pending',
+      receipt_issued: false,
+      source: 'manual',
+      payment_method: manualForm.payment_method,
+      notes: manualForm.notes,
+      donor_email: manualForm.is_anonymous ? null : (manualForm.donor_email?.trim().toLowerCase() || null),
+      created_at: manualForm.date,
+      receipt_number: receiptNumber,
+      receipt_name: manualForm.receipt_name?.trim() || null,
+      is_anonymous: manualForm.is_anonymous || false,
+      acquisition_source: manualForm.acquisition_source || null,
+      referred_by_donor_key: manualForm.referred_by_donor_key || null,
+      created_by: session.user.email,
+    }]).select()
     if (error) {
       console.error('Manual entry insert error:', error)
-      if (error.code === '23505') {
-        setManualError(`Receipt number conflict happened ${MAX_ATTEMPTS} times in a row — please try saving again.`)
-      } else {
-        setManualError(`Error saving: ${error.message}`)
-      }
+      setManualError(`Error saving: ${error.message}`)
       setSavingManual(false)
       return
     }
@@ -8674,14 +8655,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {showAddObligation && (
                     <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                        <div>
+                        <label style={{ display: 'block' }}>
                           <div style={s.formLabel}>Title</div>
                           <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
-                        </div>
-                        <div>
+                        </label>
+                        <label style={{ display: 'block' }}>
                           <div style={s.formLabel}>Date</div>
                           <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
-                        </div>
+                        </label>
                         <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
                           if (!obligationForm.title.trim() || !obligationForm.date) return
                           const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
@@ -8734,14 +8715,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {showAddTask && (
                     <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                        <div>
+                        <label style={{ display: 'block' }}>
                           <div style={s.formLabel}>Task</div>
                           <input style={s.formInput} placeholder="e.g. Call Mrs Tan back" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
-                        </div>
-                        <div>
+                        </label>
+                        <label style={{ display: 'block' }}>
                           <div style={s.formLabel}>Date (optional)</div>
                           <input style={s.formInput} type="date" value={taskForm.date} onChange={e => setTaskForm(f => ({ ...f, date: e.target.value }))} />
-                        </div>
+                        </label>
                         <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
                           if (!taskForm.title.trim()) return
                           const updated = [...(customTasks || []), { title: taskForm.title.trim(), date: taskForm.date || null, done: false }]
@@ -9559,7 +9540,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const contact44 = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44)
                     return (
                       <div>
-                        <div style={{ marginBottom: 10 }}>
+                        <label style={{ display: 'block', marginBottom: 10 }}>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Preferred channel</div>
                           <select style={s.formInput} defaultValue={contact44?.preferred_channel || ''} id={`pref-channel-${donorKey44}`}>
                             <option value="">No preference set</option>
@@ -9568,15 +9549,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <option value="phone">Phone</option>
                             <option value="post">Post</option>
                           </select>
-                        </div>
-                        <div style={{ marginBottom: 10 }}>
+                        </label>
+                        <label style={{ display: 'block', marginBottom: 10 }}>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Preferred timing</div>
                           <input style={s.formInput} placeholder="e.g. weekday mornings, not evenings" defaultValue={contact44?.preferred_timing || ''} id={`pref-timing-${donorKey44}`} />
-                        </div>
-                        <div style={{ marginBottom: 10 }}>
+                        </label>
+                        <label style={{ display: 'block', marginBottom: 10 }}>
                           <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Restrictions</div>
                           <textarea style={{ ...s.formInput, minHeight: 50, resize: 'vertical' }} placeholder="e.g. no calls at work, appeals only, no event invites" defaultValue={contact44?.communication_restrictions || ''} id={`pref-restrictions-${donorKey44}`} />
-                        </div>
+                        </label>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} disabled={savingCommPrefs} onClick={async () => {
                           if (savingCommPrefs) return
                           setSavingCommPrefs(true)
@@ -9631,6 +9612,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <input
                           style={{ ...s.formInput, marginBottom: 8 }}
                           placeholder="Search donor by name..."
+                          aria-label="Search donor by name"
                           value={householdLinkSearch}
                           onChange={e => setHouseholdLinkSearch(e.target.value)}
                         />
@@ -9664,6 +9646,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <input
                           style={{ ...s.formInput, flex: 1 }}
                           placeholder="Leave blank to use donor name"
+                          aria-label="Receipt name override"
                           defaultValue={localOverride}
                           id={`receipt-override-${donorKey31}`}
                         />
@@ -9708,6 +9691,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           placeholder="Name and contact info"
+                          aria-label="Family / estate contact"
                           defaultValue={existingContact41b?.linked_family_contact || ''}
                           id={`family-contact-${donorKey41b}`}
                           maxLength={300}
@@ -9741,14 +9725,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     return (
                       <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 6 }}>
-                          <div>
+                          <label style={{ display: 'block' }}>
                             <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 3 }}>Last visited</div>
                             <input style={{ ...s.formInput, fontSize: 12 }} type="date" defaultValue={existingContact80?.last_visited_date || ''} id={`last-visited-${donorKey80}`} />
-                          </div>
-                          <div>
+                          </label>
+                          <label style={{ display: 'block' }}>
                             <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 3 }}>Next visit planned</div>
                             <input style={{ ...s.formInput, fontSize: 12 }} type="date" defaultValue={existingContact80?.next_visit_planned_date || ''} id={`next-visit-${donorKey80}`} />
-                          </div>
+                          </label>
                         </div>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} disabled={savingVisitSchedule} onClick={async () => {
                           if (savingVisitSchedule) return
@@ -9782,6 +9766,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           type="date"
+                          aria-label="Birthday"
                           defaultValue={existingContact70?.birth_date || ''}
                           id={`birth-date-${donorKey70}`}
                         />
@@ -9815,6 +9800,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <input
                           style={{ ...s.formInput, fontSize: 12 }}
                           placeholder="e.g. Singapore, Malaysia, Australia"
+                          aria-label="Tax residency country"
                           defaultValue={existingContact48?.tax_residency_country || ''}
                           id={`tax-residency-${donorKey48}`}
                           maxLength={100}
@@ -9849,6 +9835,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <textarea
                           style={{ ...s.formInput, minHeight: 60, resize: 'vertical', fontSize: 12 }}
                           placeholder="Optional — only needed if this donor wants receipts mailed"
+                          aria-label="Mailing address"
                           defaultValue={existingContact31b?.mailing_address || ''}
                           id={`mailing-address-${donorKey31b}`}
                           maxLength={500}
@@ -10368,7 +10355,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>New Manual Entry</div>
-                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
+                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Log a cash, cheque, or wire donation received outside the app.</div>
                   {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
@@ -10468,7 +10455,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {payNowQrDonation && (
               <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', textAlign: 'center', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                  <button style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>✕</button>
+                  <button aria-label="Close" style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>✕</button>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
                   <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 16 }}>SGD ${Number(payNowQrDonation.amount).toFixed(2)}</div>
                   <div style={{ background: 'white', borderRadius: 4, padding: 16, border: `1px solid ${C.border}`, display: 'inline-block', marginBottom: 14 }}>
@@ -10864,7 +10851,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{selectedDonation.donor_name}</div>
                         </div>
                       </div>
-                      <button style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
+                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                     </div>
 
                     <div style={{ background: C.forest, borderRadius: 14, padding: '20px 22px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
@@ -15188,14 +15175,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>✕</button>
                   </div>
                   <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} {...senderIdentity} />
-                  <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', marginBottom: 12 }}>
                     <div style={s.formLabel}>Subject</div>
                     <input style={s.formInput} value={pledgeReminderSubject} onChange={e => setPledgeReminderSubject(e.target.value)} />
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
+                  </label>
+                  <label style={{ display: 'block', marginBottom: 16 }}>
                     <div style={s.formLabel}>Message</div>
                     <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeReminderBody} onChange={e => setPledgeReminderBody(e.target.value)} />
-                  </div>
+                  </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeReminderCandidate.donor_email} onClick={() => setPledgeReminderPreviewing(true)}>
                       Preview email →
@@ -15242,14 +15229,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
                     This donation brings {pledgeCompletionCandidate.pledge.donor_name}'s pledge of ${Number(pledgeCompletionCandidate.pledge.amount).toLocaleString()} to completion. Send a special thank-you?
                   </div>
-                  <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', marginBottom: 12 }}>
                     <div style={s.formLabel}>Subject</div>
                     <input style={s.formInput} value={pledgeThankYouSubject} onChange={e => setPledgeThankYouSubject(e.target.value)} />
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
+                  </label>
+                  <label style={{ display: 'block', marginBottom: 16 }}>
                     <div style={s.formLabel}>Message</div>
                     <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeThankYouBody} onChange={e => setPledgeThankYouBody(e.target.value)} />
-                  </div>
+                  </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeCompletionCandidate.donation.donor_email} onClick={() => setPledgeThankYouPreviewing(true)}>
                       Preview email →
@@ -15297,18 +15284,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
                     Already spoke with {logContactModal.donor_name}? Log it here instead of sending an email — this pledge won't be flagged as needing attention again for 7 days.
                   </div>
-                  <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', marginBottom: 12 }}>
                     <div style={s.formLabel}>How did you follow up?</div>
                     <select style={s.formInput} value={logContactMethod} onChange={e => setLogContactMethod(e.target.value)}>
                       <option value="phone">📞 Phone call</option>
                       <option value="in_person">🤝 In person</option>
                       <option value="other">📝 Other</option>
                     </select>
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
+                  </label>
+                  <label style={{ display: 'block', marginBottom: 16 }}>
                     <div style={s.formLabel}>Note (optional)</div>
                     <input style={s.formInput} placeholder="e.g. Will pay by end of month" value={logContactNote} onChange={e => setLogContactNote(e.target.value)} />
-                  </div>
+                  </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={s.issueBtn} disabled={loggingContact} onClick={logPledgeContact}>{loggingContact ? 'Saving...' : '✓ Log Follow-up'}</button>
                     <button style={s.viewBtn} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>Cancel</button>
@@ -15854,7 +15841,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {/* Setup form */}
                   {massAppealStep === 'setup' && !massAppealProgress && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-                      <div>
+                      <label style={{ display: 'block' }}>
                         <div style={s.formLabel}>Campaign (Optional)</div>
                         <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
                           <option value="">No specific campaign — give it a name below</option>
@@ -15873,18 +15860,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Not tied to a tracked campaign — just a label to tell your appeals apart. Leave blank for "General Appeal."</div>
                           </div>
                         )}
-                      </div>
-                      <div>
+                      </label>
+                      <label style={{ display: 'block' }}>
                         <div style={s.formLabel}>Default Amount (SGD) *</div>
                         <input style={s.formInput} type="number" placeholder="e.g. 50" value={massAppealForm.amount} onChange={e => setMassAppealForm(f => ({ ...f, amount: e.target.value }))} />
                         <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Each donor's QR will be pre-filled with this amount</div>
-                      </div>
-                      <div>
+                      </label>
+                      <label style={{ display: 'block' }}>
                         <div style={s.formLabel}>Personal Message (Optional)</div>
                         <textarea style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }} placeholder="e.g. Hi [name], we're reaching out for our year-end appeal..." value={massAppealForm.message} onChange={e => setMassAppealForm(f => ({ ...f, message: e.target.value }))} />
                         <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code. Type <strong>[name]</strong> anywhere to insert each donor's first name automatically.</div>
-                      </div>
-                      <div>
+                      </label>
+                      <label style={{ display: 'block' }}>
                         <div style={s.formLabel}>Send only to donors tagged (Optional)</div>
                         <select style={s.formInput} value={massAppealForm.targetTag || 'All'} onChange={e => setMassAppealForm(f => ({ ...f, targetTag: e.target.value }))}>
                           <option value="All">Everyone with email on file</option>
@@ -15893,7 +15880,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           ))}
                         </select>
                         <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Use this to send targeted updates — e.g. tag donors by programme interest and reach just that group instead of everyone.</div>
-                      </div>
+                      </label>
                       <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
                         <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => {
@@ -16721,14 +16708,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 {editingDonorThresholds ? (
                   <div>
-                    <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', marginBottom: 12 }}>
                       <div style={s.formLabel}>Major Gift (SGD) — a single donation this size or more gets a personal thank-you flag</div>
                       <input style={s.formInput} type="number" value={thankYouThresholdInput} onChange={e => setThankYouThresholdInput(e.target.value)} />
-                    </div>
-                    <div style={{ marginBottom: 12 }}>
+                    </label>
+                    <label style={{ display: 'block', marginBottom: 12 }}>
                       <div style={s.formLabel}>Major Donor (SGD, lifetime total) — flags who needs a relationship visit</div>
                       <input style={s.formInput} type="number" value={majorDonorThresholdInput} onChange={e => setMajorDonorThresholdInput(e.target.value)} />
-                    </div>
+                    </label>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button style={s.issueBtn} onClick={saveDonorThresholds}>Save</button>
                       <button style={s.viewBtn} onClick={() => setEditingDonorThresholds(false)}>Cancel</button>
@@ -16762,10 +16749,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
                       {cumulativeThresholdsInput.map((v, i) => (
-                        <div key={i}>
+                        <label key={i} style={{ display: 'block' }}>
                           <div style={s.formLabel}>Milestone {i + 1}</div>
                           <input style={s.formInput} type="number" value={v} onChange={e => setCumulativeThresholdsInput(prev => prev.map((p, pi) => pi === i ? e.target.value : p))} />
-                        </div>
+                        </label>
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
@@ -16795,12 +16782,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Used to calculate your COC Annual Submission deadline (6 months after financial year end).</div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      <select style={s.formInput} value={fyEndMonthInput} onChange={e => setFyEndMonthInput(e.target.value)}>
+                      <select style={s.formInput} aria-label="Fiscal year end month" value={fyEndMonthInput} onChange={e => setFyEndMonthInput(e.target.value)}>
                         {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
                           <option key={i} value={i + 1}>{m}</option>
                         ))}
                       </select>
-                      <input style={{ ...s.formInput, width: 90 }} type="number" min="1" max="31" placeholder="Day" value={fyEndDayInput} onChange={e => setFyEndDayInput(e.target.value)} />
+                      <input style={{ ...s.formInput, width: 90 }} type="number" min="1" max="31" placeholder="Day" aria-label="Fiscal year end day" value={fyEndDayInput} onChange={e => setFyEndDayInput(e.target.value)} />
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button style={s.issueBtn} onClick={saveFyEnd}>Save</button>
@@ -16827,7 +16814,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>Total confirmed donations this calendar year are tracked against this goal on your Dashboard and Analytics pages.</div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      <input style={s.formInput} type="number" placeholder="e.g. 50000" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
+                      <input style={s.formInput} type="number" placeholder="e.g. 50000" aria-label="Annual fundraising goal" value={goalInput} onChange={e => setGoalInput(e.target.value)} />
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <button style={s.issueBtn} onClick={saveAnnualGoal}>Save</button>
@@ -16880,8 +16867,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Rent, Salaries, Utilities" value={newExpenseForm.name} onChange={e => setNewExpenseForm(f => ({ ...f, name: e.target.value }))} />
-                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" value={newExpenseForm.amount} onChange={e => setNewExpenseForm(f => ({ ...f, amount: e.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="e.g. Rent, Salaries, Utilities" aria-label="Expense name" value={newExpenseForm.name} onChange={e => setNewExpenseForm(f => ({ ...f, name: e.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" placeholder="Amount" aria-label="Expense amount" value={newExpenseForm.amount} onChange={e => setNewExpenseForm(f => ({ ...f, amount: e.target.value }))} />
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={saveRecurringExpense}>Add</button>
                   </div>
                 </div>
@@ -16949,7 +16936,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
                       <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Drop your CSV here or click to browse</div>
                       <div style={{ fontSize: 12, color: C.muted }}>Exported from Google Sheets or Excel · .csv files only</div>
-                      <input id="migration-file-input" type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) previewMigrationFile(e.target.files[0]) }} />
+                      <input id="migration-file-input" type="file" accept=".csv" aria-label="Upload CSV file" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) previewMigrationFile(e.target.files[0]) }} />
                     </div>
                     {migrationErrors.length > 0 && (
                       <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
@@ -17021,7 +17008,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               They'll be hidden from this list indefinitely. If they donate again on their own, they'll naturally reappear as an active donor — you can also restore them manually at any time.
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Reason</div>
               <select style={s.formInput} value={lapsedDismissCategory} onChange={e => setLapsedDismissCategory(e.target.value)}>
                 <option value="unknown">Unknown</option>
@@ -17032,11 +17019,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="asked_to_stop">Asked to stop</option>
                 <option value="other">Other</option>
               </select>
-            </div>
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Additional detail (optional)</div>
               <input style={s.formInput} placeholder="e.g. Said no in person, requested no further contact" value={lapsedDismissReason} onChange={e => setLapsedDismissReason(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={dismissingLapsed} onClick={confirmDismissLapsedDonor}>
                 {dismissingLapsed ? 'Saving...' : '✓ Confirm'}
@@ -17062,14 +17049,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
             <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} {...senderIdentity} />
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={lapsedReminderSubject} onChange={e => setLapsedReminderSubject(e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={lapsedReminderBody} onChange={e => setLapsedReminderBody(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!lapsedReminderCandidate.email} onClick={() => setLapsedReminderPreviewing(true)}>
                 Preview email →
@@ -17114,14 +17101,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>✕</button>
             </div>
             <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} {...senderIdentity} />
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
               <input style={s.formInput} value={recurringReminderSubject} onChange={e => setRecurringReminderSubject(e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={recurringReminderBody} onChange={e => setRecurringReminderBody(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!recurringReminderCandidate.donor_email} onClick={() => setRecurringReminderPreviewing(true)}>
                 Preview email →
@@ -17168,10 +17155,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {skipCycleModal.donor_name}'s payment for this cycle will be marked as skipped — no donation record will be created, and the schedule moves to the next expected date.
             </div>
-            <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Reason (optional)</div>
               <input style={s.formInput} placeholder="e.g. Auto-payment failed, donor requested pause" value={skipCycleReason} onChange={e => setSkipCycleReason(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={skippingCycle} onClick={confirmSkipCycle}>
                 {skippingCycle ? 'Skipping...' : '⏭ Skip Cycle'}
@@ -17194,14 +17181,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {pauseGiftModal.donor_name}'s {pauseGiftModal.frequency} gift of ${Number(pauseGiftModal.amount).toLocaleString()} will be paused. You can reactivate it at any time.
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Reason (optional)</div>
               <input style={s.formInput} placeholder="e.g. Donor going through financial hardship" value={pauseReasonInput} onChange={e => setPauseReasonInput(e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Expected resume date (optional)</div>
               <input style={s.formInput} type="date" value={pauseResumeDateInput} onChange={e => setPauseResumeDateInput(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={pausingGift} onClick={confirmPauseRecurringGift}>
                 {pausingGift ? 'Pausing...' : '⏸ Pause'}
@@ -17224,7 +17211,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {failedDeductionModal.donor_name}'s bank rejected this cycle's deduction. This is logged separately from a skip so you can tell "the bank said no" apart from "we haven't confirmed receipt yet." The schedule is not advanced — you'll still see this cycle as due until it's received or skipped.
             </div>
-            <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Reason</div>
               <select style={s.formInput} value={failedDeductionReason} onChange={e => setFailedDeductionReason(e.target.value)}>
                 <option value="Insufficient funds">Insufficient funds</option>
@@ -17232,7 +17219,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="Mandate cancelled by bank">Mandate cancelled by bank</option>
                 <option value="Other">Other</option>
               </select>
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={recordingFailedDeduction} onClick={confirmRecordFailedDeduction}>
                 {recordingFailedDeduction ? 'Logging...' : '⚠ Log Failed Deduction'}
@@ -17255,10 +17242,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               From {markReceivedModal.donor_name} — confirm the amount received. This will create a donation record and send a thank-you email if they have one on file.
             </div>
-            <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Amount received (SGD)</div>
               <input style={s.formInput} type="number" value={markReceivedAmount} onChange={e => setMarkReceivedAmount(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={markingReceived} onClick={confirmMarkReceived}>
                 {markingReceived ? 'Recording...' : '✓ Confirm Received'}
@@ -17281,10 +17268,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               Enter your organization's website domain (e.g. <code>yourcharity.org.sg</code>). This is a technical step — you may want to loop in whoever manages your website or IT.
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Your domain</div>
               <input style={s.formInput} placeholder="yourcharity.org.sg" value={senderDomainInput} onChange={e => setSenderDomainInput(e.target.value)} />
-            </div>
+            </label>
 
             {!dnsRecords ? (
               <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} disabled={!senderDomainInput.trim() || savingDomain} onClick={registerSenderDomain}>
@@ -17323,14 +17310,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {rescheduleModal.donor_name}'s pledge is currently expected by {new Date(rescheduleModal.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. This updates the expected date and stops it from showing as overdue until then.
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>New expected date</div>
               <input style={s.formInput} type="date" value={rescheduleNewDate} onChange={e => setRescheduleNewDate(e.target.value)} />
-            </div>
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Reason (optional)</div>
               <input style={s.formInput} placeholder="e.g. Donor requested more time, follow up in August" value={rescheduleReason} onChange={e => setRescheduleReason(e.target.value)} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!rescheduleNewDate || reschedulingPledge} onClick={confirmReschedule}>
                 {reschedulingPledge ? 'Saving...' : '✓ Reschedule'}
@@ -17358,12 +17345,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 : `The pledge of $${Number(pledgeResolutionModal.pledge.amount).toLocaleString()} from ${pledgeResolutionModal.pledge.donor_name} will be marked as cancelled. The record is kept for reference.`}
             </div>
             {pledgeResolutionModal.type === 'fulfilled' && (
-              <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 16 }}>
                 <div style={s.formLabel}>Amount Received (SGD)</div>
                 <input style={s.formInput} type="number" value={fulfillAmount} onChange={e => setFulfillAmount(e.target.value)} />
-              </div>
+              </label>
             )}
-            <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Notes (optional)</div>
               <textarea
                 style={{ ...s.formInput, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
@@ -17371,7 +17358,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 value={pledgeResolutionNotes}
                 onChange={e => setPledgeResolutionNotes(e.target.value)}
               />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={confirmPledgeResolution}>
                 {pledgeResolutionModal.type === 'fulfilled' ? '✓ Mark Fulfilled' : '✕ Cancel Pledge'}
@@ -17566,19 +17553,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Add a Donor</div>
             <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>Track someone you know but haven't received a donation from yet — a major donor prospect, or someone you met in person. They'll automatically merge with their real record once they give.</div>
             {addDonorError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{addDonorError}</div>}
-            <div style={{ marginBottom: 10 }}>
+            <label style={{ display: 'block', marginBottom: 10 }}>
               <div style={s.formLabel}>Full Name *</div>
               <input style={s.formInput} placeholder="e.g. Tan Wei Ling" value={addDonorForm.full_name} onChange={e => setAddDonorForm(f => ({ ...f, full_name: e.target.value }))} />
-            </div>
-            <div style={{ marginBottom: 10 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 10 }}>
               <div style={s.formLabel}>Email</div>
               <input style={s.formInput} placeholder="Optional" value={addDonorForm.email} onChange={e => setAddDonorForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            
-            <div style={{ marginBottom: 16 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Notes</div>
               <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Met at gala dinner, interested in Winter Cancer Drive" value={addDonorForm.notes} onChange={e => setAddDonorForm(f => ({ ...f, notes: e.target.value }))} />
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={savingDonorContact} onClick={saveDonorContact}>{savingDonorContact ? 'Saving...' : '✓ Add Donor'}</button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setShowAddDonorModal(false)}>Cancel</button>
@@ -17600,7 +17586,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {pledges.filter(p => p.status === 'pending').length === 0 ? (
               <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>No pending pledges to link to.</div>
             ) : (
-              <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 16 }}>
                 <div style={s.formLabel}>Pending pledges</div>
                 <select style={s.formInput} value={manualPledgeLinkSelection} onChange={e => setManualPledgeLinkSelection(e.target.value)}>
                   <option value="">Select a pledge...</option>
@@ -17610,7 +17596,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </option>
                   ))}
                 </select>
-              </div>
+              </label>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!manualPledgeLinkSelection || linkingPledgeManually} onClick={() => manuallyLinkDonationToPledge(selectedDonation, manualPledgeLinkSelection)}>
@@ -17645,14 +17631,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 12, fontWeight: 500, color: C.forest, fontFamily: 'monospace' }}>{selectedDonation.receipt_number || selectedDonation.payment_ref}</span>
               </div>
             </div>
-            <div style={s.formLabel}>Reason for voiding *</div>
-            <input
-              style={{ ...s.formInput, marginBottom: 16 }}
-              placeholder="e.g. Wrong amount entered, donor name misspelled"
-              value={voidReason}
-              onChange={e => setVoidReason(e.target.value)}
-              autoFocus
-            />
+            <label style={{ display: 'block' }}>
+              <div style={s.formLabel}>Reason for voiding *</div>
+              <input
+                style={{ ...s.formInput, marginBottom: 16 }}
+                placeholder="e.g. Wrong amount entered, donor name misspelled"
+                value={voidReason}
+                onChange={e => setVoidReason(e.target.value)}
+                autoFocus
+              />
+            </label>
             <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: C.warning }}>
               ⚠️ This action is logged and cannot be undone. The void reason will appear on the audit trail.
             </div>
@@ -17724,7 +17712,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Customize Analytics</div>
-              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
+              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Choose which metrics appear on this page.</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -17797,7 +17785,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>
                 {d.thank_you_sent ? 'A thank-you was already sent for this donation. ' : ''}Sending to <strong>{d.donor_email}</strong> · Receipt PDF will be attached
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 16 }}>
                 <div style={s.formLabel}>Add a personal message (optional)</div>
                 <textarea
                   style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }}
@@ -17805,7 +17793,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   value={thankYouCustomMessage}
                   onChange={e => setThankYouCustomMessage(e.target.value)}
                 />
-              </div>
+              </label>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Email Preview</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
                 <iframe
@@ -17830,7 +17818,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Your Entry</div>
-              <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1 }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
+              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Correct the details below, or remove this entry if it was made in error.</div>
             {volunteerEditEntry.payment_status === 'confirmed' ? (
@@ -17838,10 +17826,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
                   This entry has already been confirmed and receipted by staff, so it can no longer be edited directly. If something's wrong, describe it below — this gets logged for staff to review.
                 </div>
-                <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', marginBottom: 12 }}>
                   <div style={s.formLabel}>What needs to change?</div>
                   <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Amount should be $50, not $500" value={volunteerFlagMessage} onChange={e => setVolunteerFlagMessage(e.target.value)} />
-                </div>
+                </label>
                 <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} onClick={async () => {
                   if (!volunteerFlagMessage.trim()) { showToast('Describe what needs to change', 'error'); return }
                   await supabase.from('audit_log').insert({
@@ -17860,27 +17848,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div>
                 {volunteerEditError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{volunteerEditError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} /></div>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} /></label>
                   {charityIsIpc && (
-                    <div><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></div>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></label>
                   )}
-                  <div><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} /></div>
-                  <div><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} /></div>
-                  <div><div style={s.formLabel}>Payment Method</div>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Payment Method</div>
                     <select style={s.formInput} value={volunteerEditForm.payment_method} onChange={e => setVolunteerEditForm(f => ({ ...f, payment_method: e.target.value }))}>
                       <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                     </select>
-                  </div>
-                  <div><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} /></div>
-                  <div><div style={s.formLabel}>Cause (Optional)</div>
+                  </label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Cause (Optional)</div>
                     <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
                       <option value="">General Donation</option>
                       {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
                         <option key={c.id} value={c.id}>{c.title}</option>
                       ))}
                     </select>
-                  </div>
-                  <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                  </label>
+                  <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} /></label>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => {
@@ -17949,11 +17937,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Add Team Member</div>
               <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setShowAddTeamMemberModal(false)}>✕</button>
             </div>
-            <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', marginBottom: 14 }}>
               <div style={s.formLabel}>Email</div>
               <input style={s.formInput} placeholder="email@address.com" value={volunteerInput} onChange={e => setVolunteerInput(e.target.value)} autoFocus />
-            </div>
-            <div style={{ marginBottom: 20 }}>
+            </label>
+            <label style={{ display: 'block', marginBottom: 20 }}>
               <div style={s.formLabel}>Role</div>
               <select style={s.formInput} value={newTeamMemberRole} onChange={e => setNewTeamMemberRole(e.target.value)}>
                 <option value="ed">Executive Director</option>
@@ -17961,7 +17949,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <option value="board">Board Member</option>
                 <option value="volunteer">Volunteer</option>
               </select>
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={savingVolunteer} onClick={async () => {
                 const email = volunteerInput.trim().toLowerCase()
