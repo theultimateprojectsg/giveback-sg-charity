@@ -1096,6 +1096,9 @@ export default function App() {
   const [editingDonorThresholds, setEditingDonorThresholds] = useState(false)
   const [thankYouThresholdInput, setThankYouThresholdInput] = useState('200')
   const [majorDonorThresholdInput, setMajorDonorThresholdInput] = useState('1000')
+  const [cumulativeThresholds, setCumulativeThresholds] = useState([1000, 5000, 10000])
+  const [editingCumulativeThresholds, setEditingCumulativeThresholds] = useState(false)
+  const [cumulativeThresholdsInput, setCumulativeThresholdsInput] = useState(['1000', '5000', '10000'])
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
@@ -1382,7 +1385,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1436,6 +1439,9 @@ export default function App() {
     setMajorDonorThreshold(data?.major_donor_threshold ?? 1000)
     setThankYouThresholdInput((data?.major_gift_threshold ?? 200).toString())
     setMajorDonorThresholdInput((data?.major_donor_threshold ?? 1000).toString())
+    const loadedCumulative = Array.isArray(data?.cumulative_milestone_thresholds) && data.cumulative_milestone_thresholds.length === 3 ? data.cumulative_milestone_thresholds : [1000, 5000, 10000]
+    setCumulativeThresholds(loadedCumulative)
+    setCumulativeThresholdsInput(loadedCumulative.map(v => v.toString()))
     setRoleLoaded(true)
   }
 
@@ -4712,10 +4718,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   ].filter(Boolean)
   const loyalDonorThreshold = 3
   const { donationBadgeInfo, donorBadgeMap } = React.useMemo(() => {
+    const confirmedOnly = donations.filter(d => d.payment_status === 'confirmed')
     const donorFirstDonationId = {}
     const donationBadgeInfo = {}
     const donorRunningTotals = {}
-    ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+    ;[...confirmedOnly].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
       if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0 }
@@ -4730,7 +4737,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }
     })
     const donorBadgeMap = {}
-    donations.forEach(d => {
+    confirmedOnly.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       const b = donationBadgeInfo[d.id]
       if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, mostRecent: d.created_at }
@@ -4741,7 +4748,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
     })
     return { donationBadgeInfo, donorBadgeMap }
-  }, [donations])
+  }, [donations, thankYouThreshold])
   const donorList = React.useMemo(() => {
     const donorMap = {}
     donations.filter(d => !d.is_anonymous).forEach(d => {
@@ -6907,6 +6914,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
   }
 
+  async function saveCumulativeThresholds() {
+    const vals = cumulativeThresholdsInput.map(v => parseFloat(v))
+    if (vals.some(v => !v || isNaN(v) || v <= 0)) { showToast('Enter three valid amounts', 'error'); return }
+    const sorted = [...vals].sort((a, b) => a - b)
+    if (sorted.some((v, i) => v !== vals[i])) { showToast('Amounts must be in ascending order', 'error'); return }
+    const { error } = await supabase.from('charity_contacts').update({ cumulative_milestone_thresholds: vals }).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save thresholds', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cumulative_thresholds_updated',
+      details: { thresholds: vals, charity_uen: charityUen },
+    })
+    setCumulativeThresholds(vals)
+    setEditingCumulativeThresholds(false)
+    showToast('Thresholds updated ✓')
+  }
+
   async function saveDonorThresholds() {
     const giftVal = parseFloat(thankYouThresholdInput)
     const donorVal = parseFloat(majorDonorThresholdInput)
@@ -8302,7 +8327,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating their giving anniversary this week`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`) })
               }
 
-              const cumulativeThresholds69 = [1000, 5000, 10000]
+              const cumulativeThresholds69 = cumulativeThresholds
               const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
                 const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
                 return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
@@ -16149,6 +16174,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Donor (lifetime)</div>
                       <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${majorDonorThreshold.toLocaleString()}</div>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Cumulative Giving Milestones</div>
+                  {!editingCumulativeThresholds && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setCumulativeThresholdsInput(cumulativeThresholds.map(v => v.toString())); setEditingCumulativeThresholds(true) }}>Edit</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+                  Flags a donor on the Dashboard when their lifetime giving crosses one of these amounts this week.
+                </div>
+                {editingCumulativeThresholds ? (
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+                      {cumulativeThresholdsInput.map((v, i) => (
+                        <div key={i}>
+                          <div style={s.formLabel}>Milestone {i + 1}</div>
+                          <input style={s.formInput} type="number" value={v} onChange={e => setCumulativeThresholdsInput(prev => prev.map((p, pi) => pi === i ? e.target.value : p))} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveCumulativeThresholds}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingCumulativeThresholds(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {cumulativeThresholds.map((t, i) => (
+                      <span key={i} style={{ fontSize: 13, fontWeight: 600, color: C.forest, background: C.ivory, borderRadius: 4, padding: '4px 10px', border: `1px solid ${C.border}` }}>${t.toLocaleString()}</span>
+                    ))}
                   </div>
                 )}
               </div>
