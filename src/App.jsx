@@ -1081,6 +1081,7 @@ export default function App() {
   const [recordingFailedDeduction, setRecordingFailedDeduction] = useState(false)
   const [recurringFailedDeductionHistory, setRecurringFailedDeductionHistory] = useState({})
   const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
+  const [donorFilterLabel, setDonorFilterLabel] = useState(null)
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
   const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
@@ -8135,7 +8136,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>01</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
               </div>
 
@@ -8191,19 +8191,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }
                 return true
               }).length
-              if (lapsedCount > 0) items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { document.getElementById('lapsed-donors-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (lapsedCount > 0) items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('lapsed-donors-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
-              if (allGivingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { document.getElementById('giving-changes-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (allGivingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const recurringUpgrades = recurringTrendFlags.filter(f => f.direction === 'upgrade')
               const recurringDowngrades = recurringTrendFlags.filter(f => f.direction === 'downgrade')
-              if (recurringUpgrades.length > 0) items.push({ key: 'recurring_upgrades', icon: '📈', label: `${recurringUpgrades.length} recurring donor${recurringUpgrades.length > 1 ? 's' : ''} increased giving for 2 cycles in a row`, priority: 'medium', tab: 'recurring' })
-              if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for 2 cycles in a row`, priority: 'medium', tab: 'recurring' })
+              if (recurringUpgrades.length > 0) items.push({ key: 'recurring_upgrades', icon: '📈', label: `${recurringUpgrades.length} recurring donor${recurringUpgrades.length > 1 ? 's' : ''} increased giving for 2 cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for 2 cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent)
               if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
 
-              if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', tab: 'recurring' })
+              if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
               const milestonesThisWeek = donations.filter(d => {
@@ -8213,17 +8213,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               const firstTimeCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime).length
               const biggestYetCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet).length
-              if (firstTimeCount > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeCount} new donor${firstTimeCount > 1 ? 's' : ''} this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
-              if (biggestYetCount > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetCount} donor${biggestYetCount > 1 ? 's' : ''} gave their biggest gift yet this week`, priority: 'medium', jump: () => { document.getElementById('donor-highlights-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) } })
+              if (firstTimeCount > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeCount} new donor${firstTimeCount > 1 ? 's' : ''} this week`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('donor-highlights-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              if (biggestYetCount > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetCount} donor${biggestYetCount > 1 ? 's' : ''} gave their biggest gift yet this week`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('donor-highlights-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               // Anniversary + cumulative threshold + streak milestones
               const donorFirstGiftDate69 = {}
               const donorCumulative69 = {}
+              const keyToName69 = {}
               confirmedDonations.forEach(d => {
                 const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                 if (!donorFirstGiftDate69[key] || new Date(d.created_at) < new Date(donorFirstGiftDate69[key])) donorFirstGiftDate69[key] = d.created_at
                 donorCumulative69[key] = (donorCumulative69[key] || 0) + d.amount
+                keyToName69[key] = d.donor_name
               })
+              const jumpToDonors69 = (names, label) => () => { setFilterTopDonorNames(names); setDonorFilterLabel(label); setActiveTab('donors') }
 
               const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
                 const fd = new Date(firstDate)
@@ -8231,14 +8234,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
                 return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0
               })
-              if (anniversariesThisWeek.length > 0) items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating their giving anniversary this week`, priority: 'medium', tab: 'donors' })
+              if (anniversariesThisWeek.length > 0) {
+                const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
+                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating their giving anniversary this week`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`) })
+              }
 
               const cumulativeThresholds69 = [1000, 5000, 10000]
-              const crossedThresholdCount = Object.entries(donorCumulative69).filter(([key, total]) => {
+              const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
                 const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
                 return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
-              }).length
-              if (crossedThresholdCount > 0) items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${crossedThresholdCount} donor${crossedThresholdCount > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', tab: 'donors' })
+              }).map(([key]) => key)
+              if (crossedThresholdKeys.length > 0) {
+                const names = crossedThresholdKeys.map(key => keyToName69[key])
+                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`) })
+              }
 
               const streakMilestones69 = [12, 24, 36, 60]
               const streakDonorMonths69 = {}
@@ -8249,8 +8258,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (!streakDonorMonths69[key]) streakDonorMonths69[key] = new Set()
                 streakDonorMonths69[key].add(monthKey)
               })
-              const streakHitCount = Object.values(streakDonorMonths69).filter(months => streakMilestones69.includes(months.size)).length
-              if (streakHitCount > 0) items.push({ key: 'streak_milestones', icon: '🔥', label: `${streakHitCount} donor${streakHitCount > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', tab: 'donors' })
+              const streakHitKeys = Object.entries(streakDonorMonths69).filter(([, months]) => streakMilestones69.includes(months.size)).map(([key]) => key)
+              if (streakHitKeys.length > 0) {
+                const names = streakHitKeys.map(key => keyToName69[key])
+                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`) })
+              }
 
               const grantReportsDue83 = grantsWithNextReport.filter(g => {
                 if (!g.report_due_date || g.status !== 'active') return false
@@ -8259,7 +8271,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               grantReportsDue83.forEach(g => {
                 const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
-                items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', tab: 'grants' })
+                items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
               })
 
               const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (thankYouThreshold || 500) && !d.deactivated).map(d => {
@@ -8269,7 +8281,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const monthsSinceVisit80b = lastVisited80b ? (today - new Date(lastVisited80b)) / (1000 * 60 * 60 * 24 * 30) : null
                 return { ...d, lastVisited: lastVisited80b, needsVisit: monthsSinceVisit80b === null || monthsSinceVisit80b >= 6 }
               }).filter(d => d.needsVisit)
-              if (majorDonorsNeedingVisit80.length > 0) items.push({ key: 'major_donor_visits', icon: '🤝', label: `${majorDonorsNeedingVisit80.length} major donor${majorDonorsNeedingVisit80.length > 1 ? 's' : ''} haven't been visited in 6+ months`, priority: 'medium', tab: 'donors' })
+              if (majorDonorsNeedingVisit80.length > 0) {
+                const names = majorDonorsNeedingVisit80.map(d => d.name)
+                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} haven't been visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
+              }
 
               const seasonalPatternDonors71 = (() => {
                 const byDonorMonth71 = {}
@@ -8287,7 +8302,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2
                 })
               })()
-              if (seasonalPatternDonors71.length > 0) items.push({ key: 'seasonal_pattern', icon: '📅', label: `${seasonalPatternDonors71.length} donor${seasonalPatternDonors71.length > 1 ? 's' : ''} usually give${seasonalPatternDonors71.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', tab: 'donors' })
+              if (seasonalPatternDonors71.length > 0) {
+                const names = seasonalPatternDonors71.map(d => d.name)
+                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`) })
+              }
 
               const birthdaysThisWeek70 = donorContacts.filter(c => {
                 if (!c.birth_date) return false
@@ -8296,18 +8314,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
                 return daysUntil >= 0 && daysUntil <= 7
               })
-              if (birthdaysThisWeek70.length > 0) items.push({ key: 'donor_birthdays', icon: '🎂', label: `${birthdaysThisWeek70.length} donor birthday${birthdaysThisWeek70.length > 1 ? 's' : ''} this week — ${birthdaysThisWeek70.slice(0, 2).map(c => c.full_name).join(', ')}${birthdaysThisWeek70.length > 2 ? ` +${birthdaysThisWeek70.length - 2} more` : ''}`, priority: 'medium', tab: 'donors' })
+              if (birthdaysThisWeek70.length > 0) {
+                const names = birthdaysThisWeek70.map(c => c.full_name)
+                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`) })
+              }
 
-              const lapsedReturningCount = confirmedDonations.filter(d => {
+              const lapsedReturningKeys = new Set()
+              confirmedDonations.forEach(d => {
                 const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (new Date(d.created_at) < weekAgo) return false
+                if (new Date(d.created_at) < weekAgo) return
                 const priorGifts = confirmedDonations.filter(p => (p.donor_email?.trim() || p.donor_nric || p.donor_name) === key && new Date(p.created_at) < new Date(d.created_at))
-                if (priorGifts.length === 0) return false
+                if (priorGifts.length === 0) return
                 const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
                 const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
-                return gapDays >= lapsedMinDays
-              }).length
-              if (lapsedReturningCount > 0) items.push({ key: 'lapsed_returning', icon: '🎉', label: `${lapsedReturningCount} previously lapsed donor${lapsedReturningCount > 1 ? 's' : ''} came back this week!`, priority: 'medium', tab: 'donors' })
+                if (gapDays >= lapsedMinDays) lapsedReturningKeys.add(key)
+              })
+              if (lapsedReturningKeys.size > 0) {
+                const names = [...lapsedReturningKeys].map(key => keyToName69[key])
+                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week!`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`) })
+              }
 
               const obligationsDue = (() => {
                 const builtIn = [
@@ -8322,7 +8347,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 }).filter(Boolean)
                 return [...builtIn, ...custom]
               })()
-              obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', tab: 'reports' }))
+              obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
 
               if (items.length === 0) {
                 return (
@@ -8392,7 +8417,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                  <div id="upcoming-obligations-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0, scrollMarginTop: 20 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
                       <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
@@ -8517,7 +8542,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Health</span>
               </div>
 
@@ -8682,7 +8706,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Status</span>
               </div>
 
@@ -8868,8 +8891,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
             {filterTopDonorNames && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>Showing top {filterTopDonorNames.length} donors by lifetime giving</span>
-                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => setFilterTopDonorNames(null)}>✕ Clear</button>
+                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donorFilterLabel || `Showing top ${filterTopDonorNames.length} donors by lifetime giving`}</span>
+                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterTopDonorNames(null); setDonorFilterLabel(null) }}>✕ Clear</button>
               </div>
             )}
             
@@ -10886,22 +10909,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics</div>
                 <div style={{ ...s.pageSub, marginTop: 4 }}>Detailed analysis to drive your charity goals.</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, color: C.muted }}>Fiscal year:</span>
-                <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                  <option>All</option>
-                  {donations.length === 0
-                    ? <option>{fyOf(new Date())}</option>
-                    : [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a, b) => b - a).map(y => <option key={y}>{y}</option>)
-                  }
-                </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>Jump to:</span>
+                  <select
+                    style={s.filterSelect}
+                    value=""
+                    onChange={e => {
+                      const id = e.target.value
+                      if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }}
+                  >
+                    <option value="">Select a section...</option>
+                    <option value="analytics-section-overview">Overview</option>
+                    <option value="analytics-section-fundraising">Fundraising Performance</option>
+                    <option value="analytics-section-campaigns">Campaign Performance</option>
+                    <option value="analytics-section-massappeals">Mass Appeals</option>
+                    <option value="analytics-section-pledges">Pledge Performance</option>
+                    <option value="analytics-section-recurring">Recurring Donations Performance</option>
+                    <option value="analytics-section-grants">Grants Overview</option>
+                    <option value="analytics-section-donorbehavior">Donor Behavior & Retention</option>
+                    <option value="analytics-section-forecasting">Forecasting and Composition</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>Fiscal year:</span>
+                  <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                    <option>All</option>
+                    {donations.length === 0
+                      ? <option>{fyOf(new Date())}</option>
+                      : [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a, b) => b - a).map(y => <option key={y}>{y}</option>)
+                    }
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-overview" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>01</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Overview</span>
               </div>
 
@@ -10945,10 +10991,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>02</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
 
@@ -11139,10 +11184,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>03</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
               </div>
 
@@ -11347,10 +11391,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>04</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
               </div>
 
@@ -11685,10 +11728,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>05</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
               </div>
 
@@ -11973,10 +12015,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>06</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
               </div>
 
@@ -12132,7 +12173,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
                   return (
-                    <div style={s.card}>
+                    <div id="giving-trend-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
                       <div style={s.analyticsCardTitle}>Giving Trend <InfoTip text="Donors whose recurring giving has consistently increased or decreased over recent cycles." /></div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 2 }}>
@@ -12218,7 +12259,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const today = new Date()
 
                   return (
-                    <div style={s.card}>
+                    <div id="recurring-gift-risk-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
                       <div style={s.analyticsCardTitle}>Recurring Gift Risk <InfoTip text="Everything that needs a human decision: missed payments, gifts ending soon, currently paused gifts, donors who frequently skip, and manual gifts that look recurring but aren't tagged as one." /></div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -12354,10 +12395,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>07</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
               </div>
 
@@ -12730,10 +12770,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-donorbehavior" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>08</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
               </div>
 
@@ -12948,7 +12987,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (cards.length === 0) return null
 
                 return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div id="donor-highlights-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
                     <div style={s.analyticsCardTitle}>🌟 Donor Highlights — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
@@ -13236,10 +13275,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-forecasting" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontFamily: C.fontMono, fontSize: 11, color: C.muted }}>09</span>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Forecasting and composition</span>
               </div>
 
@@ -15906,10 +15944,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.pageHeader}>
               <div style={s.pageTitle}>Settings</div>
             </div>
-            <div style={{ maxWidth: 1000 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
-              <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Charity & Account</div>
+            <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12 }}>Charity & Account</div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Charity Details</div>
                 <div style={{ background: C.ivory, borderRadius: 8, border: `1px solid ${C.border}`, padding: '4px 14px', marginBottom: 12 }}>
@@ -15959,27 +15994,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
 
-              <div style={{ ...s.card, marginTop: 16 }}>
-                <div style={s.cardTitle}>Account</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-                  To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 500 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
-                </div>
-                <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
-                  style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
-                  🗑️ Request Account Deletion
-                </a>
-              </div>
-
-              <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
-                <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</a>
-                {' · '}
-                <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Terms of Use</a>
-              </div>
-              </div>
-
-              <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Operations</div>
-              <div style={{ ...s.card, marginTop: 0 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12, marginTop: 32 }}>Operations</div>
+              <div style={s.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
                   {!editingFyEnd && (
@@ -16111,9 +16127,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <button style={s.btnForest} onClick={() => { setShowMigrationTool(true); setMigrationPreview(null); setMigrationErrors([]); setMigrationComplete(null); setMigrationProgress(null) }}>📥 Open Migration Tool</button>
               </div>
 
+              <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>Account</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  To delete your Giving Tree account and all associated data, email us at <span style={{ color: C.forest, fontWeight: 500 }}>hello@givingtree.sg</span> with the subject line "Account Deletion Request". We will process your request within 7 business days.
+                </div>
+                <a href={`mailto:hello@givingtree.sg?subject=Account Deletion Request — ${charityName}&body=Please delete the Giving Tree charity account for ${charityName} (UEN: ${charityUen}, email: ${session?.user?.email}).`}
+                  style={{ ...s.viewBtn, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: C.red, borderColor: C.red }}>
+                  🗑️ Request Account Deletion
+                </a>
               </div>
+
+              <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: C.muted, lineHeight: 2 }}>
+                <a href="https://givingtree.sg/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Privacy Policy</a>
+                {' · '}
+                <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Terms of Use</a>
               </div>
-            </div>
           </div>
         )}
 
