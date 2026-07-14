@@ -15988,6 +15988,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.pageHeader}>
               <div style={s.pageTitle}>Settings</div>
             </div>
+            {userRole === 'volunteer' ? (
+              <div style={s.card}>
+                <div style={s.cardTitle}>Account</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Logged in as {session?.user?.email}</div>
+                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, width: '100%', justifyContent: 'center' }} onClick={() => supabase.auth.signOut()}>🚪 Sign Out</button>
+              </div>
+            ) : (
+              <>
             <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12 }}>Charity & Account</div>
               <div style={s.card}>
                 <div style={s.cardTitle}>Charity Details</div>
@@ -16217,6 +16225,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {' · '}
                 <a href="https://givingtree.sg/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.muted, textDecoration: 'underline' }}>Terms of Use</a>
               </div>
+              </>
+            )}
           </div>
         )}
 
