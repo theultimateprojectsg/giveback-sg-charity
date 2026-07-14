@@ -1151,6 +1151,10 @@ export default function App() {
   const [pledgeReminderBody, setPledgeReminderBody] = useState('')
   const [sendingPledgeReminder, setSendingPledgeReminder] = useState(false)
   const [pledgeReminderPreviewing, setPledgeReminderPreviewing] = useState(false)
+  const [logContactModal, setLogContactModal] = useState(null)
+  const [logContactMethod, setLogContactMethod] = useState('phone')
+  const [logContactNote, setLogContactNote] = useState('')
+  const [loggingContact, setLoggingContact] = useState(false)
 
   useEffect(() => {
     if (showPledgeReminderModal && pledgeReminderCandidate) {
@@ -1532,7 +1536,7 @@ export default function App() {
 
       const { data: reminderData } = await supabase
         .from('pledge_reminders')
-        .select('pledge_id, sent_at, sent_by, subject')
+        .select('pledge_id, sent_at, sent_by, subject, channel')
         .in('pledge_id', data.map(p => p.id))
         .order('sent_at', { ascending: false })
       const history = {}
@@ -2367,6 +2371,38 @@ export default function App() {
     showToast(`Reminder sent to ${p.donor_email}`)
     setShowPledgeReminderModal(false)
     setPledgeReminderCandidate(null)
+  }
+
+  async function logPledgeContact() {
+    if (!logContactModal) return
+    setLoggingContact(true)
+    const p = logContactModal
+    const { data: inserted, error } = await supabase.from('pledge_reminders').insert({
+      pledge_id: p.id,
+      channel: logContactMethod,
+      message: logContactNote?.trim() || null,
+      sent_by: session.user.email,
+    }).select().single()
+    setLoggingContact(false)
+    if (error) { showToast('Error logging contact', 'error'); return }
+
+    if (inserted) {
+      setPledgeReminderHistory(prev => ({
+        ...prev,
+        [p.id]: [inserted, ...(prev[p.id] || [])]
+      }))
+    }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_contact_logged',
+      details: { donor_name: p.donor_name, channel: logContactMethod, charity_uen: charityUen },
+    })
+
+    showToast(`Contact logged — won't be flagged again for 7 days`)
+    setLogContactModal(null)
+    setLogContactNote('')
   }
 
   async function revertPledgeToPending(pledge) {
@@ -8288,8 +8324,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
               const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
               const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
-              if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+              if (overduePledges.length > 0) items.push({ icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
+              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days and need${dueSoonPledges.length > 1 ? '' : 's'} a reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
               const wasRecurringRecentlyReminded = (g) => {
                 const history = recurringReminderHistory[g.id]
@@ -14963,6 +14999,36 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
+            {logContactModal && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Log a follow-up</div>
+                    <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>✕</button>
+                  </div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+                    Already spoke with {logContactModal.donor_name}? Log it here instead of sending an email — this pledge won't be flagged as needing attention again for 7 days.
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={s.formLabel}>How did you follow up?</div>
+                    <select style={s.formInput} value={logContactMethod} onChange={e => setLogContactMethod(e.target.value)}>
+                      <option value="phone">📞 Phone call</option>
+                      <option value="in_person">🤝 In person</option>
+                      <option value="other">📝 Other</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={s.formLabel}>Note (optional)</div>
+                    <input style={s.formInput} placeholder="e.g. Will pay by end of month" value={logContactNote} onChange={e => setLogContactNote(e.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={s.issueBtn} disabled={loggingContact} onClick={logPledgeContact}>{loggingContact ? 'Saving...' : '✓ Log Follow-up'}</button>
+                    <button style={s.viewBtn} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {showPledgeForm && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>
               <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -15162,7 +15228,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             const history = pledgeReminderHistory[p.id]
                             const last = history[0]
                             const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                            return `✉ Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× sent`
+                            const channelLabel = { phone: '📞 Called', in_person: '🤝 Met in person', other: '📝 Followed up' }[last.channel] || '✉ Reminded'
+                            return `${channelLabel} ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× logged`
                           })()}
                         </span>
                       </div>
@@ -15178,6 +15245,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
                         {(isOverdue || isDueSoon) && (
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
+                        )}
+                        {(isOverdue || isDueSoon) && (
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setLogContactModal(p); setLogContactMethod('phone'); setLogContactNote('') }}>📞 Log Contact</button>
                         )}
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
