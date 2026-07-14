@@ -6250,7 +6250,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [donations])
 
   const donationSizeBreakdownStats = React.useMemo(() => {
-    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)
+    const yearScoped = confirmedDonations.filter(d => filterYear === 'All' || fyOf(d.created_at).toString() === filterYear)
     return [
       { label: 'Under $50', min: 0, max: 50, color: C.bucket1 },
       { label: '$50 — $200', min: 50, max: 200, color: C.sage },
@@ -6262,7 +6262,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const pct = yearScoped.length ? Math.round((count / yearScoped.length) * 100) : 0
       return { ...bucket, count, total, pct }
     })
-  }, [filterYear, donations, fyOf])
+  }, [filterYear, confirmedDonations, fyOf])
 
   const allGivingChangeFlags = (() => {
     const donorTotals = {}
@@ -13186,7 +13186,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               <div style={{ ...s.card, marginBottom: 0 }}>
                 <div style={s.analyticsCardTitle}>💰 Donation Size Breakdown — {filterYear}</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many donations fall into each amount range, and what share of total volume each range represents.</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
