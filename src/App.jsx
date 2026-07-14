@@ -4987,20 +4987,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const newDonorAcquisitionStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
+    const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+    const buckets = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
+      return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-SG', { month: 'short' }), count: 0 }
+    })
     const donorFirstDate = {}
     ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorFirstDate[key]) donorFirstDate[key] = d.created_at
     })
-    const monthCounts = Array(12).fill(0)
     Object.values(donorFirstDate).forEach(dateStr => {
       const dt = new Date(dateStr)
-      if (fyOf(dt) === yr) monthCounts[dt.getMonth()]++
+      const bucket = buckets.find(b => b.year === dt.getFullYear() && b.month === dt.getMonth())
+      if (bucket) bucket.count++
     })
-    const newDonorChartData = monthCounts.map((count, i) => ({ month: new Date(yr, i, 1).toLocaleDateString('en-SG', { month: 'short' }), count }))
-    const totalNew = monthCounts.reduce((s, c) => s + c, 0)
+    const newDonorChartData = buckets.map(b => ({ month: b.label, count: b.count }))
+    const totalNew = buckets.reduce((s, b) => s + b.count, 0)
     return { yr, newDonorChartData, totalNew }
-  }, [filterYear, donations, fyOf])
+  }, [filterYear, donations, fyOf, fyEndMonth, fyEndDay])
 
   const analyticsGoalStats = React.useMemo(() => {
     const goalYear = fyOf(new Date())
@@ -7908,22 +7913,36 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   const monthlyChartData = React.useMemo(() => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    return months.map((month, i) => ({
-      month,
-      amount: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
-      lastYearAmount: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) - 1 && new Date(d.created_at).getMonth() === i).reduce((sum, d) => sum + d.amount, 0),
-      count: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
-    }))
-  }, [donations, filterYear, fyOf])
+    const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
+    const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+    const { start: lastFyStart } = fiscalYearBounds(yr - 1, fyEndMonth, fyEndDay)
+    const confirmed = donations.filter(d => d.payment_status === 'confirmed')
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
+      const lastYearD = new Date(lastFyStart.getFullYear(), lastFyStart.getMonth() + i, 1)
+      const thisMonthDonations = confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() })
+      const lastYearDonations = confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === lastYearD.getFullYear() && dt.getMonth() === lastYearD.getMonth() })
+      return {
+        month: d.toLocaleDateString('en-SG', { month: 'short' }),
+        amount: thisMonthDonations.reduce((sum, don) => sum + don.amount, 0),
+        lastYearAmount: lastYearDonations.reduce((sum, don) => sum + don.amount, 0),
+        count: thisMonthDonations.length,
+      }
+    })
+  }, [donations, filterYear, fyOf, fyEndMonth, fyEndDay])
 
   const monthlyCountData = React.useMemo(() => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    return months.map((month, i) => ({
-      month,
-      count: donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && new Date(d.created_at).getMonth() === i).length,
-    }))
-  }, [donations, filterYear, fyOf])
+    const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
+    const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+    const confirmed = donations.filter(d => d.payment_status === 'confirmed')
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
+      return {
+        month: d.toLocaleDateString('en-SG', { month: 'short' }),
+        count: confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() }).length,
+      }
+    })
+  }, [donations, filterYear, fyOf, fyEndMonth, fyEndDay])
 
   if (authLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.ivory, fontFamily: 'Segoe UI', fontSize: 16, color: C.muted }}>
