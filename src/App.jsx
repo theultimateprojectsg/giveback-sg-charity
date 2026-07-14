@@ -11235,7 +11235,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div>
                         {trendData.length >= 2 && (
                           <div style={{ ...s.card, marginBottom: 16 }}>
-                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
+                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
                             <ResponsiveContainer width="100%" height={140}>
                               <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -11726,7 +11726,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
                     {trendData.length >= 2 && (
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
+                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend — Last {trendData.length} Years <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
                         <ResponsiveContainer width="100%" height={140}>
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -12015,7 +12015,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
                     {trendData.length >= 2 && (
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Recurring Revenue Trend <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
+                        <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
                         <ResponsiveContainer width="100%" height={140}>
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
@@ -12356,7 +12356,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
                     {trendData.length >= 2 && (
                       <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                        <div style={s.analyticsCardTitle}>Grants Trend <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
+                        <div style={s.analyticsCardTitle}>Grants Trend — Last {trendData.length} Years <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                           <ResponsiveContainer width="100%" height={140}>
                             <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -13024,7 +13024,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Sources</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>🏆 Top Donors</div>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🏆 Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -13185,7 +13185,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               <div style={{ ...s.card, marginBottom: 0 }}>
-                <div style={s.analyticsCardTitle}>💰 Donation Size Breakdown</div>
+                <div style={s.analyticsCardTitle}>💰 Donation Size Breakdown — {filterYear}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many donations fall into each amount range, and what share of total volume each range represents.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
