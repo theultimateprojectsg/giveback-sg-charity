@@ -1224,6 +1224,13 @@ export default function App() {
   const [goalInput, setGoalInput] = useState('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
   const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
+  const DEFAULT_ENABLED_MODULES = { campaigns: true, massappeal: true, pledges: true, recurring: true, grants: true }
+  const [enabledModules, setEnabledModules] = useState(DEFAULT_ENABLED_MODULES)
+  const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
+  useEffect(() => {
+    const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
+    if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
+  }, [enabledModules, activeTab])
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
   const [fyEndMonth, setFyEndMonth] = useState(12)
@@ -1364,13 +1371,14 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
     setAnnualGoal(data?.annual_goal || null)
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
+    setEnabledModules({ ...DEFAULT_ENABLED_MODULES, ...(data?.enabled_modules || {}) })
     const month = data?.fy_end_month || 12
     const day = data?.fy_end_day || 31
     setFyEndMonth(month)
@@ -6834,6 +6842,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast('Analytics view updated ✓')
   }
 
+  async function toggleEnabledModule(key) {
+    const updated = { ...enabledModules, [key]: !enabledModules[key] }
+    setEnabledModules(updated)
+    const { error } = await supabase.from('charity_contacts').update({ enabled_modules: updated }).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save your preferences', 'error'); setEnabledModules(enabledModules); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: updated[key] ? 'module_enabled' : 'module_disabled',
+      details: { module: key, charity_uen: charityUen },
+    })
+    if (!updated[key] && activeTab === key) setActiveTab('dashboard')
+    showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} ${updated[key] ? 'enabled' : 'hidden'} ✓`)
+  }
+
   function removeTeamMember(role, email) {
     const proceed = async () => {
       const columnMap = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
@@ -8017,12 +8040,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <>
               {!sidebarCollapsed && <div style={s.navLabel}>Fundraising</div>}
               {[
-                { id: 'promotions', icon: '📣', label: 'Campaigns' },
-                { id: 'pledges',    icon: '🤝', label: 'Pledges' },
-                { id: 'recurring',  icon: '🔁', label: 'Recurring' },
-                { id: 'massappeal', icon: '📢', label: 'Mass Appeal' },
-                { id: 'grants',     icon: '💰', label: 'Grants' },
-              ].map(item => (
+                { id: 'promotions', icon: '📣', label: 'Campaigns', module: 'campaigns' },
+                { id: 'pledges',    icon: '🤝', label: 'Pledges', module: 'pledges' },
+                { id: 'recurring',  icon: '🔁', label: 'Recurring', module: 'recurring' },
+                { id: 'massappeal', icon: '📢', label: 'Mass Appeal', module: 'massappeal' },
+                { id: 'grants',     icon: '💰', label: 'Grants', module: 'grants' },
+              ].filter(item => enabledModules[item.module] !== false).map(item => (
                 <div key={item.id}
                   title={item.label}
                   style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
@@ -8085,11 +8108,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {(userRole === 'staff' || userRole === 'ed') && (
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fundraising</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>
-                <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>
+                {enabledModules.campaigns !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>}
+                {enabledModules.pledges !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>}
+                {enabledModules.recurring !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>}
+                {enabledModules.massappeal !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>}
+                {enabledModules.grants !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>}
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Compliance</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('reports'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Reports</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>🗒️ Audit Log</div>
@@ -10923,11 +10946,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <option value="">Select a section...</option>
                     <option value="analytics-section-overview">Overview</option>
                     <option value="analytics-section-fundraising">Fundraising Performance</option>
-                    <option value="analytics-section-campaigns">Campaign Performance</option>
-                    <option value="analytics-section-massappeals">Mass Appeals</option>
-                    <option value="analytics-section-pledges">Pledge Performance</option>
-                    <option value="analytics-section-recurring">Recurring Donations Performance</option>
-                    <option value="analytics-section-grants">Grants Overview</option>
+                    {enabledModules.campaigns !== false && <option value="analytics-section-campaigns">Campaign Performance</option>}
+                    {enabledModules.massappeal !== false && <option value="analytics-section-massappeals">Mass Appeals</option>}
+                    {enabledModules.pledges !== false && <option value="analytics-section-pledges">Pledge Performance</option>}
+                    {enabledModules.recurring !== false && <option value="analytics-section-recurring">Recurring Donations Performance</option>}
+                    {enabledModules.grants !== false && <option value="analytics-section-grants">Grants Overview</option>}
                     <option value="analytics-section-donorbehavior">Donor Behavior & Retention</option>
                     <option value="analytics-section-forecasting">Forecasting and Composition</option>
                   </select>
@@ -11184,7 +11207,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.campaigns === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
@@ -11391,7 +11414,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
             </div>
 
-            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.massappeal === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
@@ -11728,7 +11751,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.pledges === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
@@ -12015,7 +12038,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               </div>
 
-            <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.recurring === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
@@ -12395,7 +12418,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             </div>
 
-            <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.grants === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
@@ -13838,7 +13861,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
 {/* ── PROMOTIONS ── */}
-{activeTab === 'promotions' && (
+{activeTab === 'promotions' && enabledModules.campaigns !== false && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -14205,7 +14228,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── RECURRING ── */}
-        {activeTab === 'recurring' && (
+        {activeTab === 'recurring' && enabledModules.recurring !== false && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -14620,7 +14643,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── PLEDGES ── */}
-        {activeTab === 'pledges' && (
+        {activeTab === 'pledges' && enabledModules.pledges !== false && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -15122,7 +15145,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── MASS APPEAL ── */}
-        {activeTab === 'massappeal' && (
+        {activeTab === 'massappeal' && enabledModules.massappeal !== false && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -15441,7 +15464,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── GRANTS ── */}
-        {activeTab === 'grants' && (
+        {activeTab === 'grants' && enabledModules.grants !== false && (
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
@@ -15995,6 +16018,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500, marginBottom: 12, marginTop: 32 }}>Operations</div>
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={s.cardTitle}>Feature Modules</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                  Turn off features your charity doesn't use — they'll disappear from the sidebar, Dashboard, and Analytics. You can turn them back on anytime.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals' },
+                    { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk PayNow QR appeals to your donor base' },
+                    { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments' },
+                    { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors' },
+                    { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting' },
+                  ].map(m => (
+                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={enabledModules[m.key] !== false} onChange={() => toggleEnabledModule(m.key)} />
+                      <span style={{ fontSize: 15 }}>{m.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{m.label}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{m.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div style={s.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ ...s.cardTitle, marginBottom: 0 }}>Financial Year End</div>
