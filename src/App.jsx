@@ -190,9 +190,27 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
     status: grant.status || 'active',
   } : { funder_name: '', funder_type: '', agreement_reference: '', cause_id: '', unrestricted_amount: '', restricted_amount: '', purpose_restriction: '', disbursement_schedule: '', start_date: '', end_date: '', is_renewable: false, contact_name: '', contact_email: '', contact_phone: '', is_matching: false, match_ratio: '', match_cap: '', status: 'active' })
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const hasRestricted = parseFloat(form.restricted_amount) > 0
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
   const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
+  async function handleSave() {
+    if (!form.funder_name.trim()) { setError('Funder name is required'); return }
+    if (!form.funder_type) { setError('Funder type is required'); return }
+    if (!form.start_date) { setError('Start date is required'); return }
+    const unrestricted = parseFloat(form.unrestricted_amount) || 0
+    const restricted = parseFloat(form.restricted_amount) || 0
+    const matchCap = parseFloat(form.match_cap) || 0
+    if (unrestricted < 0 || restricted < 0 || matchCap < 0) { setError('Amounts cannot be negative'); return }
+    if (form.end_date && form.end_date < form.start_date) { setError('End date cannot be before start date'); return }
+    if (form.is_matching && matchCap <= 0) { setError('Match cap is required for a matching grant'); return }
+    if (!form.is_matching && (unrestricted + restricted) <= 0) { setError('At least one amount is required'); return }
+    if (restricted > 0 && !form.purpose_restriction?.trim()) { setError('Purpose restriction is required when there is a restricted amount'); return }
+    setError('')
+    setSaving(true)
+    await onSave(form)
+    setSaving(false)
+  }
   return (
     <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -324,8 +342,9 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
           <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic', marginBottom: 16 }}>Report deadlines and disbursement tranches are added after saving, from the grant's ledger — a grant can have more than one of each.</div>
         )}
 
+        {error && <div style={{ fontSize: 12, color: C.red, marginBottom: 12 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={s.btnForest} disabled={saving} onClick={async () => { setSaving(true); await onSave(form); setSaving(false) }}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Grant')}</button>
+          <button style={s.btnForest} disabled={saving} onClick={handleSave}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Grant')}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
           {isEditing && (
             <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => onDelete(grant)}>🗑️ Delete</button>
@@ -472,7 +491,7 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
         </div>
       )}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} maxLength={200} />
         <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}>
           {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
@@ -601,7 +620,7 @@ function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense
         </div>
       )}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} />
+        <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} placeholder="Description" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} maxLength={200} />
         <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={expenseForm.category} onChange={e => setExpenseForm(f => ({ ...f, category: e.target.value }))}>
           {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
@@ -631,9 +650,19 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
     authorization_status: gift.authorization_status || 'active',
     notes: gift.notes || '',
   } : { donor_name: '', donor_email: '', donor_phone: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', type_detail: '', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
+  const [error, setError] = useState('')
   const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
   const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
+  function handleSave() {
+    if (!form.donor_name.trim()) { setError('Donor name is required'); return }
+    if (!form.amount || isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { setError('Please enter a valid amount'); return }
+    if (!form.start_date) { setError('Start date is required'); return }
+    if (form.type === 'giro' && !form.giro_reference?.trim()) { setError('GIRO reference / account is required for GIRO gifts'); return }
+    if (form.type === 'other' && !form.type_detail?.trim()) { setError('Please describe what "Other" means for this gift'); return }
+    setError('')
+    onSave(form)
+  }
   return (
     <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -736,8 +765,9 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
           <input style={s.formInput} placeholder="Optional notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         </div>
 
+        {error && <div style={{ fontSize: 12, color: C.red, marginBottom: 12 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={s.btnForest} onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Recurring Gift')}</button>
+          <button style={s.btnForest} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Recurring Gift')}</button>
           <button style={s.viewBtn} onClick={onClose}>Cancel</button>
           {isEditing && gift.status === 'active' && (
             <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, marginLeft: 'auto' }} onClick={() => { onCancelGift(gift); onClose() }}>✕ Cancel Gift</button>
@@ -992,6 +1022,8 @@ export default function App() {
   const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
   const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
   const [linkingPledgeManually, setLinkingPledgeManually] = useState(false)
+  const [showPledgeFilters, setShowPledgeFilters] = useState(false)
+  const [showGrantFilters, setShowGrantFilters] = useState(false)
   const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
   const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
   const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
@@ -4570,78 +4602,56 @@ export default function App() {
   setManualError('')
   setManualDuplicateWarning(null)
     const entryYear = new Date(manualForm.date).getFullYear()
-    const { data: existingReceipts, error: countError } = await supabase
-      .from('donations')
-      .select('receipt_number')
-      .eq('charity_uen', charityUen)
-      .like('receipt_number', `MR-${entryYear}-%`)
-    if (countError) { console.error('Could not generate receipt number:', countError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
-    const maxSeq = (existingReceipts || []).reduce((max, d) => {
-      const parts = d.receipt_number?.split('-')
-      const seq = parts?.length === 3 ? parseInt(parts[2]) : 0
-      return seq > max ? seq : max
-    }, 0)
-    const receiptNumber = `MR-${entryYear}-${String(maxSeq + 1).padStart(6, '0')}`
-    let { data, error } = await supabase.from('donations').insert([{
-      donor_name: manualForm.is_anonymous ? 'Anonymous' : manualForm.donor_name,
-      donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
-      charity_name: charityName,
-      charity_uen: charityUen,
-      cause_id: manualForm.cause_id || null,
-      amount: parseFloat(manualForm.amount),
-      status: 'awaiting_donor_confirmation',
-      payment_status: 'pending',
-      receipt_issued: false,
-      source: 'manual',
-      payment_method: manualForm.payment_method,
-      notes: manualForm.notes,
-      donor_email: manualForm.is_anonymous ? null : (manualForm.donor_email?.trim().toLowerCase() || null),
-      created_at: manualForm.date,
-      receipt_number: receiptNumber,
-      receipt_name: manualForm.receipt_name?.trim() || null,
-      is_anonymous: manualForm.is_anonymous || false,
-      acquisition_source: manualForm.acquisition_source || null,
-      referred_by_donor_key: manualForm.referred_by_donor_key || null,
-      created_by: session.user.email,
-    }]).select()
-    if (error && error.code === '23505') {
-      // Receipt number collision (concurrent entry) — retry once with next sequence number
-      const { data: retryReceipts, error: retryCountError } = await supabase
+    async function nextReceiptNumber() {
+      const { data: existingReceipts, error: countError } = await supabase
         .from('donations')
         .select('receipt_number')
         .eq('charity_uen', charityUen)
         .like('receipt_number', `MR-${entryYear}-%`)
-      if (retryCountError) { console.error('Retry count failed:', retryCountError); setManualError('Error saving: receipt number conflict, please try again'); setSavingManual(false); return }
-      const retryMaxSeq = (retryReceipts || []).reduce((max, d) => {
+      if (countError) return { error: countError }
+      const maxSeq = (existingReceipts || []).reduce((max, d) => {
         const parts = d.receipt_number?.split('-')
         const seq = parts?.length === 3 ? parseInt(parts[2]) : 0
         return seq > max ? seq : max
       }, 0)
-      const retryReceiptNumber = `MR-${entryYear}-${String(retryMaxSeq + 1).padStart(6, '0')}`
-      const retryResult = await supabase.from('donations').insert([{
-        donor_name: manualForm.donor_name,
+      return { receiptNumber: `MR-${entryYear}-${String(maxSeq + 1).padStart(6, '0')}` }
+    }
+    let data, error
+    const MAX_ATTEMPTS = 5
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const { receiptNumber, error: seqError } = await nextReceiptNumber()
+      if (seqError) { console.error('Could not generate receipt number:', seqError); setManualError('Error generating receipt number. Please try again.'); setSavingManual(false); return }
+      const insertResult = await supabase.from('donations').insert([{
+        donor_name: manualForm.is_anonymous ? 'Anonymous' : manualForm.donor_name,
         donor_nric: manualForm.donor_nric ? manualForm.donor_nric.trim().toUpperCase() : manualForm.donor_nric,
         charity_name: charityName,
         charity_uen: charityUen,
         cause_id: manualForm.cause_id || null,
         amount: parseFloat(manualForm.amount),
-        status: 'confirmed',
-        payment_status: 'confirmed',
-        receipt_issued: true,
+        status: 'awaiting_donor_confirmation',
+        payment_status: 'pending',
+        receipt_issued: false,
         source: 'manual',
         payment_method: manualForm.payment_method,
         notes: manualForm.notes,
-        donor_email: manualForm.donor_email,
+        donor_email: manualForm.is_anonymous ? null : (manualForm.donor_email?.trim().toLowerCase() || null),
         created_at: manualForm.date,
-        receipt_number: retryReceiptNumber,
+        receipt_number: receiptNumber,
+        receipt_name: manualForm.receipt_name?.trim() || null,
+        is_anonymous: manualForm.is_anonymous || false,
+        acquisition_source: manualForm.acquisition_source || null,
+        referred_by_donor_key: manualForm.referred_by_donor_key || null,
+        created_by: session.user.email,
       }]).select()
-      data = retryResult.data
-      error = retryResult.error
+      data = insertResult.data
+      error = insertResult.error
+      if (!error || error.code !== '23505') break
+      // Receipt number collision (concurrent entry) — loop to regenerate and retry
     }
     if (error) {
       console.error('Manual entry insert error:', error)
       if (error.code === '23505') {
-        setManualError('Receipt number conflict happened twice in a row — please try saving again.')
+        setManualError(`Receipt number conflict happened ${MAX_ATTEMPTS} times in a row — please try saving again.`)
       } else {
         setManualError(`Error saving: ${error.message}`)
       }
@@ -9700,6 +9710,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           placeholder="Name and contact info"
                           defaultValue={existingContact41b?.linked_family_contact || ''}
                           id={`family-contact-${donorKey41b}`}
+                          maxLength={300}
                         />
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingFamilyContact} onClick={async () => {
                           if (savingFamilyContact) return
@@ -9806,6 +9817,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           placeholder="e.g. Singapore, Malaysia, Australia"
                           defaultValue={existingContact48?.tax_residency_country || ''}
                           id={`tax-residency-${donorKey48}`}
+                          maxLength={100}
                         />
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingTaxResidency} onClick={async () => {
                           if (savingTaxResidency) return
@@ -9839,6 +9851,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           placeholder="Optional — only needed if this donor wants receipts mailed"
                           defaultValue={existingContact31b?.mailing_address || ''}
                           id={`mailing-address-${donorKey31b}`}
+                          maxLength={500}
                         />
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingMailingAddress} onClick={async () => {
                           if (savingMailingAddress) return
@@ -10030,6 +10043,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           value={newTagInput}
                           onChange={e => setNewTagInput(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
+                          maxLength={40}
                         />
                         <button
                           style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
@@ -10061,6 +10075,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     placeholder="Log a call, email, meeting, or note..."
                     value={newNoteText}
                     onChange={e => setNewNoteText(e.target.value)}
+                    maxLength={2000}
                   />
                   <button
                     style={{ ...s.btnForest, justifyContent: 'center', opacity: newNoteText.trim() ? 1 : 0.5 }}
@@ -15098,6 +15113,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
+              {isMobile && (
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowPledgeFilters(v => !v)}>{showPledgeFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
+              )}
+              {(!isMobile || showPledgeFilters) && (<>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeUrgencyFilter} onChange={e => setPledgeUrgencyFilter(e.target.value)}>
                 <option value="All">All urgency</option>
                 <option value="Overdue">Overdue</option>
@@ -15139,6 +15158,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(pledgeSearchTerm !== '' || pledgeUrgencyFilter !== 'All' || pledgeAmountFilter !== 'All' || pledgeYearFilter !== 'All' || pledgeTypeFilter !== 'All' || pledgeProgrammeFilter !== 'All') && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setPledgeSearchTerm(''); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All') }}>✕ Clear Filters</button>
               )}
+              </>)}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = pledgeSearchTerm.toLowerCase().trim()
                 const filtered = pledges.filter(p => {
@@ -15368,7 +15388,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   )}
                   <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                     <div style={s.formLabel}>Notes</div>
-                    <input style={s.formInput} placeholder="e.g. Verbally committed at gala dinner" value={pledgeForm.notes} onChange={e => setPledgeForm(f => ({ ...f, notes: e.target.value }))} />
+                    <input style={s.formInput} placeholder="e.g. Verbally committed at gala dinner" value={pledgeForm.notes} onChange={e => setPledgeForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -15995,6 +16015,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search grants by funder name..." value={grantSearchTerm} onChange={e => setGrantSearchTerm(e.target.value)} />
+              {isMobile && (
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowGrantFilters(v => !v)}>{showGrantFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
+              )}
+              {(!isMobile || showGrantFilters) && (<>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 180 }} value={grantUrgencyFilter} onChange={e => setGrantUrgencyFilter(e.target.value)}>
                 <option value="All">All grants</option>
                 <option value="Overdue">Report overdue</option>
@@ -16038,6 +16062,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(grantSearchTerm !== '' || grantUrgencyFilter !== 'All' || grantAmountFilter !== 'All' || grantYearFilter !== 'All' || grantFunderTypeFilter !== 'All' || grantFundingTypeFilter !== 'All') && (
                 <button style={s.viewBtn} onClick={() => { setGrantSearchTerm(''); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setGrantFunderTypeFilter('All'); setGrantFundingTypeFilter('All') }}>✕ Clear Filters</button>
               )}
+              </>)}
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = grantSearchTerm.toLowerCase().trim()
                 const filtered = grantsWithNextReport.filter(g => {
