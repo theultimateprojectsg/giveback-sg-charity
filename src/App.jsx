@@ -10886,6 +10886,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics</div>
                 <div style={{ ...s.pageSub, marginTop: 4 }}>Detailed analysis to drive your charity goals.</div>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Fiscal year:</span>
+                <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option>All</option>
+                  {donations.length === 0
+                    ? <option>{fyOf(new Date())}</option>
+                    : [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a, b) => b - a).map(y => <option key={y}>{y}</option>)
+                  }
+                </select>
+              </div>
             </div>
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
