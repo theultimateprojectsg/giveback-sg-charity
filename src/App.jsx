@@ -4833,14 +4833,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     donations.filter(d => !d.is_anonymous).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorMap[key]) {
-        donorMap[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false }
+        donorMap[key] = { name: d.donor_name, email: d.donor_email, nric: d.donor_nric, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false, deceased: d.donor_deceased || false }
       }
       if (!donorMap[key].email && d.donor_email) donorMap[key].email = d.donor_email
+      if (!donorMap[key].nric && d.donor_nric) donorMap[key].nric = d.donor_nric
       donorMap[key].total += d.amount
       donorMap[key].count += 1
       if (d.receipt_issued) donorMap[key].receipts += 1
       if (d.donor_deactivated) donorMap[key].deactivated = true
       if (d.donor_do_not_contact) donorMap[key].doNotContact = true
+      if (d.donor_deceased) donorMap[key].deceased = true
       if (new Date(d.created_at) > new Date(donorMap[key].lastDate)) {
         donorMap[key].lastDate = d.created_at
       }
@@ -4864,6 +4866,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       receipts: 0,
       deactivated: false,
       doNotContact: false,
+      deceased: false,
       isContactOnly: true,
       contactNotes: c.notes,
     }))
@@ -9312,6 +9315,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
                   <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
                   {(() => {
+                    const donorKeyHdr = selectedDonor.email?.trim() || selectedDonor.name
+                    const linkedPhone = [...pledges, ...recurringGifts].find(r => (r.donor_email?.trim() || r.donor_name) === donorKeyHdr)?.donor_phone
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                          {selectedDonor.email ? `✉ ${selectedDonor.email}` : <span style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>✉ No email on file</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                          {linkedPhone ? `📞 ${linkedPhone}` : <span style={{ color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>📞 No phone on file</span>}
+                        </div>
+                        {charityIsIpc && (
+                          <div style={{ fontSize: 12, color: selectedDonor.nric ? 'rgba(255,255,255,0.85)' : '#F0B8A8' }}>
+                            {selectedDonor.nric ? `🪪 NRIC on file` : `🪪 NRIC missing — required for tax receipt`}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                  {(() => {
                     const warmth76 = getDonorWarmth(selectedDonor)
                     const warmthColor76 = warmth76.level === 'green' ? '#74C69D' : warmth76.level === 'amber' ? '#E8CC7A' : '#E0A599'
                     return (
@@ -9355,6 +9377,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )}
                 </div>
+
+                {(() => {
+                  const donorKeyPR = selectedDonor.email?.trim() || selectedDonor.name
+                  const linkedPledges = pledges.filter(p => (p.donor_email?.trim() || p.donor_name) === donorKeyPR)
+                  const linkedRecurring = recurringGifts.filter(g => (g.donor_email?.trim() || g.donor_name) === donorKeyPR)
+                  if (linkedPledges.length === 0 && linkedRecurring.length === 0) return null
+                  return (
+                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Pledges & Recurring Gifts</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {linkedRecurring.map(g => (
+                          <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '8px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
+                            <span style={{ fontSize: 12.5, color: C.forest }}>🔁 ${Number(g.amount).toLocaleString()}/{g.frequency} <span style={{ color: C.muted }}>· {g.status}</span></span>
+                            <span style={{ fontSize: 11, color: C.muted }}>View →</span>
+                          </div>
+                        ))}
+                        {linkedPledges.map(p => (
+                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '8px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
+                            <span style={{ fontSize: 12.5, color: C.forest }}>🤝 ${Number(p.amount).toLocaleString()} pledge <span style={{ color: C.muted }}>· {p.status}</span></span>
+                            <span style={{ fontSize: 11, color: C.muted }}>View →</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
@@ -9921,18 +9969,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).map(d => (
-                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : 'Giving Tree App'}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
-                        <div style={{ fontSize: 10, color: d.receipt_issued ? C.sage : C.warning, fontWeight: 500 }}>{d.receipt_issued ? '✓ Issued' : 'Pending'}</div>
-                      </div>
-                    </div>
-                  ))}
+                  {donations
+                    .filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name))
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .map(d => {
+                      const statusLabel = d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
+                      const statusColor = d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
+                      return (
+                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : 'Giving Tree App'}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {causeNameForDonation(d) || 'General'}</div>
+                            {(d.receipt_number || d.payment_ref) && <div style={{ fontSize: 10.5, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{d.receipt_number || d.payment_ref}</div>}
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
+                            <div style={{ fontSize: 10, color: statusColor, fontWeight: 500 }}>{statusLabel}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {selectedDonor.isContactOnly && (
