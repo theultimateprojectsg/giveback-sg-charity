@@ -1407,7 +1407,7 @@ export default function App() {
     } else if (volunteerEmails.includes(email)) {
       setUserRole('volunteer')
     } else {
-      setUserRole('volunteer')
+      setUserRole('staff')
     }
     setLocalVolunteers(volunteerEmails)
     setLocalEds(edEmails)
