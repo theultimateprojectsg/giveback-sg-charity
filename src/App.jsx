@@ -276,25 +276,25 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
           </div>
           {form.is_matching && (
             <>
-              <div>
+              <label style={{ display: 'block' }}>
                 <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Match Ratio <InfoTip text="How much the funder contributes per dollar you raise, e.g. $1:$1 means they match every donor dollar with one of their own." /></div>
                 <input style={s.formInput} placeholder="e.g. $1 : $1" value={form.match_ratio} onChange={e => setForm(f => ({ ...f, match_ratio: e.target.value }))} />
-              </div>
-              <div>
+              </label>
+              <label style={{ display: 'block' }}>
                 <div style={{ ...s.formLabel, display: 'flex', alignItems: 'center', gap: 5 }}>Match Cap (SGD) * <InfoTip text="The most the funder will contribute in total, no matter how much more you raise beyond this." /></div>
                 <input style={s.formInput} type="number" placeholder="Maximum funder will match" value={form.match_cap} onChange={e => setForm(f => ({ ...f, match_cap: e.target.value }))} />
-              </div>
+              </label>
             </>
           )}
           {isEditing && (
-            <div>
+            <label style={{ display: 'block' }}>
               <div style={s.formLabel}>Status</div>
               <select style={s.formInput} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="closed">Closed</option>
               </select>
-            </div>
+            </label>
           )}
         </div>
 
@@ -304,14 +304,14 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
           <div>
             <div style={sectionHeaderStyle}>Timeline</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
-              <div>
+              <label style={{ display: 'block' }}>
                 <div style={s.formLabel}>Start Date *</div>
                 <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
-              </div>
-              <div>
+              </label>
+              <label style={{ display: 'block' }}>
                 <div style={s.formLabel}>End Date</div>
                 <input style={s.formInput} type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
-              </div>
+              </label>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" id="grant-renewable" checked={form.is_renewable} onChange={e => setForm(f => ({ ...f, is_renewable: e.target.checked }))} />
@@ -321,19 +321,19 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
 
           <div>
             <div style={sectionHeaderStyle}>Funder contact</div>
-            <div style={{ marginBottom: 8 }}>
+            <label style={{ display: 'block', marginBottom: 8 }}>
               <div style={s.formLabel}>Contact Name</div>
               <input style={s.formInput} value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} />
-            </div>
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
+              <label style={{ display: 'block' }}>
                 <div style={s.formLabel}>Email</div>
                 <input style={s.formInput} type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} />
-              </div>
-              <div>
+              </label>
+              <label style={{ display: 'block' }}>
                 <div style={s.formLabel}>Phone</div>
                 <input style={s.formInput} value={form.contact_phone} onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))} />
-              </div>
+              </label>
             </div>
           </div>
         </div>
@@ -673,29 +673,29 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
 
         <div style={sectionHeaderStyle}>Donor</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Donor Name *</div>
             <input style={s.formInput} placeholder="Full name" value={form.donor_name} onChange={e => setForm(f => ({ ...f, donor_name: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Donor Email</div>
             <input style={s.formInput} type="email" placeholder="donor@email.com" value={form.donor_email} onChange={e => setForm(f => ({ ...f, donor_email: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Donor Phone</div>
             <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={form.donor_phone} onChange={e => setForm(f => ({ ...f, donor_phone: e.target.value }))} />
-          </div>
+          </label>
         </div>
 
         <div style={dividerStyle} />
 
         <div style={sectionHeaderStyle}>Giving details</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Amount per Cycle (SGD) *</div>
             <input style={s.formInput} type="number" placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Frequency</div>
             <select style={s.formInput} value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}>
               <option value="weekly">Weekly</option>
@@ -703,16 +703,16 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
               <option value="quarterly">Quarterly</option>
               <option value="annually">Annually</option>
             </select>
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Start Date *</div>
             <input style={s.formInput} type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>End Date</div>
             <input style={s.formInput} type="date" placeholder="Leave blank if ongoing" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Type</div>
             <select style={s.formInput} value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
               <option value="giro">GIRO</option>
@@ -720,50 +720,50 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
               <option value="standing_order">Standing Order</option>
               <option value="other">Other</option>
             </select>
-          </div>
+          </label>
           {form.type === 'other' && (
-            <div>
+            <label style={{ display: 'block' }}>
               <div style={{ ...s.formLabel, color: C.red }}>Describe "Other" *</div>
               <input style={s.formInput} placeholder="e.g. Cheque standing arrangement" value={form.type_detail} onChange={e => setForm(f => ({ ...f, type_detail: e.target.value }))} />
-            </div>
+            </label>
           )}
-          <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+          <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}>
             <div style={s.formLabel}>Linked Programme / Campaign</div>
             <select style={s.formInput} value={form.cause_id} onChange={e => setForm(f => ({ ...f, cause_id: e.target.value }))}>
               <option value="">None — general / unrestricted use</option>
               {(causes || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
-          </div>
+          </label>
         </div>
 
         <div style={dividerStyle} />
 
         <div style={sectionHeaderStyle}>Authorization {!needsBankInfo && <span style={{ color: C.muted, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional for {form.type === 'habitual_paynow' ? 'Habitual PayNow' : 'this type'})</span>}</div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Bank Name</div>
             <input style={s.formInput} placeholder="e.g. DBS, OCBC" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={{ ...s.formLabel, color: form.type === 'giro' ? C.red : undefined }}>{form.type === 'giro' ? 'GIRO Reference / Account *' : 'Reference / Account'}</div>
             <input style={s.formInput} placeholder="Optional reference number" value={form.giro_reference} onChange={e => setForm(f => ({ ...f, giro_reference: e.target.value }))} />
-          </div>
-          <div>
+          </label>
+          <label style={{ display: 'block' }}>
             <div style={s.formLabel}>Authorization Status</div>
             <select style={s.formInput} value={form.authorization_status} onChange={e => setForm(f => ({ ...f, authorization_status: e.target.value }))}>
               <option value="pending">Pending bank approval</option>
               <option value="active">Active</option>
               <option value="terminated">Terminated by bank</option>
             </select>
-          </div>
+          </label>
         </div>
 
         <div style={dividerStyle} />
 
-        <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', marginBottom: 16 }}>
           <div style={s.formLabel}>Notes</div>
           <input style={s.formInput} placeholder="Optional notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
-        </div>
+        </label>
 
         {error && <div style={{ fontSize: 12, color: C.red, marginBottom: 12 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
@@ -14574,41 +14574,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>✕</button>
                   </div>
                   {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
-                  <div style={{ marginTop: 12, marginBottom: 10 }}>
+                  <label style={{ display: 'block', marginTop: 12, marginBottom: 10 }}>
                     <div style={s.formLabel}>Title *</div>
                     <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm(f => ({ ...f, title: e.target.value }))} />
-                  </div>
-                  <div style={{ marginBottom: 10 }}>
+                  </label>
+                  <label style={{ display: 'block', marginBottom: 10 }}>
                     <div style={s.formLabel}>Description *</div>
                     <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
-                  </div>
+                  </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
-                    <div>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Start Date</div>
                       <input style={s.formInput} type="date" value={causeForm.start_date} onChange={e => setCauseForm(f => ({ ...f, start_date: e.target.value }))} />
-                    </div>
-                    <div>
+                    </label>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>End Date</div>
                       <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
-                    </div>
+                    </label>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
-                    <div>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Target Amount (SGD)</div>
                       <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
-                    </div>
-                    <div>
+                    </label>
+                    <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Campaign Cost (SGD)</div>
                       <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue" value={causeForm.cost} onChange={e => setCauseForm(f => ({ ...f, cost: e.target.value }))} />
-                    </div>
+                    </label>
                   </div>
-                  <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'block', marginBottom: 10 }}>
                     <div style={s.formLabel}>Category</div>
                     <select style={s.formInput} value={causeForm.category} onChange={e => setCauseForm(f => ({ ...f, category: e.target.value }))}>
                       <option value="">Select a category...</option>
                       {CAMPAIGN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
-                  </div>
+                  </label>
                   {charityIsIpc && (
                     <div style={{ marginBottom: 10, background: C.ivory, borderRadius: 6, padding: '10px 12px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.forest, cursor: 'pointer' }}>
@@ -14619,30 +14619,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>Uncheck this if the campaign benefits a named individual, or if donors receive something in return (e.g. a gala dinner) — IRAS does not treat these as tax-deductible.</div>
                       )}
                       {causeForm.tax_deductible && (
-                        <div style={{ marginTop: 8 }}>
+                        <label style={{ display: 'block', marginTop: 8 }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Benefit value given to donor per gift (SGD, if any)</div>
                           <input style={s.formInput} type="number" placeholder="e.g. dinner/gift value — reduces the deductible amount" value={causeForm.benefit_value} onChange={e => setCauseForm(f => ({ ...f, benefit_value: e.target.value }))} />
-                        </div>
+                        </label>
                       )}
                     </div>
                   )}
                   <div style={{ marginBottom: 16 }}>
-                    <div style={s.formLabel}>Fundraising Permit</div>
-                    <select style={s.formInput} value={causeForm.permit_status} onChange={e => setCauseForm(f => ({ ...f, permit_status: e.target.value }))}>
-                      <option value="not_required">Not required (no physical/street collection)</option>
-                      <option value="pending">Permit applied for — pending</option>
-                      <option value="obtained">Permit obtained</option>
-                    </select>
+                    <label style={{ display: 'block' }}>
+                      <div style={s.formLabel}>Fundraising Permit</div>
+                      <select style={s.formInput} value={causeForm.permit_status} onChange={e => setCauseForm(f => ({ ...f, permit_status: e.target.value }))}>
+                        <option value="not_required">Not required (no physical/street collection)</option>
+                        <option value="pending">Permit applied for — pending</option>
+                        <option value="obtained">Permit obtained</option>
+                      </select>
+                    </label>
                     {causeForm.permit_status !== 'not_required' && (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 8 }}>
-                        <div>
+                        <label style={{ display: 'block' }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Number</div>
                           <input style={s.formInput} placeholder="e.g. HHSC permit no." value={causeForm.permit_number} onChange={e => setCauseForm(f => ({ ...f, permit_number: e.target.value }))} />
-                        </div>
-                        <div>
+                        </label>
+                        <label style={{ display: 'block' }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Expiry</div>
                           <input style={s.formInput} type="date" value={causeForm.permit_expiry} onChange={e => setCauseForm(f => ({ ...f, permit_expiry: e.target.value }))} />
-                        </div>
+                        </label>
                       </div>
                     )}
                   </div>
