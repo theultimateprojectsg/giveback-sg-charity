@@ -828,7 +828,9 @@ export default function App() {
   const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false)
   const [newTeamMemberRole, setNewTeamMemberRole] = useState('ed')
   const [volunteerEditEntry, setVolunteerEditEntry] = useState(null)
-  const [volunteerEditForm, setVolunteerEditForm] = useState({ donor_name: '', amount: '', date: '', notes: '' })
+  const [volunteerEditForm, setVolunteerEditForm] = useState({ donor_name: '', amount: '', date: '', notes: '', donor_email: '', donor_nric: '', payment_method: 'Cash', cause_id: '' })
+  const [volunteerFlagMessage, setVolunteerFlagMessage] = useState('')
+  const [volunteerEditError, setVolunteerEditError] = useState('')
   const [savingVolunteer, setSavingVolunteer] = useState(false)
   const [localVolunteers, setLocalVolunteers] = useState([])
   const [localEds, setLocalEds] = useState([])
@@ -6843,7 +6845,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   async function toggleEnabledModule(key) {
-    const updated = { ...enabledModules, [key]: !enabledModules[key] }
+    const turningOff = enabledModules[key] !== false
+    if (turningOff) {
+      const recordCounts = {
+        campaigns: myCauses.filter(c => c.type === 'campaign').length,
+        massappeal: massAppeals.length,
+        pledges: pledges.length,
+        recurring: recurringGifts.length,
+        grants: grants.length,
+      }
+      const count = recordCounts[key] || 0
+      if (count > 0) {
+        showToast(`Can't hide this — you have ${count} record${count !== 1 ? 's' : ''} in it. Only empty features can be hidden.`, 'error')
+        return
+      }
+    }
+    const updated = { ...enabledModules, [key]: !turningOff }
     setEnabledModules(updated)
     const { error } = await supabase.from('charity_contacts').update({ enabled_modules: updated }).eq('charity_uen', charityUen)
     if (error) { showToast('Could not save your preferences', 'error'); setEnabledModules(enabledModules); return }
@@ -10225,7 +10242,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           {myEntries.map(d => (
-                            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setVolunteerEditEntry(d); setVolunteerEditForm({ donor_name: d.donor_name || '', amount: d.amount?.toString() || '', date: d.created_at?.split('T')[0] || '', notes: d.notes || '' }) }}>
+                            <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setVolunteerEditEntry(d); setVolunteerEditForm({ donor_name: d.donor_name || '', amount: d.amount?.toString() || '', date: d.created_at?.split('T')[0] || '', notes: d.notes || '', donor_email: d.donor_email || '', donor_nric: d.donor_nric || '', payment_method: d.payment_method || 'Cash', cause_id: d.cause_id || '' }); setVolunteerFlagMessage(''); setVolunteerEditError('') }}>
                               <div>
                                 <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.donor_name}</div>
                                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -16025,21 +16042,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
-                    { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals' },
-                    { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk PayNow QR appeals to your donor base' },
-                    { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments' },
-                    { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors' },
-                    { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting' },
-                  ].map(m => (
-                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={enabledModules[m.key] !== false} onChange={() => toggleEnabledModule(m.key)} />
+                    { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals', count: myCauses.filter(c => c.type === 'campaign').length },
+                    { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk PayNow QR appeals to your donor base', count: massAppeals.length },
+                    { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
+                    { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
+                    { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },
+                  ].map(m => {
+                    const isOn = enabledModules[m.key] !== false
+                    const locked = isOn && m.count > 0
+                    return (
+                    <label key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: locked ? 'default' : 'pointer' }}>
+                      <input type="checkbox" checked={isOn} disabled={locked} onChange={() => toggleEnabledModule(m.key)} />
                       <span style={{ fontSize: 15 }}>{m.icon}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{m.label}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{m.desc}</div>
                       </div>
+                      {locked && <span style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>{m.count} record{m.count !== 1 ? 's' : ''} — can't hide</span>}
                     </label>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -17086,43 +17108,128 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer' }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
             </div>
             {volunteerEditEntry.payment_status === 'confirmed' ? (
-              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
-                This entry has already been confirmed and receipted by staff, so it can no longer be edited here. If something needs to change, please contact a staff member.
+              <div>
+                <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
+                  This entry has already been confirmed and receipted by staff, so it can no longer be edited directly. If something's wrong, describe it below — this gets logged for staff to review.
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={s.formLabel}>What needs to change?</div>
+                  <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Amount should be $50, not $500" value={volunteerFlagMessage} onChange={e => setVolunteerFlagMessage(e.target.value)} />
+                </div>
+                <button style={{ ...s.btnForest, width: '100%', justifyContent: 'center' }} onClick={async () => {
+                  if (!volunteerFlagMessage.trim()) { showToast('Describe what needs to change', 'error'); return }
+                  await supabase.from('audit_log').insert({
+                    actor_type: 'volunteer',
+                    actor_email: session.user.email,
+                    action: 'donation_flagged_for_review',
+                    donation_id: volunteerEditEntry.id,
+                    details: { donor_name: volunteerEditEntry.donor_name, amount: volunteerEditEntry.amount, message: volunteerFlagMessage.trim(), charity_uen: charityUen },
+                  })
+                  setVolunteerEditEntry(null)
+                  setVolunteerFlagMessage('')
+                  showToast('Logged for staff to review ✓')
+                }}>Submit for Staff Review</button>
               </div>
             ) : (
               <div>
+                {volunteerEditError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{volunteerEditError}</div>}
                 <div style={{ marginBottom: 12 }}>
-                  <div style={s.formLabel}>Donor Name</div>
+                  <div style={s.formLabel}>Donor Name *</div>
                   <input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} />
                 </div>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={s.formLabel}>Amount (SGD)</div>
-                  <input style={s.formInput} type="number" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <div style={s.formLabel}>Amount (SGD) *</div>
+                    <input style={s.formInput} type="number" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} />
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Date</div>
+                    <input style={s.formInput} type="date" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} />
+                  </div>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <div style={s.formLabel}>Payment Method</div>
+                    <select style={s.formInput} value={volunteerEditForm.payment_method} onChange={e => setVolunteerEditForm(f => ({ ...f, payment_method: e.target.value }))}>
+                      <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={s.formLabel}>Donor Email</div>
+                    <input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} />
+                  </div>
+                </div>
+                {charityIsIpc && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={s.formLabel}>NRIC / FIN</div>
+                    <input style={s.formInput} placeholder="e.g. S1234567A" maxLength={9} value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} />
+                  </div>
+                )}
                 <div style={{ marginBottom: 12 }}>
-                  <div style={s.formLabel}>Date</div>
-                  <input style={s.formInput} type="date" value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} />
+                  <div style={s.formLabel}>Linked Campaign (Optional)</div>
+                  <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
+                    <option value="">None — general / unrestricted use</option>
+                    {(myCauses || []).filter(c => c.type === 'campaign').map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
                 </div>
                 <div style={{ marginBottom: 20 }}>
                   <div style={s.formLabel}>Notes</div>
                   <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} />
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => {
-                    if (!volunteerEditForm.donor_name.trim() || !volunteerEditForm.amount) { showToast('Name and amount are required', 'error'); return }
-                    const { error } = await supabase.from('donations').update({
+                    setVolunteerEditError('')
+                    if (!volunteerEditForm.donor_name.trim()) { setVolunteerEditError('Donor name is required'); return }
+                    if (!volunteerEditForm.amount || parseFloat(volunteerEditForm.amount) <= 0) { setVolunteerEditError('Please enter a valid amount'); return }
+                    if (new Date(volunteerEditForm.date) > new Date()) { setVolunteerEditError('Date cannot be in the future'); return }
+                    if (volunteerEditForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(volunteerEditForm.donor_nric.trim())) { setVolunteerEditError('Invalid NRIC format. Should be like S1234567A'); return }
+                    if (volunteerEditForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(volunteerEditForm.donor_email.trim())) { setVolunteerEditError('Invalid email format'); return }
+                    const updates = {
                       donor_name: volunteerEditForm.donor_name.trim(),
                       amount: parseFloat(volunteerEditForm.amount),
                       created_at: volunteerEditForm.date,
                       notes: volunteerEditForm.notes,
-                    }).eq('id', volunteerEditEntry.id)
+                      payment_method: volunteerEditForm.payment_method,
+                      donor_email: volunteerEditForm.donor_email?.trim().toLowerCase() || null,
+                      donor_nric: volunteerEditForm.donor_nric ? volunteerEditForm.donor_nric.trim().toUpperCase() : null,
+                      cause_id: volunteerEditForm.cause_id || null,
+                    }
+                    const { error } = await supabase.from('donations').update(updates).eq('id', volunteerEditEntry.id)
                     if (error) { showToast('Error saving', 'error'); return }
-                    setDonations(prev => prev.map(d => d.id === volunteerEditEntry.id ? { ...d, donor_name: volunteerEditForm.donor_name.trim(), amount: parseFloat(volunteerEditForm.amount), created_at: volunteerEditForm.date, notes: volunteerEditForm.notes } : d))
+                    await supabase.from('audit_log').insert({
+                      actor_type: 'volunteer',
+                      actor_email: session.user.email,
+                      action: 'donation_edited',
+                      donation_id: volunteerEditEntry.id,
+                      details: { before: { donor_name: volunteerEditEntry.donor_name, amount: volunteerEditEntry.amount }, after: { donor_name: updates.donor_name, amount: updates.amount }, charity_uen: charityUen },
+                    })
+                    setDonations(prev => prev.map(d => d.id === volunteerEditEntry.id ? { ...d, ...updates } : d))
                     setVolunteerEditEntry(null)
                     showToast('Updated ✓')
                   }}>Save</button>
                   <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setVolunteerEditEntry(null)}>Cancel</button>
                 </div>
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center', color: C.red, borderColor: C.red }} onClick={() => {
+                  setConfirmModal({
+                    title: 'Delete this entry?',
+                    description: `This will permanently remove ${volunteerEditEntry.donor_name}'s $${Number(volunteerEditEntry.amount).toLocaleString()} entry. This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: async () => {
+                      const { error } = await supabase.from('donations').delete().eq('id', volunteerEditEntry.id)
+                      if (error) { showToast('Error deleting entry', 'error'); return }
+                      await supabase.from('audit_log').insert({
+                        actor_type: 'volunteer',
+                        actor_email: session.user.email,
+                        action: 'manual_entry_deleted',
+                        donation_id: volunteerEditEntry.id,
+                        details: { donor_name: volunteerEditEntry.donor_name, amount: volunteerEditEntry.amount, charity_uen: charityUen },
+                      })
+                      setDonations(prev => prev.filter(d => d.id !== volunteerEditEntry.id))
+                      setVolunteerEditEntry(null)
+                      showToast('Entry deleted')
+                    },
+                  })
+                }}>🗑️ Delete This Entry</button>
               </div>
             )}
           </div>
