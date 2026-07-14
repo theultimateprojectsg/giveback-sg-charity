@@ -216,7 +216,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🏛️ {isEditing ? 'Edit Grant' : 'New Grant'}</div>
-          <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={onClose}>✕</button>
+          <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={onClose}>✕</button>
         </div>
 
         <div style={sectionHeaderStyle}>Grant details</div>
@@ -385,7 +385,7 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 Edit Pledge</div>
-          <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={onClose}>✕</button>
+          <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={onClose}>✕</button>
         </div>
         <div style={{ marginBottom: 12 }}>
           <div style={s.formLabel}>Donor Name *</div>
@@ -668,7 +668,7 @@ function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, o
       <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🔁 {isEditing ? 'Edit Recurring Gift' : 'New Recurring Gift'}</div>
-          <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={onClose}>✕</button>
+          <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={onClose}>✕</button>
         </div>
 
         <div style={sectionHeaderStyle}>Donor</div>
@@ -10355,7 +10355,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>New Manual Entry</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowManualForm(false); setManualError('') }}>✕</button>
                   </div>
                   <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Log a cash, cheque, or wire donation received outside the app.</div>
                   {manualError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{manualError}</div>}
@@ -10455,7 +10455,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {payNowQrDonation && (
               <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 380, width: '100%', textAlign: 'center', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                  <button aria-label="Close" style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>✕</button>
+                  <button aria-label="Close" style={{ position: 'absolute', top: 10, right: 10, background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setPayNowQrDonation(null); setManualForm({ donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '' }) }}>✕</button>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 2 }}>{payNowQrDonation.donor_name}</div>
                   <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 16 }}>SGD ${Number(payNowQrDonation.amount).toFixed(2)}</div>
                   <div style={{ background: 'white', borderRadius: 4, padding: 16, border: `1px solid ${C.border}`, display: 'inline-block', marginBottom: 14 }}>
@@ -10851,7 +10851,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{selectedDonation.donor_name}</div>
                         </div>
                       </div>
-                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
+                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setSelectedDonation(null); setEditingManual(false); setEditForm({}); setQuickEmailInput(''); setQuickNricInput('') }}>✕</button>
                     </div>
 
                     <div style={{ background: C.forest, borderRadius: 14, padding: '20px 22px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
@@ -14558,7 +14558,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{causeForm.editingId ? 'Edit Campaign' : 'New Campaign'}</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowCampaignModal(false); setCauseError(''); setCauseForm(EMPTY_CAUSE_FORM) }}>✕</button>
                   </div>
                   {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
                   <label style={{ display: 'block', marginTop: 12, marginBottom: 10 }}>
@@ -15172,7 +15172,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send pledge reminder</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>✕</button>
                   </div>
                   <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} {...senderIdentity} />
                   <label style={{ display: 'block', marginBottom: 12 }}>
@@ -15200,7 +15200,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>✕</button>
                   </div>
                   <SenderIdentityLine recipientName={pledgeReminderCandidate.donor_name} recipientEmail={pledgeReminderCandidate.donor_email} {...senderIdentity} />
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
@@ -15224,7 +15224,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>🎉 Pledge completed</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>✕</button>
                   </div>
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
                     This donation brings {pledgeCompletionCandidate.pledge.donor_name}'s pledge of ${Number(pledgeCompletionCandidate.pledge.amount).toLocaleString()} to completion. Send a special thank-you?
@@ -15255,7 +15255,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>✕</button>
                   </div>
                   <SenderIdentityLine recipientName={pledgeCompletionCandidate.donation.donor_name} recipientEmail={pledgeCompletionCandidate.donation.donor_email} {...senderIdentity} />
                   <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
@@ -15279,7 +15279,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Log a follow-up</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setLogContactModal(null); setLogContactNote('') }}>✕</button>
                   </div>
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
                     Already spoke with {logContactModal.donor_name}? Log it here instead of sending an email — this pledge won't be flagged as needing attention again for 7 days.
@@ -15309,7 +15309,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>🤝 New Pledge</div>
-                  <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>✕</button>
+                  <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeForm(false); setPledgeError('') }}>✕</button>
                 </div>
                 {pledgeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 12 }}>{pledgeError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -15834,7 +15834,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {massAppealStep === 'setup' ? 'New Appeal' : massAppealStep === 'preview' && !massAppealProgress ? `${massAppealRefs.filter(r => r.selected).length} donors selected` : massAppealProgress ? 'Sending appeals...' : 'Appeal sent'}
                     </div>
                     {!massAppealProgress && (
-                      <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>✕</button>
+                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>✕</button>
                     )}
                   </div>
 
@@ -16898,7 +16898,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 620, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Migration Tool</div>
-              {!migrationProgress && <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setShowMigrationTool(false)}>✕</button>}
+              {!migrationProgress && <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setShowMigrationTool(false)}>✕</button>}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
               Upload a CSV exported from Google Sheets or Excel. Required columns: <strong>Donor Name</strong>, <strong>Amount</strong>, <strong>Date</strong>. Optional: Email, NRIC, Payment Method, Notes, Receipt Number.
@@ -17003,7 +17003,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Mark {showLapsedDismissModal.name} as not interested?</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowLapsedDismissModal(null); setLapsedDismissReason('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowLapsedDismissModal(null); setLapsedDismissReason('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               They'll be hidden from this list indefinitely. If they donate again on their own, they'll naturally reappear as an active donor — you can also restore them manually at any time.
@@ -17041,7 +17041,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{lapsedReminderCandidate.givingChangeMeta ? 'Check in about decreased giving' : 'Reach out to a lapsed donor'}</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>✕</button>
             </div>
             {lapsedReminderCandidate.givingChangeMeta && (
               <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 6, padding: '10px 12px', marginBottom: 14, fontSize: 12.5, color: C.warning, lineHeight: 1.5 }}>
@@ -17074,7 +17074,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>✕</button>
             </div>
             <SenderIdentityLine recipientName={lapsedReminderCandidate.name} recipientEmail={lapsedReminderCandidate.email} {...senderIdentity} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
@@ -17098,7 +17098,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send reminder</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>✕</button>
             </div>
             <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} {...senderIdentity} />
             <label style={{ display: 'block', marginBottom: 12 }}>
@@ -17126,7 +17126,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>✕</button>
             </div>
             <SenderIdentityLine recipientName={recurringReminderCandidate.donor_name} recipientEmail={recurringReminderCandidate.donor_email} {...senderIdentity} />
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
@@ -17150,7 +17150,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Skip this cycle?</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setSkipCycleModal(null); setSkipCycleReason('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {skipCycleModal.donor_name}'s payment for this cycle will be marked as skipped — no donation record will be created, and the schedule moves to the next expected date.
@@ -17176,7 +17176,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Pause this recurring gift?</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setPauseGiftModal(null); setPauseReasonInput(''); setPauseResumeDateInput('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setPauseGiftModal(null); setPauseReasonInput(''); setPauseResumeDateInput('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {pauseGiftModal.donor_name}'s {pauseGiftModal.frequency} gift of ${Number(pauseGiftModal.amount).toLocaleString()} will be paused. You can reactivate it at any time.
@@ -17206,7 +17206,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Log a failed deduction</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setFailedDeductionModal(null)}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setFailedDeductionModal(null)}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {failedDeductionModal.donor_name}'s bank rejected this cycle's deduction. This is logged separately from a skip so you can tell "the bank said no" apart from "we haven't confirmed receipt yet." The schedule is not advanced — you'll still see this cycle as due until it's received or skipped.
@@ -17237,7 +17237,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Mark payment as received</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               From {markReceivedModal.donor_name} — confirm the amount received. This will create a donation record and send a thank-you email if they have one on file.
@@ -17263,7 +17263,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Set up your own sending domain</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowDomainSetup(false); setDnsRecords(null); setSenderDomainInput('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowDomainSetup(false); setDnsRecords(null); setSenderDomainInput('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               Enter your organization's website domain (e.g. <code>yourcharity.org.sg</code>). This is a technical step — you may want to loop in whoever manages your website or IT.
@@ -17305,7 +17305,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Reschedule pledge</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setRescheduleModal(null); setRescheduleNewDate(''); setRescheduleReason('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setRescheduleModal(null); setRescheduleNewDate(''); setRescheduleReason('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {rescheduleModal.donor_name}'s pledge is currently expected by {new Date(rescheduleModal.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. This updates the expected date and stops it from showing as overdue until then.
@@ -17337,7 +17337,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>
                 {pledgeResolutionModal.type === 'fulfilled' ? 'Mark this pledge as fulfilled?' : 'Cancel this pledge?'}
               </div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setPledgeResolutionModal(null); setPledgeResolutionNotes('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               {pledgeResolutionModal.type === 'fulfilled'
@@ -17382,7 +17382,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {new Date(selectedAppealDetail.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · SGD ${Number(selectedAppealDetail.amount).toLocaleString()} default
                   </div>
                 </div>
-                <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setSelectedAppealDetail(null)}>✕</button>
+                <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setSelectedAppealDetail(null)}>✕</button>
               </div>
               {selectedAppealDetail.message && (
                 <div style={{ marginTop: 12, padding: 12, background: C.ivory, borderRadius: 6, fontSize: 12.5, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
@@ -17524,7 +17524,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div>
                   <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>Email Preview — showing as {sampleDonor?.donor_name || 'a sample donor'} would see it</div>
-                    <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setShowAppealPreview(false)}>✕</button>
+                    <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setShowAppealPreview(false)}>✕</button>
                   </div>
                   <div style={{ padding: 24, background: C.ivory }}>
                     <div style={{ background: C.forest, borderRadius: 12, padding: 24, textAlign: 'center', marginBottom: 16 }}>
@@ -17578,7 +17578,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 480, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Link this donation to a pledge</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowManualPledgeLinkModal(false); setManualPledgeLinkSelection('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               ${Number(selectedDonation.amount).toLocaleString()} from {selectedDonation.donor_name} — choose which pending pledge this should count toward.
@@ -17712,7 +17712,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Customize Analytics</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setShowCustomizeAnalytics(false)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Choose which metrics appear on this page.</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -17780,7 +17780,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
-                <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setThankYouPreviewModal(null)}>✕</button>
+                <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setThankYouPreviewModal(null)}>✕</button>
               </div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>
                 {d.thank_you_sent ? 'A thank-you was already sent for this donation. ' : ''}Sending to <strong>{d.donor_email}</strong> · Receipt PDF will be attached
@@ -17818,7 +17818,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: isMobile ? 20 : 24, maxWidth: 720, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: C.forest }}>Your Entry</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 6, minWidth: 32, minHeight: 32 }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setVolunteerEditEntry(null)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Correct the details below, or remove this entry if it was made in error.</div>
             {volunteerEditEntry.payment_status === 'confirmed' ? (
@@ -17935,7 +17935,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Add Team Member</div>
-              <button aria-label="Close" style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 18, cursor: 'pointer', padding: 6, minWidth: 32, minHeight: 32, lineHeight: 1 }} onClick={() => setShowAddTeamMemberModal(false)}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setShowAddTeamMemberModal(false)}>✕</button>
             </div>
             <label style={{ display: 'block', marginBottom: 14 }}>
               <div style={s.formLabel}>Email</div>
