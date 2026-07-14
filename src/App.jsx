@@ -4956,7 +4956,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       { label: 'Recurring Gifts', amt: recurringAmt, color: C.teal },
       { label: 'Grants', amt: grantsAmt, color: C.forest },
       { label: 'General / Unrestricted', amt: generalAmt, color: C.muted },
-    ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0 }))
+    ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0, rawPct: totalRevenue > 0 ? (r.amt / totalRevenue) * 100 : 0 }))
 
     return { yr, channelRows }
   }, [filterYear, donations, allAppealRecipients, campaignCauseIds, grants, fyOf])
@@ -5174,13 +5174,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const aggOrganicPct = aggTotal > 0 ? Math.round((aggOrganic / aggTotal) * 100) : 0
       const aggAppealPct = aggTotal > 0 ? Math.round((aggAppeal / aggTotal) * 100) : 0
       const aggReferralPct = aggTotal > 0 ? Math.round((aggReferral / aggTotal) * 100) : 0
+      const aggOrganicRawPct = aggTotal > 0 ? (aggOrganic / aggTotal) * 100 : 0
+      const aggAppealRawPct = aggTotal > 0 ? (aggAppeal / aggTotal) * 100 : 0
+      const aggReferralRawPct = aggTotal > 0 ? (aggReferral / aggTotal) * 100 : 0
 
       const appealReliant = donorGrowthRows.filter(r => r.appealPct >= 40).sort((a, b) => b.appealPct - a.appealPct)
       const standoutOrganic = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 100 && r.organicPct === 100)
       const stagnant = donorGrowthRows.filter(r => r.appealPct < 40 && r.newPct === 0)
       const flaggedTitles = new Set([...appealReliant, ...standoutOrganic, ...stagnant].map(r => r.title))
       const restCount = donorGrowthRows.filter(r => !flaggedTitles.has(r.title)).length
-      donorGrowthAgg = { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant, restCount }
+      donorGrowthAgg = { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount }
     }
 
     return { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg }
@@ -6161,7 +6164,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (!byMethod[label]) byMethod[label] = 0
       byMethod[label] += d.amount
     })
-    const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100) })).sort((a, b) => b.amt - a.amt)
+    const rows = Object.entries(byMethod).map(([label, amt]) => ({ label, amt, pct: Math.round((amt / totalAmt) * 100), rawPct: (amt / totalAmt) * 100 })).sort((a, b) => b.amt - a.amt)
 
     const allYears61 = [...new Set(donations.filter(d => d.payment_status === 'confirmed').map(d => fyOf(d.created_at)))].sort()
     const allMethods61 = [...new Set(rows.map(r => r.label))]
@@ -10944,17 +10947,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               {analyticsGoalStats.hasGoal && (() => {
                 const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (
                 <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — {goalYear} <InfoTip text="Total confirmed donations this calendar year against the goal you've set. Includes donations only, not grants. Always shows the current year, regardless of the year filter above. Set or change your goal in Settings." /></div>
+                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
                     <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
                     <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
                   </div>
                   <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
                     {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by Dec 31 — $${gap.toLocaleString()} short of goal`}
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
                   </div>
                 </div>
                 )
@@ -10995,7 +11000,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : (
                       <>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                          {channelRows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: r.color }} />)}
+                          {channelRows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: r.color }} />)}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {channelRows.map((r, i) => (
@@ -11250,7 +11255,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
 
                         {donorGrowthAgg && (() => {
-                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
+                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
 
                           return (
                           <div style={s.card}>
@@ -11263,9 +11268,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               ) : (
                                 <>
                                   <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
-                                    {aggOrganicPct > 0 && <div style={{ width: `${aggOrganicPct}%`, background: C.sage }} />}
-                                    {aggAppealPct > 0 && <div style={{ width: `${aggAppealPct}%`, background: C.gold }} />}
-                                    {aggReferralPct > 0 && <div style={{ width: `${aggReferralPct}%`, background: C.muted }} />}
+                                    {aggOrganicRawPct > 0 && <div style={{ width: `${aggOrganicRawPct}%`, background: C.sage }} />}
+                                    {aggAppealRawPct > 0 && <div style={{ width: `${aggAppealRawPct}%`, background: C.gold }} />}
+                                    {aggReferralRawPct > 0 && <div style={{ width: `${aggReferralRawPct}%`, background: C.muted }} />}
                                   </div>
                                   <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text, flexWrap: 'wrap' }}>
                                     <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{aggOrganicPct}% organic</span>
@@ -13050,7 +13055,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.analyticsCardTitle}>💳 How Donors Are Paying — {filterYear}</div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                      {rows.map((r, i) => <div key={i} style={{ width: `${r.pct}%`, background: colors[i % colors.length] }} />)}
+                      {rows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
                       {rows.map((r, i) => (
