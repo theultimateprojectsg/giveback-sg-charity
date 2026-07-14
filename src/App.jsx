@@ -1091,6 +1091,11 @@ export default function App() {
 
   const [lapsedMinGifts, setLapsedMinGifts] = useState(2)
   const [lapsedMinDays, setLapsedMinDays] = useState(60)
+  const [thankYouThreshold, setThankYouThreshold] = useState(200)
+  const [majorDonorThreshold, setMajorDonorThreshold] = useState(1000)
+  const [editingDonorThresholds, setEditingDonorThresholds] = useState(false)
+  const [thankYouThresholdInput, setThankYouThresholdInput] = useState('200')
+  const [majorDonorThresholdInput, setMajorDonorThresholdInput] = useState('1000')
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
@@ -1377,7 +1382,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1427,6 +1432,10 @@ export default function App() {
     setRecurringMissedThreshold(data?.recurring_missed_threshold ?? 2)
     setLapsedMinGifts(data?.lapsed_min_gifts ?? 2)
     setLapsedMinDays(data?.lapsed_min_days ?? 60)
+    setThankYouThreshold(data?.major_gift_threshold ?? 200)
+    setMajorDonorThreshold(data?.major_donor_threshold ?? 1000)
+    setThankYouThresholdInput((data?.major_gift_threshold ?? 200).toString())
+    setMajorDonorThresholdInput((data?.major_donor_threshold ?? 1000).toString())
     setRoleLoaded(true)
   }
 
@@ -4701,7 +4710,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     charityIsIpc && missingNricThisYear > 0 && { label: `${missingNricThisYear} NRIC${missingNricThisYear > 1 ? 's' : ''} missing`, tab: 'donations' },
     failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
   ].filter(Boolean)
-  const thankYouThreshold = 200
   const loyalDonorThreshold = 3
   const { donationBadgeInfo, donorBadgeMap } = React.useMemo(() => {
     const donorFirstDonationId = {}
@@ -6907,6 +6915,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
   }
 
+  async function saveDonorThresholds() {
+    const giftVal = parseFloat(thankYouThresholdInput)
+    const donorVal = parseFloat(majorDonorThresholdInput)
+    if (!thankYouThresholdInput || isNaN(giftVal) || giftVal <= 0) { showToast('Enter a valid major gift amount', 'error'); return }
+    if (!majorDonorThresholdInput || isNaN(donorVal) || donorVal <= 0) { showToast('Enter a valid major donor amount', 'error'); return }
+    const { error } = await supabase.from('charity_contacts').update({ major_gift_threshold: giftVal, major_donor_threshold: donorVal }).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save thresholds', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_thresholds_updated',
+      details: { major_gift_threshold: giftVal, major_donor_threshold: donorVal, charity_uen: charityUen },
+    })
+    setThankYouThreshold(giftVal)
+    setMajorDonorThreshold(donorVal)
+    setEditingDonorThresholds(false)
+    showToast('Thresholds updated ✓')
+  }
+
   async function saveAnnualGoal() {
     const val = parseFloat(goalInput)
     if (!goalInput || isNaN(val) || val <= 0) { showToast('Enter a valid goal amount', 'error'); return }
@@ -8318,7 +8345,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
               })
 
-              const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (thankYouThreshold || 500) && !d.deactivated).map(d => {
+              const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (majorDonorThreshold || 1000) && !d.deactivated).map(d => {
                 const donorKey80b = d.email?.trim() || d.name
                 const contact80b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey80b)
                 const lastVisited80b = contact80b?.last_visited_date
@@ -8327,7 +8354,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).filter(d => d.needsVisit)
               if (majorDonorsNeedingVisit80.length > 0) {
                 const names = majorDonorsNeedingVisit80.map(d => d.name)
-                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} haven't been visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
+                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) haven't been visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
               }
 
               const seasonalPatternDonors71 = (() => {
@@ -12886,7 +12913,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )}
                             {(() => {
-                              const isDeepRelationship74 = d.count >= 5 || d.total >= (thankYouThreshold || 500)
+                              const isDeepRelationship74 = d.count >= 5 || d.total >= (majorDonorThreshold || 1000)
                               const isRecent74 = daysSince <= 60
                               const suggestion74 = isDeepRelationship74 && isRecent74
                                 ? { icon: '📞', text: 'Suggested: a personal call — this is a longtime supporter' }
@@ -16096,6 +16123,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )
                   })}
                 </div>
+              </div>
+
+              <div style={{ ...s.card, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ ...s.cardTitle, marginBottom: 0 }}>Donor Thresholds</div>
+                  {!editingDonorThresholds && (
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setThankYouThresholdInput(thankYouThreshold.toString()); setMajorDonorThresholdInput(majorDonorThreshold.toString()); setEditingDonorThresholds(true) }}>Edit</button>
+                  )}
+                </div>
+                {editingDonorThresholds ? (
+                  <div>
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={s.formLabel}>Major Gift (SGD) — a single donation this size or more gets a personal thank-you flag</div>
+                      <input style={s.formInput} type="number" value={thankYouThresholdInput} onChange={e => setThankYouThresholdInput(e.target.value)} />
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={s.formLabel}>Major Donor (SGD, lifetime total) — flags who needs a relationship visit</div>
+                      <input style={s.formInput} type="number" value={majorDonorThresholdInput} onChange={e => setMajorDonorThresholdInput(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button style={s.issueBtn} onClick={saveDonorThresholds}>Save</button>
+                      <button style={s.viewBtn} onClick={() => setEditingDonorThresholds(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 24 }}>
+                    <div>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Gift</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${thankYouThreshold.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Major Donor (lifetime)</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: C.forest }}>${majorDonorThreshold.toLocaleString()}</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={s.card}>
