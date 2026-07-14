@@ -4899,24 +4899,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).filter(Boolean)
   }, [recurringGifts, confirmedDonations])
   const recurringTrendFlags = React.useMemo(() => {
+    const stepsNeeded = recurringTrendCycles - 1
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const cycles = donations
         .filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed')
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      if (cycles.length < 3) return null
-      const last3 = cycles.slice(-3).map(d => d.amount)
-      const [a, b, c] = last3
-      const firstStep = b - a
-      const secondStep = c - b
-      if (firstStep > 0 && secondStep > 0) {
-        return { donor_name: g.donor_name, donor_email: g.donor_email, direction: 'upgrade', from: a, to: c, gift_id: g.id }
-      }
-      if (firstStep < 0 && secondStep < 0) {
-        return { donor_name: g.donor_name, donor_email: g.donor_email, direction: 'downgrade', from: a, to: c, gift_id: g.id }
+      if (cycles.length < recurringTrendCycles) return null
+      const lastN = cycles.slice(-recurringTrendCycles).map(d => d.amount)
+      const steps = lastN.slice(1).map((amt, i) => amt - lastN[i])
+      const allUp = steps.every(s => s > 0)
+      const allDown = steps.every(s => s < 0)
+      if (allUp || allDown) {
+        return { donor_name: g.donor_name, donor_email: g.donor_email, direction: allUp ? 'upgrade' : 'downgrade', from: lastN[0], to: lastN[lastN.length - 1], gift_id: g.id }
       }
       return null
     }).filter(Boolean)
-  }, [recurringGifts, donations])
+  }, [recurringGifts, donations, recurringTrendCycles])
 
   const fundraisingSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
@@ -5700,13 +5698,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const stillActiveNow = activeOneYearAgo.filter(g => g.status === 'active')
     const retentionRate = activeOneYearAgo.length > 0 ? Math.round((stillActiveNow.length / activeOneYearAgo.length) * 100) : null
 
-    const trendFlagsFiltered = recurringTrendFlags.filter(f => {
-      const gift = recurringGifts.find(g => g.id === f.gift_id)
-      if (!gift) return false
-      const cycles = donations.filter(d => d.recurring_gift_id === gift.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      if (recurringTrendCycles === 3 && cycles.length < 4) return false
-      return true
-    })
+    const trendFlagsFiltered = recurringTrendFlags
     const upgrades = trendFlagsFiltered.filter(f => f.direction === 'upgrade')
     const downgrades = trendFlagsFiltered.filter(f => f.direction === 'downgrade')
 
@@ -8268,10 +8260,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const recurringUpgrades = recurringTrendFlags.filter(f => f.direction === 'upgrade')
               const recurringDowngrades = recurringTrendFlags.filter(f => f.direction === 'downgrade')
-              if (recurringUpgrades.length > 0) items.push({ key: 'recurring_upgrades', icon: '📈', label: `${recurringUpgrades.length} recurring donor${recurringUpgrades.length > 1 ? 's' : ''} increased giving for 2 cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
-              if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for 2 cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              if (recurringUpgrades.length > 0) items.push({ key: 'recurring_upgrades', icon: '📈', label: `${recurringUpgrades.length} recurring donor${recurringUpgrades.length > 1 ? 's' : ''} increased giving for ${recurringTrendCycles} cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              if (recurringDowngrades.length > 0) items.push({ key: 'recurring_downgrades', icon: '📉', label: `${recurringDowngrades.length} recurring donor${recurringDowngrades.length > 1 ? 's' : ''} decreased giving for ${recurringTrendCycles} cycles in a row`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-trend-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
-              const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent)
+              const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent && d.donor_email?.trim())
               if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') } })
 
               if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
