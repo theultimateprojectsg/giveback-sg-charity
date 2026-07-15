@@ -8287,6 +8287,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`The ${charityName || 'team'}`, pageWidth - margin, y, { align: 'right' })
     doc.setFont('helvetica', 'normal')
 
+    // Footer sits at a fixed distance from the bottom for a consistent look, but if unusually
+    // long content (many facts + note + impact quote) would run into it, push it down instead —
+    // never let the two collide.
+    const footerY = Math.max(pageHeight - 26, y + 18)
+    doc.setDrawColor(...hairline)
+    doc.setLineWidth(0.4)
+    doc.roundedRect(margin - 6, 52, contentWidth + 12, footerY - 58, 2, 2, 'S')
+    doc.setLineWidth(0.2)
+
     doc.setDrawColor(...hairline)
     doc.line(margin, footerY, pageWidth - margin, footerY)
     doc.setFontSize(9)
