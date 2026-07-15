@@ -8159,7 +8159,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9.5)
     doc.setTextColor(220, 227, 223)
-    doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 34)
+    doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 35.5)
 
     let y = 62
     doc.setFontSize(9)
