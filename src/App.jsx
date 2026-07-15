@@ -9268,7 +9268,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
                         <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
                         {item.priority === 'medium' && item.key && (
-                          <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); dismissActionItemForToday(item.key) }} title="Dismiss for today">✕</span>
+                          snoozeMenuOpen === item.key ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                              <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Snooze</span>
+                              {[1, 3, 7].map(d => (
+                                <span key={d} style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', padding: '2px 7px', border: `1px solid ${C.border}`, borderRadius: 4 }}
+                                  onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d}d</span>
+                              ))}
+                              <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '2px 4px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤</span>
+                          )
                         )}
                       </div>
                     ))}
