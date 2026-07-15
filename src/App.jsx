@@ -8102,9 +8102,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const faintText = [178, 172, 162]
     const darkText = [35, 35, 35]
     const hairline = [232, 226, 216]
-    // Small uppercase labels (ISSUED TO, AMOUNT DONATED, etc.) get slight letter-spacing —
-    // reads as considered print design rather than default browser-PDF text.
+    // Small uppercase labels (ISSUED TO, AMOUNT DONATED, etc.) get slight letter-spacing for a
+    // more considered print feel — but only when left-aligned. jsPDF's width calc for
+    // center/right-aligned text doesn't account for charSpace, so applying it there silently
+    // throws off the centering/right-edge alignment.
     const microLabel = (text, x, ty, opts = {}) => {
+      if (opts.align === 'center' || opts.align === 'right') { doc.text(text, x, ty, opts); return }
       doc.setCharSpace(0.6)
       doc.text(text, x, ty, opts)
       doc.setCharSpace(0)
