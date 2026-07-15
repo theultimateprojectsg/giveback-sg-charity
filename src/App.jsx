@@ -8090,35 +8090,56 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const doc = new jsPDF()
     const isIpc = charityIsIpc
     const pageWidth = 210
+    const pageHeight = 297
     const margin = 20
     const contentWidth = pageWidth - margin * 2
     const forest = [27, 67, 50]
+    const gold = [180, 135, 14]
     const ivory = [250, 247, 242]
     const successBg = [238, 246, 241]
     const mutedText = [122, 110, 98]
     const darkText = [28, 28, 28]
     const borderColor = [226, 217, 204]
 
+    // Header band
     doc.setFillColor(...forest)
-    doc.rect(0, 0, pageWidth, 42, 'F')
-    doc.setFontSize(9)
-    doc.setTextColor(255, 255, 255)
-    doc.text('OFFICIAL DONATION RECEIPT', margin, 16)
-    doc.setFontSize(16)
-    doc.text(charityName || 'Charity', margin, 26)
-    doc.setFontSize(10)
-    doc.text(`UEN ${charityUen || ''}`, margin, 34)
+    doc.rect(0, 0, pageWidth, 48, 'F')
+    doc.setFillColor(...gold)
+    doc.rect(0, 48, pageWidth, 2, 'F')
 
-    let y = 56
+    const hasLogo = !!charityLogoDataUrl
+    let textX = margin
+    if (hasLogo) {
+      try {
+        const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
+        doc.addImage(charityLogoDataUrl, fmt, margin, 10, 28, 28)
+        textX = margin + 36
+      } catch (e) { console.error('Could not embed logo in receipt:', e) }
+    }
+    doc.setFontSize(8.5)
+    doc.setTextColor(255, 255, 255)
+    doc.text('OFFICIAL DONATION RECEIPT', textX, 17)
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text(charityName || 'Charity', textX, 27)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9.5)
+    doc.text(`UEN ${charityUen || ''}`, textX, 34)
+    doc.setFontSize(8.5)
+    doc.setTextColor(255, 255, 255)
+    doc.text(isIpc ? 'Institution of a Public Character (IPC)' : 'Registered Charity', textX, 41)
+
+    let y = 62
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
     doc.text('ISSUED TO', margin, y)
-    doc.setFontSize(9)
     doc.text('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
     y += 7
     doc.setFontSize(13)
+    doc.setFont('helvetica', 'bold')
     doc.setTextColor(...darkText)
     doc.text(donation.receipt_name || donorReceiptNameOverrides[donation.donor_email?.trim() || donation.donor_name] || donation.donor_name || '', margin, y)
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.text(donation.receipt_number || donation.payment_ref || 'N/A', pageWidth - margin, y, { align: 'right' })
     y += 6
@@ -8132,17 +8153,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setTextColor(...mutedText)
     doc.text('AMOUNT DONATED', pageWidth / 2, y + 12, { align: 'center' })
     doc.setFontSize(22)
+    doc.setFont('helvetica', 'bold')
     doc.setTextColor(...forest)
     doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y + 24, { align: 'center' })
+    doc.setFont('helvetica', 'normal')
 
     y += 44
     const facts = [
-      ['Date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
+      ['Donation date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
       ['Payment method', donation.source === 'manual' ? (donation.payment_method || 'Manual') : 'PayNow'],
     ]
+    if (donation.receipt_issued_at && new Date(donation.receipt_issued_at).toDateString() !== new Date(donation.created_at).toDateString()) {
+      facts.push(['Receipt issued', new Date(donation.receipt_issued_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })])
+    }
     const causeTitle = causeNameForDonation(donation)
-    if (causeTitle) facts.push(['Cause', causeTitle])
+    if (causeTitle) facts.push(['Designated to', causeTitle])
     if (donation.donor_nric) facts.push(['NRIC / FIN on file', donation.donor_nric])
+    const linkedRecurringGift = donation.recurring_gift_id ? recurringGifts.find(g => g.id === donation.recurring_gift_id) : null
+    if (linkedRecurringGift) facts.push(['Recurring gift ref.', linkedRecurringGift.reference || `${linkedRecurringGift.frequency} giving`])
+    const linkedPledge = pledges.find(p => p.fulfilled_donation_id === donation.id)
+    if (linkedPledge) facts.push(['Pledge ref.', linkedPledge.reference || '—'])
+    if (donation.receipt_voided) facts.push(['Status', 'VOIDED'])
+    if (donation.reissued_from) facts.push(['Reissued from receipt', donation.reissued_from])
 
     facts.forEach(([label, value], i) => {
       doc.setFontSize(10)
@@ -8204,16 +8236,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       y += 22
     }
 
+    // Thank-you line + signature block, pinned near the bottom of the page for a consistent look
+    const sigY = Math.max(y + 10, pageHeight - 62)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'italic')
+    doc.setTextColor(...forest)
+    doc.text(`With heartfelt thanks for your generosity — ${charityName || 'our team'}`, margin, sigY, { maxWidth: contentWidth })
+    doc.setFont('helvetica', 'normal')
+
     doc.setDrawColor(...borderColor)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 8
+    doc.line(pageWidth - margin - 60, sigY + 16, pageWidth - margin, sigY + 16)
+    doc.setFontSize(8.5)
+    doc.setTextColor(...mutedText)
+    doc.text('Authorized signature', pageWidth - margin - 30, sigY + 21, { align: 'center' })
+
+    const footerY = pageHeight - 30
+    doc.setDrawColor(...borderColor)
+    doc.line(margin, footerY, pageWidth - margin, footerY)
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
-    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, y, { align: 'center' })
-    y += 8
+    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 8, { align: 'center' })
     doc.setFontSize(8)
     doc.setTextColor(180, 178, 167)
-    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, y, { align: 'center', maxWidth: contentWidth })
+    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, footerY + 16, { align: 'center', maxWidth: contentWidth })
 
     return doc
   }
