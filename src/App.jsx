@@ -9024,10 +9024,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
               if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
-              if (charityIsIpc && daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount > 0) {
-                items.push({ icon: '🏛️', label: `IRAS deadline in ${daysToDeadline} days — ${pendingCount} receipt${pendingCount > 1 ? 's' : ''} outstanding`, priority: 'high', tab: 'iras' })
-              }
-
               const wasRecentlyReminded = (p) => {
                 const history = pledgeReminderHistory[p.id]
                 if (!history || history.length === 0) return false
