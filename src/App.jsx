@@ -1456,7 +1456,8 @@ export default function App() {
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [fulfillAmount, setFulfillAmount] = useState('')
-  
+  const [fulfillPaymentMethod, setFulfillPaymentMethod] = useState('Cash')
+
   const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
   const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
   const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
