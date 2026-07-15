@@ -10578,15 +10578,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )}
 
-              {donorProfileTab === 'pledges' && (() => {
+              {donorProfileTab === 'recurring' && (() => {
                 const donorKeyPR = selectedDonor.email?.trim() || selectedDonor.name
-                const linkedPledges = pledges.filter(p => (p.donor_email?.trim() || p.donor_name) === donorKeyPR)
                 const linkedRecurring = recurringGifts.filter(g => (g.donor_email?.trim() || g.donor_name) === donorKeyPR)
                 return (
                   <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Pledges & Recurring Gifts</div>
-                    {linkedPledges.length === 0 && linkedRecurring.length === 0 ? (
-                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No pledges or recurring gifts on file.</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Recurring Gifts</div>
+                    {linkedRecurring.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No recurring gifts on file.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {linkedRecurring.map(g => (
@@ -10595,6 +10594,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <span style={{ fontSize: 11, color: C.muted }}>View →</span>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {donorProfileTab === 'pledges' && (() => {
+                const donorKeyPR = selectedDonor.email?.trim() || selectedDonor.name
+                const linkedPledges = pledges.filter(p => (p.donor_email?.trim() || p.donor_name) === donorKeyPR)
+                return (
+                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Pledges</div>
+                    {linkedPledges.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No pledges on file.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {linkedPledges.map(p => (
                           <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
                             <span style={{ fontSize: 13, color: C.forest }}>🤝 ${Number(p.amount).toLocaleString()} pledge <span style={{ color: C.muted }}>· {p.status}</span></span>
