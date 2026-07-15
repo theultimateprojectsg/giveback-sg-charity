@@ -980,13 +980,14 @@ export default function App() {
     { key: 'date', label: 'Date' },
     { key: 'cause', label: 'Cause' },
     { key: 'source', label: 'Source' },
+    { key: 'reference', label: 'Reference' },
     { key: 'nric', label: 'NRIC' },
     { key: 'payment', label: 'Payment' },
     { key: 'receipt', label: 'Receipt' },
     { key: 'receiptNo', label: 'Receipt No.' },
     { key: 'thankYou', label: 'Thank You' },
   ]
-  const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
+  const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'reference', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
   const [userRole, setUserRole] = useState('volunteer')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
@@ -2457,6 +2458,9 @@ export default function App() {
     const amount = parseFloat(fulfillAmount)
     if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
 
+    const { data: receiptNumber, error: seqError } = await supabase.rpc('next_receipt_number', { p_charity_uen: charityUen, p_year: new Date().getFullYear() })
+    if (seqError) { console.error('Could not generate receipt number:', seqError); showToast('Error generating receipt number. Please try again.', 'error'); return }
+
     const { data: donationData, error: donationError } = await supabase.from('donations').insert({
       donor_name: pledge.donor_name,
       donor_email: pledge.donor_email,
@@ -2468,6 +2472,7 @@ export default function App() {
       status: 'confirmed',
       notes: pledgeResolutionNotes || 'Pledge fulfillment',
       charity_uen: charityUen,
+      receipt_number: receiptNumber,
     }).select().single()
 
     if (donationError) { showToast('Error recording donation', 'error'); return }
@@ -2773,6 +2778,9 @@ export default function App() {
     const today = new Date().toISOString().split('T')[0]
     const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, today)
 
+    const { data: receiptNumber, error: seqError } = await supabase.rpc('next_receipt_number', { p_charity_uen: charityUen, p_year: new Date(today).getFullYear() })
+    if (seqError) { console.error('Could not generate receipt number:', seqError); showToast('Error generating receipt number. Please try again.', 'error'); setMarkingReceived(false); return }
+
     const { data: donationData, error: donationError } = await supabase.from('donations').insert({
       donor_name: gift.donor_name,
       donor_email: gift.donor_email,
@@ -2785,6 +2793,7 @@ export default function App() {
       recurring_gift_id: gift.id,
       notes: `Recurring ${gift.frequency} gift`,
       charity_uen: charityUen,
+      receipt_number: receiptNumber,
     }).select().single()
 
     if (donationError) { showToast('Error recording donation', 'error'); setMarkingReceived(false); return }
@@ -10659,7 +10668,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <div style={{ ...s.donorAvatar, background: C.sage, flexShrink: 0 }}>{d.donor_name?.charAt(0)}</div>
                                 <div style={{ minWidth: 0 }}>
                                   <div style={s.donationCardName}>{d.donor_name}</div>
-                                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.receipt_number || d.payment_ref || '—'}</div>
+                                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.receipt_number || '—'}{d.payment_ref ? ` · Ref: ${d.payment_ref}` : ''}</div>
                                 </div>
                               </div>
                               <div style={{ ...s.donationCardAmount, flexShrink: 0 }}>${Number(d.amount).toLocaleString()}</div>
@@ -10772,6 +10781,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   </td>
                                 ),
                                 source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
+                                reference: <td key="reference" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }} title={d.payment_ref || ''}>{d.payment_ref || '—'}</span></td>,
                                 nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
                                 payment: (
                                   <td key="payment" style={s.td}>
