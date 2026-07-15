@@ -3909,7 +3909,20 @@ export default function App() {
       action: 'donor_note_deleted',
       details: { donor_key: note?.donor_key, note: note?.note, charity_uen: charityUen },
     })
-    setDonorNotes(prev => prev.filter(n => n.id !== noteId))
+    setDonorNotes(prev => {
+      const next = prev.filter(n => n.id !== noteId)
+      if (note) {
+        const remaining = next.filter(n => n.donor_key === note.donor_key)
+        const newest = remaining.reduce((latest, n) => !latest || new Date(n.created_at) > new Date(latest) ? n.created_at : latest, null)
+        setDonorLastContactMap(prevMap => {
+          const updated = { ...prevMap }
+          if (newest) updated[note.donor_key] = newest
+          else delete updated[note.donor_key]
+          return updated
+        })
+      }
+      return next
+    })
     showToast('Note deleted')
   }
 
