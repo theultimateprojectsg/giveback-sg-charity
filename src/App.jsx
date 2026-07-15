@@ -11663,9 +11663,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                         {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
                           <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
-                            ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()})
+                            ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()}){donationPledgeLink.pledgeReference ? ` · ${donationPledgeLink.pledgeReference}` : ''}
                           </div>
                         )}
+                        {selectedDonation.recurring_gift_id && (() => {
+                          const linkedGift = recurringGifts.find(g => g.id === selectedDonation.recurring_gift_id)
+                          return linkedGift ? (
+                            <div style={{ fontSize: 12, color: C.forest, fontWeight: 500, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
+                              🔁 From recurring gift · {linkedGift.reference || `$${Number(linkedGift.amount).toLocaleString()}/${linkedGift.frequency}`}
+                            </div>
+                          ) : null
+                        })()}
                         {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
                         )}
