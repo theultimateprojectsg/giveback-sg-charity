@@ -1026,6 +1026,7 @@ export default function App() {
   const [refunds, setRefunds] = useState([])
   const [showRefundForm, setShowRefundForm] = useState(false)
   const [refundForm, setRefundForm] = useState({ reason: '' })
+  const [savingRefund, setSavingRefund] = useState(false)
   const [grantExpenses, setGrantExpenses] = useState([])
   const [grantReports, setGrantReports] = useState({})
   const [grantTranches, setGrantTranches] = useState({})
@@ -1033,6 +1034,9 @@ export default function App() {
   const [grantNotes, setGrantNotes] = useState({})
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [expandedRecurringId, setExpandedRecurringId] = useState(null)
+  const [editingRecurringDonationId, setEditingRecurringDonationId] = useState(null)
+  const [editingRecurringAmount, setEditingRecurringAmount] = useState('')
+  const [savingRecurringAmount, setSavingRecurringAmount] = useState(false)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
   const [grantYearFilter, setGrantYearFilter] = useState('All')
   const [grantAmountFilter, setGrantAmountFilter] = useState('All')
@@ -1825,6 +1829,19 @@ export default function App() {
     showToast('Expense logged ✓')
   }
 
+  async function editCampaignExpense(expense, updates) {
+    const { data, error } = await supabase.from('campaign_expenses').update(updates).eq('id', expense.id).select().single()
+    if (error) { console.error('Could not update campaign expense:', error); showToast('Error saving expense', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'campaign_expense_edited',
+      details: { campaign_title: myCauses.find(c => c.id === expense.cause_id)?.title, before: { description: expense.description, amount: expense.amount }, after: updates, charity_uen: charityUen },
+    })
+    setCampaignExpenses(prev => prev.map(e => e.id === expense.id ? data : e))
+    showToast('Expense updated ✓')
+  }
+
   async function deleteCampaignExpense(id) {
     const expense = campaignExpenses.find(e => e.id === id)
     await supabase.from('campaign_expenses').delete().eq('id', id)
@@ -1908,6 +1925,19 @@ export default function App() {
       details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, label: report.label, due_date: report.due_date, charity_uen: charityUen },
     })
     setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map(r => r.id === report.id ? data : r) }))
+  }
+
+  async function editGrantReport(report, updates) {
+    const { data, error } = await supabase.from('grant_reports').update(updates).eq('id', report.id).select().single()
+    if (error) { showToast('Error updating report', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_report_edited',
+      details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, before: { label: report.label, due_date: report.due_date }, after: updates, charity_uen: charityUen },
+    })
+    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map(r => r.id === report.id ? data : r).sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) }))
+    showToast('Report updated ✓')
   }
 
   async function deleteGrantReport(report) {
@@ -2067,10 +2097,25 @@ export default function App() {
   }
 
   async function saveRefund(donation) {
+    if (savingRefund) return
     if (!refundForm.reason.trim()) { showToast('A reason is required', 'error'); return }
     const alreadyRefunded = refunds.filter(r => r.donation_id === donation.id).reduce((s, r) => s + Number(r.refund_amount), 0)
     if (alreadyRefunded > 0) { showToast('This donation has already been refunded', 'error'); return }
+    setSavingRefund(true)
     const refundAmt = Number(donation.amount)
+
+    // Look up what a refund is about to unwind BEFORE touching anything, so the exact prior state
+    // can be snapshotted onto the refund row itself — that's what lets deleting the refund later
+    // (correcting a mistake) fully restore the pledge link and recurring-gift dates/totals, not
+    // just the donation's payment_status.
+    const { data: linkRow } = await supabase
+      .from('pledge_donations')
+      .select('pledge_id, amount_applied')
+      .eq('donation_id', donation.id)
+      .maybeSingle()
+    const linkedPledge = linkRow ? pledges.find(p => p.id === linkRow.pledge_id) : null
+    const recurringGift = donation.recurring_gift_id ? recurringGifts.find(g => g.id === donation.recurring_gift_id) : null
+
     const { data, error } = await supabase.from('refunds').insert({
       donation_id: donation.id,
       charity_uen: charityUen,
@@ -2079,8 +2124,14 @@ export default function App() {
       refund_date: new Date().toISOString().split('T')[0],
       reason: refundForm.reason.trim(),
       approved_by: session.user.email,
+      unlinked_pledge_id: linkRow?.pledge_id || null,
+      unlinked_pledge_amount_applied: linkRow?.amount_applied || null,
+      pledge_was_fulfilled: linkedPledge?.status === 'fulfilled',
+      recurring_gift_id: donation.recurring_gift_id || null,
+      recurring_gift_prior_last_received: recurringGift?.last_received_date || null,
+      recurring_gift_prior_next_expected: recurringGift?.next_expected_date || null,
     }).select().single()
-    if (error) { console.error('Refund insert error:', error); showToast(`Error recording refund: ${error.message}`, 'error'); return }
+    if (error) { console.error('Refund insert error:', error); showToast(`Error recording refund: ${error.message}`, 'error'); setSavingRefund(false); return }
     setRefunds(prev => [...prev, data])
 
     // Refunded money isn't a real completed gift anymore — pull it out of totals, analytics,
@@ -2092,6 +2143,42 @@ export default function App() {
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, payment_status: 'refunded' } : d))
     setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'refunded' } : prev))
 
+    // A refund reverses the gift, so unwind the same side-effects deleting the donation would —
+    // otherwise a linked pledge keeps counting refunded money as "given" (and stays fulfilled if
+    // this was the completing gift), and a recurring gift's last-received/next-expected/totals
+    // stay based on a payment that's since been returned.
+    if (linkRow) {
+      await supabase.from('pledge_donations').delete().eq('pledge_id', linkRow.pledge_id).eq('donation_id', donation.id)
+      setPledgeGivenTotals(prev => ({
+        ...prev,
+        [linkRow.pledge_id]: Math.max(0, (prev[linkRow.pledge_id] || 0) - Number(linkRow.amount_applied))
+      }))
+      if (linkedPledge?.status === 'fulfilled') {
+        await supabase.from('pledges').update({ status: 'pending' }).eq('id', linkRow.pledge_id)
+        setPledges(prev => prev.map(p => p.id === linkRow.pledge_id ? { ...p, status: 'pending' } : p))
+      }
+    }
+
+    if (donation.recurring_gift_id) {
+      const giftId = donation.recurring_gift_id
+      const remaining = donations.filter(d => d.recurring_gift_id === giftId && d.id !== donation.id && d.status !== 'deleted_by_charity')
+      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const newLastReceived = remainingConfirmed[0]?.created_at ? remainingConfirmed[0].created_at.split('T')[0] : null
+      const newNextExpected = recurringGift ? computeNextExpectedDate(recurringGift.start_date, recurringGift.frequency, newLastReceived) : null
+      if (recurringGift) {
+        await supabase.from('recurring_gifts').update({
+          last_received_date: newLastReceived,
+          next_expected_date: newNextExpected,
+        }).eq('id', giftId)
+        setRecurringGifts(prev => prev.map(g => g.id === giftId ? { ...g, last_received_date: newLastReceived, next_expected_date: newNextExpected } : g))
+      }
+      setRecurringGivenTotals(prev => {
+        const cur = prev[giftId]
+        if (!cur) return prev
+        return { ...prev, [giftId]: { total: Math.max(0, cur.total - Number(donation.amount)), count: Math.max(0, cur.count - 1) } }
+      })
+    }
+
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -2101,6 +2188,7 @@ export default function App() {
     })
     setRefundForm({ reason: '' })
     setShowRefundForm(false)
+    setSavingRefund(false)
     showToast('Refund recorded ✓')
   }
 
@@ -2115,6 +2203,34 @@ export default function App() {
     if (statusError) { console.error('Could not restore donation to confirmed:', statusError) }
     setDonations(prev => prev.map(d => d.id === refund.donation_id ? { ...d, payment_status: 'confirmed' } : d))
     setSelectedDonation(prev => (prev && prev.id === refund.donation_id ? { ...prev, payment_status: 'confirmed' } : prev))
+
+    // Restore whatever the refund unwound, using the snapshot saveRefund took at refund time —
+    // re-link the pledge (and re-fulfill it if this gift was what completed it), and roll the
+    // recurring gift's last-received/next-expected/totals back forward.
+    if (refund.unlinked_pledge_id) {
+      await supabase.from('pledge_donations').insert({ pledge_id: refund.unlinked_pledge_id, donation_id: refund.donation_id, amount_applied: refund.unlinked_pledge_amount_applied })
+      setPledgeGivenTotals(prev => ({
+        ...prev,
+        [refund.unlinked_pledge_id]: (prev[refund.unlinked_pledge_id] || 0) + Number(refund.unlinked_pledge_amount_applied)
+      }))
+      if (refund.pledge_was_fulfilled) {
+        await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', refund.unlinked_pledge_id)
+        setPledges(prev => prev.map(p => p.id === refund.unlinked_pledge_id ? { ...p, status: 'fulfilled' } : p))
+      }
+    }
+
+    if (refund.recurring_gift_id) {
+      await supabase.from('recurring_gifts').update({
+        last_received_date: refund.recurring_gift_prior_last_received,
+        next_expected_date: refund.recurring_gift_prior_next_expected,
+      }).eq('id', refund.recurring_gift_id)
+      setRecurringGifts(prev => prev.map(g => g.id === refund.recurring_gift_id ? { ...g, last_received_date: refund.recurring_gift_prior_last_received, next_expected_date: refund.recurring_gift_prior_next_expected } : g))
+      setRecurringGivenTotals(prev => {
+        const cur = prev[refund.recurring_gift_id]
+        if (!cur) return prev
+        return { ...prev, [refund.recurring_gift_id]: { total: cur.total + Number(refund.original_amount), count: cur.count + 1 } }
+      })
+    }
 
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -2783,6 +2899,40 @@ export default function App() {
   function markRecurringReceived(gift) {
     setMarkReceivedAmount(String(gift.amount))
     setMarkReceivedModal(gift)
+  }
+
+  function startEditingRecurringAmount(donation) {
+    setEditingRecurringDonationId(donation.id)
+    setEditingRecurringAmount(String(donation.amount))
+  }
+
+  async function saveRecurringDonationAmount(donation) {
+    if (savingRecurringAmount) return
+    const newAmount = parseFloat(editingRecurringAmount)
+    if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (newAmount === Number(donation.amount)) { setEditingRecurringDonationId(null); return }
+    setSavingRecurringAmount(true)
+    const { error } = await supabase.from('donations').update({ amount: newAmount }).eq('id', donation.id)
+    if (error) { console.error('Error updating recurring payment amount:', error); showToast('Error saving amount', 'error'); setSavingRecurringAmount(false); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donation_edited',
+      donation_id: donation.id,
+      details: { before: { amount: donation.amount }, after: { amount: newAmount } },
+    })
+    setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, amount: newAmount } : d))
+    if (donation.recurring_gift_id) {
+      const delta = newAmount - Number(donation.amount)
+      setRecurringGivenTotals(prev => {
+        const cur = prev[donation.recurring_gift_id]
+        if (!cur) return prev
+        return { ...prev, [donation.recurring_gift_id]: { ...cur, total: cur.total + delta } }
+      })
+    }
+    setEditingRecurringDonationId(null)
+    setSavingRecurringAmount(false)
+    showToast('Amount updated ✓')
   }
 
   async function confirmMarkReceived() {
@@ -11201,8 +11351,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
                                     <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                      <button style={{ ...s.btnForest, fontSize: 12 }} onClick={() => saveRefund(selectedDonation)}>Confirm Full Refund</button>
-                                      <button style={{ ...s.viewBtn, fontSize: 12 }} onClick={() => setShowRefundForm(false)}>Cancel</button>
+                                      <button style={{ ...s.btnForest, fontSize: 12, opacity: savingRefund ? 0.7 : 1 }} disabled={savingRefund} onClick={() => saveRefund(selectedDonation)}>{savingRefund ? 'Refunding...' : 'Confirm Full Refund'}</button>
+                                      <button style={{ ...s.viewBtn, fontSize: 12 }} disabled={savingRefund} onClick={() => setShowRefundForm(false)}>Cancel</button>
                                     </div>
                                   </div>
                                 ) : (
@@ -11212,7 +11362,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           )
                         })()}
-                        {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && (
+                        {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded' && (
                           <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
                         )}
                         {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
@@ -15014,10 +15164,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {donationsByRecurringGift[g.id].map(d => (
                           <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                             <span style={{ color: C.text }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{d.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {d.payment_status}</span>}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
-                              <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
-                            </div>
+                            {editingRecurringDonationId === d.id ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input
+                                  type="number"
+                                  autoFocus
+                                  style={{ width: 70, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right' }}
+                                  value={editingRecurringAmount}
+                                  onChange={e => setEditingRecurringAmount(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
+                                />
+                                <span style={{ color: C.sage, cursor: savingRecurringAmount ? 'default' : 'pointer', opacity: savingRecurringAmount ? 0.5 : 1 }} onClick={() => saveRecurringDonationAmount(d)}>✓</span>
+                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => setEditingRecurringDonationId(null)}>✕</span>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
+                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
