@@ -9257,16 +9257,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const snoozeControl = (item) => item.key && (
                 snoozeMenuOpen === item.key ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Snooze</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
                     {[1, 3, 7].map(d => (
-                      <span key={d} style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', padding: '2px 7px', border: `1px solid ${C.border}`, borderRadius: 4 }}
-                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d}d</span>
+                      <span key={d} style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, cursor: 'pointer', padding: '6px 12px', background: C.ivory, border: `1px solid ${C.borderStrong}`, borderRadius: 6, lineHeight: 1 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = C.forest; e.currentTarget.style.color = 'white' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.color = C.forest }}
+                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d} day{d > 1 ? 's' : ''}</span>
                     ))}
-                    <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '2px 4px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
                   </span>
                 ) : (
-                  <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤</span>
+                  <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, cursor: 'pointer', flexShrink: 0, padding: '5px 12px', border: `1px solid ${C.border}`, borderRadius: 6, lineHeight: 1, whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.borderColor = C.borderStrong }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border }}
+                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤 Snooze</span>
                 )
               )
 
