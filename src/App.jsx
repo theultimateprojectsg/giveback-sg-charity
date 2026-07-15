@@ -2992,6 +2992,7 @@ export default function App() {
         .from('donations')
         .select('recurring_gift_id, amount')
         .in('recurring_gift_id', data.map(g => g.id))
+        .eq('payment_status', 'confirmed')
       const totals = {}
       ;(linkedDonations || []).forEach(d => {
         if (!totals[d.recurring_gift_id]) totals[d.recurring_gift_id] = { total: 0, count: 0 }
@@ -5478,7 +5479,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [donations, thankYouThreshold])
   const donorList = React.useMemo(() => {
     const donorMap = {}
-    donations.filter(d => !d.is_anonymous).forEach(d => {
+    donations.filter(d => !d.is_anonymous && d.payment_status !== 'refunded').forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorMap[key]) {
         donorMap[key] = { name: d.donor_name, email: d.donor_email, nric: d.donor_nric, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false, deceased: d.donor_deceased || false }
