@@ -8148,12 +8148,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setTextColor(220, 227, 223)
     doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 34)
 
-    const footerY = pageHeight - 26
-    doc.setDrawColor(...hairline)
-    doc.setLineWidth(0.4)
-    doc.roundedRect(margin - 6, 52, contentWidth + 12, footerY - 58, 2, 2, 'S')
-    doc.setLineWidth(0.2)
-
     let y = 62
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
