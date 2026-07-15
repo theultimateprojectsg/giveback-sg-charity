@@ -10494,7 +10494,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       return (
                         <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : 'Giving Tree App'}</div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : `${d.payment_method ? d.payment_method + ' via ' : ''}Giving Tree App`}{d.recurring_gift_id ? ' · Recurring' : ''}</div>
                             <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {causeNameForDonation(d) || 'General'}</div>
                             {(d.receipt_number || d.payment_ref) && <div style={{ fontSize: 10.5, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{d.receipt_number || d.payment_ref}</div>}
                           </div>
