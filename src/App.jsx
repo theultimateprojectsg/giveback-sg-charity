@@ -10393,7 +10393,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </>)}
 
                 {donorProfileTab === 'donations' && (
-                  <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 16 } : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
                   <div>
                 {(() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
