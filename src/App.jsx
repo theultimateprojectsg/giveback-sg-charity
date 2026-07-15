@@ -10589,9 +10589,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {linkedRecurring.map(g => (
-                          <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
+                          <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setActiveTab('recurring'); setEditingRecurringGift(g) }}>
                             <span style={{ fontSize: 13, color: C.forest }}>🔁 ${Number(g.amount).toLocaleString()}/{g.frequency} <span style={{ color: C.muted }}>· {g.status}</span></span>
-                            <span style={{ fontSize: 11, color: C.muted }}>View →</span>
+                            <span style={{ fontSize: 11, color: C.muted }}>Details →</span>
                           </div>
                         ))}
                       </div>
