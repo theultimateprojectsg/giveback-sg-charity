@@ -1504,24 +1504,30 @@ export default function App() {
   const [deletingId, setDeletingId] = useState(null)
   const [selectedDonation, setSelectedDonation] = useState(null)
   const [donationPledgeLink, setDonationPledgeLink] = useState(null)
-  const [dismissedTodayItems, setDismissedTodayItems] = useState(() => {
-    const todayKey = new Date().toDateString()
-    const saved = localStorage.getItem('gt_dismissed_action_items')
+  // Snoozed action items: { [itemKey]: untilTimestampMs }. An item stays hidden from the dashboard
+  // Action Items list until its snooze expires. Expired entries are pruned on load.
+  const [snoozedItems, setSnoozedItems] = useState(() => {
+    const saved = localStorage.getItem('gt_snoozed_action_items')
     if (!saved) return {}
     try {
       const parsed = JSON.parse(saved)
-      return parsed.date === todayKey ? parsed.items : {}
+      const now = Date.now()
+      const active = {}
+      Object.entries(parsed).forEach(([k, until]) => { if (typeof until === 'number' && until > now) active[k] = until })
+      return active
     } catch {
       return {}
     }
   })
+  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(null)
 
-  function dismissActionItemForToday(itemKey) {
-    setDismissedTodayItems(prev => {
-      const next = { ...prev, [itemKey]: true }
-      localStorage.setItem('gt_dismissed_action_items', JSON.stringify({ date: new Date().toDateString(), items: next }))
+  function snoozeActionItem(itemKey, days) {
+    setSnoozedItems(prev => {
+      const next = { ...prev, [itemKey]: Date.now() + days * 24 * 60 * 60 * 1000 }
+      localStorage.setItem('gt_snoozed_action_items', JSON.stringify(next))
       return next
     })
+    setSnoozeMenuOpen(null)
   }
 
   useEffect(() => {
