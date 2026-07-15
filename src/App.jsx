@@ -9241,7 +9241,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }
 
               const nowMs = Date.now()
-              const visibleItems = items.filter(i => i.priority === 'high' || !i.key || !(snoozedItems[i.key] > nowMs))
+              const visibleItems = items.filter(i => !i.key || !(snoozedItems[i.key] > nowMs))
                 .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
               const highItems = visibleItems.filter(i => i.priority === 'high')
 
