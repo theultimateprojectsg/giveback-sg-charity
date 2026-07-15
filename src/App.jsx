@@ -987,15 +987,6 @@ export default function App() {
     { key: 'thankYou', label: 'Thank You' },
   ]
   const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
-  const [selectedDonationColumns, setSelectedDonationColumns] = useState(DONATION_COLUMN_DEFAULTS)
-  const [showDonationColumnPicker, setShowDonationColumnPicker] = useState(false)
-  const toggleDonationColumn = (key) => {
-    setSelectedDonationColumns(prev => {
-      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-      supabase.auth.updateUser({ data: { donation_table_columns: next } })
-      return next
-    })
-  }
   const [userRole, setUserRole] = useState('volunteer')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
@@ -1503,9 +1494,6 @@ export default function App() {
     }
     if (session?.user?.user_metadata?.donor_table_columns) {
       setSelectedDonorColumns(session.user.user_metadata.donor_table_columns)
-    }
-    if (session?.user?.user_metadata?.donation_table_columns) {
-      setSelectedDonationColumns(session.user.user_metadata.donation_table_columns)
     }
   }, [session?.user?.id])
 
@@ -2092,7 +2080,7 @@ export default function App() {
       reason: refundForm.reason.trim(),
       approved_by: session.user.email,
     }).select().single()
-    if (error) { showToast('Error recording refund', 'error'); return }
+    if (error) { console.error('Refund insert error:', error); showToast(`Error recording refund: ${error.message}`, 'error'); return }
     setRefunds(prev => [...prev, data])
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -2108,7 +2096,7 @@ export default function App() {
 
   async function deleteRefund(refund) {
     const { error } = await supabase.from('refunds').delete().eq('id', refund.id)
-    if (error) { showToast('Error deleting refund', 'error'); return }
+    if (error) { console.error('Refund delete error:', error); showToast(`Error deleting refund: ${error.message}`, 'error'); return }
     setRefunds(prev => prev.filter(r => r.id !== refund.id))
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -10739,7 +10727,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <tr>
                           {(isTablet
                             ? charityIsIpc ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Payment', 'Receipt']
-                            : ['Donor', ...DONATION_COLUMN_OPTIONS.filter(o => selectedDonationColumns.includes(o.key) && (o.key !== 'nric' || charityIsIpc)).sort((a, b) => selectedDonationColumns.indexOf(a.key) - selectedDonationColumns.indexOf(b.key)).map(o => o.label)]
+            : ['Donor', ...DONATION_COLUMN_OPTIONS.filter(o => o.key !== 'nric' || charityIsIpc).map(o => o.label)]
                           ).map(h => {
                             const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
                             return (
@@ -10822,7 +10810,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.receipt_number || d.payment_ref || '—'}</span></td>,
                                 thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
                               }
-                              return selectedDonationColumns.map(key => cellRenderers[key]).filter(Boolean)
+                              return DONATION_COLUMN_DEFAULTS.map(key => cellRenderers[key]).filter(Boolean)
                             })()}
                           </tr>
                           )
