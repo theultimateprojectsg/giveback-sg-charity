@@ -1862,6 +1862,23 @@ export default function App() {
     setDonorTagsMap(map)
   }
 
+  async function loadAllDonorLastContact(activeSession = session) {
+    const uen = activeSession?.user?.user_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase
+      .from('donor_notes')
+      .select('donor_key, created_at')
+      .eq('charity_uen', uen)
+    if (error) { console.error('Could not load donor last contact:', error); return }
+    const map = {}
+    ;(data || []).forEach(n => {
+      if (!map[n.donor_key] || new Date(n.created_at) > new Date(map[n.donor_key])) {
+        map[n.donor_key] = n.created_at
+      }
+    })
+    setDonorLastContactMap(map)
+  }
+
   const [pledgesLoaded, setPledgesLoaded] = useState(false)
 
   async function loadPledges(activeSession = session) {
