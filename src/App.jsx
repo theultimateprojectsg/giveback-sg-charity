@@ -8091,74 +8091,75 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const isIpc = charityIsIpc
     const pageWidth = 210
     const pageHeight = 297
-    const margin = 20
+    const margin = 22
     const contentWidth = pageWidth - margin * 2
     const forest = [27, 67, 50]
+    const sage = [61, 122, 92]
     const gold = [180, 135, 14]
-    const ivory = [250, 247, 242]
-    const successBg = [238, 246, 241]
-    const mutedText = [122, 110, 98]
-    const darkText = [28, 28, 28]
-    const borderColor = [226, 217, 204]
+    const mutedText = [130, 122, 112]
+    const faintText = [178, 172, 162]
+    const darkText = [35, 35, 35]
+    const hairline = [232, 226, 216]
 
-    // Header band
+    // Header — logo left, charity identity right, single thin gold rule as the only accent
     doc.setFillColor(...forest)
-    doc.rect(0, 0, pageWidth, 48, 'F')
+    doc.rect(0, 0, pageWidth, 44, 'F')
     doc.setFillColor(...gold)
-    doc.rect(0, 48, pageWidth, 2, 'F')
+    doc.rect(0, 44, pageWidth, 0.9, 'F')
 
     const hasLogo = !!charityLogoDataUrl
     let textX = margin
     if (hasLogo) {
       try {
         const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
-        doc.addImage(charityLogoDataUrl, fmt, margin, 10, 28, 28)
-        textX = margin + 36
+        doc.addImage(charityLogoDataUrl, fmt, margin, 9, 26, 26)
+        textX = margin + 34
       } catch (e) { console.error('Could not embed logo in receipt:', e) }
     }
-    doc.setFontSize(8.5)
+    doc.setFontSize(8)
     doc.setTextColor(255, 255, 255)
-    doc.text('OFFICIAL DONATION RECEIPT', textX, 17)
+    doc.text('OFFICIAL DONATION RECEIPT', textX, 16)
     doc.setFontSize(16)
     doc.setFont('helvetica', 'bold')
-    doc.text(charityName || 'Charity', textX, 27)
+    doc.text(charityName || 'Charity', textX, 25.5)
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9.5)
-    doc.text(`UEN ${charityUen || ''}`, textX, 34)
-    doc.setFontSize(8.5)
-    doc.setTextColor(255, 255, 255)
-    doc.text(isIpc ? 'Institution of a Public Character (IPC)' : 'Registered Charity', textX, 41)
+    doc.setFontSize(9)
+    doc.setTextColor(220, 227, 223)
+    doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 33)
 
     let y = 62
-    doc.setFontSize(9)
+    doc.setFontSize(8.5)
     doc.setTextColor(...mutedText)
     doc.text('ISSUED TO', margin, y)
     doc.text('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
-    y += 7
-    doc.setFontSize(13)
+    y += 6.5
+    doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...darkText)
     doc.text(donation.receipt_name || donorReceiptNameOverrides[donation.donor_email?.trim() || donation.donor_name] || donation.donor_name || '', margin, y)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.text(donation.receipt_number || donation.payment_ref || 'N/A', pageWidth - margin, y, { align: 'right' })
-    y += 6
-    doc.setDrawColor(...borderColor)
-    doc.line(margin, y, pageWidth - margin, y)
-
-    y += 14
-    doc.setFillColor(...ivory)
-    doc.roundedRect(margin, y, contentWidth, 32, 4, 4, 'F')
-    doc.setFontSize(9)
     doc.setTextColor(...mutedText)
-    doc.text('AMOUNT DONATED', pageWidth / 2, y + 12, { align: 'center' })
-    doc.setFontSize(22)
+    doc.text(donation.receipt_number || donation.payment_ref || 'N/A', pageWidth - margin, y, { align: 'right' })
+
+    y += 16
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 13
+    doc.setFontSize(8.5)
+    doc.setTextColor(...mutedText)
+    doc.text('AMOUNT DONATED', pageWidth / 2, y, { align: 'center' })
+    y += 11
+    doc.setFontSize(27)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(...forest)
-    doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y + 24, { align: 'center' })
+    doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y, { align: 'center' })
     doc.setFont('helvetica', 'normal')
+    y += 13
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
 
-    y += 44
+    y += 13
     const facts = [
       ['Donation date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
       ['Payment method', donation.source === 'manual' ? (donation.payment_method || 'Manual') : 'PayNow'],
@@ -8177,88 +8178,89 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (donation.reissued_from) facts.push(['Reissued from receipt', donation.reissued_from])
 
     facts.forEach(([label, value], i) => {
-      doc.setFontSize(10)
+      doc.setFontSize(9.5)
       doc.setTextColor(...mutedText)
       doc.text(label, margin, y)
       doc.setTextColor(...darkText)
       doc.text(String(value), pageWidth - margin, y, { align: 'right' })
+      y += 8.5
       if (i < facts.length - 1) {
-        doc.setDrawColor(240, 235, 225)
-        doc.line(margin, y + 3, pageWidth - margin, y + 3)
+        doc.setDrawColor(...hairline)
+        doc.line(margin, y - 4.2, pageWidth - margin, y - 4.2)
       }
-      y += 9
     })
 
     if (donation.notes) {
-      y += 4
-      const noteLines = doc.splitTextToSize(donation.notes, contentWidth - 12)
-      const noteBoxHeight = 14 + noteLines.length * 5
-      doc.setFillColor(...ivory)
-      doc.roundedRect(margin, y, contentWidth, noteBoxHeight, 4, 4, 'F')
-      doc.setFontSize(8)
+      y += 5
+      const noteLines = doc.splitTextToSize(donation.notes, contentWidth - 10)
+      doc.setFillColor(...gold)
+      doc.rect(margin, y, 0.8, noteLines.length * 5 + 6, 'F')
+      doc.setFontSize(7.5)
       doc.setTextColor(...mutedText)
-      doc.text('NOTE FROM DONOR', margin + 6, y + 8)
-      doc.setFontSize(10)
+      doc.text('NOTE FROM DONOR', margin + 5, y + 4.5)
+      doc.setFontSize(9.5)
+      doc.setFont('helvetica', 'italic')
       doc.setTextColor(...darkText)
-      doc.text(noteLines, margin + 6, y + 15)
-      y += noteBoxHeight + 10
+      doc.text(noteLines, margin + 5, y + 10.5)
+      doc.setFont('helvetica', 'normal')
+      y += noteLines.length * 5 + 14
     } else {
-      y += 6
+      y += 4
     }
 
     if (isIpc) {
-      doc.setFillColor(...successBg)
-      doc.roundedRect(margin, y, contentWidth, 26, 4, 4, 'F')
+      y += 4
+      doc.setFillColor(...sage)
+      doc.rect(margin, y, 0.8, 18, 'F')
       doc.setFontSize(10)
-      doc.setTextColor(59, 109, 17)
-      doc.text('250% tax deductible', margin + 8, y + 11)
-      doc.text('Est. tax savings (22%)', margin + 8, y + 20)
-      doc.setFontSize(12)
-      doc.setTextColor(...forest)
-      doc.text(`SGD $${(donation.amount * 2.5).toLocaleString()}.00`, pageWidth - margin - 8, y + 11, { align: 'right' })
-      doc.text(`SGD $${(donation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}.00`, pageWidth - margin - 8, y + 20, { align: 'right' })
-      y += 36
-    } else {
-      doc.setFillColor(...ivory)
-      doc.roundedRect(margin, y, contentWidth, 16, 4, 4, 'F')
-      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(...sage)
+      doc.text('250% tax deductible', margin + 6, y + 7)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8.5)
       doc.setTextColor(...mutedText)
-      doc.text('This charity is registered but not an IPC. Not tax deductible.', pageWidth / 2, y + 10, { align: 'center' })
-      y += 26
+      doc.text(`Estimated tax savings at 22%: SGD $${(donation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}.00`, margin + 6, y + 14)
+      y += 24
+      if (!donation.donor_nric) {
+        doc.setFontSize(8.5)
+        doc.setTextColor(...gold)
+        doc.text('⚠ NRIC/FIN not on file — required from the donor before this can be submitted for tax deduction.', margin, y, { maxWidth: contentWidth })
+        y += 10
+      }
+    } else {
+      y += 8
+      doc.setFontSize(9)
+      doc.setTextColor(...faintText)
+      doc.text('This charity is registered but not an IPC — this donation is not tax deductible.', margin, y)
+      y += 6
     }
 
-    if (isIpc && !donation.donor_nric) {
-      doc.setFillColor(253, 243, 220)
-      doc.roundedRect(margin, y, contentWidth, 14, 4, 4, 'F')
-      doc.setFontSize(8)
-      doc.setTextColor(160, 113, 16)
-      doc.text('NRIC/FIN not on file — donor must provide this before submission for tax deduction.', pageWidth / 2, y + 9, { align: 'center', maxWidth: contentWidth - 12 })
-      y += 22
-    }
-
-    // Thank-you line + signature block, pinned near the bottom of the page for a consistent look
-    const sigY = Math.max(y + 10, pageHeight - 62)
-    doc.setFontSize(11)
+    y += 10
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 11
+    doc.setFontSize(10.5)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(...forest)
-    doc.text(`With heartfelt thanks for your generosity — ${charityName || 'our team'}`, margin, sigY, { maxWidth: contentWidth })
+    doc.text(`With heartfelt thanks for your generosity — ${charityName || 'our team'}`, margin, y, { maxWidth: contentWidth - 65 })
     doc.setFont('helvetica', 'normal')
+    doc.setDrawColor(...hairline)
+    doc.line(pageWidth - margin - 55, y + 12, pageWidth - margin, y + 12)
+    doc.setFontSize(8)
+    doc.setTextColor(...mutedText)
+    doc.text('Authorized signature', pageWidth - margin - 27.5, y + 17, { align: 'center' })
 
-    doc.setDrawColor(...borderColor)
-    doc.line(pageWidth - margin - 60, sigY + 16, pageWidth - margin, sigY + 16)
+    const footerY = pageHeight - (isIpc ? 26 : 20)
+    doc.setDrawColor(...hairline)
+    doc.line(margin, footerY, pageWidth - margin, footerY)
     doc.setFontSize(8.5)
     doc.setTextColor(...mutedText)
-    doc.text('Authorized signature', pageWidth - margin - 30, sigY + 21, { align: 'center' })
-
-    const footerY = pageHeight - 30
-    doc.setDrawColor(...borderColor)
-    doc.line(margin, footerY, pageWidth - margin, footerY)
-    doc.setFontSize(9)
-    doc.setTextColor(...mutedText)
-    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 8, { align: 'center' })
-    doc.setFontSize(8)
-    doc.setTextColor(180, 178, 167)
-    doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, footerY + 16, { align: 'center', maxWidth: contentWidth })
+    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 7, { align: 'center' })
+    if (isIpc) {
+      doc.setFontSize(7.5)
+      doc.setTextColor(...faintText)
+      doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, footerY + 14, { align: 'center', maxWidth: contentWidth })
+    }
 
     return doc
   }
