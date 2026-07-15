@@ -8177,9 +8177,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10.5)
     doc.setTextColor(...forest)
-    doc.setCharSpace(0.3)
     doc.text(donation.receipt_number || donation.payment_ref || 'N/A', pageWidth - margin, y, { align: 'right' })
-    doc.setCharSpace(0)
     doc.setFont('helvetica', 'normal')
 
     y += 16
