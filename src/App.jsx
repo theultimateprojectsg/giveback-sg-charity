@@ -8257,6 +8257,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }
     }
 
+    if (donation.impact_note?.trim()) {
+      y += 8
+      doc.setFillColor(...gold)
+      const impactLines = doc.splitTextToSize(`“${donation.impact_note.trim()}”`, contentWidth - 10)
+      doc.rect(margin, y, 0.8, impactLines.length * 5.5 + 6, 'F')
+      doc.setFontSize(8.5)
+      doc.setTextColor(...mutedText)
+      doc.text('THE DIFFERENCE YOUR GIFT MADE', margin + 5, y + 4.5)
+      doc.setFontSize(11)
+      doc.setFont('times', 'italic')
+      doc.setTextColor(...forest)
+      doc.text(impactLines, margin + 5, y + 11)
+      doc.setFont('helvetica', 'normal')
+      y += impactLines.length * 5.5 + 12
+    }
+
     y += 10
     doc.setDrawColor(...hairline)
     doc.line(margin, y, pageWidth - margin, y)
