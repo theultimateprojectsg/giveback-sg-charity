@@ -17182,6 +17182,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
 
               <div style={{ ...s.card, marginTop: 16 }}>
+                <div style={s.cardTitle}>Charity Logo</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
+                  Shown on donation receipts. PNG or JPG, under 2MB.
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: 8, border: `1px solid ${C.border}`, background: C.ivory, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    {charityLogoUrl ? <img src={charityLogoUrl} alt="Charity logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>🏛️</span>}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={{ ...s.viewBtn, cursor: uploadingLogo ? 'not-allowed' : 'pointer', opacity: uploadingLogo ? 0.5 : 1, textAlign: 'center' }}>
+                      {uploadingLogo ? 'Uploading...' : charityLogoUrl ? 'Replace logo' : '⬆ Upload logo'}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingLogo} onChange={e => { if (e.target.files?.[0]) uploadCharityLogo(e.target.files[0]); e.target.value = '' }} />
+                    </label>
+                    {charityLogoUrl && (
+                      <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => setConfirmModal({
+                        title: 'Remove logo?',
+                        description: 'Receipts will go back to showing your charity name only.',
+                        confirmLabel: 'Remove',
+                        onConfirm: removeCharityLogo,
+                      })}>🗑️ Remove</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ ...s.card, marginTop: 16 }}>
                 <div style={s.cardTitle}>Email Sending</div>
                 {senderDomainStatus === 'verified' ? (
                   <div>
