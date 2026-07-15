@@ -2863,6 +2863,7 @@ export default function App() {
 
   function fulfillPledge(pledge) {
     setPledgeResolutionNotes('')
+    setFulfillPaymentMethod('Cash')
     const alreadyGiven = pledgeGivenTotals[pledge.id] || 0
     setFulfillAmount(String(Number(pledge.amount) - alreadyGiven))
     setPledgeResolutionModal({ type: 'fulfilled', pledge })
