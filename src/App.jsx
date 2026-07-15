@@ -8158,8 +8158,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     let y = 62
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
-    doc.text('ISSUED TO', margin, y)
-    doc.text('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
+    microLabel('ISSUED TO', margin, y)
+    microLabel('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
     y += 7
     doc.setFontSize(16)
     doc.setFont('times', 'bold')
