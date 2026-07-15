@@ -1025,7 +1025,7 @@ export default function App() {
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
   const [refunds, setRefunds] = useState([])
   const [showRefundForm, setShowRefundForm] = useState(false)
-  const [refundForm, setRefundForm] = useState({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
+  const [refundForm, setRefundForm] = useState({ reason: '' })
   const [grantExpenses, setGrantExpenses] = useState([])
   const [grantReports, setGrantReports] = useState({})
   const [grantTranches, setGrantTranches] = useState({})
@@ -2067,17 +2067,16 @@ export default function App() {
   }
 
   async function saveRefund(donation) {
-    if (!refundForm.refund_amount || !refundForm.reason.trim()) { showToast('Refund amount and reason are required', 'error'); return }
-    const refundAmt = parseFloat(refundForm.refund_amount)
+    if (!refundForm.reason.trim()) { showToast('A reason is required', 'error'); return }
     const alreadyRefunded = refunds.filter(r => r.donation_id === donation.id).reduce((s, r) => s + Number(r.refund_amount), 0)
-    const remaining = Number(donation.amount) - alreadyRefunded
-    if (refundAmt > remaining) { showToast(`Refund cannot exceed the remaining refundable amount ($${remaining.toLocaleString()})`, 'error'); return }
+    if (alreadyRefunded > 0) { showToast('This donation has already been refunded', 'error'); return }
+    const refundAmt = Number(donation.amount)
     const { data, error } = await supabase.from('refunds').insert({
       donation_id: donation.id,
       charity_uen: charityUen,
       original_amount: donation.amount,
       refund_amount: refundAmt,
-      refund_date: refundForm.refund_date,
+      refund_date: new Date().toISOString().split('T')[0],
       reason: refundForm.reason.trim(),
       approved_by: session.user.email,
     }).select().single()
@@ -2090,7 +2089,7 @@ export default function App() {
       donation_id: donation.id,
       details: { original_amount: donation.amount, refund_amount: refundAmt, reason: refundForm.reason.trim() },
     })
-    setRefundForm({ refund_amount: '', refund_date: new Date().toISOString().split('T')[0], reason: '' })
+    setRefundForm({ reason: '' })
     setShowRefundForm(false)
     showToast('Refund recorded ✓')
   }
@@ -11169,21 +11168,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   ))}
                                 </div>
                               )}
-                              {totalRefunded119 < Number(selectedDonation.amount) && (
+                              {totalRefunded119 === 0 && (
                                 showRefundForm ? (
                                   <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 8 }}>
-                                      <input style={{ ...s.formInput, fontSize: 12 }} type="number" placeholder="Refund amount" value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
-                                      <input style={{ ...s.formInput, fontSize: 12 }} type="date" value={refundForm.refund_date} onChange={e => setRefundForm(f => ({ ...f, refund_date: e.target.value }))} />
-                                    </div>
+                                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
                                     <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                      <button style={{ ...s.btnForest, fontSize: 12 }} onClick={() => saveRefund(selectedDonation)}>Record Refund</button>
+                                      <button style={{ ...s.btnForest, fontSize: 12 }} onClick={() => saveRefund(selectedDonation)}>Confirm Full Refund</button>
                                       <button style={{ ...s.viewBtn, fontSize: 12 }} onClick={() => setShowRefundForm(false)}>Cancel</button>
                                     </div>
                                   </div>
                                 ) : (
-                                  <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }} onClick={() => setShowRefundForm(true)}>↩️ Record a Refund</button>
+                                  <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }} onClick={() => setShowRefundForm(true)}>↩️ Refund This Donation</button>
                                 )
                               )}
                             </div>
@@ -13392,6 +13388,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              {(() => {
+                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent)
+                const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
+                if (owedDonations.length === 0) return null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}`, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <div style={s.analyticsCardTitle}>💌 Silent Thank-You Debt</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
+                    <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
+                  </div>
+                )
+              })()}
               </div>
 
               <div style={{ fontSize: 12, fontWeight: 600, color: C.sage, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Recognition & Stewardship</div>
@@ -13449,19 +13459,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-              {(() => {
-                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent)
-                const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
-                if (owedDonations.length === 0) return null
-                return (
-                  <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}` }}>
-                    <div style={s.analyticsCardTitle}>💌 Silent Thank-You Debt</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
-                    <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
-                    <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
-                  </div>
-                )
-              })()}
+
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Analysis</div>
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🏆 Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {donorList.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: [C.gold, C.sage, C.teal, C.forest, C.muted][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''}</div>
+                      </div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 14, fontWeight: 500, color: C.forest }}>${d.total.toLocaleString()}</div>
+                    </div>
+                  ))}
+                  {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
+                </div>
+              </div>
+
               {donorLTVStats && (() => {
                 const { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 } = donorLTVStats
                 return (
@@ -13506,27 +13525,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
-
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Sources</div>
-              <div style={{ ...s.card, marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🏆 Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
-                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {donorList.slice(0, 5).map((d, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: [C.gold, C.sage, C.teal, C.forest, C.muted][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 }}>{i + 1}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''}</div>
-                      </div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 14, fontWeight: 500, color: C.forest }}>${d.total.toLocaleString()}</div>
-                    </div>
-                  ))}
-                  {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
-                </div>
-              </div>
 
               {paymentMixStats && (() => {
                 const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
