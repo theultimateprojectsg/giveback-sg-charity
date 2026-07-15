@@ -10508,80 +10508,74 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               </div>
                   </div>
+              )}
 
-                  <div>
-                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                        <select
-                          style={{ ...s.filterSelect, fontSize: 12, padding: '8px 12px' }}
-                          value={newNoteType}
-                          onChange={e => setNewNoteType(e.target.value)}
-                        >
-                          <option value="note">📝 Note</option>
-                          <option value="call">📞 Call</option>
-                          <option value="email">📧 Email</option>
-                          <option value="meeting">🤝 Meeting</option>
-                          <option value="whatsapp">💬 WhatsApp</option>
-                        </select>
-                        <textarea
-                          style={{ ...s.formInput, minHeight: 72, resize: 'vertical', fontSize: 13 }}
-                          placeholder="Log a call, email, meeting, or note..."
-                          value={newNoteText}
-                          onChange={e => setNewNoteText(e.target.value)}
-                          maxLength={2000}
-                        />
-                        <button
-                          style={{ ...s.btnForest, justifyContent: 'center', opacity: newNoteText.trim() ? 1 : 0.5 }}
-                          disabled={!newNoteText.trim() || savingNote}
-                          onClick={saveNewDonorNote}
-                        >{savingNote ? '⏳ Saving...' : '+ Add to Log'}</button>
-                      </div>
-                      {donorNotesLoading ? (
-                        <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
-                      ) : donorNotes.length === 0 ? (
-                        <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {donorNotes.map((n, i) => {
-                            const typeConfig = {
-                              call:      { icon: '📞', label: 'Call',      color: C.forest },
-                              email:     { icon: '📧', label: 'Email',     color: C.sage },
-                              meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
-                              whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
-                              note:      { icon: '📝', label: 'Note',      color: C.muted },
-                            }
-                            const tc = typeConfig[n.note_type] || typeConfig.note
-                            return (
-                              <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '12px 14px', border: `1px solid ${C.border}` }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                                    <span style={{ fontSize: 14 }}>{tc.icon}</span>
-                                    <span style={{ fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 600, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: 11, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span
-                                      style={{ fontSize: 11, color: C.red, cursor: 'pointer', fontWeight: 500 }}
-                                      onClick={() => setConfirmModal({
-                                        title: 'Delete this note?',
-                                        description: 'This cannot be undone.',
-                                        confirmLabel: 'Delete',
-                                        onConfirm: () => deleteDonorNote(n.id),
-                                      })}
-                                    >✕</span>
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.note}</div>
-                                <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>by {n.created_by}</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+              {donorProfileTab === 'logs' && (
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    <select
+                      style={{ ...s.filterSelect, fontSize: 12, padding: '6px 10px', flexShrink: 0, width: 130 }}
+                      value={newNoteType}
+                      onChange={e => setNewNoteType(e.target.value)}
+                    >
+                      <option value="note">📝 Note</option>
+                      <option value="call">📞 Call</option>
+                      <option value="email">📧 Email</option>
+                      <option value="meeting">🤝 Meeting</option>
+                      <option value="whatsapp">💬 WhatsApp</option>
+                    </select>
+                    <input
+                      style={{ ...s.formInput, fontSize: 12, padding: '6px 10px' }}
+                      placeholder="Log a call, email, meeting, or note..."
+                      value={newNoteText}
+                      onChange={e => setNewNoteText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && newNoteText.trim() && !savingNote) saveNewDonorNote() }}
+                      maxLength={2000}
+                    />
+                    <button
+                      style={{ ...s.issueBtn, flexShrink: 0, opacity: newNoteText.trim() ? 1 : 0.5 }}
+                      disabled={!newNoteText.trim() || savingNote}
+                      onClick={saveNewDonorNote}
+                    >{savingNote ? '...' : 'Add'}</button>
+                  </div>
+                  {donorNotesLoading ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
+                  ) : donorNotes.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {donorNotes.map((n, i) => {
+                        const typeConfig = {
+                          call:      { icon: '📞', label: 'Call',      color: C.forest },
+                          email:     { icon: '📧', label: 'Email',     color: C.sage },
+                          meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
+                          whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
+                          note:      { icon: '📝', label: 'Note',      color: C.muted },
+                        }
+                        const tc = typeConfig[n.note_type] || typeConfig.note
+                        return (
+                          <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 12px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{tc.icon}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.4 }}>{n.note}</div>
+                              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{tc.label} · {new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · {n.created_by}</div>
+                            </div>
+                            <span
+                              style={{ fontSize: 11, color: C.muted, cursor: 'pointer', flexShrink: 0 }}
+                              onClick={() => setConfirmModal({
+                                title: 'Delete this note?',
+                                description: 'This cannot be undone.',
+                                confirmLabel: 'Delete',
+                                onConfirm: () => deleteDonorNote(n.id),
+                              })}
+                            >✕</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
-                  </div>
+                  )}
+                </div>
               )}
 
               {donorProfileTab === 'pledges' && (() => {
