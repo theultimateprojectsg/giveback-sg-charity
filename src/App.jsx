@@ -8102,6 +8102,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const faintText = [178, 172, 162]
     const darkText = [35, 35, 35]
     const hairline = [232, 226, 216]
+    // Small uppercase labels (ISSUED TO, AMOUNT DONATED, etc.) get slight letter-spacing —
+    // reads as considered print design rather than default browser-PDF text.
+    const microLabel = (text, x, ty, opts = {}) => {
+      doc.setCharSpace(0.6)
+      doc.text(text, x, ty, opts)
+      doc.setCharSpace(0)
+    }
 
     // Faint full-page watermark — logo if we have one, else a monogram of the charity's initial —
     // so the page still reads as distinctly *this* charity's document even with the header covered.
