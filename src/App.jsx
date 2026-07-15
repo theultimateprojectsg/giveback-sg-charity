@@ -8173,13 +8173,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setCharSpace(0)
     doc.setFont('helvetica', 'normal')
 
-    y += 16
-    doc.setDrawColor(...hairline)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 13
+    y += 18
+    // Gold corner brackets frame the hero amount like a certified stamp — distinct from the plain
+    // hairlines used for ordinary section breaks, so this one moment reads as the focal point.
+    const heroTop = y - 8, heroBottom = y + 34, tick = 5
+    doc.setDrawColor(...gold)
+    doc.setLineWidth(0.6)
+    ;[[margin, heroTop, 1, 1], [pageWidth - margin, heroTop, -1, 1], [margin, heroBottom, 1, -1], [pageWidth - margin, heroBottom, -1, -1]].forEach(([cx, cy, dx, dy]) => {
+      doc.line(cx, cy, cx + tick * dx, cy)
+      doc.line(cx, cy, cx, cy + tick * dy)
+    })
+    doc.setLineWidth(0.2)
+    y += 5
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
-    doc.text('AMOUNT DONATED', pageWidth / 2, y, { align: 'center' })
+    microLabel('AMOUNT DONATED', pageWidth / 2, y, { align: 'center' })
     y += 13
     doc.setFontSize(31)
     doc.setFont('times', 'bold')
@@ -8187,8 +8195,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y, { align: 'center' })
     doc.setFont('helvetica', 'normal')
     y += 13
-    doc.setDrawColor(...hairline)
-    doc.line(margin, y, pageWidth - margin, y)
 
     y += 13
     const facts = [
