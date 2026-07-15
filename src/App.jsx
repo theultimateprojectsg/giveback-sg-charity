@@ -8293,7 +8293,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`The ${charityName || 'team'}`, pageWidth - margin, y, { align: 'right' })
     doc.setFont('helvetica', 'normal')
 
-    const footerY = pageHeight - 26
     doc.setDrawColor(...hairline)
     doc.line(margin, footerY, pageWidth - margin, footerY)
     doc.setFontSize(9)
