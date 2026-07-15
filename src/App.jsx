@@ -8181,15 +8181,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (donation.reissued_from) facts.push(['Reissued from receipt', donation.reissued_from])
 
     facts.forEach(([label, value], i) => {
-      doc.setFontSize(9.5)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
       doc.setTextColor(...mutedText)
       doc.text(label, margin, y)
+      doc.setFont('times', 'normal')
+      doc.setFontSize(11)
       doc.setTextColor(...darkText)
       doc.text(String(value), pageWidth - margin, y, { align: 'right' })
-      y += 8.5
+      y += 9
       if (i < facts.length - 1) {
         doc.setDrawColor(...hairline)
-        doc.line(margin, y - 4.2, pageWidth - margin, y - 4.2)
+        doc.line(margin, y - 4.5, pageWidth - margin, y - 4.5)
       }
     })
 
