@@ -8103,6 +8103,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const darkText = [35, 35, 35]
     const hairline = [232, 226, 216]
 
+    // Faint full-page watermark — logo if we have one, else a monogram of the charity's initial —
+    // so the page still reads as distinctly *this* charity's document even with the header covered.
+    try {
+      doc.saveGraphicsState()
+      doc.setGState(new doc.GState({ opacity: 0.045 }))
+      if (charityLogoDataUrl) {
+        const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
+        const size = 130
+        doc.addImage(charityLogoDataUrl, fmt, (pageWidth - size) / 2, (pageHeight - size) / 2, size, size)
+      } else {
+        doc.setFont('times', 'bold')
+        doc.setFontSize(260)
+        doc.setTextColor(...forest)
+        doc.text((charityName || 'C').trim().charAt(0).toUpperCase(), pageWidth / 2, pageHeight / 2 + 60, { align: 'center' })
+      }
+      doc.restoreGraphicsState()
+    } catch (e) { console.error('Could not render receipt watermark:', e) }
+
     // Header — logo left, charity identity right, single thin gold rule as the only accent
     doc.setFillColor(...forest)
     doc.rect(0, 0, pageWidth, 44, 'F')
@@ -8118,6 +8136,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         textX = margin + 34
       } catch (e) { console.error('Could not embed logo in receipt:', e) }
     }
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(255, 255, 255)
     doc.text('OFFICIAL DONATION RECEIPT', textX, 16)
