@@ -9969,9 +9969,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div>
             <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 20, flexWrap: 'wrap' }}>
               {[
-                { key: 'donations', icon: '💳', label: 'Donations & Logs' },
-                { key: 'pledges', icon: '🤝', label: 'Pledges & Recurring' },
-                { key: 'details', icon: '📇', label: 'Details & Preferences' },
+                { key: 'donations', icon: '💳', label: 'Donations' },
+                { key: 'logs', icon: '📞', label: 'Logs' },
+                { key: 'recurring', icon: '🔁', label: 'Recurring' },
+                { key: 'pledges', icon: '🤝', label: 'Pledges' },
+                { key: 'details', icon: '📇', label: 'Preferences' },
                 { key: 'settings', icon: '⚙️', label: 'Settings' },
               ].map(sec => (
                 <div
