@@ -1114,6 +1114,7 @@ export default function App() {
   const [householdLinkSearch, setHouseholdLinkSearch] = useState('')
   const [newTagInput, setNewTagInput] = useState('')
   const [savingTag, setSavingTag] = useState(false)
+  const [showTagPicker, setShowTagPicker] = useState(false)
   const [savingCommPrefs, setSavingCommPrefs] = useState(false)
   const [savingHousehold, setSavingHousehold] = useState(false)
   const [savingReceiptOverride, setSavingReceiptOverride] = useState(false)
