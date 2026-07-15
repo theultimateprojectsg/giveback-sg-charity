@@ -3890,11 +3890,11 @@ export default function App() {
     showToast('Note deleted')
   }
 
-  async function saveDonorTag(donor) {
-    if (!newTagInput.trim()) return
+  async function saveDonorTag(donor, tagOverride) {
+    const tag = (tagOverride ?? newTagInput).trim()
+    if (!tag) return
     setSavingTag(true)
     const donorKey = donor.email?.trim() || donor.name
-    const tag = newTagInput.trim()
     const { data, error } = await supabase.from('donor_tags').insert([{
       charity_uen: charityUen,
       donor_key: donorKey,
