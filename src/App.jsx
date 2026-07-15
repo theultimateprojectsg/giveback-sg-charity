@@ -18025,10 +18025,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 : `The pledge of $${Number(pledgeResolutionModal.pledge.amount).toLocaleString()} from ${pledgeResolutionModal.pledge.donor_name} will be marked as cancelled. The record is kept for reference.`}
             </div>
             {pledgeResolutionModal.type === 'fulfilled' && (
-              <label style={{ display: 'block', marginBottom: 16 }}>
-                <div style={s.formLabel}>Amount Received (SGD)</div>
-                <input style={s.formInput} type="number" value={fulfillAmount} onChange={e => setFulfillAmount(e.target.value)} />
-              </label>
+              <>
+                <label style={{ display: 'block', marginBottom: 16 }}>
+                  <div style={s.formLabel}>Amount Received (SGD)</div>
+                  <input style={s.formInput} type="number" value={fulfillAmount} onChange={e => setFulfillAmount(e.target.value)} />
+                </label>
+                <label style={{ display: 'block', marginBottom: 16 }}>
+                  <div style={s.formLabel}>Payment Method</div>
+                  <select style={s.formInput} value={fulfillPaymentMethod} onChange={e => setFulfillPaymentMethod(e.target.value)}>
+                    <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
+                  </select>
+                </label>
+              </>
             )}
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Notes (optional)</div>
