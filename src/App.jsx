@@ -2902,7 +2902,7 @@ export default function App() {
       payment_status: 'confirmed',
       receipt_issued: true,
       source: 'manual',
-      payment_method: 'Other',
+      payment_method: fulfillPaymentMethod,
       status: 'confirmed',
       notes: pledgeResolutionNotes || 'Pledge fulfillment',
       charity_uen: charityUen,
