@@ -1110,6 +1110,7 @@ export default function App() {
   const [newNoteType, setNewNoteType] = useState('note')
   const [savingNote, setSavingNote] = useState(false)
   const [donorTagsMap, setDonorTagsMap] = useState({})
+  const [donorLastContactMap, setDonorLastContactMap] = useState({})
   const [donorReceiptNameOverrides, setDonorReceiptNameOverrides] = useState({})
   const [householdLinkSearch, setHouseholdLinkSearch] = useState('')
   const [newTagInput, setNewTagInput] = useState('')
