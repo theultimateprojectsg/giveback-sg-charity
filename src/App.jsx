@@ -9267,7 +9267,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       >
                         <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
                         <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                        {item.priority === 'medium' && item.key && (
+                        {item.key && (
                           snoozeMenuOpen === item.key ? (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                               <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Snooze</span>
