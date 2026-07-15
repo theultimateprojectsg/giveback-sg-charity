@@ -2082,6 +2082,16 @@ export default function App() {
     }).select().single()
     if (error) { console.error('Refund insert error:', error); showToast(`Error recording refund: ${error.message}`, 'error'); return }
     setRefunds(prev => [...prev, data])
+
+    // Refunded money isn't a real completed gift anymore — pull it out of totals, analytics,
+    // and the IRAS tax-deduction export by moving it off payment_status: 'confirmed', the status
+    // every aggregate in this app filters on. The row stays visible (not deleted) so it's still
+    // auditable in the Donations list, just clearly marked and excluded from the numbers.
+    const { error: statusError } = await supabase.from('donations').update({ payment_status: 'refunded' }).eq('id', donation.id)
+    if (statusError) { console.error('Could not mark donation as refunded:', statusError) }
+    setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, payment_status: 'refunded' } : d))
+    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'refunded' } : prev))
+
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -2098,6 +2108,14 @@ export default function App() {
     const { error } = await supabase.from('refunds').delete().eq('id', refund.id)
     if (error) { console.error('Refund delete error:', error); showToast(`Error deleting refund: ${error.message}`, 'error'); return }
     setRefunds(prev => prev.filter(r => r.id !== refund.id))
+
+    // Deleting the refund record reverses the refund itself, so restore the donation to confirmed
+    // — it goes back to counting in totals, analytics, and the IRAS export.
+    const { error: statusError } = await supabase.from('donations').update({ payment_status: 'confirmed' }).eq('id', refund.donation_id)
+    if (statusError) { console.error('Could not restore donation to confirmed:', statusError) }
+    setDonations(prev => prev.map(d => d.id === refund.donation_id ? { ...d, payment_status: 'confirmed' } : d))
+    setSelectedDonation(prev => (prev && prev.id === refund.donation_id ? { ...prev, payment_status: 'confirmed' } : prev))
+
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -2105,7 +2123,7 @@ export default function App() {
       donation_id: refund.donation_id,
       details: { refund_amount: refund.refund_amount, reason: refund.reason },
     })
-    showToast('Refund deleted ✓')
+    showToast('Refund deleted ✓ — donation restored to confirmed')
   }
 
   async function loadRecurringExpenses() {
@@ -4448,7 +4466,7 @@ export default function App() {
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => new Date(d.created_at).toLocaleDateString('en-SG', { year: 'numeric' }) === filterYear)
     const pending = yearScoped.filter(d => !d.receipt_issued && d.payment_status === 'confirmed')
     if (pending.length === 0) {
-      const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed').length
+      const awaitingConfirmation = yearScoped.filter(d => !d.receipt_issued && d.payment_status !== 'confirmed' && d.payment_status !== 'refunded').length
       if (awaitingConfirmation > 0) {
         showToast(`${awaitingConfirmation} donation${awaitingConfirmation > 1 ? 's' : ''} still ${awaitingConfirmation > 1 ? 'need' : 'needs'} payment confirmed first — go to Donations to confirm ${awaitingConfirmation > 1 ? 'them' : 'it'} individually`)
       } else {
@@ -5021,8 +5039,8 @@ export default function App() {
     : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
-  const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed').length
-const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)).filter(d => d.payment_status !== 'confirmed').length
+  const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'refunded').length
+const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)).filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'refunded').length
   const missingNricThisYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear)))
     .filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
   const awaitingThankYouCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear))
@@ -6716,9 +6734,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const matchSearch = q === '' || searchFields.some(field => field?.toLowerCase().includes(q))
     const matchYear = filterYear === 'All' || fyOf(d.created_at).toString() === filterYear
     const matchType = filterType === 'All'
-      || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed')
+      || (filterType === 'Awaiting Payment' && d.payment_status !== 'confirmed' && d.payment_status !== 'refunded')
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
+      || (filterType === 'Refunded' && d.payment_status === 'refunded')
       
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
@@ -6996,7 +7015,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Date': new Date(d.created_at).toLocaleDateString('en-SG'),
       'Source': d.source === 'manual' ? `Manual (${d.payment_method || ''})` : 'Giving Tree App',
       'Cause': causeNameForDonation(d) || 'General Donation',
-      'Payment Status': d.payment_status === 'confirmed' ? 'Confirmed' : 'Unverified',
+      'Payment Status': d.payment_status === 'refunded' ? 'Refunded' : d.payment_status === 'confirmed' ? 'Confirmed' : 'Unverified',
       'Receipt Issued': d.receipt_issued ? 'Yes' : 'No',
       'Receipt No.': d.receipt_number || d.payment_ref || '',
       'Thank You Sent': d.thank_you_sent ? 'Yes' : 'No',
@@ -8377,7 +8396,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const items = []
 
-              const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
               if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
               if (charityIsIpc && daysToDeadline <= 60 && daysToDeadline > 0 && pendingCount > 0) {
@@ -10129,8 +10148,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     .filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name))
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                     .map(d => {
-                      const statusLabel = d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
-                      const statusColor = d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
+                      const statusLabel = d.payment_status === 'refunded' ? '↩ Refunded' : d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
+                      const statusColor = d.payment_status === 'refunded' ? C.red : d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
                       return (
                         <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ flex: 1 }}>
@@ -10554,7 +10573,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder={charityIsIpc ? "🔍 Search name, email, NRIC, ref, or notes..." : "🔍 Search name, email, ref, or notes..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
-                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option>
+                <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option><option>Refunded</option>
               </select>
               {charityIsIpc && (
                 <select style={{ ...(isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect), borderColor: filterNric !== 'All' ? C.warningBorder : C.border, background: filterNric !== 'All' ? C.warningBg : C.white }} value={filterNric} onChange={e => setFilterNric(e.target.value)}>
@@ -10655,9 +10674,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div>
                       {paginatedDonations.map(d => {
                         const isPaid = d.payment_status === 'confirmed'
+                        const isRefunded = d.payment_status === 'refunded'
                         const isReceipted = d.receipt_issued
                         const noThankYouExpected = d.is_anonymous || !d.donor_email?.trim()
-                        const railColor = !isPaid ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold
+                        const railColor = isRefunded ? C.red : !isPaid ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold
                         return (
                         <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={{ width: 4, borderRadius: 4, background: railColor, alignSelf: 'stretch', flexShrink: 0 }} />
@@ -10681,7 +10701,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 )}
                               </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                                {isPaid ? (
+                                {isRefunded ? (
+                                  <span style={{ fontSize: 10, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20 }}>↩ Refunded</span>
+                                ) : isPaid ? (
                                   <span style={{ fontSize: 10, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Paid</span>
                                 ) : userRole !== 'ed' ? (
                                   <span style={{ fontSize: 10, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20 }}>Unpaid · awaiting ED confirmation</span>
@@ -10762,7 +10784,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <>
                                 {charityIsIpc && <td style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td>}
                                 <td style={s.td}>
-                                  {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
+                                  {d.payment_status === 'refunded' ? <span style={{ ...s.badgePending, color: C.red }}>↩ Refunded</span> : d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : <span style={s.badgePending}>⚠️ Unverified</span>}
                                 </td>
                                 <td style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>
                               </>
@@ -10784,7 +10806,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
                                 payment: (
                                   <td key="payment" style={s.td}>
-                                    {d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
+                                    {d.payment_status === 'refunded' ? <span style={{ ...s.badgePending, color: C.red }}>↩ Refunded</span> : d.payment_status === 'confirmed' ? <span style={s.badgeIssued}>✓ Paid</span> : (
                                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                         <span style={s.badgePending}>⚠️ Unverified</span>
                                         {userRole === 'ed' ? (
@@ -10872,7 +10894,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                        {selectedDonation.payment_status === 'confirmed' ? (
+                        {selectedDonation.payment_status === 'refunded' ? (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '4px 10px', borderRadius: 20 }}>↩ Refunded</span>
+                        ) : selectedDonation.payment_status === 'confirmed' ? (
                           <span style={{ fontSize: 11, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Paid</span>
                         ) : (
                           <span style={{ fontSize: 11, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '4px 10px', borderRadius: 20 }}>Unpaid</span>
@@ -11145,7 +11169,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
                           <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
                         )}
-                        {selectedDonation.payment_status === 'confirmed' && (() => {
+                        {(selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') && (() => {
                           const myRefunds119 = refunds.filter(r => r.donation_id === selectedDonation.id)
                           const totalRefunded119 = myRefunds119.reduce((s, r) => s + Number(r.refund_amount), 0)
                           return (
@@ -11238,7 +11262,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             })
                           }}>🧾 Issue Receipt</button>
                         )}
-                        {selectedDonation.payment_status !== 'confirmed' && (
+                        {selectedDonation.payment_status !== 'confirmed' && selectedDonation.payment_status !== 'refunded' && (
                           userRole === 'ed' ? (
                             <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => {
                               const refToShow = selectedDonation.payment_ref || selectedDonation.receipt_number
