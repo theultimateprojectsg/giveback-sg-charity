@@ -8118,42 +8118,43 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         textX = margin + 34
       } catch (e) { console.error('Could not embed logo in receipt:', e) }
     }
-    doc.setFontSize(8)
+    doc.setFontSize(9)
     doc.setTextColor(255, 255, 255)
     doc.text('OFFICIAL DONATION RECEIPT', textX, 16)
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.text(charityName || 'Charity', textX, 25.5)
+    doc.setFontSize(19)
+    doc.setFont('times', 'bold')
+    doc.text(charityName || 'Charity', textX, 26.5)
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
+    doc.setFontSize(9.5)
     doc.setTextColor(220, 227, 223)
-    doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 33)
+    doc.text(`UEN ${charityUen || ''}  ·  ${isIpc ? 'Institution of a Public Character' : 'Registered Charity'}`, textX, 34)
 
     let y = 62
-    doc.setFontSize(8.5)
+    doc.setFontSize(9)
     doc.setTextColor(...mutedText)
     doc.text('ISSUED TO', margin, y)
     doc.text('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
-    y += 6.5
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
+    y += 7
+    doc.setFontSize(16)
+    doc.setFont('times', 'bold')
     doc.setTextColor(...darkText)
     doc.text(donation.receipt_name || donorReceiptNameOverrides[donation.donor_email?.trim() || donation.donor_name] || donation.donor_name || '', margin, y)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(...mutedText)
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(11)
+    doc.setTextColor(...forest)
     doc.text(donation.receipt_number || donation.payment_ref || 'N/A', pageWidth - margin, y, { align: 'right' })
+    doc.setFont('helvetica', 'normal')
 
     y += 16
     doc.setDrawColor(...hairline)
     doc.line(margin, y, pageWidth - margin, y)
     y += 13
-    doc.setFontSize(8.5)
+    doc.setFontSize(9)
     doc.setTextColor(...mutedText)
     doc.text('AMOUNT DONATED', pageWidth / 2, y, { align: 'center' })
-    y += 11
-    doc.setFontSize(27)
-    doc.setFont('helvetica', 'bold')
+    y += 13
+    doc.setFontSize(31)
+    doc.setFont('times', 'bold')
     doc.setTextColor(...forest)
     doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y, { align: 'center' })
     doc.setFont('helvetica', 'normal')
