@@ -9327,10 +9327,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
 
                 {fyiItemsVisible.length > 0 && (
-                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.border}` }}>
-                    <div style={{ background: C.ivory, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${C.border}` }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>Worth knowing</span>
-                      <span style={{ fontSize: 11.5, color: C.muted }}>· donor moments & opportunities — act if you'd like</span>
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}` }}>
+                    <div style={{ background: C.gold, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
                       {fyiItemsVisible.map((item, i) => (
