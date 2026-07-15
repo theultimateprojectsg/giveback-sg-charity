@@ -956,9 +956,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
-  const [donorProfileTab, setDonorProfileTab] = useState('overview')
+  const [donorProfileTab, setDonorProfileTab] = useState('donations')
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
-  useEffect(() => { setDonorProfileTab('overview') }, [selectedDonor?.email, selectedDonor?.name])
+  useEffect(() => { setDonorProfileTab('donations') }, [selectedDonor?.email, selectedDonor?.name])
 
   // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
@@ -9820,7 +9820,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>🚫 Do Not Contact — this donor is excluded from all emails, appeals, and outreach.</span>
               </div>
             )}
-            <div style={{ marginBottom: 16 }}>
+            <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 16 } : { display: 'grid', gridTemplateColumns: '360px 1fr', gap: 16, alignItems: 'start' }}>
+              <div>
                 <div style={{ background: C.forest, borderRadius: 4, padding: '20px 18px', marginBottom: 16 }}>
                   <div style={{ width: 52, height: 52, borderRadius: '50%', background: C.gold, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: C.fontVoice, fontWeight: 500, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
                   <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
@@ -9854,39 +9855,59 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )
                   })()}
-                </div>
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Summary</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-                    <div style={{ background: C.forest, borderRadius: 4, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Total Given</div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 18, fontWeight: 500, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 14, paddingTop: 14 }}>
+                    <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 10 }}>Giving Summary</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Total Given</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Donations</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.count}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Avg. Donation</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Receipts</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.receipts}/{selectedDonor.count}</div>
+                      </div>
                     </div>
-                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Donations</div>
-                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{selectedDonor.count}</div>
-                    </div>
-                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Avg. Donation</div>
-                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
-                    </div>
-                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 4 }}>Receipts</div>
-                      <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{selectedDonor.receipts}/{selectedDonor.count}</div>
-                    </div>
+                    {charityIsIpc && (
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>250% Tax Deductible</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: 'white' }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>Est. Tax Savings (22%)</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: '#9FD9BC' }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const key = selectedDonor.email?.trim() || selectedDonor.name
+                      const b = donorBadgeMap[key]
+                      if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
+                      return (
+                        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 8 }}>Milestones</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: b.hasUnackedBadge ? 12 : 0 }}>
+                            {b.isFirstTime && <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🆕 First donation</span>}
+                            {b.isBigGift && <span style={{ fontSize: 11, fontWeight: 600, color: 'white', background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>💰 ${thankYouThreshold}+ gift</span>}
+                            {b.isLoyal && <span style={{ fontSize: 11, fontWeight: 600, color: '#9FD9BC', background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🔁 Loyal donor</span>}
+                            {b.isBiggestYet && <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>📈 Biggest gift yet</span>}
+                          </div>
+                          {b.hasUnackedBadge && (
+                            <button style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }} onClick={() => generateThankYouNote(selectedDonor, b)}>✍️ Generate thank-you note</button>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
-                  {charityIsIpc && (
-                    <div style={{ marginTop: 14, padding: 12, background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>250% Tax Deductible</span>
-                        <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: C.forest }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>Est. Tax Savings (22%)</span>
-                        <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: C.sage }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {(() => {
@@ -9914,15 +9935,131 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-            </div>
 
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
+                  {(() => {
+                    const donorKey = selectedDonor.email?.trim() || selectedDonor.name
+                    const tags = donorTagsMap[donorKey] || []
+                    const presetTags = ['Major Donor', 'Monthly Giver', 'Event Donor', 'Corporate', 'Anonymous', 'In Memoriam', 'Board Member', 'Volunteer']
+                    return (
+                      <div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, minHeight: 28 }}>
+                          {tags.length === 0 && <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No tags yet</span>}
+                          {tags.map(t => (
+                            <span key={t.id} style={{ fontSize: 11, fontWeight: 600, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {t.tag}
+                              <span style={{ cursor: 'pointer', color: C.muted, fontSize: 12 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
+                            </span>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                          {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
+                            <span
+                              key={p}
+                              style={{ fontSize: 11, color: C.muted, background: C.ivory, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', border: `1px dashed ${C.borderStrong}` }}
+                              onClick={() => { setNewTagInput(p); }}
+                            >+ {p}</span>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input
+                            style={{ ...s.formInput, fontSize: 12, padding: '7px 10px' }}
+                            placeholder="Custom tag..."
+                            value={newTagInput}
+                            onChange={e => setNewTagInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
+                            maxLength={40}
+                          />
+                          <button
+                            style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
+                            disabled={!newTagInput.trim() || savingTag}
+                            onClick={() => saveDonorTag(selectedDonor)}
+                          >{savingTag ? '...' : 'Add'}</button>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                    <select
+                      style={{ ...s.filterSelect, fontSize: 12, padding: '8px 12px' }}
+                      value={newNoteType}
+                      onChange={e => setNewNoteType(e.target.value)}
+                    >
+                      <option value="note">📝 Note</option>
+                      <option value="call">📞 Call</option>
+                      <option value="email">📧 Email</option>
+                      <option value="meeting">🤝 Meeting</option>
+                      <option value="whatsapp">💬 WhatsApp</option>
+                    </select>
+                    <textarea
+                      style={{ ...s.formInput, minHeight: 72, resize: 'vertical', fontSize: 13 }}
+                      placeholder="Log a call, email, meeting, or note..."
+                      value={newNoteText}
+                      onChange={e => setNewNoteText(e.target.value)}
+                      maxLength={2000}
+                    />
+                    <button
+                      style={{ ...s.btnForest, justifyContent: 'center', opacity: newNoteText.trim() ? 1 : 0.5 }}
+                      disabled={!newNoteText.trim() || savingNote}
+                      onClick={saveNewDonorNote}
+                    >{savingNote ? '⏳ Saving...' : '+ Add to Log'}</button>
+                  </div>
+                  {donorNotesLoading ? (
+                    <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
+                  ) : donorNotes.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {donorNotes.map((n, i) => {
+                        const typeConfig = {
+                          call:      { icon: '📞', label: 'Call',      color: C.forest },
+                          email:     { icon: '📧', label: 'Email',     color: C.sage },
+                          meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
+                          whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
+                          note:      { icon: '📝', label: 'Note',      color: C.muted },
+                        }
+                        const tc = typeConfig[n.note_type] || typeConfig.note
+                        return (
+                          <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                                <span style={{ fontSize: 14 }}>{tc.icon}</span>
+                                <span style={{ fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 600, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 11, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span
+                                  style={{ fontSize: 11, color: C.red, cursor: 'pointer', fontWeight: 500 }}
+                                  onClick={() => setConfirmModal({
+                                    title: 'Delete this note?',
+                                    description: 'This cannot be undone.',
+                                    confirmLabel: 'Delete',
+                                    onConfirm: () => deleteDonorNote(n.id),
+                                  })}
+                                >✕</span>
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.note}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>by {n.created_by}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
             <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 20, flexWrap: 'wrap' }}>
               {[
-                { key: 'overview', icon: '📊', label: 'Overview' },
-                { key: 'details', icon: '📇', label: 'Details & Preferences' },
-                { key: 'notes', icon: '📝', label: 'Notes' },
                 { key: 'donations', icon: '💳', label: 'Donations' },
-                { key: 'account', icon: '⚙️', label: 'Account' },
+                { key: 'details', icon: '📇', label: 'Details & Preferences' },
+                { key: 'settings', icon: '⚙️', label: 'Settings' },
               ].map(sec => (
                 <div
                   key={sec.key}
@@ -9946,9 +10083,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ))}
             </div>
 
-            <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              <div>
-                {donorProfileTab === 'account' && (
+                {donorProfileTab === 'settings' && (
                 <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
@@ -10342,7 +10477,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
                 </>)}
 
-                {donorProfileTab === 'overview' && (() => {
+                {donorProfileTab === 'donations' && (() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
                   const outreachHistory = lapsedReminderHistory[donorKey] || []
                   const dismissal = lapsedDismissals[donorKey]
@@ -10380,7 +10515,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {donorProfileTab === 'overview' && (() => {
+                {donorProfileTab === 'donations' && (() => {
                   const donorKeyForFlag = selectedDonor.email?.trim() || selectedDonor.name
                   const flagMatch = allGivingChangeFlags.find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
                   if (!flagMatch) return null
@@ -10430,149 +10565,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {donorProfileTab === 'overview' && (() => {
-                  const key = selectedDonor.email?.trim() || selectedDonor.name
-                  const b = donorBadgeMap[key]
-                  if (!b || !(b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)) return null
-                  return (
-                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Milestones</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: b.hasUnackedBadge ? 14 : 0 }}>
-                        {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First donation</span>}
-                        {b.isBigGift && <span style={s.badgeIssued}>💰 ${thankYouThreshold}+ gift</span>}
-                        {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal donor</span>}
-                        {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest gift yet</span>}
-                      </div>
-                      {b.hasUnackedBadge && (
-                        <button
-                          style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }}
-                          onClick={() => generateThankYouNote(selectedDonor, b)}
-                        >✍️ Generate thank-you note</button>
-                      )}
-                    </div>
-                  )
-                })()}
-              </div>
-              <div>
-              {donorProfileTab === 'notes' && (<>
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
-                {(() => {
-                  const donorKey = selectedDonor.email?.trim() || selectedDonor.name
-                  const tags = donorTagsMap[donorKey] || []
-                  const presetTags = ['Major Donor', 'Monthly Giver', 'Event Donor', 'Corporate', 'Anonymous', 'In Memoriam', 'Board Member', 'Volunteer']
-                  return (
-                    <div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, minHeight: 28 }}>
-                        {tags.length === 0 && <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No tags yet</span>}
-                        {tags.map(t => (
-                          <span key={t.id} style={{ fontSize: 11, fontWeight: 600, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '4px 10px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {t.tag}
-                            <span style={{ cursor: 'pointer', color: C.muted, fontSize: 12 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
-                          </span>
-                        ))}
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                        {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
-                          <span
-                            key={p}
-                            style={{ fontSize: 11, color: C.muted, background: C.ivory, padding: '4px 10px', borderRadius: 4, cursor: 'pointer', border: `1px dashed ${C.borderStrong}` }}
-                            onClick={() => { setNewTagInput(p); }}
-                          >+ {p}</span>
-                        ))}
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          style={{ ...s.formInput, fontSize: 12, padding: '7px 10px' }}
-                          placeholder="Custom tag..."
-                          value={newTagInput}
-                          onChange={e => setNewTagInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
-                          maxLength={40}
-                        />
-                        <button
-                          style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
-                          disabled={!newTagInput.trim() || savingTag}
-                          onClick={() => saveDonorTag(selectedDonor)}
-                        >{savingTag ? '...' : 'Add'}</button>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  <select
-                    style={{ ...s.filterSelect, fontSize: 12, padding: '8px 12px' }}
-                    value={newNoteType}
-                    onChange={e => setNewNoteType(e.target.value)}
-                  >
-                    <option value="note">📝 Note</option>
-                    <option value="call">📞 Call</option>
-                    <option value="email">📧 Email</option>
-                    <option value="meeting">🤝 Meeting</option>
-                    <option value="whatsapp">💬 WhatsApp</option>
-                  </select>
-                  <textarea
-                    style={{ ...s.formInput, minHeight: 72, resize: 'vertical', fontSize: 13 }}
-                    placeholder="Log a call, email, meeting, or note..."
-                    value={newNoteText}
-                    onChange={e => setNewNoteText(e.target.value)}
-                    maxLength={2000}
-                  />
-                  <button
-                    style={{ ...s.btnForest, justifyContent: 'center', opacity: newNoteText.trim() ? 1 : 0.5 }}
-                    disabled={!newNoteText.trim() || savingNote}
-                    onClick={saveNewDonorNote}
-                  >{savingNote ? '⏳ Saving...' : '+ Add to Log'}</button>
-                </div>
-                {donorNotesLoading ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
-                ) : donorNotes.length === 0 ? (
-                  <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {donorNotes.map((n, i) => {
-                      const typeConfig = {
-                        call:      { icon: '📞', label: 'Call',      color: C.forest },
-                        email:     { icon: '📧', label: 'Email',     color: C.sage },
-                        meeting:   { icon: '🤝', label: 'Meeting',   color: C.gold },
-                        whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
-                        note:      { icon: '📝', label: 'Note',      color: C.muted },
-                      }
-                      const tc = typeConfig[n.note_type] || typeConfig.note
-                      return (
-                        <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '12px 14px', border: `1px solid ${C.border}` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                              <span style={{ fontSize: 14 }}>{tc.icon}</span>
-                              <span style={{ fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 600, color: tc.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tc.label}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 11, color: C.muted }}>{new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</span>
-                              <span
-                                style={{ fontSize: 11, color: C.red, cursor: 'pointer', fontWeight: 500 }}
-                                onClick={() => setConfirmModal({
-                                  title: 'Delete this note?',
-                                  description: 'This cannot be undone.',
-                                  confirmLabel: 'Delete',
-                                  onConfirm: () => deleteDonorNote(n.id),
-                                })}
-                              >✕</span>
-                            </div>
-                          </div>
-                          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.note}</div>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>by {n.created_by}</div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              </>)}
-
               {donorProfileTab === 'donations' && (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
@@ -10601,7 +10593,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               )}
 
-              {donorProfileTab === 'account' && (
+              {donorProfileTab === 'settings' && (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Account Actions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
