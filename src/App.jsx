@@ -3892,6 +3892,7 @@ export default function App() {
       details: { donor_name: selectedDonor.name, note_type: newNoteType, charity_uen: charityUen },
     })
     setDonorNotes(prev => [data[0], ...prev])
+    setDonorLastContactMap(prev => (!prev[donorKey] || new Date(data[0].created_at) > new Date(prev[donorKey])) ? { ...prev, [donorKey]: data[0].created_at } : prev)
     setNewNoteText('')
     setNewNoteType('note')
     setSavingNote(false)
