@@ -9870,7 +9870,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Avg. Donation</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: 'white' }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Receipts</div>
