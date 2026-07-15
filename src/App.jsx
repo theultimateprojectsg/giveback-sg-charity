@@ -8194,9 +8194,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setTextColor(...forest)
     doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y, { align: 'center' })
     doc.setFont('helvetica', 'normal')
-    y += 13
-
-    y += 13
+    y += 20
     const facts = [
       ['Donation date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
       ['Payment method', donation.source === 'manual' ? (donation.payment_method || 'Manual') : 'PayNow'],
