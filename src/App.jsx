@@ -8218,18 +8218,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (isIpc) {
       y += 4
       doc.setFillColor(...sage)
-      doc.rect(margin, y, 0.8, 18, 'F')
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'bold')
+      doc.rect(margin, y, 0.8, 19, 'F')
+      doc.setFontSize(11)
+      doc.setFont('times', 'bold')
       doc.setTextColor(...sage)
-      doc.text('250% tax deductible', margin + 6, y + 7)
+      doc.text('250% tax deductible', margin + 6, y + 7.5)
       doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8.5)
+      doc.setFontSize(9.5)
       doc.setTextColor(...mutedText)
-      doc.text(`Estimated tax savings at 22%: SGD $${(donation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}.00`, margin + 6, y + 14)
-      y += 24
+      doc.text(`Estimated tax savings at 22%: SGD $${(donation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}.00`, margin + 6, y + 15)
+      y += 25
       if (!donation.donor_nric) {
-        doc.setFontSize(8.5)
+        doc.setFontSize(9.5)
         doc.setTextColor(...gold)
         doc.text('⚠ NRIC/FIN not on file — required from the donor before this can be submitted for tax deduction.', margin, y, { maxWidth: contentWidth })
         y += 10
@@ -8239,29 +8239,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     y += 10
     doc.setDrawColor(...hairline)
     doc.line(margin, y, pageWidth - margin, y)
-    y += 11
-    doc.setFontSize(10.5)
-    doc.setFont('helvetica', 'italic')
+    y += 12
+    doc.setFontSize(12)
+    doc.setFont('times', 'italic')
     doc.setTextColor(...forest)
-    doc.text('With heartfelt thanks for your generosity,', margin, y)
-    y += 8
-    doc.setFont('helvetica', 'bolditalic')
-    doc.text(`The ${charityName || 'team'}`, margin, y)
+    doc.text('With heartfelt thanks for your generosity,', pageWidth - margin, y, { align: 'right' })
+    y += 8.5
+    doc.setFont('times', 'bolditalic')
+    doc.setFontSize(13)
+    doc.text(`The ${charityName || 'team'}`, pageWidth - margin, y, { align: 'right' })
     doc.setFont('helvetica', 'normal')
 
     const footerY = pageHeight - 26
     doc.setDrawColor(...hairline)
     doc.line(margin, footerY, pageWidth - margin, footerY)
-    doc.setFontSize(8.5)
+    doc.setFontSize(9)
     doc.setTextColor(...mutedText)
-    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 7, { align: 'center' })
-    doc.setFontSize(7.5)
+    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 7.5, { align: 'center' })
+    doc.setFontSize(8.5)
     doc.setTextColor(...faintText)
     doc.text(
       isIpc
         ? 'Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.'
         : 'This charity is registered but not an IPC — this donation is not tax deductible.',
-      pageWidth / 2, footerY + 14, { align: 'center', maxWidth: contentWidth }
+      pageWidth / 2, footerY + 15, { align: 'center', maxWidth: contentWidth }
     )
 
     return doc
