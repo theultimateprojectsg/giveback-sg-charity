@@ -10651,7 +10651,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {linkedPledges.map(p => (
-                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setActiveTab('pledges'); setEditingPledge(p) }}>
+                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setActiveTab('pledges'); setPledgeSearchTerm(p.donor_email?.trim() || p.donor_name) }}>
                             <div>
                               <span style={{ fontSize: 13, color: C.forest }}>🤝 ${Number(p.amount).toLocaleString()} pledge <span style={{ color: C.muted }}>· {p.status}</span></span>
                               {p.reference && <div style={{ fontSize: 10.5, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{p.reference}</div>}
