@@ -9255,17 +9255,44 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const visibleItems = items.filter(i => !i.key || !(snoozedItems[i.key] > nowMs))
                 .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
               const highItems = visibleItems.filter(i => i.priority === 'high')
+              const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key] > nowMs)
+
+              const snoozedSection = snoozedActiveItems.length > 0 ? (
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ fontSize: 12, color: C.muted, cursor: 'pointer' }} onClick={() => setShowSnoozedItems(v => !v)}>
+                    {snoozedActiveItems.length} snoozed · {showSnoozedItems ? 'Hide' : 'Show'}
+                  </span>
+                  {showSnoozedItems && (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {snoozedActiveItems.map((item, i) => {
+                        const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
+                            <span style={{ flex: 1, color: C.muted }}>{item.label}</span>
+                            <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{daysLeft}d left</span>
+                            <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }} onClick={() => unsnoozeActionItem(item.key)}>Un-snooze</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null
 
               if (visibleItems.length === 0) {
                 return (
-                  <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up for today.</span>
-                    <span style={{ fontSize: 13, color: C.muted }}>Nothing left to review — nice work.</span>
-                  </div>
+                  <>
+                    <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
+                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up for today.</span>
+                      <span style={{ fontSize: 13, color: C.muted }}>Nothing left to review — nice work.</span>
+                    </div>
+                    {snoozedSection}
+                  </>
                 )
               }
 
               return (
+                <>
                 <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
                   <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{visibleItems.length} action item{visibleItems.length > 1 ? 's' : ''} need{visibleItems.length === 1 ? 's' : ''} your attention</span>
@@ -9296,6 +9323,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ))}
                   </div>
                 </div>
+                {snoozedSection}
+                </>
               )
             })()}
 
