@@ -3983,9 +3983,8 @@ export default function App() {
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
     setDonations(data)
-    setSelectedDonationIds(prev => prev.filter(id => data.some(d => d.id === id)))
     setLoading(false)
-  } 
+  }
 
   async function checkPledgeCompletion(donation) {
     const donorKey = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
@@ -4556,10 +4555,8 @@ export default function App() {
     setFilterThankYou('All')
     setFilterMinAmount(null)
     setDonationFilterLabel(null)
-    setSelectedDonationIds([])
     setDonationSortBy(null)
     setDonationSortDir('desc')
-    setBulkEditMode(false)
   }
 
 
