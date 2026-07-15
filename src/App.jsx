@@ -11347,7 +11347,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div>
                         <div style={{ fontSize: 34, fontWeight: 800, color: 'white', lineHeight: 1 }}>${Number(selectedDonation.amount).toLocaleString()}</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>
-                          {new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {selectedDonation.source === 'manual' ? `${selectedDonation.payment_method || 'Manual'} entry` : 'PayNow via Giving Tree App'}
+                          {new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {selectedDonation.source === 'manual' ? `${selectedDonation.payment_method || 'Manual'} entry` : `${selectedDonation.payment_method || 'PayNow'} via Giving Tree App`}{selectedDonation.recurring_gift_id ? ' · Recurring' : ''}
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
