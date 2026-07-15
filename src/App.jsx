@@ -1840,6 +1840,47 @@ export default function App() {
     setRoleLoaded(true)
   }
 
+  useEffect(() => {
+    if (!charityLogoUrl) { setCharityLogoDataUrl(null); return }
+    let cancelled = false
+    fetch(charityLogoUrl)
+      .then(res => res.blob())
+      .then(blob => new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }))
+      .then(dataUrl => { if (!cancelled) setCharityLogoDataUrl(dataUrl) })
+      .catch(err => { console.error('Could not load charity logo for PDF embedding:', err); if (!cancelled) setCharityLogoDataUrl(null) })
+    return () => { cancelled = true }
+  }, [charityLogoUrl])
+
+  async function uploadCharityLogo(file) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { showToast('Please choose an image file', 'error'); return }
+    if (file.size > 2 * 1024 * 1024) { showToast('Logo must be under 2MB', 'error'); return }
+    setUploadingLogo(true)
+    const ext = file.name.split('.').pop().toLowerCase()
+    const path = `${charityUen}/logo.${ext}`
+    const { error: uploadError } = await supabase.storage.from('charity-assets').upload(path, file, { upsert: true, cacheControl: '3600' })
+    if (uploadError) { showToast(`Error uploading logo: ${uploadError.message}`, 'error'); setUploadingLogo(false); return }
+    const { data: urlData } = supabase.storage.from('charity-assets').getPublicUrl(path)
+    const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`
+    const { error: dbError } = await supabase.from('charity_contacts').update({ logo_url: publicUrl }).eq('charity_uen', charityUen)
+    if (dbError) { showToast(`Error saving logo: ${dbError.message}`, 'error'); setUploadingLogo(false); return }
+    setCharityLogoUrl(publicUrl)
+    setUploadingLogo(false)
+    showToast('Logo updated ✓')
+  }
+
+  async function removeCharityLogo() {
+    const { error } = await supabase.from('charity_contacts').update({ logo_url: null }).eq('charity_uen', charityUen)
+    if (error) { showToast('Error removing logo', 'error'); return }
+    setCharityLogoUrl(null)
+    showToast('Logo removed')
+  }
+
   async function loadDonorBadgeAcks(activeSession = session) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
     if (!uen) return
