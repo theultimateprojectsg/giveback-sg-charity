@@ -1521,6 +1521,8 @@ export default function App() {
   })
   const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(null)
 
+  const [showSnoozedItems, setShowSnoozedItems] = useState(false)
+
   function snoozeActionItem(itemKey, days) {
     setSnoozedItems(prev => {
       const next = { ...prev, [itemKey]: Date.now() + days * 24 * 60 * 60 * 1000 }
@@ -1528,6 +1530,15 @@ export default function App() {
       return next
     })
     setSnoozeMenuOpen(null)
+  }
+
+  function unsnoozeActionItem(itemKey) {
+    setSnoozedItems(prev => {
+      const next = { ...prev }
+      delete next[itemKey]
+      localStorage.setItem('gt_snoozed_action_items', JSON.stringify(next))
+      return next
+    })
   }
 
   useEffect(() => {
