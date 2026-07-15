@@ -8173,18 +8173,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setCharSpace(0)
     doc.setFont('helvetica', 'normal')
 
-    y += 18
-    // Gold corner brackets frame the hero amount like a certified stamp — distinct from the plain
-    // hairlines used for ordinary section breaks, so this one moment reads as the focal point.
-    const heroTop = y - 8, heroBottom = y + 34, tick = 5
-    doc.setDrawColor(...gold)
-    doc.setLineWidth(0.6)
-    ;[[margin, heroTop, 1, 1], [pageWidth - margin, heroTop, -1, 1], [margin, heroBottom, 1, -1], [pageWidth - margin, heroBottom, -1, -1]].forEach(([cx, cy, dx, dy]) => {
-      doc.line(cx, cy, cx + tick * dx, cy)
-      doc.line(cx, cy, cx, cy + tick * dy)
-    })
-    doc.setLineWidth(0.2)
-    y += 5
+    y += 16
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 13
     doc.setFontSize(9)
     doc.setTextColor(...mutedText)
     microLabel('AMOUNT DONATED', pageWidth / 2, y, { align: 'center' })
@@ -8194,7 +8186,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setTextColor(...forest)
     doc.text(`SGD $${Number(donation.amount).toLocaleString()}.00`, pageWidth / 2, y, { align: 'center' })
     doc.setFont('helvetica', 'normal')
-    y += 20
+    y += 13
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 7
     const facts = [
       ['Donation date', new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
       ['Payment method', donation.source === 'manual' ? (donation.payment_method || 'Manual') : 'PayNow'],
