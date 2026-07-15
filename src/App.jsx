@@ -9028,7 +9028,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const items = []
 
               const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-              if (unconfirmed > 0) items.push({ icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
+              if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
               const wasRecentlyReminded = (p) => {
                 const history = pledgeReminderHistory[p.id]
