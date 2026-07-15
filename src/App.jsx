@@ -8201,16 +8201,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       y += 5
       const noteLines = doc.splitTextToSize(donation.notes, contentWidth - 10)
       doc.setFillColor(...gold)
-      doc.rect(margin, y, 0.8, noteLines.length * 5 + 6, 'F')
-      doc.setFontSize(7.5)
+      doc.rect(margin, y, 0.8, noteLines.length * 5.5 + 6, 'F')
+      doc.setFontSize(8.5)
       doc.setTextColor(...mutedText)
       doc.text('NOTE', margin + 5, y + 4.5)
-      doc.setFontSize(9.5)
-      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(10.5)
+      doc.setFont('times', 'italic')
       doc.setTextColor(...darkText)
-      doc.text(noteLines, margin + 5, y + 10.5)
+      doc.text(noteLines, margin + 5, y + 11)
       doc.setFont('helvetica', 'normal')
-      y += noteLines.length * 5 + 14
+      y += noteLines.length * 5.5 + 14
     } else {
       y += 4
     }
