@@ -1706,6 +1706,7 @@ export default function App() {
       loadCharityIpcStatus(session)
       loadDonorBadgeAcks(session)
       loadAllDonorTags(session)
+      loadAllDonorLastContact(session)
       loadPledges(session)
       loadRecurringGifts(session)
       loadMassAppeals(session)
