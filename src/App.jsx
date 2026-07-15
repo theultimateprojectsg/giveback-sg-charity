@@ -15392,7 +15392,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ marginBottom: 2 }}>
                       <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                       <span style={{ fontSize: 12, color: C.muted }}> / {frequencyLabel}</span>
-                      {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Ref: {g.giro_reference}</span>}
+                      {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Bank ref: {g.giro_reference}</span>}
+                      {g.reference && <span style={{ fontSize: 11.5, color: C.muted, fontFamily: C.fontMono }}> · {g.reference}</span>}
                     </div>
                     <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>~${annualizedValue.toLocaleString()} / year{g.notes && ` · ${g.notes}`}</div>
                     {needsBankInfo && g.bank_name && (
