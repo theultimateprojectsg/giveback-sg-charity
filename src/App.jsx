@@ -458,8 +458,8 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
 }
 
 function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, categories, s, C,
-  onSaveExpense, onDeleteExpense, onSaveTranche, onToggleTranche, onDeleteTranche,
-  onSaveReport, onToggleReport, onDeleteReport, onSaveClaim, onDeleteClaim, onSaveNote }) {
+  onSaveExpense, onEditExpense, onDeleteExpense, onSaveTranche, onToggleTranche, onEditTranche, onDeleteTranche,
+  onSaveReport, onToggleReport, onEditReport, onDeleteReport, onSaveClaim, onEditClaim, onDeleteClaim, onSaveNote }) {
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Programme Costs' })
   const [trancheForm, setTrancheForm] = useState({ label: '', amount: '', expected_date: '' })
   const [reportForm, setReportForm] = useState({ label: '', due_date: '' })
@@ -471,22 +471,100 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
   const [savingClaim, setSavingClaim] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
 
+  const [editingExpenseId, setEditingExpenseId] = useState(null)
+  const [editingExpenseForm, setEditingExpenseForm] = useState(null)
+  const [savingEditedExpense, setSavingEditedExpense] = useState(false)
+  function startEditingExpense(e) {
+    setEditingExpenseId(e.id)
+    setEditingExpenseForm({ description: e.description, amount: String(e.amount), expense_date: e.expense_date, category: e.category || categories[0] || 'Programme Costs' })
+  }
+  async function saveEditedExpense(e) {
+    if (savingEditedExpense || !editingExpenseForm.description.trim() || !editingExpenseForm.amount) return
+    setSavingEditedExpense(true)
+    await onEditExpense(e, { description: editingExpenseForm.description.trim(), amount: parseFloat(editingExpenseForm.amount), expense_date: editingExpenseForm.expense_date, category: editingExpenseForm.category || null })
+    setSavingEditedExpense(false)
+    setEditingExpenseId(null)
+  }
+
+  const [editingTrancheId, setEditingTrancheId] = useState(null)
+  const [editingTrancheForm, setEditingTrancheForm] = useState(null)
+  const [savingEditedTranche, setSavingEditedTranche] = useState(false)
+  function startEditingTranche(t) {
+    setEditingTrancheId(t.id)
+    setEditingTrancheForm({ label: t.label, amount: String(t.amount), expected_date: t.expected_date })
+  }
+  async function saveEditedTranche(t) {
+    if (savingEditedTranche || !editingTrancheForm.label.trim() || !editingTrancheForm.amount || !editingTrancheForm.expected_date) return
+    setSavingEditedTranche(true)
+    await onEditTranche(t, { label: editingTrancheForm.label.trim(), amount: parseFloat(editingTrancheForm.amount), expected_date: editingTrancheForm.expected_date })
+    setSavingEditedTranche(false)
+    setEditingTrancheId(null)
+  }
+
+  const [editingReportId, setEditingReportId] = useState(null)
+  const [editingReportForm, setEditingReportForm] = useState(null)
+  const [savingEditedReport, setSavingEditedReport] = useState(false)
+  function startEditingReport(r) {
+    setEditingReportId(r.id)
+    setEditingReportForm({ label: r.label, due_date: r.due_date })
+  }
+  async function saveEditedReport(r) {
+    if (savingEditedReport || !editingReportForm.label.trim() || !editingReportForm.due_date) return
+    setSavingEditedReport(true)
+    await onEditReport(r, { label: editingReportForm.label.trim(), due_date: editingReportForm.due_date })
+    setSavingEditedReport(false)
+    setEditingReportId(null)
+  }
+
+  const [editingClaimId, setEditingClaimId] = useState(null)
+  const [editingClaimForm, setEditingClaimForm] = useState(null)
+  const [savingEditedClaim, setSavingEditedClaim] = useState(false)
+  function startEditingClaim(c) {
+    setEditingClaimId(c.id)
+    setEditingClaimForm({ amount: String(c.amount), claim_date: c.claim_date, notes: c.notes || '' })
+  }
+  async function saveEditedClaim(c) {
+    if (savingEditedClaim || !editingClaimForm.amount || !editingClaimForm.claim_date) return
+    setSavingEditedClaim(true)
+    await onEditClaim(c, { amount: parseFloat(editingClaimForm.amount), claim_date: editingClaimForm.claim_date, notes: editingClaimForm.notes?.trim() || null })
+    setSavingEditedClaim(false)
+    setEditingClaimId(null)
+  }
+
   return (
     <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
       <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Expenses</div>
       {expenses.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {expenses.map(e => (
-            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-              <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
-                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+            editingExpenseId === e.id ? (
+              <div key={e.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} value={editingExpenseForm.description} onChange={ev => setEditingExpenseForm(f => ({ ...f, description: ev.target.value }))} maxLength={200} />
+                  <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={editingExpenseForm.category} onChange={ev => setEditingExpenseForm(f => ({ ...f, category: ev.target.value }))}>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" value={editingExpenseForm.amount} onChange={ev => setEditingExpenseForm(f => ({ ...f, amount: ev.target.value }))} />
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={editingExpenseForm.expense_date} onChange={ev => setEditingExpenseForm(f => ({ ...f, expense_date: ev.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button style={{ ...s.issueBtn, fontSize: 11, padding: '4px 10px' }} disabled={savingEditedExpense} onClick={() => saveEditedExpense(e)}>{savingEditedExpense ? 'Saving...' : 'Save'}</button>
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setEditingExpenseId(null)}>Cancel</button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingExpense(e)}>✏️</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+                </div>
+              </div>
+            )
           ))}
         </div>
       )}
@@ -505,6 +583,21 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {tranches.map(t => {
             const isOverdue = !t.received && new Date(t.expected_date) < new Date()
+            if (editingTrancheId === t.id) {
+              return (
+                <div key={t.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} value={editingTrancheForm.label} onChange={ev => setEditingTrancheForm(f => ({ ...f, label: ev.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" value={editingTrancheForm.amount} onChange={ev => setEditingTrancheForm(f => ({ ...f, amount: ev.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={editingTrancheForm.expected_date} onChange={ev => setEditingTrancheForm(f => ({ ...f, expected_date: ev.target.value }))} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ ...s.issueBtn, fontSize: 11, padding: '4px 10px' }} disabled={savingEditedTranche} onClick={() => saveEditedTranche(t)}>{savingEditedTranche ? 'Saving...' : 'Save'}</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setEditingTrancheId(null)}>Cancel</button>
+                  </div>
+                </div>
+              )
+            }
             return (
               <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.received ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                 <span style={{ color: t.received ? C.muted : isOverdue ? C.red : C.warning, textDecoration: t.received ? 'line-through' : 'none' }}>
@@ -512,6 +605,7 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => onToggleTranche(t)}>{t.received ? '↺ Undo' : '✓ Received'}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingTranche(t)}>✏️</span>
                   <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteTranche(t)}>✕</span>
                 </div>
               </div>
@@ -531,6 +625,20 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {reports.map(r => {
             const isOverdue = !r.submitted && new Date(r.due_date) < new Date()
+            if (editingReportId === r.id) {
+              return (
+                <div key={r.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} value={editingReportForm.label} onChange={ev => setEditingReportForm(f => ({ ...f, label: ev.target.value }))} />
+                    <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={editingReportForm.due_date} onChange={ev => setEditingReportForm(f => ({ ...f, due_date: ev.target.value }))} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ ...s.issueBtn, fontSize: 11, padding: '4px 10px' }} disabled={savingEditedReport} onClick={() => saveEditedReport(r)}>{savingEditedReport ? 'Saving...' : 'Save'}</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setEditingReportId(null)}>Cancel</button>
+                  </div>
+                </div>
+              )
+            }
             return (
               <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: r.submitted ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                 <span style={{ color: r.submitted ? C.muted : isOverdue ? C.red : C.warning, textDecoration: r.submitted ? 'line-through' : 'none' }}>
@@ -538,6 +646,7 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ color: C.sage, cursor: 'pointer', fontWeight: 500 }} onClick={() => onToggleReport(r)}>{r.submitted ? '↺ Undo' : '✓ Submitted'}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingReport(r)}>✏️</span>
                   <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteReport(r)}>✕</span>
                 </div>
               </div>
@@ -557,10 +666,27 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
           {claims.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {claims.map(c => (
-                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                  <span style={{ color: C.text }}>${Number(c.amount).toLocaleString()} <span style={{ color: C.muted }}>· {new Date(c.claim_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.notes ? ` — ${c.notes}` : ''}</span></span>
-                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteClaim(c)}>✕</span>
-                </div>
+                editingClaimId === c.id ? (
+                  <div key={c.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                      <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="number" value={editingClaimForm.amount} onChange={ev => setEditingClaimForm(f => ({ ...f, amount: ev.target.value }))} />
+                      <input style={{ ...s.formInput, fontSize: 12, flex: 1 }} type="date" value={editingClaimForm.claim_date} onChange={ev => setEditingClaimForm(f => ({ ...f, claim_date: ev.target.value }))} />
+                      <input style={{ ...s.formInput, fontSize: 12, flex: 2 }} placeholder="Notes (optional)" value={editingClaimForm.notes} onChange={ev => setEditingClaimForm(f => ({ ...f, notes: ev.target.value }))} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button style={{ ...s.issueBtn, fontSize: 11, padding: '4px 10px' }} disabled={savingEditedClaim} onClick={() => saveEditedClaim(c)}>{savingEditedClaim ? 'Saving...' : 'Save'}</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setEditingClaimId(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                    <span style={{ color: C.text }}>${Number(c.amount).toLocaleString()} <span style={{ color: C.muted }}>· {new Date(c.claim_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{c.notes ? ` — ${c.notes}` : ''}</span></span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingClaim(c)}>✏️</span>
+                      <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteClaim(c)}>✕</span>
+                    </div>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -592,10 +718,32 @@ function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, c
   )
 }
 
-function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense, onDeleteExpense }) {
+function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense, onEditExpense, onDeleteExpense }) {
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Other' })
   const [savingExpense, setSavingExpense] = useState(false)
+  const [editingExpenseId, setEditingExpenseId] = useState(null)
+  const [editingExpenseForm, setEditingExpenseForm] = useState(null)
+  const [savingEditedExpense, setSavingEditedExpense] = useState(false)
   const spent = expenses.reduce((s2, e) => s2 + Number(e.amount), 0)
+
+  function startEditingExpense(e) {
+    setEditingExpenseId(e.id)
+    setEditingExpenseForm({ description: e.description, amount: String(e.amount), expense_date: e.expense_date, category: e.category || categories[0] || 'Other' })
+  }
+
+  async function saveEditedExpense(e) {
+    if (savingEditedExpense) return
+    if (!editingExpenseForm.description.trim() || !editingExpenseForm.amount) { return }
+    setSavingEditedExpense(true)
+    await onEditExpense(e, {
+      description: editingExpenseForm.description.trim(),
+      amount: parseFloat(editingExpenseForm.amount),
+      expense_date: editingExpenseForm.expense_date,
+      category: editingExpenseForm.category || null,
+    })
+    setSavingEditedExpense(false)
+    setEditingExpenseId(null)
+  }
 
   return (
     <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
@@ -606,16 +754,34 @@ function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense
       {expenses.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
           {expenses.map(e => (
-            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-              <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
-                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+            editingExpenseId === e.id ? (
+              <div key={e.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 2, minWidth: 120 }} value={editingExpenseForm.description} onChange={ev => setEditingExpenseForm(f => ({ ...f, description: ev.target.value }))} maxLength={200} />
+                  <select style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} value={editingExpenseForm.category} onChange={ev => setEditingExpenseForm(f => ({ ...f, category: ev.target.value }))}>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 80 }} type="number" value={editingExpenseForm.amount} onChange={ev => setEditingExpenseForm(f => ({ ...f, amount: ev.target.value }))} />
+                  <input style={{ ...s.formInput, fontSize: 12, flex: 1, minWidth: 110 }} type="date" value={editingExpenseForm.expense_date} onChange={ev => setEditingExpenseForm(f => ({ ...f, expense_date: ev.target.value }))} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button style={{ ...s.issueBtn, fontSize: 11, padding: '4px 10px' }} disabled={savingEditedExpense} onClick={() => saveEditedExpense(e)}>{savingEditedExpense ? 'Saving...' : 'Save'}</button>
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => setEditingExpenseId(null)}>Cancel</button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                <span style={{ color: C.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {e.description} <span style={{ color: C.muted }}>· {new Date(e.expense_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  {e.category && <span style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px' }}>{e.category}</span>}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(e.amount).toLocaleString()}</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingExpense(e)}>✏️</span>
+                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => onDeleteExpense(e.id)}>✕</span>
+                </div>
+              </div>
+            )
           ))}
         </div>
       )}
@@ -847,6 +1013,35 @@ export default function App() {
     const saved = tabScrollPositions.current[activeTab] || 0
     requestAnimationFrame(() => window.scrollTo(0, saved))
   }, [activeTab])
+
+  const ANALYTICS_NAV_OFFSET = 64 // approx height of the sticky section-jump bar, so scrolled-to titles land just below it instead of hidden behind it
+  const [activeAnalyticsSection, setActiveAnalyticsSection] = useState('analytics-section-overview')
+  useEffect(() => {
+    if (activeTab !== 'analytics') return
+    const sectionIds = [
+      'analytics-section-overview',
+      'analytics-section-fundraising',
+      ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
+      ...(enabledModules.massappeal !== false ? ['analytics-section-massappeals'] : []),
+      ...(enabledModules.pledges !== false ? ['analytics-section-pledges'] : []),
+      ...(enabledModules.recurring !== false ? ['analytics-section-recurring'] : []),
+      ...(enabledModules.grants !== false ? ['analytics-section-grants'] : []),
+      'analytics-section-donorbehavior',
+      'analytics-section-forecasting',
+    ]
+    const stickyOffset = (isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET + 4
+    function onScroll() {
+      let current = sectionIds[0]
+      for (const id of sectionIds) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top - stickyOffset <= 0) current = id
+      }
+      setActiveAnalyticsSection(current)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [activeTab, isMobile, enabledModules])
 
   // Shared keyboard handling for every modal: Escape triggers the topmost overlay's own
   // backdrop-click handler (so each modal's existing close/guard logic — e.g. blocking
@@ -1998,6 +2193,19 @@ export default function App() {
     setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map(t => t.id === tranche.id ? data : t) }))
   }
 
+  async function editGrantTranche(tranche, updates) {
+    const { data, error } = await supabase.from('grant_tranches').update(updates).eq('id', tranche.id).select().single()
+    if (error) { showToast('Error updating tranche', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_tranche_edited',
+      details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, before: { label: tranche.label, amount: tranche.amount, expected_date: tranche.expected_date }, after: updates, charity_uen: charityUen },
+    })
+    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map(t => t.id === tranche.id ? data : t).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
+    showToast('Tranche updated ✓')
+  }
+
   async function deleteGrantTranche(tranche) {
     const { error } = await supabase.from('grant_tranches').delete().eq('id', tranche.id)
     if (error) { showToast('Error deleting tranche', 'error'); return }
@@ -2041,6 +2249,19 @@ export default function App() {
     showToast('Claim logged ✓')
   }
 
+  async function editGrantMatchClaim(claim, updates) {
+    const { data, error } = await supabase.from('grant_match_claims').update(updates).eq('id', claim.id).select().single()
+    if (error) { showToast('Error updating claim', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_match_claim_edited',
+      details: { funder_name: grants.find(g => g.id === claim.grant_id)?.funder_name, before: { amount: claim.amount, claim_date: claim.claim_date }, after: updates, charity_uen: charityUen },
+    })
+    setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).map(c => c.id === claim.id ? data : c) }))
+    showToast('Claim updated ✓')
+  }
+
   async function deleteGrantMatchClaim(claim) {
     const { error } = await supabase.from('grant_match_claims').delete().eq('id', claim.id)
     if (error) { showToast('Error deleting claim', 'error'); return }
@@ -2073,6 +2294,19 @@ export default function App() {
     })
     setGrantExpenses(prev => [...prev, data])
     showToast('Expense logged ✓')
+  }
+
+  async function editGrantExpense(expense, updates) {
+    const { data, error } = await supabase.from('grant_expenses').update(updates).eq('id', expense.id).select().single()
+    if (error) { showToast('Error updating expense', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_expense_edited',
+      details: { funder_name: grants.find(g => g.id === expense.grant_id)?.funder_name, before: { description: expense.description, amount: expense.amount }, after: updates, charity_uen: charityUen },
+    })
+    setGrantExpenses(prev => prev.map(e => e.id === expense.id ? data : e))
+    showToast('Expense updated ✓')
   }
 
   async function deleteGrantExpense(id) {
@@ -2606,6 +2840,7 @@ export default function App() {
       notes: pledgeResolutionNotes || 'Pledge fulfillment',
       charity_uen: charityUen,
       receipt_number: receiptNumber,
+      created_by: session.user.email,
     }).select().single()
 
     if (donationError) { showToast('Error recording donation', 'error'); return }
@@ -2913,7 +3148,7 @@ export default function App() {
     if (newAmount === Number(donation.amount)) { setEditingRecurringDonationId(null); return }
     setSavingRecurringAmount(true)
     const { error } = await supabase.from('donations').update({ amount: newAmount }).eq('id', donation.id)
-    if (error) { console.error('Error updating recurring payment amount:', error); showToast('Error saving amount', 'error'); setSavingRecurringAmount(false); return }
+    if (error) { console.error('Error updating recurring payment amount:', error); showToast(`Error saving amount: ${error.message}${error.code ? ` (${error.code})` : ''}`, 'error'); setSavingRecurringAmount(false); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -2961,6 +3196,7 @@ export default function App() {
       notes: `Recurring ${gift.frequency} gift`,
       charity_uen: charityUen,
       receipt_number: receiptNumber,
+      created_by: session.user.email,
     }).select().single()
 
     if (donationError) { showToast('Error recording donation', 'error'); setMarkingReceived(false); return }
@@ -8539,6 +8775,52 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
               </div>
 
+            {/* ── THIS WEEK, IN WORDS ── */}
+            {(() => {
+              const now = new Date()
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+              const prevWeekAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+
+              const thisWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= weekAgo)
+              const lastWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= prevWeekAgo && new Date(d.created_at) < weekAgo)
+              const weekTotal = thisWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const lastWeekTotal = lastWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const weekDonorKeys = new Set(thisWeekDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const weekGrowthPct = lastWeekTotal > 0 ? Math.round(((weekTotal - lastWeekTotal) / lastWeekTotal) * 100) : null
+
+              const donorFirstGiftW = {}
+              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGiftW[key]) donorFirstGiftW[key] = d.created_at
+              })
+              const newDonorsThisWeek = [...weekDonorKeys].filter(k => new Date(donorFirstGiftW[k]) >= weekAgo).length
+              const biggestGiftThisWeek = thisWeekDonations.sort((a, b) => b.amount - a.amount)[0]
+
+              const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
+              const escalatedGiroW = giroMissedCycles.filter(g => g.missedCycles >= 2).length
+              const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
+
+              const monthlyExpensesSet = monthlyExpenses > 0
+              const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
+
+              const sentences = []
+              sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
+              if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
+              if (biggestGiftThisWeek) sentences.push(`Your biggest gift this week was $${Number(biggestGiftThisWeek.amount).toLocaleString()} from ${biggestGiftThisWeek.donor_name}.`)
+              sentences.push(attentionCount > 0
+                ? `${attentionCount} item${attentionCount > 1 ? 's need' : ' needs'} your attention — see below.`
+                : `Nothing urgent needs your attention right now.`)
+              if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
+
+              return (
+                <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
+                  <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
+                </div>
+              )
+            })()}
+
             {/* ── ACTION ITEMS ── */}
             {(() => {
               const today = new Date()
@@ -11525,8 +11807,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ].map(section => (
                 <button
                   key={section.id}
-                  style={{ ...s.viewBtn, fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0 }}
-                  onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={activeAnalyticsSection === section.id
+                    ? { ...s.viewBtn, fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0, background: C.forest, borderColor: C.forest, color: 'white' }
+                    : { ...s.viewBtn, fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  onClick={() => {
+                    const el = document.getElementById(section.id)
+                    if (!el) return
+                    const top = el.getBoundingClientRect().top + window.scrollY - ((isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET)
+                    window.scrollTo({ top, behavior: 'smooth' })
+                  }}
                 >{section.label}</button>
               ))}
             </div>
@@ -14676,6 +14965,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         expenses={campaignExpensesByCause[c.id] || []}
                         categories={campaignExpenseCategories}
                         onSaveExpense={form => saveCampaignExpense(c.id, form)}
+                        onEditExpense={(expense, updates) => editCampaignExpense(expense, updates)}
                         onDeleteExpense={id => {
                           const exp = (campaignExpensesByCause[c.id] || []).find(e => e.id === id)
                           setConfirmModal({
@@ -16418,6 +16708,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         expenses={myExpenses84} tranches={myTranches} reports={myReports} claims={myClaims} notes={grantNotes[g.id] || []}
                         categories={grantExpenseCategories}
                         onSaveExpense={form => saveGrantExpense(g.id, form)}
+                        onEditExpense={(expense, updates) => editGrantExpense(expense, updates)}
                         onDeleteExpense={id => {
                           const exp = (myExpenses84 || []).find(e => e.id === id)
                           setConfirmModal({
@@ -16429,11 +16720,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         }}
                         onSaveTranche={form => saveGrantTranche(g.id, form)}
                         onToggleTranche={toggleGrantTrancheReceived}
+                        onEditTranche={editGrantTranche}
                         onDeleteTranche={deleteGrantTranche}
                         onSaveReport={form => saveGrantReport(g.id, form)}
                         onToggleReport={toggleGrantReportSubmitted}
+                        onEditReport={editGrantReport}
                         onDeleteReport={deleteGrantReport}
                         onSaveClaim={form => saveGrantMatchClaim(g.id, form)}
+                        onEditClaim={editGrantMatchClaim}
                         onDeleteClaim={deleteGrantMatchClaim}
                         onSaveNote={noteText => saveGrantNote(g.id, noteText)}
                       />
