@@ -8146,7 +8146,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(255, 255, 255)
-    doc.text('OFFICIAL DONATION RECEIPT', textX, 16)
+    microLabel('OFFICIAL DONATION RECEIPT', textX, 16)
     doc.setFontSize(19)
     doc.setFont('times', 'bold')
     doc.text(charityName || 'Charity', textX, 26.5)
