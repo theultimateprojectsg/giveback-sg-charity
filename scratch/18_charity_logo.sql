@@ -8,21 +8,25 @@ values ('charity-assets', 'charity-assets', true)
 on conflict (id) do nothing;
 
 -- Public read (logos need to render in a downloaded/emailed PDF with no auth context).
-create policy if not exists "Public read charity assets"
+drop policy if exists "Public read charity assets" on storage.objects;
+create policy "Public read charity assets"
 on storage.objects for select
 using (bucket_id = 'charity-assets');
 
 -- Any authenticated charity staff user can upload/replace/delete their own logo.
 -- (Matches the app's existing trust model: all writes elsewhere are gated by being logged in,
 -- not by fine-grained per-charity storage rules.)
-create policy if not exists "Authenticated upload charity assets"
+drop policy if exists "Authenticated upload charity assets" on storage.objects;
+create policy "Authenticated upload charity assets"
 on storage.objects for insert
 with check (bucket_id = 'charity-assets' and auth.role() = 'authenticated');
 
-create policy if not exists "Authenticated update charity assets"
+drop policy if exists "Authenticated update charity assets" on storage.objects;
+create policy "Authenticated update charity assets"
 on storage.objects for update
 using (bucket_id = 'charity-assets' and auth.role() = 'authenticated');
 
-create policy if not exists "Authenticated delete charity assets"
+drop policy if exists "Authenticated delete charity assets" on storage.objects;
+create policy "Authenticated delete charity assets"
 on storage.objects for delete
 using (bucket_id = 'charity-assets' and auth.role() = 'authenticated');
