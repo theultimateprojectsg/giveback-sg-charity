@@ -10492,7 +10492,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const statusLabel = d.payment_status === 'refunded' ? '↩ Refunded' : d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
                       const statusColor = d.payment_status === 'refunded' ? C.red : d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
                       return (
-                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : `${d.payment_method ? d.payment_method + ' via ' : ''}Giving Tree App`}{d.recurring_gift_id ? ' · Recurring' : ''}</div>
                             <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {causeNameForDonation(d) || 'General'}</div>
