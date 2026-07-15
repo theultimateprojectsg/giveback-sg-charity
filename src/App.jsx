@@ -3102,6 +3102,7 @@ export default function App() {
       notes: form.notes?.trim() || null,
       status: 'active',
       created_by: session.user.email,
+      reference: 'RG-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
     }]).select()
     setSavingRecurring(false)
     if (error) { showToast(`Error: ${error.message}`, 'error'); return }
