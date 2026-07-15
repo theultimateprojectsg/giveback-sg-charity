@@ -3829,14 +3829,16 @@ export default function App() {
   }, [selectedDonation])
 
   useEffect(() => {
+    let cancelled = false
     if (selectedDonor) {
-      loadDonorNotes(selectedDonor)
+      loadDonorNotes(selectedDonor, () => cancelled)
     } else {
       setDonorNotes([])
     }
+    return () => { cancelled = true }
   }, [selectedDonor])
 
-  async function loadDonorNotes(donor) {
+  async function loadDonorNotes(donor, isCancelled) {
     setDonorNotesLoading(true)
     const donorKey = donor.email?.trim() || donor.name
     const { data, error } = await supabase
@@ -3845,6 +3847,7 @@ export default function App() {
       .eq('charity_uen', charityUen)
       .eq('donor_key', donorKey)
       .order('created_at', { ascending: false })
+    if (isCancelled && isCancelled()) return
     if (error) { console.error(error); setDonorNotesLoading(false); return }
     setDonorNotes(data || [])
     setDonorNotesLoading(false)
