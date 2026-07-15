@@ -1534,10 +1534,10 @@ export default function App() {
           if (!linkRow) { setDonationPledgeLink(null); return }
           const { data: pledgeRow } = await supabase
             .from('pledges')
-            .select('donor_name')
+            .select('donor_name, reference')
             .eq('id', linkRow.pledge_id)
             .maybeSingle()
-          setDonationPledgeLink({ ...linkRow, pledgeDonorName: pledgeRow?.donor_name })
+          setDonationPledgeLink({ ...linkRow, pledgeDonorName: pledgeRow?.donor_name, pledgeReference: pledgeRow?.reference })
         })
     } else {
       setDonationPledgeLink(null)
