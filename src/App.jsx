@@ -8237,7 +8237,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFontSize(10.5)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(...forest)
-    doc.text(`With heartfelt thanks for your generosity — ${charityName || 'our team'}`, margin, y, { maxWidth: contentWidth })
+    doc.text('With heartfelt thanks for your generosity,', margin, y)
+    y += 8
+    doc.setFont('helvetica', 'bolditalic')
+    doc.text(`The ${charityName || 'team'}`, margin, y)
     doc.setFont('helvetica', 'normal')
 
     const footerY = pageHeight - 26
