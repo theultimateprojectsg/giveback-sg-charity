@@ -1779,11 +1779,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
     setCharityIsIpc(data?.ipc !== false)
+    setCharityLogoUrl(data?.logo_url || null)
     setAnnualGoal(data?.annual_goal || null)
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
     setEnabledModules({ ...DEFAULT_ENABLED_MODULES, ...(data?.enabled_modules || {}) })
