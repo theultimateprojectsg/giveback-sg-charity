@@ -1961,6 +1961,7 @@ export default function App() {
       cause_id: pledgeForm.cause_id || null,
       is_anonymous: pledgeForm.is_anonymous || false,
       source: pledgeForm.source || null,
+      reference: 'PLG-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
     }]).select()
     setSavingPledge(false)
     if (error) { setPledgeError(`Error: ${error.message}`); return }
