@@ -9242,20 +9242,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()
               obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
 
-              if (items.length === 0) {
-                return (
-                  <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
-                    <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
-                  </div>
-                )
-              }
-
               const nowMs = Date.now()
-              const visibleItems = items.filter(i => !i.key || !(snoozedItems[i.key] > nowMs))
+              // Obligations with a real "done" state stay in Needs Action; everything else (donor
+              // moments, trends, soft opportunities) is informational → Worth Knowing.
+              const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'pledges_due_soon', 'recurring_overdue', 'giro_possible_cancellation'])
+              const isActionItem = (i) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
+              const notSnoozed = (i) => !i.key || !(snoozedItems[i.key] > nowMs)
+
+              const actionItemsVisible = items.filter(i => isActionItem(i) && notSnoozed(i))
                 .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
-              const highItems = visibleItems.filter(i => i.priority === 'high')
+              const fyiItemsVisible = items.filter(i => !isActionItem(i) && notSnoozed(i))
+              const highItems = actionItemsVisible.filter(i => i.priority === 'high')
               const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key] > nowMs)
+
+              const snoozeControl = (item) => item.key && (
+                snoozeMenuOpen === item.key ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Snooze</span>
+                    {[1, 3, 7].map(d => (
+                      <span key={d} style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', padding: '2px 7px', border: `1px solid ${C.border}`, borderRadius: 4 }}
+                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d}d</span>
+                    ))}
+                    <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '2px 4px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤</span>
+                )
+              )
 
               const snoozedSection = snoozedActiveItems.length > 0 ? (
                 <div style={{ marginBottom: 16 }}>
@@ -9279,12 +9292,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               ) : null
 
-              if (visibleItems.length === 0) {
+              if (actionItemsVisible.length === 0 && fyiItemsVisible.length === 0) {
                 return (
                   <>
                     <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
-                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up for today.</span>
-                      <span style={{ fontSize: 13, color: C.muted }}>Nothing left to review — nice work.</span>
+                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
+                      <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
                     </div>
                     {snoozedSection}
                   </>
@@ -9293,36 +9306,46 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               return (
                 <>
-                <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
-                  <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{visibleItems.length} action item{visibleItems.length > 1 ? 's' : ''} need{visibleItems.length === 1 ? 's' : ''} your attention</span>
+                {actionItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                    <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {actionItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                    {visibleItems.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
-                        onMouseEnter={e => e.currentTarget.style.background = C.ivory}
-                        onMouseLeave={e => e.currentTarget.style.background = C.white}
-                      >
-                        <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
-                        <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                        {item.key && (
-                          snoozeMenuOpen === item.key ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                              <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Snooze</span>
-                              {[1, 3, 7].map(d => (
-                                <span key={d} style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', padding: '2px 7px', border: `1px solid ${C.border}`, borderRadius: 4 }}
-                                  onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d}d</span>
-                              ))}
-                              <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '2px 4px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 13, color: C.muted, cursor: 'pointer', flexShrink: 0, padding: '2px 6px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤</span>
-                          )
-                        )}
-                      </div>
-                    ))}
+                )}
+
+                {fyiItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.border}` }}>
+                    <div style={{ background: C.ivory, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>Worth knowing</span>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>· donor moments & opportunities — act if you'd like</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {fyiItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
                 {snoozedSection}
                 </>
               )
