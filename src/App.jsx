@@ -8128,28 +8128,34 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       doc.restoreGraphicsState()
     } catch (e) { console.error('Could not render receipt watermark:', e) }
 
-    // Header — logo left, charity identity right, single thin gold rule as the only accent
+    // Header — logo left in a white badge (so logos with a light background sit cleanly on the
+    // green field instead of looking like a pasted sticker), charity identity right.
+    const headerHeight = 46
     doc.setFillColor(...forest)
-    doc.rect(0, 0, pageWidth, 44, 'F')
+    doc.rect(0, 0, pageWidth, headerHeight, 'F')
     doc.setFillColor(...gold)
-    doc.rect(0, 44, pageWidth, 0.9, 'F')
+    doc.rect(0, headerHeight, pageWidth, 0.9, 'F')
 
     const hasLogo = !!charityLogoDataUrl
     let textX = margin
     if (hasLogo) {
       try {
         const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
-        doc.addImage(charityLogoDataUrl, fmt, margin, 9, 26, 26)
-        textX = margin + 34
+        const logoSize = 25, badgePad = 3.5, badgeSize = logoSize + badgePad * 2
+        const badgeY = (headerHeight - badgeSize) / 2
+        doc.setFillColor(255, 255, 255)
+        doc.roundedRect(margin, badgeY, badgeSize, badgeSize, 2.5, 2.5, 'F')
+        doc.addImage(charityLogoDataUrl, fmt, margin + badgePad, badgeY + badgePad, logoSize, logoSize)
+        textX = margin + badgeSize + 10
       } catch (e) { console.error('Could not embed logo in receipt:', e) }
     }
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(255, 255, 255)
-    microLabel('OFFICIAL DONATION RECEIPT', textX, 16)
+    microLabel('OFFICIAL DONATION RECEIPT', textX, 17)
     doc.setFontSize(19)
     doc.setFont('times', 'bold')
-    doc.text(charityName || 'Charity', textX, 26.5)
+    doc.text(charityName || 'Charity', textX, 27.5)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9.5)
     doc.setTextColor(220, 227, 223)
