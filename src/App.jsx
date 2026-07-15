@@ -9916,39 +9916,48 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const presetTags = ['Major Donor', 'Monthly Giver', 'Event Donor', 'Corporate', 'Anonymous', 'In Memoriam', 'Board Member', 'Volunteer']
                         return (
                           <div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, minHeight: 24 }}>
-                              {tags.length === 0 && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic' }}>No tags yet</span>}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                              {tags.length === 0 && !showTagPicker && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic' }}>No tags yet</span>}
                               {tags.map(t => (
-                                <span key={t.id} style={{ fontSize: 11, fontWeight: 600, color: 'white', background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span key={t.id} style={{ fontSize: 11, fontWeight: 600, color: C.forest, background: 'white', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
                                   {t.tag}
-                                  <span style={{ cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 12 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
+                                  <span style={{ cursor: 'pointer', color: C.muted, fontSize: 11, lineHeight: 1 }} onClick={() => deleteDonorTag(selectedDonor, t.id)}>✕</span>
                                 </span>
                               ))}
+                              <span
+                                style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.8)', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.25)' }}
+                                onClick={() => setShowTagPicker(v => !v)}
+                              >{showTagPicker ? '✕ Close' : '+ Add tag'}</span>
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                              {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
-                                <span
-                                  key={p}
-                                  style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.08)', padding: '3px 9px', borderRadius: 20, cursor: 'pointer', border: '1px dashed rgba(255,255,255,0.3)' }}
-                                  onClick={() => { setNewTagInput(p); }}
-                                >+ {p}</span>
-                              ))}
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <input
-                                style={{ ...s.formInput, fontSize: 12, padding: '7px 10px' }}
-                                placeholder="Custom tag..."
-                                value={newTagInput}
-                                onChange={e => setNewTagInput(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
-                                maxLength={40}
-                              />
-                              <button
-                                style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
-                                disabled={!newTagInput.trim() || savingTag}
-                                onClick={() => saveDonorTag(selectedDonor)}
-                              >{savingTag ? '...' : 'Add'}</button>
-                            </div>
+                            {showTagPicker && (
+                              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                                  {presetTags.filter(p => !tags.some(t => t.tag === p)).map(p => (
+                                    <span
+                                      key={p}
+                                      style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.08)', padding: '3px 9px', borderRadius: 20, cursor: savingTag ? 'default' : 'pointer', border: '1px dashed rgba(255,255,255,0.3)', opacity: savingTag ? 0.5 : 1 }}
+                                      onClick={() => { if (!savingTag) saveDonorTag(selectedDonor, p) }}
+                                    >+ {p}</span>
+                                  ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <input
+                                    style={{ ...s.formInput, fontSize: 12, padding: '7px 10px' }}
+                                    placeholder="Custom tag..."
+                                    value={newTagInput}
+                                    onChange={e => setNewTagInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') saveDonorTag(selectedDonor) }}
+                                    maxLength={40}
+                                    autoFocus
+                                  />
+                                  <button
+                                    style={{ ...s.issueBtn, flexShrink: 0, opacity: newTagInput.trim() ? 1 : 0.5 }}
+                                    disabled={!newTagInput.trim() || savingTag}
+                                    onClick={() => saveDonorTag(selectedDonor)}
+                                  >{savingTag ? '...' : 'Add'}</button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )
                       })()}
