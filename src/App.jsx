@@ -5049,8 +5049,7 @@ export default function App() {
 
   function getDonorWarmth(donor) {
     const donorKey76 = donor.email?.trim() || donor.name
-    const myNotes76 = donorNotes.filter(n => n.donor_key === donorKey76).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    const lastContact76 = myNotes76[0]?.created_at || null
+    const lastContact76 = donorLastContactMap[donorKey76] || null
     if (!lastContact76) return { level: 'red', label: 'No contact logged', daysSince: null }
     const daysSince76 = Math.floor((new Date() - new Date(lastContact76)) / (1000 * 60 * 60 * 24))
     if (daysSince76 <= 90) return { level: 'green', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
