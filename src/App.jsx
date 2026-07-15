@@ -8240,17 +8240,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`With heartfelt thanks for your generosity — ${charityName || 'our team'}`, margin, y, { maxWidth: contentWidth })
     doc.setFont('helvetica', 'normal')
 
-    const footerY = pageHeight - (isIpc ? 26 : 20)
+    const footerY = pageHeight - 26
     doc.setDrawColor(...hairline)
     doc.line(margin, footerY, pageWidth - margin, footerY)
     doc.setFontSize(8.5)
     doc.setTextColor(...mutedText)
     doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 7, { align: 'center' })
-    if (isIpc) {
-      doc.setFontSize(7.5)
-      doc.setTextColor(...faintText)
-      doc.text('Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.', pageWidth / 2, footerY + 14, { align: 'center', maxWidth: contentWidth })
-    }
+    doc.setFontSize(7.5)
+    doc.setTextColor(...faintText)
+    doc.text(
+      isIpc
+        ? 'Tax savings shown assume a flat 22% rate for illustration only. Actual savings depend on your tax bracket.'
+        : 'This charity is registered but not an IPC — this donation is not tax deductible.',
+      pageWidth / 2, footerY + 14, { align: 'center', maxWidth: contentWidth }
+    )
 
     return doc
   }
