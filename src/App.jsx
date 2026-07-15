@@ -10679,14 +10679,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const noThankYouExpected = d.is_anonymous || !d.donor_email?.trim()
                         const railColor = isRefunded ? C.red : !isPaid ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold
                         return (
-                        <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                        <div key={d.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer', background: isRefunded ? '#FBEEE9' : 'transparent' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
                           <div style={{ width: 4, borderRadius: 4, background: railColor, alignSelf: 'stretch', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                                 <div style={{ ...s.donorAvatar, background: C.sage, flexShrink: 0 }}>{d.donor_name?.charAt(0)}</div>
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={s.donationCardName}>{d.donor_name}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <div style={s.donationCardName}>{d.donor_name}</div>
+                                    {isRefunded && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: '#E11D48', padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}
+                                  </div>
                                   <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.receipt_number || '—'}{d.payment_ref ? ` · Ref: ${d.payment_ref}` : ''}</div>
                                 </div>
                               </div>
@@ -10774,10 +10777,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           const isPaid = d.payment_status === 'confirmed'
                           const noThankYouExpected = d.is_anonymous || !d.donor_email?.trim()
                           const railColor = !isPaid ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold
-                          const rowBg = selectedDonation?.id === d.id ? C.successBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
+                          const rowBg = selectedDonation?.id === d.id ? C.successBg : d.payment_status === 'refunded' ? '#FBEEE9' : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                           return (
                           <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
-                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold }}>{d.donor_name?.charAt(0)}</div><div><div style={s.donorName}>{d.donor_name}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                            <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold }}>{d.donor_name?.charAt(0)}</div><div><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={s.donorName}>{d.donor_name}</div>{d.payment_status === 'refunded' && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: '#E11D48', padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                             {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                             {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                             {isTablet ? (
