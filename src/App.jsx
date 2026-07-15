@@ -1016,32 +1016,6 @@ export default function App() {
 
   const ANALYTICS_NAV_OFFSET = 64 // approx height of the sticky section-jump bar, so scrolled-to titles land just below it instead of hidden behind it
   const [activeAnalyticsSection, setActiveAnalyticsSection] = useState('analytics-section-overview')
-  useEffect(() => {
-    if (activeTab !== 'analytics') return
-    const sectionIds = [
-      'analytics-section-overview',
-      'analytics-section-fundraising',
-      ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
-      ...(enabledModules.massappeal !== false ? ['analytics-section-massappeals'] : []),
-      ...(enabledModules.pledges !== false ? ['analytics-section-pledges'] : []),
-      ...(enabledModules.recurring !== false ? ['analytics-section-recurring'] : []),
-      ...(enabledModules.grants !== false ? ['analytics-section-grants'] : []),
-      'analytics-section-donorbehavior',
-      'analytics-section-forecasting',
-    ]
-    const stickyOffset = (isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET + 4
-    function onScroll() {
-      let current = sectionIds[0]
-      for (const id of sectionIds) {
-        const el = document.getElementById(id)
-        if (el && el.getBoundingClientRect().top - stickyOffset <= 0) current = id
-      }
-      setActiveAnalyticsSection(current)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [activeTab, isMobile, enabledModules])
 
   // Shared keyboard handling for every modal: Escape triggers the topmost overlay's own
   // backdrop-click handler (so each modal's existing close/guard logic — e.g. blocking
@@ -1610,6 +1584,32 @@ export default function App() {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
   }, [enabledModules, activeTab])
+  useEffect(() => {
+    if (activeTab !== 'analytics') return
+    const sectionIds = [
+      'analytics-section-overview',
+      'analytics-section-fundraising',
+      ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
+      ...(enabledModules.massappeal !== false ? ['analytics-section-massappeals'] : []),
+      ...(enabledModules.pledges !== false ? ['analytics-section-pledges'] : []),
+      ...(enabledModules.recurring !== false ? ['analytics-section-recurring'] : []),
+      ...(enabledModules.grants !== false ? ['analytics-section-grants'] : []),
+      'analytics-section-donorbehavior',
+      'analytics-section-forecasting',
+    ]
+    const stickyOffset = (isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET + 4
+    function onScroll() {
+      let current = sectionIds[0]
+      for (const id of sectionIds) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top - stickyOffset <= 0) current = id
+      }
+      setActiveAnalyticsSection(current)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [activeTab, isMobile, enabledModules])
   const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
   useEffect(() => {
     if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
