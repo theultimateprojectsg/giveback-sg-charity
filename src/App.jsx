@@ -8228,12 +8228,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         doc.text('⚠ NRIC/FIN not on file — required from the donor before this can be submitted for tax deduction.', margin, y, { maxWidth: contentWidth })
         y += 10
       }
-    } else {
-      y += 8
-      doc.setFontSize(9)
-      doc.setTextColor(...faintText)
-      doc.text('This charity is registered but not an IPC — this donation is not tax deductible.', margin, y)
-      y += 6
     }
 
     y += 10
