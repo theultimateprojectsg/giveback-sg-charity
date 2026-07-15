@@ -5480,7 +5480,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [donations, thankYouThreshold])
   const donorList = React.useMemo(() => {
     const donorMap = {}
-    donations.filter(d => !d.is_anonymous && d.payment_status !== 'refunded').forEach(d => {
+    donations.filter(d => !d.is_anonymous && d.payment_status === 'confirmed').forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorMap[key]) {
         donorMap[key] = { name: d.donor_name, email: d.donor_email, nric: d.donor_nric, total: 0, count: 0, lastDate: d.created_at, receipts: 0, deactivated: d.donor_deactivated || false, doNotContact: d.donor_do_not_contact || false, deceased: d.donor_deceased || false }
