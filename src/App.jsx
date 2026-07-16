@@ -9228,11 +9228,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (priorGifts.length === 0) return
                 const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
                 const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
-                if (gapDays >= lapsedMinDays) lapsedReturningKeys.add(key)
+                if (gapDays >= lapsedMinDays && !contactedSince(key, weekAgo.getTime())) lapsedReturningKeys.add(key)
               })
               if (lapsedReturningKeys.size > 0) {
                 const names = [...lapsedReturningKeys].map(key => keyToName69[key])
-                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week!`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`) })
+                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`) })
               }
 
               const obligationsDue = (() => {
