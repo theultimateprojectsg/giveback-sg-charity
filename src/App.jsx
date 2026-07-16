@@ -7302,6 +7302,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const donorKey = d.email?.trim() || d.name
       const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
       const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
+      const matchDonorKeys = !filterDonorKeys || filterDonorKeys.includes(d.email?.trim() || d.nric || d.name)
       const matchStatus = donorStatusFilter === 'All'
         || (donorStatusFilter === 'Active' && !d.isContactOnly && !d.deactivated)
         || (donorStatusFilter === 'Prospect' && d.isContactOnly)
