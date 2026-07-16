@@ -7309,9 +7309,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         || (donorStatusFilter === 'DoNotContact' && d.doNotContact)
         || (donorStatusFilter === 'Deactivated' && d.deactivated)
       const matchYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
-      return matchSearch && matchTag && matchTopDonors && matchStatus && matchYear
+      return matchSearch && matchTag && matchTopDonors && matchDonorKeys && matchStatus && matchYear
     })
-  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf])
+  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf])
 
   const donorsTotalPages = Math.max(1, Math.ceil(filteredDonorList.length / donorsPerPage))
   const paginatedDonorList = filteredDonorList.slice(donorsPage * donorsPerPage, donorsPage * donorsPerPage + donorsPerPage)
