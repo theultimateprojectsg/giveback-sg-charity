@@ -3923,6 +3923,24 @@ export default function App() {
     return () => { cancelled = true }
   }, [selectedDonor])
 
+  // Records a communication-log entry for a donor and updates the in-memory maps so anything keyed
+  // off "last contacted" (donor warmth, the profile "Right now" moments) reflects it immediately.
+  async function logDonorContact(donorKey, note, noteType) {
+    const { data, error } = await supabase.from('donor_notes').insert([{
+      charity_uen: charityUen,
+      donor_key: donorKey,
+      note,
+      note_type: noteType,
+      created_by: session.user.email,
+    }]).select()
+    if (error) { console.error('Could not log contact:', error); return { error } }
+    setDonorLastContactMap(prev => ({ ...prev, [donorKey]: data[0].created_at }))
+    if (selectedDonor && (selectedDonor.email?.trim() || selectedDonor.name) === donorKey) {
+      setDonorNotes(prev => [data[0], ...prev])
+    }
+    return { data: data[0] }
+  }
+
   async function loadDonorNotes(donor, isCancelled) {
     setDonorNotesLoading(true)
     const donorKey = donor.email?.trim() || donor.name
