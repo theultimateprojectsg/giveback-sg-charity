@@ -9285,7 +9285,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               if (lapsedReturningKeys.size > 0) {
                 const names = [...lapsedReturningKeys].map(key => keyToName69[key])
-                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`) })
+                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69([...lapsedReturningKeys], `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`) })
               }
 
               const obligationsDue = (() => {
