@@ -9109,6 +9109,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
 
               const lapsedCount = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
+                if (!notSuppressed(d.key)) return false
                 if (d.count < lapsedMinGifts) return false
                 const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
                 if (daysSince < lapsedMinDays) return false
