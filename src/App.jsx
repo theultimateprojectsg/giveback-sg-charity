@@ -18756,7 +18756,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 disabled={rnSending}
                 onClick={async () => {
                   setRnSending(true)
-                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} — reached out directly`, 'note')
+                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} — logged as done`, 'note')
                   setRnSending(false); setRnOutreach(null); showToast('Logged as done ✓')
                 }}
               >✓ Just log it as done</button>
