@@ -9091,15 +9091,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
+              // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
+              // items also count a sent thank-you. The item's count shows only who's left, and it
+              // clears itself once everyone's been actioned.
+              const contactedSince = (key, sinceMs) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
+              const donationKey = (d) => d.donor_email?.trim() || d.donor_nric || d.donor_name
+
               const milestonesThisWeek = donations.filter(d => {
                 if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo) return false
                 const b = donationBadgeInfo[d.id]
                 return b && (b.isFirstTime || b.isBiggestYet)
               })
-              const firstTimeCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime).length
-              const biggestYetCount = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet).length
-              if (firstTimeCount > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeCount} new donor${firstTimeCount > 1 ? 's' : ''} this week`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('donor-highlights-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
-              if (biggestYetCount > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetCount} donor${biggestYetCount > 1 ? 's' : ''} gave their biggest gift yet this week`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('donor-highlights-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              const firstTimeToWelcome = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime && !d.thank_you_sent && !contactedSince(donationKey(d), weekAgo.getTime()))
+              const biggestYetToThank = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet && !d.thank_you_sent && !contactedSince(donationKey(d), weekAgo.getTime()))
+              if (firstTimeToWelcome.length > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week to welcome`, priority: 'medium', jump: jumpToDonors69(firstTimeToWelcome.map(d => d.donor_name), `Showing ${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week`) })
+              if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', jump: jumpToDonors69(biggestYetToThank.map(d => d.donor_name), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`) })
 
               // Anniversary + cumulative threshold + streak milestones
               const donorFirstGiftDate69 = {}
