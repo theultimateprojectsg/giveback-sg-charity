@@ -9237,7 +9237,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).filter(d => d.needsVisit && notSuppressed(d.email?.trim() || d.name) && !contactedSince(d.email?.trim() || d.name, monthAgo.getTime()))
               if (majorDonorsNeedingVisit80.length > 0) {
                 const names = majorDonorsNeedingVisit80.map(d => d.name)
-                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
+                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
               }
 
               const seasonalPatternDonors71 = (() => {
