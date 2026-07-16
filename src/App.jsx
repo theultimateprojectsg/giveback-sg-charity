@@ -10732,35 +10732,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const moments = []
                   const first = (selectedDonor.name || '').split(' ')[0] || selectedDonor.name || 'friend'
                   const sign = `\n\nWith gratitude,\n${charityName}`
-                  // icon, one-line prompt, button label, email body, and the short line logged when actioned
-                  const mk = (icon, text, button, bodyIntro, logNote) => moments.push({ icon, text, button, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote })
+                  // icon, one-line prompt, button label, email subject, email body, and the short line logged when actioned
+                  const mk = (icon, text, button, subject, bodyIntro, logNote) => moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote })
 
                   if (!contactedThisWeek) {
                     const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
                     const firstGift = sorted[0]
-                    if (firstGift && new Date(firstGift.created_at) >= rnWeekAgo && !firstGift.thank_you_sent) mk('🆕', 'New donor — welcome them to your community', 'Send welcome', `Welcome to the ${charityName} family, and thank you for your very first gift. It truly means the world to us to have you with us, and we can't wait to show you the difference your support makes.`, 'Welcome note')
+                    if (firstGift && new Date(firstGift.created_at) >= rnWeekAgo && !firstGift.thank_you_sent) mk('🆕', 'New donor — welcome them to your community', 'Send welcome', `Welcome to ${charityName}`, `Welcome to the ${charityName} family, and thank you for your very first gift. It truly means the world to us to have you with us, and we can't wait to show you the difference your support makes.`, 'Welcome note')
                     const biggest = myConfirmed.find(d => new Date(d.created_at) >= rnWeekAgo && donationBadgeInfo[d.id]?.isBiggestYet)
-                    if (biggest && !biggest.thank_you_sent) mk('📈', `Gave their biggest gift yet ($${Number(biggest.amount).toLocaleString()}) — recognise it`, 'Send thank-you', `We were deeply moved by your most generous gift of $${Number(biggest.amount).toLocaleString()} — the largest you've ever made to us. Thank you for your extraordinary support; it will go a long way.`, 'Biggest-gift thank-you')
+                    if (biggest && !biggest.thank_you_sent) mk('📈', `Gave their biggest gift yet ($${Number(biggest.amount).toLocaleString()}) — recognise it`, 'Send thank-you', 'Thank you for your generous gift', `We were deeply moved by your most generous gift of $${Number(biggest.amount).toLocaleString()} — the largest you've ever made to us. Thank you for your extraordinary support; it will go a long way.`, 'Biggest-gift thank-you')
                     if (firstGift) {
                       const fd = new Date(firstGift.created_at)
                       const anniv = new Date(rnToday.getFullYear(), fd.getMonth(), fd.getDate())
                       const daysDiff = Math.floor((anniv - rnToday) / (1000 * 60 * 60 * 24))
-                      if (fd.getFullYear() < rnToday.getFullYear() && daysDiff >= -7 && daysDiff <= 0) { const yrs = rnToday.getFullYear() - fd.getFullYear(); mk('🎉', `Giving anniversary this week (${yrs} year${yrs > 1 ? 's' : ''}) — send a note`, 'Send anniversary note', `This week marks ${yrs} year${yrs > 1 ? 's' : ''} since your very first gift to ${charityName}. Thank you for standing with us all this time — your loyalty means everything.`, `${yrs}-year anniversary note`) }
+                      if (fd.getFullYear() < rnToday.getFullYear() && daysDiff >= -7 && daysDiff <= 0) { const yrs = rnToday.getFullYear() - fd.getFullYear(); mk('🎉', `Giving anniversary this week (${yrs} year${yrs > 1 ? 's' : ''}) — send a note`, 'Send anniversary note', 'Happy giving anniversary', `This week marks ${yrs} year${yrs > 1 ? 's' : ''} since your very first gift to ${charityName}. Thank you for standing with us all this time — your loyalty means everything.`, `${yrs}-year anniversary note`) }
                     }
                     const lifetime = myConfirmed.reduce((s, d) => s + d.amount, 0)
                     const priorLifetime = lifetime - myConfirmed.filter(d => new Date(d.created_at) >= rnWeekAgo).reduce((s, d) => s + d.amount, 0)
                     const crossed = (cumulativeThresholds || []).find(t => priorLifetime < t && lifetime >= t)
-                    if (crossed) mk('🏆', `Crossed $${crossed.toLocaleString()} in lifetime giving this week — recognise the milestone`, 'Send milestone note', `Your generosity has now reached $${crossed.toLocaleString()} in lifetime giving to ${charityName}. That is a remarkable milestone, and we are so grateful for everything your support has made possible.`, `$${crossed.toLocaleString()} milestone note`)
+                    if (crossed) mk('🏆', `Crossed $${crossed.toLocaleString()} in lifetime giving this week — recognise the milestone`, 'Send milestone note', 'A special milestone — thank you', `Your generosity has now reached $${crossed.toLocaleString()} in lifetime giving to ${charityName}. That is a remarkable milestone, and we are so grateful for everything your support has made possible.`, `$${crossed.toLocaleString()} milestone note`)
                     const monthsSet = new Set(myConfirmed.map(d => { const dt = new Date(d.created_at); return dt.getFullYear() * 12 + dt.getMonth() }))
                     const monthsArr = [...monthsSet].sort((a, b) => b - a)
                     let streak = monthsArr.length ? 1 : 0
                     for (let i = 1; i < monthsArr.length; i++) { if (monthsArr[i - 1] - monthsArr[i] === 1) streak++; else break }
-                    if ([12, 24, 36, 60].includes(streak)) mk('🔥', `${streak}-month giving streak — celebrate it`, 'Send thank-you', `${streak} months of continuous giving — your steadfast support is the backbone of what we do. Thank you for showing up for our cause month after month.`, `${streak}-month streak thank-you`)
+                    if ([12, 24, 36, 60].includes(streak)) mk('🔥', `${streak}-month giving streak — celebrate it`, 'Send thank-you', 'Thank you for your continued support', `${streak} months of continuous giving — your steadfast support is the backbone of what we do. Thank you for showing up for our cause month after month.`, `${streak}-month streak thank-you`)
                     if (contact?.birth_date) {
                       const bd = new Date(contact.birth_date)
                       const bday = new Date(rnToday.getFullYear(), bd.getMonth(), bd.getDate())
                       const daysUntil = Math.ceil((bday - rnToday) / (1000 * 60 * 60 * 24))
-                      if (daysUntil >= 0 && daysUntil <= 7) mk('🎂', 'Birthday this week — send a greeting', 'Send birthday greeting', `Wishing you a very happy birthday from all of us at ${charityName}! We are so grateful to have you as part of our community, and we hope your day is wonderful.`, 'Birthday greeting')
+                      if (daysUntil >= 0 && daysUntil <= 7) mk('🎂', 'Birthday this week — send a greeting', 'Send birthday greeting', `Happy birthday from ${charityName}`, `Wishing you a very happy birthday from all of us at ${charityName}! We are so grateful to have you as part of our community, and we hope your day is wonderful.`, 'Birthday greeting')
                     }
                   }
 
@@ -10769,11 +10769,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (lifetimeTotal >= (majorDonorThreshold || 1000) && !selectedDonor.deactivated) {
                       const lastVisit = contact?.last_visited_date
                       const monthsSince = lastVisit ? (rnToday - new Date(lastVisit)) / (1000 * 60 * 60 * 24 * 30) : null
-                      if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note')
+                      if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', "Let's catch up", `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note')
                     }
                     const upcomingMonth = new Date(rnToday.getFullYear(), rnToday.getMonth() + 1, 1).getMonth()
                     const yearsInUpcoming = new Set(myConfirmed.filter(d => new Date(d.created_at).getMonth() === upcomingMonth).map(d => new Date(d.created_at).getFullYear()))
-                    if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note')
+                    if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', 'Thinking of you', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note')
                   }
 
                   if (moments.length === 0) return null
