@@ -18700,6 +18700,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
+      {rnOutreach && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>{rnOutreach.title} — {rnOutreach.donorName}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and personalise before sending. Sending records it in this donor's log automatically.</div>
+            <SenderIdentityLine recipientName={rnOutreach.donorName} recipientEmail={rnOutreach.donorEmail} {...senderIdentity} />
+            <textarea
+              style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
+              value={rnOutreach.text}
+              onChange={e => setRnOutreach(prev => ({ ...prev, text: e.target.value }))}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
+              <button
+                style={{ flex: 2, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: rnOutreach.donorEmail?.trim() && !rnSending ? 1 : 0.5 }}
+                disabled={!rnOutreach.donorEmail?.trim() || rnSending}
+                onClick={async () => {
+                  setRnSending(true)
+                  const { error } = await sendCharityEmail({
+                    type: 'donor_moment',
+                    donor_name: rnOutreach.donorName,
+                    donor_email: rnOutreach.donorEmail,
+                    charity_name: charityName,
+                    charity_uen: charityUen,
+                    custom_message: rnOutreach.text,
+                  })
+                  if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
+                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email')
+                  const sentTo = rnOutreach.donorEmail
+                  setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
+                }}
+              >✉ {rnOutreach.donorEmail?.trim() ? 'Send email' : 'No email on file'}</button>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Reached out another way — a call, in person, or your own email?</div>
+              <button
+                style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 14px', cursor: rnSending ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                disabled={rnSending}
+                onClick={async () => {
+                  setRnSending(true)
+                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} — reached out directly`, 'note')
+                  setRnSending(false); setRnOutreach(null); showToast('Logged as done ✓')
+                }}
+              >✓ Just log it as done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCustomizeAnalytics && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
