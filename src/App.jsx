@@ -9911,10 +9911,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               <button style={s.btnGold} onClick={() => { setAddDonorForm({ full_name: '', email: '', notes: '' }); setAddDonorError(''); setShowAddDonorModal(true) }}>+ Add Donor</button>
             </div>
-            {filterTopDonorNames && (
+            {(filterTopDonorNames || filterDonorKeys) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donorFilterLabel || `Showing top ${filterTopDonorNames.length} donors by lifetime giving`}</span>
-                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterTopDonorNames(null); setDonorFilterLabel(null) }}>✕ Clear</button>
+                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donorFilterLabel || `Showing top ${(filterTopDonorNames || filterDonorKeys).length} donors by lifetime giving`}</span>
+                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterTopDonorNames(null); setFilterDonorKeys(null); setDonorFilterLabel(null) }}>✕ Clear</button>
               </div>
             )}
             
