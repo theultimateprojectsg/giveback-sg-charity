@@ -10777,6 +10777,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', 'Thinking of you', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note', rnMonthMs)
                   }
 
+                  // Giving-change (folded in from the former "Giving Pattern" card). Uses the existing
+                  // thank-you / check-in flows and clears once you've acked that direction.
+                  const gcFlag = allGivingChangeFlags.find(f => (f.email?.trim() || f.name) === dk)
+                  if (gcFlag) {
+                    const isUp = gcFlag.changePct > 0
+                    const acked = (givingChangeAckHistory[dk] || []).some(a => a.direction === (isUp ? 'upgrade' : 'downgrade'))
+                    if (!acked) {
+                      if (isUp) {
+                        moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
+                      } else {
+                        moments.push({ icon: '📉', text: `Giving decreased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — check in`, button: 'Check in about decreased giving', onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: gcFlag.changePct } }); setShowLapsedReminderModal(true) } })
+                      }
+                    }
+                  }
+
                   if (moments.length === 0) return null
                   return (
                     <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.gold}`, marginBottom: 16, overflow: 'hidden' }}>
