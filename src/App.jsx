@@ -10981,14 +10981,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               )}
                             </div>
                             {editingDonorNoteId !== n.id && (
-                              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                                 <span
-                                  style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }}
+                                  style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '3px 6px', borderRadius: 4, border: `1px solid ${C.border}` }}
                                   title="Edit"
                                   onClick={() => { setEditingDonorNoteId(n.id); setEditingDonorNoteText(n.note) }}
                                 >✏️</span>
                                 <span
-                                  style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }}
+                                  style={{ fontSize: 13, color: C.muted, cursor: 'pointer', padding: '3px 6px', borderRadius: 4, border: `1px solid ${C.border}` }}
                                   title="Delete"
                                   onClick={() => setConfirmModal({
                                     title: 'Delete this note?',
@@ -10996,7 +10996,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                     confirmLabel: 'Delete',
                                     onConfirm: () => deleteDonorNote(n.id),
                                   })}
-                                >✕</span>
+                                >🗑️</span>
                               </div>
                             )}
                           </div>
