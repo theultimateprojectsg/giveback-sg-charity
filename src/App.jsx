@@ -9261,7 +9261,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const bd = new Date(c.birth_date)
                 const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
                 const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
-                return daysUntil >= 0 && daysUntil <= 7 && !contactedSince(c.email?.trim() || c.full_name, weekAgo.getTime())
+                return daysUntil >= 0 && daysUntil <= 7 && notSuppressed(c.email?.trim() || c.full_name) && !contactedSince(c.email?.trim() || c.full_name, weekAgo.getTime())
               })
               if (birthdaysThisWeek70.length > 0) {
                 const names = birthdaysThisWeek70.map(c => c.full_name)
