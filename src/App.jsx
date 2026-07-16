@@ -14581,7 +14581,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
                       </button>
                     )}
-                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setActiveTab('donors') }}>View Top Donors →</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setFilterDonorKeys(null); setDonorFilterLabel(null); setActiveTab('donors') }}>View Top Donors →</button>
                   </div>
                 )
               })()}
