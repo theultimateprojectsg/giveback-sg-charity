@@ -1681,6 +1681,7 @@ export default function App() {
   const [thankYouDraft, setThankYouDraft] = useState(null)
   const [rnOutreach, setRnOutreach] = useState(null)
   const [rnSending, setRnSending] = useState(false)
+  const [viewEmailNote, setViewEmailNote] = useState(null)
 
 
   useEffect(() => {
