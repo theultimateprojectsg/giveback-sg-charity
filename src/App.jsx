@@ -18860,6 +18860,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
+      {viewEmailNote && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setViewEmailNote(null)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Email sent</div>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setViewEmailNote(null)}>✕</button>
+            </div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Sent {new Date(viewEmailNote.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}, {new Date(viewEmailNote.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · by {viewEmailNote.created_by}</div>
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory }}>
+              {viewEmailNote.email_subject && <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{viewEmailNote.email_subject}</div>}
+              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{viewEmailNote.email_body}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCustomizeAnalytics && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowCustomizeAnalytics(false)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
