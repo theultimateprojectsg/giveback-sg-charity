@@ -10750,7 +10750,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   // mentions its marker — so acting on one moment clears only that one, not the others.
                   const rnHandled = (marker, sinceMs) => donorNotes.some(n => new Date(n.created_at).getTime() >= sinceMs && (n.note || '').includes(marker))
                   // icon, one-line prompt, button label, email subject, email body, and the short line logged when actioned
-                  const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: async () => { await logDonorContact(dk, `${logNote} — marked done`, 'moment_done', false); showToast('Marked done ✓') } }) }
+                  const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: async () => { await logDonorContact(dk, `${logNote} — logged as done`, 'note'); showToast('Logged as done ✓') } }) }
 
                   {
                     const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
