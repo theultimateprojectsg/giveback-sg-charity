@@ -10928,11 +10928,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                   {donorNotesLoading ? (
                     <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>Loading...</div>
-                  ) : donorNotes.length === 0 ? (
+                  ) : donorNotes.filter(n => n.note_type !== 'moment_done').length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {donorNotes.map((n, i) => {
+                      {donorNotes.filter(n => n.note_type !== 'moment_done').map((n, i) => {
                         const typeConfig = {
                           call:      { icon: '📞', label: 'Call',      color: C.forest },
                           email:     { icon: '📧', label: 'Email',     color: C.sage },
