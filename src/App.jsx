@@ -17601,6 +17601,54 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )}
               </div>
+
+              {(() => {
+                const nStyle = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
+                const saveNum = (col, v) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(({ error }) => { if (error) showToast('Could not save this setting', 'error') })
+                const rowStyle = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: C.muted, padding: '10px 0', borderBottom: `1px solid ${C.border}` }
+                return (
+                  <div style={{ ...s.card, marginTop: 16 }}>
+                    <div style={s.cardTitle}>Dashboard Alert Sensitivity</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, lineHeight: 1.6 }}>
+                      Controls when donors get flagged in your Dashboard lists and Analytics. Also editable inline on each Analytics card — both change the same setting.
+                    </div>
+                    <div style={rowStyle}>
+                      <span>Lapsed donor: gave</span>
+                      <input type="number" min={1} style={nStyle} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); saveNum('lapsed_min_gifts', v) }} />
+                      <span>+ times, no gift in</span>
+                      <input type="number" min={1} style={nStyle} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); saveNum('lapsed_min_days', v) }} />
+                      <span>+ days</span>
+                    </div>
+                    <div style={rowStyle}>
+                      <span>Notable giving change: over</span>
+                      <input type="number" min={2} style={nStyle} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); saveNum('giving_change_min_gifts', v) }} />
+                      <span>gifts, change of</span>
+                      <input type="number" min={1} style={nStyle} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); saveNum('giving_change_min_pct', v) }} />
+                      <span>% or more</span>
+                    </div>
+                    <div style={rowStyle}>
+                      <span>Recurring giving trend: same direction for</span>
+                      <input type="number" min={2} style={nStyle} value={recurringTrendCycles} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setRecurringTrendCycles(v); saveNum('recurring_trend_cycles', v) }} />
+                      <span>cycles in a row</span>
+                    </div>
+                    <div style={rowStyle}>
+                      <span>At-risk recurring gift: missed</span>
+                      <input type="number" min={1} style={nStyle} value={recurringMissedThreshold} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setRecurringMissedThreshold(v); saveNum('recurring_missed_threshold', v) }} />
+                      <span>+ cycles</span>
+                    </div>
+                    <div style={rowStyle}>
+                      <span>Pledge watch: donor has broken</span>
+                      <input type="number" min={1} style={nStyle} value={pledgeWatchThreshold} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setPledgeWatchThreshold(v); saveNum('pledge_watch_threshold', v) }} />
+                      <span>+ pledges</span>
+                    </div>
+                    <div style={{ ...rowStyle, borderBottom: 'none' }}>
+                      <span>Donor concentration: track top</span>
+                      <input type="number" min={1} style={nStyle} value={concentrationTopN} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setConcentrationTopN(v); saveNum('concentration_top_n', v) }} />
+                      <span>donors</span>
+                    </div>
+                  </div>
+                )
+              })()}
               </div>
 
               <div>
