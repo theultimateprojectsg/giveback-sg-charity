@@ -9123,7 +9123,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).length
               if (lapsedCount > 0) items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('lapsed-donors-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
-              if (allGivingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${allGivingChangeFlags.length} donor${allGivingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+              const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
+              if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
               const recurringUpgrades = recurringTrendFlags.filter(f => f.direction === 'upgrade')
               const recurringDowngrades = recurringTrendFlags.filter(f => f.direction === 'downgrade')
