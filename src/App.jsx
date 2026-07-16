@@ -10806,15 +10806,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ padding: '4px 18px 14px' }}>
                         {moments.map((m, i) => (
                           <div key={i} style={{ padding: '12px 0', borderBottom: i < moments.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                               <span style={{ fontSize: 15, flexShrink: 0 }}>{m.icon}</span>
                               <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{m.text}</span>
-                              {m.onDone && <span style={{ fontSize: 11.5, color: C.muted, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }} title="Already handled this another way? Clear it." onClick={m.onDone}>✓ Mark done</span>}
                             </div>
-                            <button
-                              style={{ ...s.btnGold, justifyContent: 'center', width: '100%', opacity: 1 }}
-                              onClick={() => m.onAction ? m.onAction() : setRnOutreach({ donorName: selectedDonor.name, donorEmail: selectedDonor.email, donorKey: dk, title: m.button, subject: m.subject, text: m.body, logNote: m.logNote, previewing: false })}
-                            >✉ {m.button}</button>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button
+                                style={{ ...s.btnGold, justifyContent: 'center', flex: 1, opacity: 1 }}
+                                onClick={() => m.onAction ? m.onAction() : setRnOutreach({ donorName: selectedDonor.name, donorEmail: selectedDonor.email, donorKey: dk, title: m.button, subject: m.subject, text: m.body, logNote: m.logNote, previewing: false })}
+                              >✉ {m.button}</button>
+                              {m.onDone && (
+                                <button
+                                  style={{ ...s.viewBtn, justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap' }}
+                                  title="Already reached out another way? Clear this without sending."
+                                  onClick={m.onDone}
+                                >✓ Mark done</button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
