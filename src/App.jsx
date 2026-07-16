@@ -10959,18 +10959,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 12px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                             <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{tc.icon}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.4 }}>{n.note}</div>
-                              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{tc.label} · {new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · {n.created_by}</div>
+                              {editingDonorNoteId === n.id ? (
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                  <input
+                                    style={{ ...s.formInput, fontSize: 12.5, padding: '5px 8px' }}
+                                    value={editingDonorNoteText}
+                                    onChange={e => setEditingDonorNoteText(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter' && editingDonorNoteText.trim() && !savingDonorNoteEdit) saveDonorNoteEdit(n.id); if (e.key === 'Escape') { setEditingDonorNoteId(null); setEditingDonorNoteText('') } }}
+                                    maxLength={2000}
+                                    autoFocus
+                                  />
+                                  <button style={{ ...s.issueBtn, flexShrink: 0, opacity: editingDonorNoteText.trim() ? 1 : 0.5 }} disabled={!editingDonorNoteText.trim() || savingDonorNoteEdit} onClick={() => saveDonorNoteEdit(n.id)}>{savingDonorNoteEdit ? '...' : 'Save'}</button>
+                                  <button style={{ ...s.viewBtn, flexShrink: 0 }} onClick={() => { setEditingDonorNoteId(null); setEditingDonorNoteText('') }}>Cancel</button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.4 }}>{n.note}</div>
+                                  <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{tc.label} · {new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · {n.created_by}</div>
+                                </>
+                              )}
                             </div>
-                            <span
-                              style={{ fontSize: 11, color: C.muted, cursor: 'pointer', flexShrink: 0 }}
-                              onClick={() => setConfirmModal({
-                                title: 'Delete this note?',
-                                description: 'This cannot be undone.',
-                                confirmLabel: 'Delete',
-                                onConfirm: () => deleteDonorNote(n.id),
-                              })}
-                            >✕</span>
+                            {editingDonorNoteId !== n.id && (
+                              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                                <span
+                                  style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }}
+                                  title="Edit"
+                                  onClick={() => { setEditingDonorNoteId(n.id); setEditingDonorNoteText(n.note) }}
+                                >✏️</span>
+                                <span
+                                  style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }}
+                                  title="Delete"
+                                  onClick={() => setConfirmModal({
+                                    title: 'Delete this note?',
+                                    description: 'This cannot be undone.',
+                                    confirmLabel: 'Delete',
+                                    onConfirm: () => deleteDonorNote(n.id),
+                                  })}
+                                >✕</span>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
