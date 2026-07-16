@@ -10725,17 +10725,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const rnWeekAgo = new Date(rnToday.getTime() - 7 * 24 * 60 * 60 * 1000)
                   const rnMonthAgo = new Date(rnToday.getTime() - 30 * 24 * 60 * 60 * 1000)
                   const myConfirmed = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === dk && d.payment_status === 'confirmed')
-                  const lastContact = donorLastContactMap[dk]
-                  const contactedThisWeek = !!(lastContact && new Date(lastContact) >= rnWeekAgo)
-                  const contactedThisMonth = !!(lastContact && new Date(lastContact) >= rnMonthAgo)
                   const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === dk)
                   const moments = []
                   const first = (selectedDonor.name || '').split(' ')[0] || selectedDonor.name || 'friend'
                   const sign = `\n\nWith gratitude,\n${charityName}`
+                  const rnWeekMs = rnWeekAgo.getTime(), rnMonthMs = rnMonthAgo.getTime()
+                  // A moment is "handled" once a communication logged for this donor within its window
+                  // mentions its marker — so acting on one moment clears only that one, not the others.
+                  const rnHandled = (marker, sinceMs) => donorNotes.some(n => new Date(n.created_at).getTime() >= sinceMs && (n.note || '').includes(marker))
                   // icon, one-line prompt, button label, email subject, email body, and the short line logged when actioned
-                  const mk = (icon, text, button, subject, bodyIntro, logNote) => moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote })
+                  const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote }) }
 
-                  if (!contactedThisWeek) {
+                  {
                     const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
                     const firstGift = sorted[0]
                     if (firstGift && new Date(firstGift.created_at) >= rnWeekAgo && !firstGift.thank_you_sent) mk('🆕', 'New donor — welcome them to your community', 'Send welcome', `Welcome to ${charityName}`, `Welcome to the ${charityName} family, and thank you for your very first gift. It truly means the world to us to have you with us, and we can't wait to show you the difference your support makes.`, 'Welcome note')
