@@ -9276,7 +9276,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (priorGifts.length === 0) return
                 const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
                 const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
-                if (gapDays >= lapsedMinDays && !contactedSince(key, weekAgo.getTime())) lapsedReturningKeys.add(key)
+                if (gapDays >= lapsedMinDays && notSuppressed(key) && !contactedSince(key, weekAgo.getTime())) lapsedReturningKeys.add(key)
               })
               if (lapsedReturningKeys.size > 0) {
                 const names = [...lapsedReturningKeys].map(key => keyToName69[key])
