@@ -3564,7 +3564,7 @@ export default function App() {
           [donorKey]: [inserted, ...(prev[donorKey] || [])]
         }))
       }
-      await logDonorContact(donorKey, `Re-engagement email sent`, 'email')
+      await logDonorContact(donorKey, `Re-engagement email sent`, 'email', true, { subject: lapsedReminderSubject, body: lapsedReminderBody })
     }
 
     await supabase.from('audit_log').insert({
