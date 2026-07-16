@@ -18848,7 +18848,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     custom_message: rnOutreach.text,
                   })
                   if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
-                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email')
+                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email', true, { subject: rnOutreach.subject, body: rnOutreach.text })
                   const sentTo = rnOutreach.donorEmail
                   setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
                 }}
