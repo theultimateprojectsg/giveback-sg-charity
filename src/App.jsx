@@ -9215,7 +9215,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).map(([key]) => key)
               if (streakHitKeys.length > 0) {
                 const names = streakHitKeys.map(key => keyToName69[key])
-                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`) })
+                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`) })
               }
 
               const grantReportsDue83 = grantsWithNextReport.filter(g => {
