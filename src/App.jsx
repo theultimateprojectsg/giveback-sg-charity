@@ -10163,30 +10163,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Total Given</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: 'white' }}>${selectedDonor.total.toLocaleString()}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: 'white' }}>${(selectedDonor.total || 0).toLocaleString()}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Donations</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.count}</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.count || 0}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Avg. Donation</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: 'white' }}>${selectedDonor.count > 0 ? (selectedDonor.total / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: 'white' }}>${selectedDonor.count > 0 ? ((selectedDonor.total || 0) / selectedDonor.count).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0'}</div>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Receipts</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.receipts}/{selectedDonor.count}</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: 'white' }}>{selectedDonor.receipts || 0}/{selectedDonor.count || 0}</div>
                       </div>
                     </div>
                     {charityIsIpc && (
                       <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                           <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>250% Tax Deductible</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: 'white' }}>${(selectedDonor.total * 2.5).toLocaleString()}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: 'white' }}>${((selectedDonor.total || 0) * 2.5).toLocaleString()}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>Est. Tax Savings (22%)</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: '#9FD9BC' }}>${(selectedDonor.total * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: '#9FD9BC' }}>${((selectedDonor.total || 0) * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                         </div>
                       </div>
                     )}
