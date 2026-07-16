@@ -10696,6 +10696,81 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {donorProfileTab === 'donations' && (
                   <div>
                 {(() => {
+                  // "Right now" — surfaces the donor-moment triggers this specific donor is currently
+                  // flagged for (the same ones that drive the dashboard Worth-knowing list), each with
+                  // a one-tap route to log the outreach. Lapsed + giving-change keep their own cards
+                  // below. A moment clears once you log a contact this week (or the gift is thanked).
+                  const dk = selectedDonor.email?.trim() || selectedDonor.name
+                  const rnToday = new Date(); rnToday.setHours(0, 0, 0, 0)
+                  const rnWeekAgo = new Date(rnToday.getTime() - 7 * 24 * 60 * 60 * 1000)
+                  const rnMonthAgo = new Date(rnToday.getTime() - 30 * 24 * 60 * 60 * 1000)
+                  const myConfirmed = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === dk && d.payment_status === 'confirmed')
+                  const lastContact = donorLastContactMap[dk]
+                  const contactedThisWeek = !!(lastContact && new Date(lastContact) >= rnWeekAgo)
+                  const contactedThisMonth = !!(lastContact && new Date(lastContact) >= rnMonthAgo)
+                  const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === dk)
+                  const moments = []
+
+                  if (!contactedThisWeek) {
+                    const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                    const firstGift = sorted[0]
+                    if (firstGift && new Date(firstGift.created_at) >= rnWeekAgo && !firstGift.thank_you_sent) moments.push({ icon: '🆕', text: 'New donor — welcome them to your community' })
+                    const biggest = myConfirmed.find(d => new Date(d.created_at) >= rnWeekAgo && donationBadgeInfo[d.id]?.isBiggestYet)
+                    if (biggest && !biggest.thank_you_sent) moments.push({ icon: '📈', text: `Gave their biggest gift yet ($${Number(biggest.amount).toLocaleString()}) — recognise it` })
+                    if (firstGift) {
+                      const fd = new Date(firstGift.created_at)
+                      const anniv = new Date(rnToday.getFullYear(), fd.getMonth(), fd.getDate())
+                      const daysDiff = Math.floor((anniv - rnToday) / (1000 * 60 * 60 * 24))
+                      if (fd.getFullYear() < rnToday.getFullYear() && daysDiff >= -7 && daysDiff <= 0) { const yrs = rnToday.getFullYear() - fd.getFullYear(); moments.push({ icon: '🎉', text: `Giving anniversary this week (${yrs} year${yrs > 1 ? 's' : ''}) — send a note` }) }
+                    }
+                    const lifetime = myConfirmed.reduce((s, d) => s + d.amount, 0)
+                    const priorLifetime = lifetime - myConfirmed.filter(d => new Date(d.created_at) >= rnWeekAgo).reduce((s, d) => s + d.amount, 0)
+                    const crossed = (cumulativeThresholds || []).find(t => priorLifetime < t && lifetime >= t)
+                    if (crossed) moments.push({ icon: '🏆', text: `Crossed $${crossed.toLocaleString()} in lifetime giving this week — recognise the milestone` })
+                    const monthsSet = new Set(myConfirmed.map(d => { const dt = new Date(d.created_at); return dt.getFullYear() * 12 + dt.getMonth() }))
+                    const monthsArr = [...monthsSet].sort((a, b) => b - a)
+                    let streak = monthsArr.length ? 1 : 0
+                    for (let i = 1; i < monthsArr.length; i++) { if (monthsArr[i - 1] - monthsArr[i] === 1) streak++; else break }
+                    if ([12, 24, 36, 60].includes(streak)) moments.push({ icon: '🔥', text: `${streak}-month giving streak — celebrate it` })
+                    if (contact?.birth_date) {
+                      const bd = new Date(contact.birth_date)
+                      const bday = new Date(rnToday.getFullYear(), bd.getMonth(), bd.getDate())
+                      const daysUntil = Math.ceil((bday - rnToday) / (1000 * 60 * 60 * 24))
+                      if (daysUntil >= 0 && daysUntil <= 7) moments.push({ icon: '🎂', text: 'Birthday this week — send a greeting' })
+                    }
+                  }
+
+                  if (!contactedThisMonth) {
+                    const lifetimeTotal = myConfirmed.reduce((s, d) => s + d.amount, 0)
+                    if (lifetimeTotal >= (majorDonorThreshold || 1000) && !selectedDonor.deactivated) {
+                      const lastVisit = contact?.last_visited_date
+                      const monthsSince = lastVisit ? (rnToday - new Date(lastVisit)) / (1000 * 60 * 60 * 24 * 30) : null
+                      if (monthsSince === null || monthsSince >= 6) moments.push({ icon: '🤝', text: 'Major donor due a catch-up — not visited in 6+ months' })
+                    }
+                    const upcomingMonth = new Date(rnToday.getFullYear(), rnToday.getMonth() + 1, 1).getMonth()
+                    const yearsInUpcoming = new Set(myConfirmed.filter(d => new Date(d.created_at).getMonth() === upcomingMonth).map(d => new Date(d.created_at).getFullYear()))
+                    if (yearsInUpcoming.size >= 2) moments.push({ icon: '📅', text: 'Usually gives next month — a soft note now can help' })
+                  }
+
+                  if (moments.length === 0) return null
+                  return (
+                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.gold}`, marginBottom: 16, overflow: 'hidden' }}>
+                      <div style={{ background: C.gold, padding: '8px 16px' }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>Right now</span>
+                      </div>
+                      <div style={{ padding: '8px 18px 14px' }}>
+                        {moments.map((m, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: i < moments.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                            <span style={{ fontSize: 15, flexShrink: 0 }}>{m.icon}</span>
+                            <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{m.text}</span>
+                          </div>
+                        ))}
+                        <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%', marginTop: 12 }} onClick={() => setDonorProfileTab('logs')}>📝 Log outreach →</button>
+                      </div>
+                    </div>
+                  )
+                })()}
+                {(() => {
                   const donorKey = selectedDonor.email?.trim() || selectedDonor.name
                   const outreachHistory = lapsedReminderHistory[donorKey] || []
                   const dismissal = lapsedDismissals[donorKey]
