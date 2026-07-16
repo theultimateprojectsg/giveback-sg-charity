@@ -9119,7 +9119,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 donorCumulative69[key] = (donorCumulative69[key] || 0) + d.amount
                 keyToName69[key] = d.donor_name
               })
-              const jumpToDonors69 = (names, label) => () => { setFilterTopDonorNames(names); setDonorFilterLabel(label); setActiveTab('donors') }
 
               const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
                 const fd = new Date(firstDate)
