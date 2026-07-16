@@ -10355,27 +10355,47 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       }
                       return prev[n]
                     }
+                    const nric39 = s => (s || '').trim().toUpperCase()
+                    const phone39 = (emailOrName) => { const rec = [...pledges, ...recurringGifts].find(r => (r.donor_email?.trim() || r.donor_name) === emailOrName); const p = (rec?.donor_phone || '').replace(/\D/g, ''); return p.length >= 8 ? p.slice(-8) : '' }
                     const enteredName39 = norm39(selectedDonor.name)
-                    // Suggest a merge only when the names genuinely look like the SAME person: an exact
-                    // match, a full name contained within a longer one (e.g. "John Tan" ⊂ "John Tan Wei"),
-                    // or a 1–2 character typo. A shared surname alone ("Quentin Low" vs "Natalie Low")
-                    // must NOT match.
-                    const similarDonors39 = combinedDonorList.filter(d => {
-                      if ((d.email?.trim() || d.name) === (selectedDonor.email?.trim() || selectedDonor.name)) return false
-                      const existing = norm39(d.name)
-                      if (!existing || !enteredName39) return false
-                      if (existing === enteredName39) return true
-                      const shorter = existing.length <= enteredName39.length ? existing : enteredName39
-                      const longer = existing.length <= enteredName39.length ? enteredName39 : existing
-                      if (shorter.includes(' ') && longer.includes(shorter)) return true
-                      return Math.max(existing.length, enteredName39.length) >= 6 && lev39(existing, enteredName39) <= 2
-                    })
-                    if (similarDonors39.length === 0) return <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No similar donor names found.</div>
+                    const selKey39 = selectedDonor.email?.trim() || selectedDonor.name
+                    const selEmail39 = selectedDonor.email?.trim().toLowerCase() || ''
+                    const selNric39 = nric39(selectedDonor.nric)
+                    const selPhone39 = phone39(selKey39)
+                    // Match order: strong identity signals (email / NRIC / phone) first, then a name
+                    // look-alike (exact, full-name-contained, or 1–2 char typo). A shared surname alone
+                    // ("Quentin Low" vs "Natalie Low") must NOT match. Each result shows why it matched.
+                    const rank39 = { 'same email': 0, 'same NRIC': 1, 'same phone': 2, 'same name': 3, 'similar name': 4 }
+                    const similarDonors39 = combinedDonorList.map(d => {
+                      const dKey = d.email?.trim() || d.name
+                      if (dKey === selKey39) return null
+                      const dEmail = d.email?.trim().toLowerCase() || ''
+                      const dNric = nric39(d.nric)
+                      const dPhone = phone39(dKey)
+                      let reason = null
+                      if (selEmail39 && dEmail && selEmail39 === dEmail) reason = 'same email'
+                      else if (selNric39 && dNric && selNric39 === dNric) reason = 'same NRIC'
+                      else if (selPhone39 && dPhone && selPhone39 === dPhone) reason = 'same phone'
+                      else {
+                        const existing = norm39(d.name)
+                        if (existing && enteredName39) {
+                          if (existing === enteredName39) reason = 'same name'
+                          else {
+                            const shorter = existing.length <= enteredName39.length ? existing : enteredName39
+                            const longer = existing.length <= enteredName39.length ? enteredName39 : existing
+                            if (shorter.includes(' ') && longer.includes(shorter)) reason = 'similar name'
+                            else if (Math.max(existing.length, enteredName39.length) >= 6 && lev39(existing, enteredName39) <= 2) reason = 'similar name'
+                          }
+                        }
+                      }
+                      return reason ? { ...d, matchReason: reason } : null
+                    }).filter(Boolean).sort((a, b) => rank39[a.matchReason] - rank39[b.matchReason])
+                    if (similarDonors39.length === 0) return <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No likely duplicates found.</div>
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {similarDonors39.slice(0, 3).map((d, i) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
-                            <span style={{ fontSize: 12.5, color: C.forest }}><strong>{d.name}</strong> — {d.count} gift{d.count !== 1 ? 's' : ''}, ${d.total.toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, color: C.forest }}><strong>{d.name}</strong> — {d.count} gift{d.count !== 1 ? 's' : ''}, ${d.total.toLocaleString()} <span style={{ fontSize: 10.5, color: C.muted, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '1px 6px', marginLeft: 4 }}>{d.matchReason}</span></span>
                             <button
                               style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }}
                               onClick={() => {
