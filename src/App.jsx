@@ -10784,10 +10784,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const isUp = gcFlag.changePct > 0
                     const acked = (givingChangeAckHistory[dk] || []).some(a => a.direction === (isUp ? 'upgrade' : 'downgrade'))
                     if (!acked) {
+                      const markGivingChangeDone = async () => {
+                        const { data } = await supabase.from('giving_change_acks').insert({ charity_uen: charityUen, donor_key: dk, direction: isUp ? 'upgrade' : 'downgrade', change_pct: gcFlag.changePct, message: null, sent_by: session.user.email }).select().single()
+                        if (data) setGivingChangeAckHistory(prev => ({ ...prev, [dk]: [data, ...(prev[dk] || [])] }))
+                        showToast('Marked done ✓')
+                      }
                       if (isUp) {
-                        moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
+                        moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onDone: markGivingChangeDone, onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
                       } else {
-                        moments.push({ icon: '📉', text: `Giving decreased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — check in`, button: 'Check in about decreased giving', onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: gcFlag.changePct } }); setShowLapsedReminderModal(true) } })
+                        moments.push({ icon: '📉', text: `Giving decreased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — check in`, button: 'Check in about decreased giving', onDone: markGivingChangeDone, onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: gcFlag.changePct } }); setShowLapsedReminderModal(true) } })
                       }
                     }
                   }
