@@ -10774,6 +10774,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   // flagged for (the same ones that drive the dashboard Worth-knowing list), each with
                   // a one-tap route to log the outreach. Lapsed + giving-change keep their own cards
                   // below. A moment clears once you log a contact this week (or the gift is thanked).
+                  // Never surface outreach prompts for a deceased or do-not-contact donor.
+                  if (selectedDonor.deceased || selectedDonor.doNotContact) return null
                   const dk = selectedDonor.email?.trim() || selectedDonor.name
                   const rnToday = new Date(); rnToday.setHours(0, 0, 0, 0)
                   const rnWeekAgo = new Date(rnToday.getTime() - 7 * 24 * 60 * 60 * 1000)
