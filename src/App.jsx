@@ -11028,6 +11028,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <>
                                   <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.4 }}>{n.note}</div>
                                   <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{tc.label} · {new Date(n.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(n.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · {n.created_by}</div>
+                                  {n.email_body && <span style={{ fontSize: 11, color: C.sage, fontWeight: 500, cursor: 'pointer', marginTop: 4, display: 'inline-block' }} onClick={() => setViewEmailNote(n)}>📧 View email sent →</span>}
                                 </>
                               )}
                             </div>
