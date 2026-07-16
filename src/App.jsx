@@ -10807,7 +10807,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                             <button
                               style={{ ...s.btnGold, justifyContent: 'center', width: '100%', opacity: 1 }}
-                              onClick={() => setRnOutreach({ donorName: selectedDonor.name, donorEmail: selectedDonor.email, donorKey: dk, title: m.button, subject: m.subject, text: m.body, logNote: m.logNote, previewing: false })}
+                              onClick={() => m.onAction ? m.onAction() : setRnOutreach({ donorName: selectedDonor.name, donorEmail: selectedDonor.email, donorKey: dk, title: m.button, subject: m.subject, text: m.body, logNote: m.logNote, previewing: false })}
                             >✉ {m.button}</button>
                           </div>
                         ))}
