@@ -10342,17 +10342,33 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
                   {(() => {
-                    const enteredName39 = selectedDonor.name.trim().toLowerCase()
+                    const norm39 = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+                    // Levenshtein edit distance — catches genuine typo variants of the same name.
+                    const lev39 = (a, b) => {
+                      const m = a.length, n = b.length
+                      if (!m) return n; if (!n) return m
+                      let prev = Array.from({ length: n + 1 }, (_, i) => i)
+                      for (let i = 1; i <= m; i++) {
+                        const cur = [i]
+                        for (let j = 1; j <= n; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] : 1 + Math.min(prev[j - 1], prev[j], cur[j - 1])
+                        prev = cur
+                      }
+                      return prev[n]
+                    }
+                    const enteredName39 = norm39(selectedDonor.name)
+                    // Suggest a merge only when the names genuinely look like the SAME person: an exact
+                    // match, a full name contained within a longer one (e.g. "John Tan" ⊂ "John Tan Wei"),
+                    // or a 1–2 character typo. A shared surname alone ("Quentin Low" vs "Natalie Low")
+                    // must NOT match.
                     const similarDonors39 = combinedDonorList.filter(d => {
                       if ((d.email?.trim() || d.name) === (selectedDonor.email?.trim() || selectedDonor.name)) return false
-                      const existing = d.name.trim().toLowerCase()
+                      const existing = norm39(d.name)
+                      if (!existing || !enteredName39) return false
                       if (existing === enteredName39) return true
-                      if (existing.includes(enteredName39) || enteredName39.includes(existing)) return true
-                      const longer = existing.length > enteredName39.length ? existing : enteredName39
-                      const shorter = existing.length > enteredName39.length ? enteredName39 : existing
-                      let matches = 0
-                      for (const char of shorter) { if (longer.includes(char)) matches++ }
-                      return (matches / longer.length) >= 0.8 && Math.abs(existing.length - enteredName39.length) <= 4
+                      const shorter = existing.length <= enteredName39.length ? existing : enteredName39
+                      const longer = existing.length <= enteredName39.length ? enteredName39 : existing
+                      if (shorter.includes(' ') && longer.includes(shorter)) return true
+                      return Math.max(existing.length, enteredName39.length) >= 6 && lev39(existing, enteredName39) <= 2
                     })
                     if (similarDonors39.length === 0) return <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No similar donor names found.</div>
                     return (
