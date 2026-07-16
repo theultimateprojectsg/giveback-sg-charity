@@ -9198,7 +9198,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (!streakDonorMonths69[key]) streakDonorMonths69[key] = new Set()
                 streakDonorMonths69[key].add(monthIndex)
               })
-              const streakHitKeys = Object.entries(streakDonorMonths69).filter(([, monthSet]) => {
+              const streakHitKeys = Object.entries(streakDonorMonths69).filter(([key, monthSet]) => {
+                if (!notSuppressed(key)) return false
                 const months = [...monthSet].sort((a, b) => b - a)
                 let consecutiveStreak = 1
                 for (let i = 1; i < months.length; i++) {
