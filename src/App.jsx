@@ -9180,7 +9180,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               if (anniversariesThisWeek.length > 0) {
                 const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
-                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`) })
+                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`) })
               }
 
               const cumulativeThresholds69 = cumulativeThresholds
