@@ -3990,6 +3990,17 @@ export default function App() {
     showToast('Note saved ✓')
   }
 
+  async function saveDonorNoteEdit(noteId) {
+    const text = editingDonorNoteText.trim()
+    if (!text) return
+    setSavingDonorNoteEdit(true)
+    const { error } = await supabase.from('donor_notes').update({ note: text }).eq('id', noteId)
+    if (error) { showToast('Error updating note', 'error'); setSavingDonorNoteEdit(false); return }
+    setDonorNotes(prev => prev.map(n => n.id === noteId ? { ...n, note: text } : n))
+    setEditingDonorNoteId(null); setEditingDonorNoteText(''); setSavingDonorNoteEdit(false)
+    showToast('Updated ✓')
+  }
+
   async function deleteDonorNote(noteId) {
     const note = donorNotes.find(n => n.id === noteId)
     const { error } = await supabase.from('donor_notes').delete().eq('id', noteId)
