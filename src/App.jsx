@@ -9200,7 +9200,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
                 return Object.values(byDonorMonth71).filter(donor => {
                   const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
-                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2
+                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && !contactedSince(donor.key, monthAgo.getTime())
                 })
               })()
               if (seasonalPatternDonors71.length > 0) {
