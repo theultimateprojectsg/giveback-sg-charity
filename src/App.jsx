@@ -10765,16 +10765,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }
                   }
 
-                  if (!contactedThisMonth) {
+                  {
                     const lifetimeTotal = myConfirmed.reduce((s, d) => s + d.amount, 0)
                     if (lifetimeTotal >= (majorDonorThreshold || 1000) && !selectedDonor.deactivated) {
                       const lastVisit = contact?.last_visited_date
                       const monthsSince = lastVisit ? (rnToday - new Date(lastVisit)) / (1000 * 60 * 60 * 24 * 30) : null
-                      if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', "Let's catch up", `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note')
+                      if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', "Let's catch up", `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note', rnMonthMs)
                     }
                     const upcomingMonth = new Date(rnToday.getFullYear(), rnToday.getMonth() + 1, 1).getMonth()
                     const yearsInUpcoming = new Set(myConfirmed.filter(d => new Date(d.created_at).getMonth() === upcomingMonth).map(d => new Date(d.created_at).getFullYear()))
-                    if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', 'Thinking of you', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note')
+                    if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', 'Thinking of you', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note', rnMonthMs)
                   }
 
                   if (moments.length === 0) return null
