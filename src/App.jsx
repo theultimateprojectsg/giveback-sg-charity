@@ -3547,7 +3547,7 @@ export default function App() {
       if (inserted) {
         setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
       }
-      await logDonorContact(donorKey, `Giving decrease check-in — email sent`, 'email')
+      await logDonorContact(donorKey, `Giving decrease check-in — email sent`, 'email', true, { subject: lapsedReminderSubject, body: lapsedReminderBody })
     } else {
       const { data: inserted } = await supabase.from('lapsed_donor_events').insert({
         charity_uen: charityUen,
