@@ -9192,7 +9192,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 confirmedDonations.forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                   const dt = new Date(d.created_at)
-                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { name: d.donor_name, yearsGivingInMonth: {} }
+                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { key, name: d.donor_name, yearsGivingInMonth: {} }
                   const month = dt.getMonth()
                   if (!byDonorMonth71[key].yearsGivingInMonth[month]) byDonorMonth71[key].yearsGivingInMonth[month] = new Set()
                   byDonorMonth71[key].yearsGivingInMonth[month].add(dt.getFullYear())
