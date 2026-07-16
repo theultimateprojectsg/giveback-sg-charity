@@ -10853,56 +10853,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {(() => {
-                  const donorKeyForFlag = selectedDonor.email?.trim() || selectedDonor.name
-                  const flagMatch = allGivingChangeFlags.find(f => (f.email?.trim() || f.name) === donorKeyForFlag)
-                  if (!flagMatch) return null
-                  const isUpgrade = flagMatch.changePct > 0
-                  return (
-                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Giving Pattern</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: isUpgrade ? '#EAF3EC' : '#FBEEE9', borderRadius: 4, marginBottom: 12 }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{isUpgrade ? 'Giving increased' : 'Giving decreased'}</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>Avg was ${flagMatch.prevAvg} · Last gift ${flagMatch.recent.toLocaleString()}</div>
-                        </div>
-                        <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: isUpgrade ? C.sage : C.red }}>
-                          {isUpgrade ? '↑' : '↓'} {Math.abs(flagMatch.changePct)}%
-                        </span>
-                      </div>
-                      {(() => {
-                        const ackKey = selectedDonor.email?.trim() || selectedDonor.name
-                        const ackHistory = givingChangeAckHistory[ackKey] || []
-                        if (ackHistory.length === 0) return null
-                        const last = ackHistory[0]
-                        const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                        return (
-                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10, fontStyle: 'italic' }}>
-                            Already {last.direction === 'upgrade' ? 'thanked' : 'checked in with'} {daysAgo === 0 ? 'today' : `${daysAgo}d ago`} ({ackHistory.length}× total)
-                          </div>
-                        )
-                      })()}
-                      {isUpgrade ? (
-                        <button
-                          style={{ ...s.btnGold, justifyContent: 'center', width: '100%' }}
-                          onClick={() => setThankYouDraft({
-                            donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count },
-                            badgeState: null,
-                            givingChangeMeta: { direction: 'upgrade', changePct: flagMatch.changePct },
-                            text: buildUpgradeThankYouNote(selectedDonor, flagMatch.changePct, flagMatch.recent, flagMatch.prevAvg),
-                          })}
-                        >💌 Send thank-you for increased gift</button>
-                      ) : (
-                        selectedDonor.email && (
-                          <button
-                            style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }}
-                            onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: flagMatch.changePct } }); setShowLapsedReminderModal(true) }}
-                          >✉ Check in about decreased giving</button>
-                        )
-                      )}
-                    </div>
-                  )
-                })()}
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
