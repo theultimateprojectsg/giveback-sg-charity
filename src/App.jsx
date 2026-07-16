@@ -18700,38 +18700,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {rnOutreach && (
+      {rnOutreach && !rnOutreach.previewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(null)}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>{rnOutreach.title} — {rnOutreach.donorName}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and personalise before sending. Sending records it in this donor's log automatically.</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and personalise, then preview before sending. Sending records it in this donor's log automatically.</div>
             <SenderIdentityLine recipientName={rnOutreach.donorName} recipientEmail={rnOutreach.donorEmail} {...senderIdentity} />
-            <textarea
-              style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
-              value={rnOutreach.text}
-              onChange={e => setRnOutreach(prev => ({ ...prev, text: e.target.value }))}
-            />
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <div style={s.formLabel}>Subject</div>
+              <input style={s.formInput} value={rnOutreach.subject} onChange={e => setRnOutreach(prev => ({ ...prev, subject: e.target.value }))} />
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
+              <div style={s.formLabel}>Message</div>
+              <textarea
+                style={{ ...s.formInput, minHeight: 200, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+                value={rnOutreach.text}
+                onChange={e => setRnOutreach(prev => ({ ...prev, text: e.target.value }))}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
               <button
-                style={{ flex: 2, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: rnOutreach.donorEmail?.trim() && !rnSending ? 1 : 0.5 }}
-                disabled={!rnOutreach.donorEmail?.trim() || rnSending}
-                onClick={async () => {
-                  setRnSending(true)
-                  const { error } = await sendCharityEmail({
-                    type: 'donor_moment',
-                    donor_name: rnOutreach.donorName,
-                    donor_email: rnOutreach.donorEmail,
-                    charity_name: charityName,
-                    charity_uen: charityUen,
-                    custom_message: rnOutreach.text,
-                  })
-                  if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
-                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email')
-                  const sentTo = rnOutreach.donorEmail
-                  setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
-                }}
-              >✉ {rnOutreach.donorEmail?.trim() ? 'Send email' : 'No email on file'}</button>
+                style={{ ...s.btnForest, flex: 2, justifyContent: 'center', opacity: rnOutreach.donorEmail?.trim() ? 1 : 0.5 }}
+                disabled={!rnOutreach.donorEmail?.trim()}
+                onClick={() => setRnOutreach(prev => ({ ...prev, previewing: true }))}
+              >{rnOutreach.donorEmail?.trim() ? 'Preview email →' : 'No email on file'}</button>
             </div>
             <div style={{ textAlign: 'center', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Reached out another way — a call, in person, or your own email?</div>
@@ -18744,6 +18737,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   setRnSending(false); setRnOutreach(null); showToast('Logged as done ✓')
                 }}
               >✓ Just log it as done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rnOutreach && rnOutreach.previewing && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(prev => ({ ...prev, previewing: false }))}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} disabled={rnSending} onClick={() => setRnOutreach(null)}>✕</button>
+            </div>
+            <SenderIdentityLine recipientName={rnOutreach.donorName} recipientEmail={rnOutreach.donorEmail} {...senderIdentity} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{rnOutreach.subject}</div>
+              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{rnOutreach.text}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(prev => ({ ...prev, previewing: false }))}>← Back to edit</button>
+              <button
+                style={{ ...s.btnForest, flex: 2, justifyContent: 'center' }}
+                disabled={rnSending}
+                onClick={async () => {
+                  setRnSending(true)
+                  const { error } = await sendCharityEmail({
+                    type: 'milestone_thank_you',
+                    donor_name: rnOutreach.donorName,
+                    donor_email: rnOutreach.donorEmail,
+                    charity_name: charityName,
+                    charity_uen: charityUen,
+                    subject: rnOutreach.subject,
+                    custom_message: rnOutreach.text,
+                  })
+                  if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
+                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email')
+                  const sentTo = rnOutreach.donorEmail
+                  setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
+                }}
+              >{rnSending ? 'Sending...' : '✓ Send email'}</button>
             </div>
           </div>
         </div>
