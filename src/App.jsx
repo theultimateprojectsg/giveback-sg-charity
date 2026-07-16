@@ -10809,6 +10809,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                               <span style={{ fontSize: 15, flexShrink: 0 }}>{m.icon}</span>
                               <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{m.text}</span>
+                              {m.onDone && <span style={{ fontSize: 11.5, color: C.muted, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }} title="Already handled this another way? Clear it." onClick={m.onDone}>✓ Mark done</span>}
                             </div>
                             <button
                               style={{ ...s.btnGold, justifyContent: 'center', width: '100%', opacity: 1 }}
