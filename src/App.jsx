@@ -10087,6 +10087,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )}
             </div>
+            {deactivatedDonorList.length > 0 && (
+              <div style={{ ...s.tableCard, marginTop: 24, opacity: 0.7 }}>
+                <div style={s.tableHeader}>
+                  <div style={s.tableTitle}>Deactivated Donors</div>
+                  <div style={s.tableCount}>{deactivatedDonorList.length} donors · hidden from active lists</div>
+                </div>
+                <div>
+                  {deactivatedDonorList.filter(d => d.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ ...s.donorAvatar, background: C.muted }}>{d.name?.charAt(0)}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.muted }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''} · ${d.total.toLocaleString()} total</div>
+                      </div>
+                      <span style={{ ...s.badgePending, color: C.muted, background: C.ivoryDark }}>Deactivated</span>
+                      <button style={s.viewBtn} onClick={() => setSelectedDonor(d)}>View</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
