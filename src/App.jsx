@@ -9171,7 +9171,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const fd = new Date(firstDate)
                 const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
                 const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
-                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && !contactedSince(key, weekAgo.getTime())
+                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime())
               })
               if (anniversariesThisWeek.length > 0) {
                 const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
