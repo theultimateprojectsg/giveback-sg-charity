@@ -9213,11 +9213,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const bd = new Date(c.birth_date)
                 const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
                 const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
-                return daysUntil >= 0 && daysUntil <= 7
+                return daysUntil >= 0 && daysUntil <= 7 && !contactedSince(c.email?.trim() || c.full_name, weekAgo.getTime())
               })
               if (birthdaysThisWeek70.length > 0) {
                 const names = birthdaysThisWeek70.map(c => c.full_name)
-                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`) })
+                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`) })
               }
 
               const lapsedReturningKeys = new Set()
