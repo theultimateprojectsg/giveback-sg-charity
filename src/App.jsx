@@ -9191,7 +9191,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).map(([key]) => key)
               if (crossedThresholdKeys.length > 0) {
                 const names = crossedThresholdKeys.map(key => keyToName69[key])
-                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(names, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`) })
+                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`) })
               }
 
               const streakMilestones69 = [12, 24, 36, 60]
