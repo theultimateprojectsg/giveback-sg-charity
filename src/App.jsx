@@ -18702,9 +18702,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     custom_message: text,
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
+                  const donorKey = donor.email?.trim() || donor.name
                   if (badgeState) await ackDonorBadges(donor, badgeState)
                   if (givingChangeMeta) {
-                    const donorKey = donor.email?.trim() || donor.name
                     const { data: inserted } = await supabase.from('giving_change_acks').insert({
                       charity_uen: charityUen,
                       donor_key: donorKey,
@@ -18716,6 +18716,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (inserted) {
                       setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
                     }
+                    await logDonorContact(donorKey, `Giving increase thank-you — email sent`, 'email')
+                  } else {
+                    await logDonorContact(donorKey, `Thank-you note sent`, 'email')
                   }
                   setThankYouDraft(null)
                   showToast(`Thank-you note sent to ${donor.email}`)
