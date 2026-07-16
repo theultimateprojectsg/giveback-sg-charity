@@ -3927,7 +3927,7 @@ export default function App() {
 
   // Records a communication-log entry for a donor and updates the in-memory maps so anything keyed
   // off "last contacted" (donor warmth, the profile "Right now" moments) reflects it immediately.
-  async function logDonorContact(donorKey, note, noteType) {
+  async function logDonorContact(donorKey, note, noteType, bumpWarmth = true) {
     const { data, error } = await supabase.from('donor_notes').insert([{
       charity_uen: charityUen,
       donor_key: donorKey,
@@ -3936,7 +3936,9 @@ export default function App() {
       created_by: session.user.email,
     }]).select()
     if (error) { console.error('Could not log contact:', error); return { error } }
-    setDonorLastContactMap(prev => ({ ...prev, [donorKey]: data[0].created_at }))
+    // 'moment_done' is an internal dismissal marker (used by the profile "Right now" card), not a real
+    // communication — it clears the moment but shouldn't count as contact or show in the log.
+    if (bumpWarmth) setDonorLastContactMap(prev => ({ ...prev, [donorKey]: data[0].created_at }))
     if (selectedDonor && (selectedDonor.email?.trim() || selectedDonor.name) === donorKey) {
       setDonorNotes(prev => [data[0], ...prev])
     }
