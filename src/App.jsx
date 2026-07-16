@@ -18764,9 +18764,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (inserted) {
                       setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
                     }
-                    await logDonorContact(donorKey, `Giving increase thank-you — email sent`, 'email')
+                    await logDonorContact(donorKey, `Giving increase thank-you — email sent`, 'email', true, { subject: 'Thank you for your increased gift', body: text })
                   } else {
-                    await logDonorContact(donorKey, `Thank-you note sent`, 'email')
+                    await logDonorContact(donorKey, `Thank-you note sent`, 'email', true, { subject: 'Thank you for your gift', body: text })
                   }
                   setThankYouDraft(null)
                   showToast(`Thank-you note sent to ${donor.email}`)
