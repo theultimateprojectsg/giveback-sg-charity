@@ -9148,7 +9148,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               // clears itself once everyone's been actioned.
               const contactedSince = (key, sinceMs) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
               const donationKey = (d) => d.donor_email?.trim() || d.donor_nric || d.donor_name
-              const jumpToDonors69 = (names, label) => () => { setFilterTopDonorNames(names); setDonorFilterLabel(label); setActiveTab('donors') }
+              const jumpToDonors69 = (keys, label) => () => { setFilterDonorKeys(keys); setFilterTopDonorNames(null); setDonorFilterLabel(label); setActiveTab('donors') }
 
               const milestonesThisWeek = donations.filter(d => {
                 if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo) return false
