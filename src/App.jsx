@@ -1676,7 +1676,9 @@ export default function App() {
   const [confirmModal, setConfirmModal] = useState(null)
   const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
   const [thankYouDraft, setThankYouDraft] = useState(null)
-  
+  const [rnOutreach, setRnOutreach] = useState(null)
+  const [rnSending, setRnSending] = useState(false)
+
 
   useEffect(() => {
     if (showPledgeThankYouModal && pledgeCompletionCandidate) {
