@@ -1229,6 +1229,7 @@ export default function App() {
   const [savingRecurringAmount, setSavingRecurringAmount] = useState(false)
   const [editingPledgeDonationId, setEditingPledgeDonationId] = useState(null)
   const [editingPledgeAmount, setEditingPledgeAmount] = useState('')
+  const [editingPledgeNotes, setEditingPledgeNotes] = useState('')
   const [savingPledgeAmount, setSavingPledgeAmount] = useState(false)
   const [grantSearchTerm, setGrantSearchTerm] = useState('')
   const [grantYearFilter, setGrantYearFilter] = useState('All')
