@@ -7378,7 +7378,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const matchYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
       return matchSearch && matchTag && matchTopDonors && matchDonorKeys && matchStatus && matchYear
     })
-  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf])
+  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf, majorDonorThreshold])
 
   const sortedDonorList = React.useMemo(() => {
     if (!donorSortBy) return filteredDonorList
