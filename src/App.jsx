@@ -8910,7 +8910,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { id: 'promotions', icon: '📣', label: 'Campaigns', module: 'campaigns' },
                 { id: 'pledges',    icon: '🤝', label: 'Pledges', module: 'pledges' },
                 { id: 'recurring',  icon: '🔁', label: 'Recurring', module: 'recurring' },
-                { id: 'massappeal', icon: '📢', label: 'Mass Appeal', module: 'massappeal' },
                 { id: 'grants',     icon: '💰', label: 'Grants', module: 'grants' },
               ].filter(item => enabledModules[item.module] !== false).map(item => (
                 <div key={item.id}
