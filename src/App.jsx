@@ -9350,24 +9350,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
               if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
 
-              const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
-                if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
-                if (d.count < lapsedMinGifts) return false
-                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                if (daysSince < lapsedMinDays) return false
-                if (lapsedDismissals[d.key]) return false
-                const history = lapsedReminderHistory[d.key]
-                if (history && history.length > 0) {
-                  const daysSinceReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-                  if (daysSinceReminder < 30) return false
-                }
-                return true
-              })
-              if (lapsedFiltered69.length > 0) {
-                const lapsedCount = lapsedFiltered69.length
-                items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
-              }
-
               const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
               if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
