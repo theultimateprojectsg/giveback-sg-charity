@@ -10930,6 +10930,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }
                   }
 
+                  // Lapsed-donor re-engagement folded in as a moment too — reuses the same lapsed
+                  // reminder modal (Reach Out) and the dismiss-reason modal (Not interested) as the
+                  // dedicated Outreach History card used to, so there's one action surface per donor.
+                  {
+                    const lastGiftDate = myConfirmed.length ? new Date([...myConfirmed].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at) : null
+                    const daysSinceLastGift = lastGiftDate ? Math.floor((rnToday - lastGiftDate) / (1000 * 60 * 60 * 24)) : null
+                    const isLapsedRn = daysSinceLastGift !== null && daysSinceLastGift >= lapsedMinDays && myConfirmed.length >= lapsedMinGifts
+                    if (isLapsedRn && !lapsedDismissals[dk]) {
+                      moments.push({
+                        icon: '⏰',
+                        text: `Hasn't given in ${daysSinceLastGift}+ days — reach out before they lapse further`,
+                        button: 'Reach Out',
+                        doneLabel: 'Not interested',
+                        onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) },
+                        onDone: () => { setLapsedDismissReason(''); setShowLapsedDismissModal({ name: selectedDonor.name, email: selectedDonor.email }) },
+                      })
+                    }
+                  }
+
                   if (moments.length === 0) return null
                   return (
                     <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.gold}`, marginBottom: 16, overflow: 'hidden' }}>
@@ -10953,7 +10972,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   style={{ ...s.viewBtn, justifyContent: 'center', flexShrink: 0, whiteSpace: 'nowrap' }}
                                   title="Already reached out another way? Clear this without sending."
                                   onClick={m.onDone}
-                                >✓ Mark done</button>
+                                >{m.doneLabel ? m.doneLabel : '✓ Mark done'}</button>
                               )}
                             </div>
                           </div>
