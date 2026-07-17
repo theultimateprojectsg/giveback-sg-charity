@@ -15482,7 +15482,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {isActive && (
                         <>
                           <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 Appeal</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 Appeal</button>
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
                         </>
                       )}
