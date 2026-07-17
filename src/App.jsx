@@ -9400,8 +9400,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && d.amount >= thankYouThreshold && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(d.donor_email?.trim() || d.donor_nric || d.donor_name))
               if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} major gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} (${thankYouThreshold}+) waiting on a personal thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setFilterMinAmount(thankYouThreshold); setDonationFilterLabel(`Showing ${thankYouThreshold}+ gifts awaiting a personal thank-you`); setActiveTab('donations') } })
 
-              if (recurringPatternSuggestions.length > 0) items.push({ key: 'recurring_pattern_suggestion', icon: '🔍', label: `${recurringPatternSuggestions.length} donor${recurringPatternSuggestions.length > 1 ? 's' : ''} look${recurringPatternSuggestions.length === 1 ? 's' : ''} recurring — tag them?`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
-
               const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
               // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
               // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
