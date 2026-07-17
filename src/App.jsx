@@ -15221,6 +15221,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 240 }} placeholder="🔍 Search by actor or details..." value={auditSearchTerm} onChange={e => setAuditSearchTerm(e.target.value)} />
+              {isMobile && (
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowAuditFilters(v => !v)}>{showAuditFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
+              )}
+              {(!isMobile || showAuditFilters) && (<>
               <select style={s.filterSelect} value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)}>
                 <option value="7">Last 7 days</option>
                 <option value="30">Last 30 days</option>
