@@ -16883,7 +16883,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {massAppealStep === 'setup' ? 'New Appeal' : massAppealStep === 'preview' && !massAppealProgress ? `${massAppealRefs.filter(r => r.selected).length} donors selected` : massAppealProgress ? 'Sending appeals...' : 'Appeal sent'}
                     </div>
                     {!massAppealProgress && (
-                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>✕</button>
+                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup'); setActiveTab('promotions') }}>✕</button>
                     )}
                   </div>
 
