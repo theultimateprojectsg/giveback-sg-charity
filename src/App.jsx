@@ -3451,7 +3451,7 @@ export default function App() {
       payment_method: gift.type === 'giro' ? 'GIRO' : gift.type === 'habitual_paynow' ? 'PayNow' : 'Bank Transfer',
       status: 'confirmed',
       recurring_gift_id: gift.id,
-      notes: `Recurring ${gift.frequency} gift`,
+      notes: markReceivedNote.trim() || `Recurring ${gift.frequency} gift`,
       charity_uen: charityUen,
       receipt_number: receiptNumber,
       created_by: session.user.email,
