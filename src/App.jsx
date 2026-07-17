@@ -10197,8 +10197,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                     const w76 = getDonorWarmth(d)
                                     const wColor76 = w76.level === 'green' ? C.sage : w76.level === 'amber' ? C.gold : C.red
                                     return (
-                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: wColor76, flexShrink: 0 }} />
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                        <div style={{ width: 13, height: 13, borderRadius: '50%', background: wColor76, flexShrink: 0, boxShadow: `0 0 0 3px ${wColor76}26` }} />
                                         <span style={{ fontSize: 11, color: C.muted }}>{w76.label}</span>
                                       </div>
                                     )
