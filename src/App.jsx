@@ -3980,8 +3980,16 @@ export default function App() {
   useEffect(() => {
     if (session && (activeTab === 'activity' || activeTab === 'dashboard')) loadAuditLog()
     setShowMobileMenu(false)
-    if (session) supabase.auth.updateUser({ data: { last_active_tab: activeTab } })
-  }, [session, activeTab])
+  }, [session?.user?.id, activeTab])
+
+  // Separate from the effect above — updateUser() fires onAuthStateChange, which replaces the
+  // session object, which would re-trigger any effect keyed on the full `session` value. Guarding
+  // on the stored tab (not calling this if it's already correct) stops that from looping forever.
+  useEffect(() => {
+    if (session && session.user?.user_metadata?.last_active_tab !== activeTab) {
+      supabase.auth.updateUser({ data: { last_active_tab: activeTab } })
+    }
+  }, [activeTab, session?.user?.id])
 
   useEffect(() => {
     if (selectedDonation && selectedRowRef.current) {
