@@ -3166,8 +3166,9 @@ export default function App() {
     // Also lands in the donor's own Communication Log — this used to only exist on the pledge
     // reminder history, invisible from the donor's profile.
     const pledgeContactDonorKey = p.donor_email?.trim() || p.donor_name
-    const channelLabel = { phone: 'Called', in_person: 'Met in person', other: 'Followed up' }[logContactMethod] || 'Contacted'
-    await logDonorContact(pledgeContactDonorKey, `${channelLabel} about pledge ($${Number(p.amount).toLocaleString()})${logContactNote?.trim() ? ` — ${logContactNote.trim()}` : ''}`, logContactMethod === 'phone' ? 'call' : logContactMethod === 'in_person' ? 'meeting' : 'note')
+    const channelLabel = { phone: 'Called', email: 'Emailed', in_person: 'Met in person', whatsapp: 'WhatsApped', other: 'Followed up' }[logContactMethod] || 'Contacted'
+    const noteType = { phone: 'call', email: 'email', in_person: 'meeting', whatsapp: 'whatsapp', other: 'note' }[logContactMethod] || 'note'
+    await logDonorContact(pledgeContactDonorKey, `${channelLabel} about pledge ($${Number(p.amount).toLocaleString()})${logContactNote?.trim() ? ` — ${logContactNote.trim()}` : ''}`, noteType)
 
     showToast(`Contact logged — won't be flagged again for 7 days`)
     setLogContactModal(null)
