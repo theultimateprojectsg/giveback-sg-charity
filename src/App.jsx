@@ -2904,7 +2904,7 @@ export default function App() {
     setRescheduleReason('')
   }
 
-  const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email }
+  const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
   async function sendCharityEmail(body) {
     const targetEmail = body.donor_email?.trim()
