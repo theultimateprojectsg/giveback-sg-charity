@@ -15496,7 +15496,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setExpandedCampaignId(expandedCampaignId === c.id ? null : c.id)}>{expandedCampaignId === c.id ? '▲ Hide ledger' : '▼ View ledger'}</button>
+                      {(() => {
+                        const campaignAppeals = massAppeals.filter(a => a.cause_id === c.id)
+                        if (campaignAppeals.length === 0) return null
+                        return (
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setExpandedCampaignAppeals(prev => {
+                            const next = new Set(prev)
+                            if (next.has(c.id)) next.delete(c.id); else next.add(c.id)
+                            return next
+                          })}>{expandedCampaignAppeals.has(c.id) ? '▲ Hide appeals' : `▼ Appeals (${campaignAppeals.length})`}</button>
+                        )
+                      })()}
                     </div>
+                    {expandedCampaignAppeals.has(c.id) && (
+                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {massAppeals.filter(a => a.cause_id === c.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(a => (
+                          <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(a.amount).toLocaleString()}</span>
+                              {a.failed_count > 0 ? <span style={{ fontSize: 10, color: C.gold }}>⚠ Partial</span> : <span style={{ fontSize: 10, color: C.sage }}>✓ Sent</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.sent_count} sent</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {expandedCampaignId === c.id && (
                       <CampaignExpensePanel
                         cause={c} s={s} C={C}
