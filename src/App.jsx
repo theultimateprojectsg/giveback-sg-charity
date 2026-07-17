@@ -7379,8 +7379,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
   }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf])
 
-  const donorsTotalPages = Math.max(1, Math.ceil(filteredDonorList.length / donorsPerPage))
-  const paginatedDonorList = filteredDonorList.slice(donorsPage * donorsPerPage, donorsPage * donorsPerPage + donorsPerPage)
+  const sortedDonorList = React.useMemo(() => {
+    if (!donorSortBy) return filteredDonorList
+    const dir = donorSortDir === 'asc' ? 1 : -1
+    const valueFor = (d) => {
+      const donorKey = d.email?.trim() || d.name
+      if (donorSortBy === 'name') return d.name?.toLowerCase() || ''
+      if (donorSortBy === 'total') return d.total || 0
+      if (donorSortBy === 'count') return d.count || 0
+      if (donorSortBy === 'avg') return d.count > 0 ? d.total / d.count : 0
+      if (donorSortBy === 'lastDate') return d.lastDate ? new Date(d.lastDate).getTime() : 0
+      if (donorSortBy === 'tags') return (donorTagsMap[donorKey] || []).length
+      if (donorSortBy === 'recurring') { const g = recurringGifts.find(g => g.status === 'active' && (g.donor_email?.trim() || g.donor_name) === donorKey); return g ? Number(g.amount) : -1 }
+      if (donorSortBy === 'pledge') { const p = pledges.find(p => p.status === 'pending' && (p.donor_email?.trim() || p.donor_name) === donorKey); return p ? Number(p.amount) : -1 }
+      if (donorSortBy === 'warmth') { const w = getDonorWarmth(d); return w.daysSince === null ? Infinity : w.daysSince }
+      return 0
+    }
+    return [...filteredDonorList].sort((a, b) => {
+      const va = valueFor(a), vb = valueFor(b)
+      if (va < vb) return -1 * dir
+      if (va > vb) return 1 * dir
+      return 0
+    })
+  }, [filteredDonorList, donorSortBy, donorSortDir, donorTagsMap, recurringGifts, pledges, donorLastContactMap])
+
+  const donorsTotalPages = Math.max(1, Math.ceil(sortedDonorList.length / donorsPerPage))
+  const paginatedDonorList = sortedDonorList.slice(donorsPage * donorsPerPage, donorsPage * donorsPerPage + donorsPerPage)
 
   useEffect(() => {
     setDonorsPage(0)
