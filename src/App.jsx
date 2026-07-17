@@ -10063,25 +10063,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
                   )}
-                  {!isMobile && !isTablet && (
-                    <div style={{ position: 'relative' }}>
-                      <button style={s.exportSmallBtn} onClick={() => setShowColumnPicker(v => !v)}>⚙️ Columns</button>
-                      {showColumnPicker && (
-                        <>
-                          <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowColumnPicker(false)} />
-                          <div style={{ position: 'absolute', top: '110%', right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 10, zIndex: 50, minWidth: 200 }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show columns</div>
-                            {DONOR_COLUMN_OPTIONS.map(opt => (
-                              <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 4px', fontSize: 13, color: C.forest, cursor: 'pointer' }}>
-                                <input type="checkbox" checked={selectedDonorColumns.includes(opt.key)} onChange={() => toggleDonorColumn(opt.key)} />
-                                {opt.label}
-                              </label>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
               )
             })()}
