@@ -16666,9 +16666,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <label style={{ display: 'block', marginBottom: 12 }}>
                     <div style={s.formLabel}>How did you follow up?</div>
                     <select style={s.formInput} value={logContactMethod} onChange={e => setLogContactMethod(e.target.value)}>
-                      <option value="phone">📞 Phone call</option>
-                      <option value="in_person">🤝 In person</option>
-                      <option value="other">📝 Other</option>
+                      <option value="phone">📞 Call</option>
+                      <option value="email">📧 Email</option>
+                      <option value="in_person">🤝 Meeting</option>
+                      <option value="whatsapp">💬 WhatsApp</option>
+                      <option value="other">📝 Note</option>
                     </select>
                   </label>
                   <label style={{ display: 'block', marginBottom: 16 }}>
