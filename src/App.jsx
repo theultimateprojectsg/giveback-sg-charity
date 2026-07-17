@@ -16031,6 +16031,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })
                 exportRecurringExcel(filtered)
               }}>⬇️ Export to Excel</button>
+              </>)}
             </div>
 
             {(() => {
