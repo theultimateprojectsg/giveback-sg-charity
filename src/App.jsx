@@ -5646,6 +5646,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return Object.values(donorMap).sort((a, b) => b.total - a.total)
   }, [donations])
   const activeDonorList = donorList.filter(d => !d.deactivated)
+  const findDonorRecord = React.useCallback((email, name) => {
+    const key = email?.trim() || name
+    return donorList.find(d => (d.email?.trim() || d.name) === key) || { name, email, total: 0, count: 0, receipts: 0 }
+  }, [donorList])
 
   const contactOnlyDonors = donorContacts
     .filter(c => {
