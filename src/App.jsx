@@ -3163,6 +3163,12 @@ export default function App() {
       details: { donor_name: p.donor_name, channel: logContactMethod, charity_uen: charityUen },
     })
 
+    // Also lands in the donor's own Communication Log — this used to only exist on the pledge
+    // reminder history, invisible from the donor's profile.
+    const pledgeContactDonorKey = p.donor_email?.trim() || p.donor_name
+    const channelLabel = { phone: 'Called', in_person: 'Met in person', other: 'Followed up' }[logContactMethod] || 'Contacted'
+    await logDonorContact(pledgeContactDonorKey, `${channelLabel} about pledge ($${Number(p.amount).toLocaleString()})${logContactNote?.trim() ? ` — ${logContactNote.trim()}` : ''}`, logContactMethod === 'phone' ? 'call' : logContactMethod === 'in_person' ? 'meeting' : 'note')
+
     showToast(`Contact logged — won't be flagged again for 7 days`)
     setLogContactModal(null)
     setLogContactNote('')
