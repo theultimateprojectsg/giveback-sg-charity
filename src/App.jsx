@@ -16853,7 +16853,25 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div key={i} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ color: C.text }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {l.payment_status}</span>}</span>
-                              <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                              {editingPledgeDonationId === l.donation_id ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <input
+                                    type="number"
+                                    autoFocus
+                                    style={{ width: 70, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right' }}
+                                    value={editingPledgeAmount}
+                                    onChange={e => setEditingPledgeAmount(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') savePledgeDonationAmount(l); if (e.key === 'Escape') setEditingPledgeDonationId(null) }}
+                                  />
+                                  <span style={{ color: C.sage, cursor: savingPledgeAmount ? 'default' : 'pointer', opacity: savingPledgeAmount ? 0.5 : 1 }} onClick={() => savePledgeDonationAmount(l)}>✓</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => setEditingPledgeDonationId(null)}>✕</span>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
+                                </div>
+                              )}
                             </div>
                             {l.notes && <div style={{ color: C.muted, marginTop: 2 }}>{l.notes}</div>}
                           </div>
