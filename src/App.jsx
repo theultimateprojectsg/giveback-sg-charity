@@ -15583,12 +15583,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {expandedCampaignAppeals.has(c.id) && (
                       <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {massAppeals.filter(a => a.cause_id === c.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(a => (
-                          <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(a.amount).toLocaleString()}</span>
-                              {a.failed_count > 0 ? <span style={{ fontSize: 10, color: C.gold }}>⚠ Partial</span> : <span style={{ fontSize: 10, color: C.sage }}>✓ Sent</span>}
+                          <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{a.cause_name || 'Campaign appeal'}</span>
+                              {a.failed_count > 0 ? (
+                                <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
+                              ) : (
+                                <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
+                              )}
                             </div>
-                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.sent_count} sent</div>
+                            <div style={{ fontSize: 18, fontWeight: 500, color: C.forest, marginBottom: 6 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 11, fontWeight: 400, color: C.muted }}> suggested</span></div>
+                            <div style={{ fontSize: 11.5, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</div>
                           </div>
                         ))}
                       </div>
