@@ -12044,10 +12044,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{selectedDonation.payment_method || '—'}</span>
                           </div>
                         )}
-                        {selectedDonation.source === 'manual' && (selectedDonation.payment_method === 'Bank Wire' || selectedDonation.payment_method === 'Cheque') && (
+                        {selectedDonation.source === 'manual' && (selectedDonation.payment_method === 'Bank Wire' || selectedDonation.payment_method === 'Cheque' || selectedDonation.payment_method === 'PayNow') && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                            <span style={{ fontSize: 13, color: C.muted }}>{selectedDonation.payment_method === 'Cheque' ? 'Cheque No.' : 'Wire Reference'}</span>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{selectedDonation.payment_ref || '—'}</span>
+                            <span style={{ fontSize: 13, color: C.muted }}>{selectedDonation.payment_method === 'Cheque' ? 'Cheque No.' : selectedDonation.payment_method === 'PayNow' ? 'PayNow Reference' : 'Wire Reference'}</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: 'monospace' }}>{selectedDonation.payment_ref || '—'}</span>
                           </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
