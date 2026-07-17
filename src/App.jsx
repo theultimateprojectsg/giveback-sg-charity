@@ -11792,17 +11792,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <thead>
                         <tr>
                           {(isTablet
-                            ? charityIsIpc ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Payment', 'Receipt']
-            : ['Donor', ...DONATION_COLUMN_OPTIONS.filter(o => o.key !== 'nric' || charityIsIpc).map(o => o.label)]
+                            ? (charityIsIpc ? ['Donor', 'Amount', 'Date', 'NRIC', 'Payment', 'Receipt'] : ['Donor', 'Amount', 'Date', 'Payment', 'Receipt']).map(label => ({ key: label === 'Donor' ? 'name' : label.toLowerCase(), label }))
+                            : [{ key: 'name', label: 'Donor' }, ...orderedDonationColumns.filter(o => o.key !== 'nric' || charityIsIpc)]
                           ).map(h => {
-                            const sortKey = h === 'Amount' ? 'amount' : h === 'Date' ? 'date' : h === 'Donor' ? 'donor' : h === 'Cause' ? 'cause' : null
+                            const sortKey = h.key === 'name' ? 'donor' : ['amount', 'date', 'cause', 'source', 'reference', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou'].includes(h.key) ? h.key : null
                             return (
-                              <th key={h} style={{ ...s.th, cursor: sortKey ? 'pointer' : 'default', userSelect: 'none', width: h === 'Donor' ? 220 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => {
-                                if (!sortKey) return
-                                if (donationSortBy === sortKey) setDonationSortDir(d => d === 'asc' ? 'desc' : 'asc')
-                                else { setDonationSortBy(sortKey); setDonationSortDir('desc') }
-                              }}>
-                                {h}{sortKey && donationSortBy === sortKey ? (donationSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                              <th
+                                key={h.key}
+                                draggable={!isTablet && h.key !== 'name'}
+                                onDragStart={() => setDraggedDonationColumn(h.key)}
+                                onDragOver={e => { if (!isTablet && h.key !== 'name') e.preventDefault() }}
+                                onDrop={e => { e.preventDefault(); reorderDonationColumn(draggedDonationColumn, h.key); setDraggedDonationColumn(null) }}
+                                onDragEnd={() => setDraggedDonationColumn(null)}
+                                style={{ ...s.th, cursor: sortKey ? (h.key === 'name' ? 'pointer' : 'grab') : 'default', userSelect: 'none', width: h.key === 'name' ? 220 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: draggedDonationColumn === h.key ? 0.4 : 1 }}
+                                onClick={() => {
+                                  if (!sortKey) return
+                                  if (donationSortBy === sortKey) setDonationSortDir(d => d === 'asc' ? 'desc' : 'asc')
+                                  else { setDonationSortBy(sortKey); setDonationSortDir('desc') }
+                                }}
+                                title={!isTablet && h.key !== 'name' ? 'Drag to reorder · click to sort' : undefined}
+                              >
+                                {h.label}{sortKey && donationSortBy === sortKey ? (donationSortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                               </th>
                             )
                           })}
