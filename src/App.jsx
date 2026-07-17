@@ -7374,6 +7374,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         || (donorStatusFilter === 'Prospect' && d.isContactOnly)
         || (donorStatusFilter === 'DoNotContact' && d.doNotContact)
         || (donorStatusFilter === 'Deactivated' && d.deactivated)
+        || (donorStatusFilter === 'MajorDonor' && d.total >= (majorDonorThreshold || 1000))
       const matchYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
       return matchSearch && matchTag && matchTopDonors && matchDonorKeys && matchStatus && matchYear
     })
