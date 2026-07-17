@@ -10171,11 +10171,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {paginatedDonorList.map((d, i) => {
                       const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
                       const donorKey = d.email?.trim() || d.name
+                      const warmthColorRow = (() => { const w = getDonorWarmth(d); return w.level === 'green' ? C.sage : w.level === 'amber' ? C.gold : C.red })()
                       return (
                         <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
                             <div style={s.donorCell}>
-                              <div style={{ ...s.donorAvatar, background: C.forest }}>{d.name?.charAt(0)}</div>
+                              <div style={{ ...s.donorAvatar, background: warmthColorRow }}>{d.name?.charAt(0)}</div>
                               <div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                                   <div style={s.donorName}>{d.name}</div>
