@@ -7367,8 +7367,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const q = searchTerm.toLowerCase()
     return combinedDonorList.filter(d => {
       const matchSearch = d.name?.toLowerCase().includes(q)
-      const donorKey = d.email?.trim() || d.name
-      const matchTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
       const matchTopDonors = !filterTopDonorNames || filterTopDonorNames.includes(d.name)
       const matchDonorKeys = !filterDonorKeys || filterDonorKeys.includes(d.email?.trim() || d.nric || d.name)
       const matchStatus = donorStatusFilter === 'All'
@@ -7378,9 +7376,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         || (donorStatusFilter === 'Deactivated' && d.deactivated)
         || (donorStatusFilter === 'MajorDonor' && d.total >= (majorDonorThreshold || 1000))
       const matchYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
-      return matchSearch && matchTag && matchTopDonors && matchDonorKeys && matchStatus && matchYear
+      return matchSearch && matchTopDonors && matchDonorKeys && matchStatus && matchYear
     })
-  }, [combinedDonorList, searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, donorTagsMap, fyOf, majorDonorThreshold])
+  }, [combinedDonorList, searchTerm, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter, fyOf, majorDonorThreshold])
 
   const sortedDonorList = React.useMemo(() => {
     if (!donorSortBy) return filteredDonorList
