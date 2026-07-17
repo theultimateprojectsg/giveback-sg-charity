@@ -15286,14 +15286,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const matchSearch = !q || [entry.actor_email, entry.action, JSON.stringify(entry.details || {})].some(f => f?.toLowerCase().includes(q))
                     return matchAction && matchDate && matchSearch
                   }).map(entry => {
+                    // Curated icon/color for the actions worth visually emphasizing; anything else
+                    // falls back to a readable label derived from the action name itself, so new
+                    // action types added elsewhere in the app never show up blank or as raw_snake_case.
                     const actionLabels = {
                       cause_deleted: { label: 'Campaign/banner deleted', icon: '🗑️', color: C.red },
                       cause_submitted: { label: 'Campaign submitted for approval', icon: '🎯', color: C.gold },
                       cause_edited: { label: 'Campaign edited', icon: '✏️', color: C.gold },
                       cause_revision_requested: { label: 'Campaign sent back for revision', icon: '↩️', color: C.gold },
+                      cause_completed: { label: 'Campaign marked complete', icon: '✓', color: C.sage },
+                      cause_restored: { label: 'Campaign restored', icon: '↺', color: C.sage },
+                      cause_created: { label: 'Campaign created', icon: '➕', color: C.sage },
+                      cause_permanently_deleted: { label: 'Campaign permanently deleted', icon: '🗑️', color: C.red },
                       sponsored_requested: { label: 'Sponsored banner requested', icon: '⭐', color: C.gold },
                       donation_cancelled: { label: 'Donation cancelled by donor', icon: '✕', color: C.red },
                       donation_edited: { label: 'Donation edited', icon: '✏️', color: C.gold },
+                      donation_refunded: { label: 'Donation refunded', icon: '↩️', color: C.red },
+                      refund_deleted: { label: 'Refund record deleted', icon: '🗑️', color: C.red },
+                      donation_flagged_for_review: { label: 'Donation flagged for review', icon: '🚩', color: C.gold },
                       receipt_issued: { label: 'Receipt issued', icon: '🧾', color: C.sage },
                       manual_entry_deleted: { label: 'Manual entry deleted', icon: '🗑️', color: C.red },
                       manual_entry_created: { label: 'Manual entry added', icon: '➕', color: C.sage },
@@ -15301,37 +15311,131 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       donation_created: { label: 'New donation received', icon: '💳', color: C.sage },
                       payment_confirmed: { label: 'Payment confirmed', icon: '✓', color: C.sage },
                       payment_confirmation_undone: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
+                      payment_unconfirmed: { label: 'Payment confirmation undone', icon: '↩️', color: C.gold },
                       bulk_nric_requested: { label: 'Bulk NRIC request sent', icon: '📧', color: C.sage },
                       nric_synced_by_donor: { label: 'Donor updated their NRIC', icon: '🪪', color: C.sage },
                       bulk_receipts_issued: { label: 'Bulk receipts issued', icon: '🧾', color: C.sage },
                       receipt_voided_and_reissued: { label: 'Receipt voided and reissued', icon: '🚫', color: C.red },
                       recurring_gift_added: { label: 'Recurring gift added', icon: '🔁', color: C.sage },
+                      recurring_gift_edited: { label: 'Recurring gift edited', icon: '✏️', color: C.gold },
                       recurring_gift_received: { label: 'Recurring payment marked received', icon: '🔁', color: C.sage },
+                      recurring_gift_skipped: { label: 'Recurring payment skipped', icon: '⏭️', color: C.gold },
+                      recurring_gift_skip_undone: { label: 'Recurring skip undone', icon: '↺', color: C.gold },
+                      recurring_gift_failed_deduction: { label: 'Recurring deduction marked failed', icon: '⚠️', color: C.red },
+                      recurring_gift_failed_deduction_undone: { label: 'Failed deduction undone', icon: '↺', color: C.gold },
+                      recurring_gift_reminder_sent: { label: 'Recurring gift reminder sent', icon: '📧', color: C.sage },
+                      recurring_gift_paused: { label: 'Recurring gift paused', icon: '⏸️', color: C.gold },
+                      recurring_gift_reactivated: { label: 'Recurring gift reactivated', icon: '▶️', color: C.sage },
+                      lapsed_donor_dismissed: { label: 'Lapsed donor dismissed ("not interested")', icon: '🚫', color: C.gold },
+                      lapsed_donor_dismissal_undone: { label: 'Lapsed donor dismissal undone', icon: '↺', color: C.gold },
+                      insight_dismissed: { label: 'Dashboard insight marked handled', icon: '✓', color: C.sage },
                       pledge_fulfilled: { label: 'Pledge marked as fulfilled', icon: '🤝', color: C.sage },
+                      pledge_rescheduled: { label: 'Pledge rescheduled', icon: '📅', color: C.gold },
+                      pledge_cancelled: { label: 'Pledge cancelled', icon: '✕', color: C.red },
+                      pledge_reminder_sent: { label: 'Pledge reminder sent', icon: '📧', color: C.sage },
+                      pledge_contact_logged: { label: 'Pledge contact logged', icon: '📝', color: C.sage },
+                      pledge_reverted_to_pending: { label: 'Pledge reverted to pending', icon: '↺', color: C.gold },
                       csv_migration_imported: { label: 'Historical data imported via CSV', icon: '📥', color: C.sage },
                       mass_appeal_sent: { label: 'Mass appeal sent to donors', icon: '📣', color: C.sage },
+                      donor_note_added: { label: 'Donor note logged', icon: '📝', color: C.sage },
+                      donor_note_deleted: { label: 'Donor note deleted', icon: '🗑️', color: C.red },
+                      donor_tag_added: { label: 'Donor tag added', icon: '🏷️', color: C.sage },
+                      donor_tag_removed: { label: 'Donor tag removed', icon: '🏷️', color: C.gold },
+                      donor_household_linked: { label: 'Donors linked as household', icon: '🏠', color: C.sage },
+                      donor_household_unlinked: { label: 'Household link removed', icon: '🏠', color: C.gold },
+                      donors_merged: { label: 'Donor records merged', icon: '🔗', color: C.gold },
+                      prospect_deleted: { label: 'Prospect deleted', icon: '🗑️', color: C.red },
+                      grant_created: { label: 'Grant created', icon: '💰', color: C.sage },
+                      grant_edited: { label: 'Grant edited', icon: '✏️', color: C.gold },
+                      grant_deleted: { label: 'Grant deleted', icon: '🗑️', color: C.red },
+                      grant_note_added: { label: 'Grant note added', icon: '📝', color: C.sage },
+                      grant_report_added: { label: 'Grant report added', icon: '📄', color: C.sage },
+                      grant_report_edited: { label: 'Grant report edited', icon: '✏️', color: C.gold },
+                      grant_report_deleted: { label: 'Grant report deleted', icon: '🗑️', color: C.red },
+                      grant_tranche_added: { label: 'Grant tranche added', icon: '💰', color: C.sage },
+                      grant_tranche_edited: { label: 'Grant tranche edited', icon: '✏️', color: C.gold },
+                      grant_tranche_deleted: { label: 'Grant tranche deleted', icon: '🗑️', color: C.red },
+                      grant_match_claim_added: { label: 'Grant match claim added', icon: '💰', color: C.sage },
+                      grant_match_claim_edited: { label: 'Grant match claim edited', icon: '✏️', color: C.gold },
+                      grant_match_claim_deleted: { label: 'Grant match claim deleted', icon: '🗑️', color: C.red },
+                      grant_expense_logged: { label: 'Grant expense logged', icon: '🧾', color: C.sage },
+                      grant_expense_edited: { label: 'Grant expense edited', icon: '✏️', color: C.gold },
+                      grant_expense_deleted: { label: 'Grant expense deleted', icon: '🗑️', color: C.red },
+                      campaign_expense_logged: { label: 'Campaign expense logged', icon: '🧾', color: C.sage },
+                      campaign_expense_edited: { label: 'Campaign expense edited', icon: '✏️', color: C.gold },
+                      campaign_expense_deleted: { label: 'Campaign expense deleted', icon: '🗑️', color: C.red },
+                      monthly_expense_added: { label: 'Monthly expense added', icon: '🧾', color: C.sage },
+                      monthly_expense_deleted: { label: 'Monthly expense deleted', icon: '🗑️', color: C.red },
+                      team_member_added: { label: 'Team member added', icon: '👤', color: C.sage },
+                      team_member_removed: { label: 'Team member removed', icon: '👤', color: C.red },
+                      sender_domain_registered: { label: 'Sender domain registered', icon: '🌐', color: C.sage },
+                      sender_domain_verified: { label: 'Sender domain verified', icon: '✓', color: C.sage },
+                      cumulative_thresholds_updated: { label: 'Giving milestone thresholds updated', icon: '⚙️', color: C.gold },
+                      donor_thresholds_updated: { label: 'Major donor threshold updated', icon: '⚙️', color: C.gold },
+                      annual_goal_updated: { label: 'Annual goal updated', icon: '🎯', color: C.gold },
+                      fiscal_year_end_changed: { label: 'Fiscal year end changed', icon: '📅', color: C.gold },
                     }
-                    const info = actionLabels[entry.action] || { label: entry.action, icon: '•', color: C.muted }
+                    const humanize = s => s.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
+                    const info = actionLabels[entry.action] || {
+                      label: humanize(entry.action),
+                      icon: /delet|cancel|refund|remov|permanent/i.test(entry.action) ? '🗑️' : /edit|reschedul|undo|revert|flag/i.test(entry.action) ? '✏️' : '•',
+                      color: /delet|cancel|refund|remov|permanent/i.test(entry.action) ? C.red : /edit|reschedul|undo|revert|flag/i.test(entry.action) ? C.gold : C.sage,
+                    }
+                    // Generic detail renderer — a before/after diff when both are present (covers
+                    // donation_edited and any future action shaped the same way), a few narrative
+                    // overrides for actions that read better as a sentence than a field dump, and a
+                    // fallback that prints every remaining field so nothing is ever silently dropped.
+                    const formatVal = (k, v) => {
+                      if (v === null || v === undefined || v === '') return null
+                      if (typeof v === 'object') return JSON.stringify(v)
+                      if (/amount|total|given|owed|revenue/i.test(k) && typeof v === 'number') return `$${v.toLocaleString()}`
+                      if (/date/i.test(k) && typeof v === 'string' && !isNaN(Date.parse(v))) return new Date(v).toLocaleDateString('en-SG')
+                      return String(v)
+                    }
+                    const renderDetails = () => {
+                      const d = entry.details
+                      if (!d) return null
+                      if (d.before && d.after && typeof d.before === 'object' && typeof d.after === 'object') {
+                        const changedKeys = Object.keys(d.after).filter(k => JSON.stringify(d.before[k]) !== JSON.stringify(d.after[k]))
+                        if (changedKeys.length > 0) {
+                          return changedKeys.map(k => `${humanize(k)}: ${formatVal(k, d.before[k]) ?? '—'} → ${formatVal(k, d.after[k]) ?? '—'}`).join(' · ')
+                        }
+                      }
+                      const narrative = {
+                        bulk_nric_requested: () => `${d.donor_count} donor${d.donor_count > 1 ? 's' : ''}`,
+                        nric_synced_by_donor: () => `${d.donation_count} donation${d.donation_count > 1 ? 's' : ''} updated`,
+                        bulk_receipts_issued: () => `${d.donation_count} receipt${d.donation_count > 1 ? 's' : ''}${d.year ? ` · ${d.year}` : d.donor_name ? ` · ${d.donor_name}` : ''}`,
+                        mass_appeal_sent: () => `${d.sent} sent${d.failed ? ` · ${d.failed} failed` : ''}${d.blocked ? ` · ${d.blocked} blocked` : ''} of ${d.total} total`,
+                        receipt_voided_and_reissued: () => `${d.donor_name || ''} · ${d.old_receipt_number || '—'} → ${d.new_receipt_number || '—'}${d.void_reason ? ` · "${d.void_reason}"` : ''}`,
+                        insight_dismissed: () => `${d.donor_key || ''}${d.insight_key ? ` · ${humanize(d.insight_key)}` : ''}`,
+                      }
+                      if (narrative[entry.action]) {
+                        const text = narrative[entry.action]()
+                        if (text && text.trim()) return text
+                      }
+                      const skip = new Set(['charity_uen', 'before', 'after'])
+                      const parts = Object.entries(d).filter(([k, v]) => !skip.has(k) && v !== null && v !== undefined && v !== '').map(([k, v]) => {
+                        const fv = formatVal(k, v)
+                        return fv ? `${humanize(k)}: ${fv}` : null
+                      }).filter(Boolean)
+                      return parts.length > 0 ? parts.join(' · ') : null
+                    }
+                    const detailsText = renderDetails()
+                    const linkedDonation = entry.donation_id ? donations.find(d => d.id === entry.donation_id) : null
                     return (
-                      <div key={entry.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div
+                        key={entry.id}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: linkedDonation ? 'pointer' : 'default' }}
+                        onClick={linkedDonation ? () => { setSelectedDonation(linkedDonation); setActiveTab('donations') } : undefined}
+                      >
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: C.ivory, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{info.icon}</div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: info.color }}>{info.label}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: info.color }}>{info.label}{linkedDonation && <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}> · view donation →</span>}</div>
                           <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                             {entry.actor_type === 'donor' ? 'Donor' : 'Charity staff'} ({entry.actor_email}) · {new Date(entry.created_at).toLocaleString('en-SG')}
                           </div>
-                          {entry.details && (
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>
-                              {entry.action === 'donation_edited'
-                                ? `${entry.details.before?.donor_name} · $${entry.details.before?.amount} → $${entry.details.after?.amount}`
-                                : entry.action === 'bulk_nric_requested'
-                                ? `${entry.details.donor_count} donor${entry.details.donor_count > 1 ? 's' : ''}`
-                                : entry.action === 'nric_synced_by_donor'
-                                ? `${entry.details.donation_count} donation${entry.details.donation_count > 1 ? 's' : ''} updated`
-                                : entry.action === 'bulk_receipts_issued'
-                                ? `${entry.details.donation_count} receipt${entry.details.donation_count > 1 ? 's' : ''}${entry.details.year ? ` · ${entry.details.year}` : entry.details.donor_name ? ` · ${entry.details.donor_name}` : ''}`
-                                : [entry.details.donor_name || entry.details.charity_name, entry.details.amount != null ? `$${entry.details.amount}` : null, entry.details.payment_ref ? `Ref: ${entry.details.payment_ref}` : null, entry.details.notes ? `📝 "${entry.details.notes}"` : null].filter(Boolean).join(' · ')}
-                            </div>
+                          {detailsText && (
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>{detailsText}</div>
                           )}
                         </div>
                       </div>
