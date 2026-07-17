@@ -9968,7 +9968,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <button
                             title="Mark handled — won't show for this donor again this week"
                             style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, border: 'none', borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
-                            onClick={() => dismissInsight(key, activeInsightKey)}
+                            onClick={() => { dismissInsight(key, activeInsightKey); setFilterDonorKeys(prev => prev.filter(k => k !== key)) }}
                           >✓ Handled</button>
                         </div>
                       )
