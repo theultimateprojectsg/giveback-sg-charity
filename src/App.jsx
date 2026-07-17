@@ -1350,7 +1350,6 @@ export default function App() {
   const [showAllEndingSoon, setShowAllEndingSoon] = useState(false)
   const [showAllPausedGifts, setShowAllPausedGifts] = useState(false)
   const [showAllFrequentSkippers, setShowAllFrequentSkippers] = useState(false)
-  const [showAllUntaggedRecurring, setShowAllUntaggedRecurring] = useState(false)
   const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState(false)
   const [showAppealPreview, setShowAppealPreview] = useState(false)
   const [sendingTestAppeal, setSendingTestAppeal] = useState(false)
