@@ -4131,6 +4131,26 @@ export default function App() {
     showToast('Tag added ✓')
   }
 
+  async function saveTagSegment() {
+    const tag = tagSegmentName.trim()
+    if (!tag) { showToast('Enter a segment name', 'error'); return }
+    if (tagSegmentSelectedKeys.size === 0) { showToast('Select at least one donor', 'error'); return }
+    setSavingTagSegment(true)
+    for (const key of tagSegmentSelectedKeys) {
+      const donor = donorList.find(d => (d.email?.trim() || d.name) === key)
+      if (!donor) continue
+      const alreadyTagged = (donorTagsMap[key] || []).some(t => t.tag === tag)
+      if (!alreadyTagged) await saveDonorTag(donor, tag)
+    }
+    setSavingTagSegment(false)
+    setShowTagSegmentManager(false)
+    setTagSegmentName('')
+    setTagSegmentSelectedKeys(new Set())
+    setTagSegmentSearch('')
+    setMassAppealForm(f => ({ ...f, targetTag: tag }))
+    showToast(`Segment "${tag}" saved ✓`)
+  }
+
   async function deleteDonorTag(donor, tagId) {
     const donorKey = donor.email?.trim() || donor.name
     const removedTag = (donorTagsMap[donorKey] || []).find(t => t.id === tagId)
