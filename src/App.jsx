@@ -3351,6 +3351,7 @@ export default function App() {
 
   function markRecurringReceived(gift) {
     setMarkReceivedAmount(String(gift.amount))
+    setMarkReceivedNote('')
     setMarkReceivedModal(gift)
   }
 
