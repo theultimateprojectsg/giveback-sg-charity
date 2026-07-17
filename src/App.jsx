@@ -1890,11 +1890,38 @@ export default function App() {
     return () => { cancelled = true }
   }, [charityLogoUrl])
 
+  async function resizeLogoForUpload(file, maxDim = 500) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = reject
+      el.src = dataUrl
+    })
+    if (img.width <= maxDim && img.height <= maxDim) return file
+    const ratio = Math.min(maxDim / img.width, maxDim / img.height)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.width * ratio)
+    canvas.height = Math.round(img.height * ratio)
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    return blob ? new File([blob], file.name, { type: 'image/png' }) : file
+  }
+
   async function uploadCharityLogo(file) {
     if (!file) return
     if (!file.type.startsWith('image/')) { showToast('Please choose an image file', 'error'); return }
     if (file.size > 2 * 1024 * 1024) { showToast('Logo must be under 2MB', 'error'); return }
     setUploadingLogo(true)
+    // Logos only render small (a ~50px header badge, ~130px watermark) — anything larger than
+    // 500px just bloats every generated receipt PDF and slows down email sends that attach one.
+    file = await resizeLogoForUpload(file)
     const ext = file.name.split('.').pop().toLowerCase()
     const path = `${charityUen}/logo.${ext}`
     const { error: uploadError } = await supabase.storage.from('charity-assets').upload(path, file, { upsert: true, cacheControl: '3600' })
