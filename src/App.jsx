@@ -10130,7 +10130,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <table style={s.table}>
                   <thead>
-                  <tr>{(isTablet ? ['Donor', 'Total Given', 'Avg. Donation'] : ['Donor', ...DONOR_COLUMN_OPTIONS.filter(o => selectedDonorColumns.includes(o.key)).map(o => o.label)]).map(h => <th key={h} style={{ ...s.th, width: h === 'Donor' ? 260 : undefined, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+                  <tr>{(isTablet
+                    ? [{ key: 'name', label: 'Donor' }, { key: 'total', label: 'Total Given' }, { key: 'avg', label: 'Avg. Donation' }]
+                    : [{ key: 'name', label: 'Donor' }, ...DONOR_COLUMN_OPTIONS]
+                  ).map(h => (
+                    <th
+                      key={h.key}
+                      style={{ ...s.th, width: h.key === 'name' ? 260 : undefined, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => setDonorSortBy(prev => { if (prev === h.key) { setDonorSortDir(d => d === 'asc' ? 'desc' : 'asc') } else { setDonorSortDir('desc') }; return h.key })}
+                    >{h.label}{donorSortBy === h.key ? (donorSortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>
+                  ))}</tr>
                   </thead>
                   <tbody>
                     {paginatedDonorList.map((d, i) => {
