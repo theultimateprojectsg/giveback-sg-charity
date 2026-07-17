@@ -16922,6 +16922,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                                   <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
                                   <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(l.donation_id)}>✕</span>
                                 </span>
                               </div>
                             )}
