@@ -16908,7 +16908,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
 
                     {p.status === 'pending' && (pledgeReminderHistory[p.id] || []).length > 0 && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
+                      <div
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start', cursor: 'pointer' }}
+                        title="View in donor's Communication Log"
+                        onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setDonorProfileTab('logs'); setActiveTab('donors') }}
+                      >
                         <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
                           {(() => {
                             const history = pledgeReminderHistory[p.id]
@@ -16918,6 +16922,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             return `${channelLabel} ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× logged`
                           })()}
                         </span>
+                        <span style={{ fontSize: 10.5, color: C.gold, textDecoration: 'underline' }}>view →</span>
                       </div>
                     )}
                     {p.status === 'pending' && (pledgeRescheduleHistory[p.id] || []).length > 0 && (
