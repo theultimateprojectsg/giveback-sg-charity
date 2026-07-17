@@ -10981,44 +10981,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   )
                 })()}
-                {(() => {
-                  const donorKey = selectedDonor.email?.trim() || selectedDonor.name
-                  const outreachHistory = lapsedReminderHistory[donorKey] || []
-                  const dismissal = lapsedDismissals[donorKey]
-                  const daysSinceLastGift = Math.floor((new Date() - new Date(donations.filter(dn => (dn.donor_email?.trim() || dn.donor_name) === donorKey).slice(-1)[0]?.created_at || new Date())) / (1000 * 60 * 60 * 24))
-                  const isLapsed = daysSinceLastGift >= lapsedMinDays && selectedDonor.count >= lapsedMinGifts
-                  if (outreachHistory.length === 0 && !dismissal && !isLapsed) return null
-                  return (
-                    <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>Outreach History</span>
-                        {isLapsed && !dismissal && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {selectedDonor.email && <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) }}>✉ Reach Out</button>}
-                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setLapsedDismissReason(''); setShowLapsedDismissModal({ name: selectedDonor.name, email: selectedDonor.email }) }}>Not interested</button>
-                          </div>
-                        )}
-                      </div>
-                      {dismissal && (
-                        <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', marginBottom: outreachHistory.length > 0 ? 8 : 0, border: `1px solid ${C.border}` }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 500, color: C.muted }}>Marked not interested</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>{new Date(dismissal.dismissed_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} by {dismissal.dismissed_by}</div>
-                          {dismissal.reason && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 4 }}>"{dismissal.reason}"</div>}
-                        </div>
-                      )}
-                      {outreachHistory.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {outreachHistory.map((r, i) => (
-                            <div key={i} style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}` }}>
-                              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>✉ Re-engagement email sent</div>
-                              <div style={{ fontSize: 11, color: C.muted }}>{new Date(r.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} by {r.sent_by}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
                 {(() => {
