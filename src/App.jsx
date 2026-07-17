@@ -15254,7 +15254,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 General Appeals</span>
                       <span style={{ fontSize: 12, color: C.muted }}>({generalAppeals.length} sent · not tied to a campaign)</span>
                     </div>
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 New Appeal</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
                   </div>
                   {generalAppealsExpanded && (
                     generalAppeals.length === 0 ? (
