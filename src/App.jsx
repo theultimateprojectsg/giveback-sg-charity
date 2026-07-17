@@ -1737,6 +1737,7 @@ export default function App() {
   useEffect(() => {
     if (session) {
       loadDonations(session)
+      loadInsightDismissals(session)
       loadMyCauses()
       loadCharityIpcStatus(session)
       loadDonorBadgeAcks(session)
