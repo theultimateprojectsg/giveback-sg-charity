@@ -16801,7 +16801,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     </div>
                     {(p.donor_email || p.donor_phone || linkedCause) && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 10 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
                     )}
                     {p.reference && <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginBottom: 6 }}>{p.reference}</div>}
 
