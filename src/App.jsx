@@ -1764,6 +1764,12 @@ export default function App() {
       const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
       setDonorColumnOrder(merged)
     }
+    if (session?.user?.user_metadata?.donation_column_order) {
+      const saved = session.user.user_metadata.donation_column_order
+      const validKeys = DONATION_COLUMN_OPTIONS.map(o => o.key)
+      const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
+      setDonationColumnOrder(merged)
+    }
   }, [session?.user?.id])
 
   useEffect(() => {
