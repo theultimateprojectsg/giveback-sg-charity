@@ -5659,8 +5659,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     ;[...confirmedOnly].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
-      if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0 }
+      if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0, total: 0 }
       donorRunningTotals[key].count += 1
+      donorRunningTotals[key].total += d.amount
       const isBiggestYet = d.amount > donorRunningTotals[key].maxAmount
       if (d.amount > donorRunningTotals[key].maxAmount) donorRunningTotals[key].maxAmount = d.amount
       donationBadgeInfo[d.id] = {
