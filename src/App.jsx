@@ -10251,7 +10251,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 </td>
                               ),
                             }
-                            return DONOR_COLUMN_OPTIONS.map(o => cellRenderers[o.key])
+                            return orderedDonorColumns.map(o => cellRenderers[o.key])
                           })()}
                         </tr>
                       )
