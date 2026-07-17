@@ -9542,7 +9542,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const nowMs = Date.now()
               // Obligations with a real "done" state stay in Needs Action; everything else (donor
               // moments, trends, soft opportunities) is informational → Worth Knowing.
-              const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'pledges_due_soon', 'recurring_overdue', 'giro_possible_cancellation'])
+              const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
               const isActionItem = (i) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
               const notSnoozed = (i) => !i.key || !(snoozedItems[i.key] > nowMs)
 
