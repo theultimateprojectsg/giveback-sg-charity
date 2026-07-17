@@ -5970,29 +5970,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { donor_name: g.donor_name, donor_email: g.donor_email, missedCycles, gift_id: g.id, type: g.type }
     }).filter(Boolean)
   }, [recurringGifts])
-  const recurringPatternSuggestions = React.useMemo(() => {
-    const alreadyRecurring = new Set(recurringGifts.map(g => g.donor_email?.trim() || g.donor_name))
-    const donorGifts = {}
-    confirmedDonations.forEach(d => {
-      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-      if (!donorGifts[key]) donorGifts[key] = { name: d.donor_name, email: d.donor_email, gifts: [] }
-      donorGifts[key].gifts.push({ amount: d.amount, date: d.created_at })
-    })
-    return Object.entries(donorGifts).filter(([key]) => !alreadyRecurring.has(key)).map(([key, info]) => {
-      const sorted = [...info.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
-      if (sorted.length < 3) return null
-      const last3 = sorted.slice(-3)
-      const amounts = last3.map(g => g.amount)
-      const similarAmounts = Math.max(...amounts) - Math.min(...amounts) <= Math.max(...amounts) * 0.1
-      const gap1 = (new Date(last3[1].date) - new Date(last3[0].date)) / (1000 * 60 * 60 * 24)
-      const gap2 = (new Date(last3[2].date) - new Date(last3[1].date)) / (1000 * 60 * 60 * 24)
-      const similarGaps = Math.abs(gap1 - gap2) <= 10
-      if (similarAmounts && similarGaps && gap1 >= 20) {
-        return { name: info.name, email: info.email, avgAmount: Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length), avgGapDays: Math.round((gap1 + gap2) / 2), key }
-      }
-      return null
-    }).filter(Boolean)
-  }, [recurringGifts, confirmedDonations])
   const recurringTrendFlags = React.useMemo(() => {
     const stepsNeeded = recurringTrendCycles - 1
     return recurringGifts.filter(g => g.status === 'active').map(g => {
