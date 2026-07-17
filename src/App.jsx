@@ -7404,6 +7404,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (donationSortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
     if (donationSortBy === 'donor') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
     if (donationSortBy === 'cause') cmp = (causeNameForDonation(a) || '').localeCompare(causeNameForDonation(b) || '')
+    if (donationSortBy === 'source') cmp = (a.source === 'manual' ? 1 : 0) - (b.source === 'manual' ? 1 : 0)
+    if (donationSortBy === 'reference') cmp = (a.payment_ref || '').localeCompare(b.payment_ref || '')
+    if (donationSortBy === 'nric') cmp = (a.donor_nric ? 1 : 0) - (b.donor_nric ? 1 : 0)
+    if (donationSortBy === 'payment') cmp = (a.payment_status || '').localeCompare(b.payment_status || '')
+    if (donationSortBy === 'receipt') cmp = (a.receipt_issued ? 1 : 0) - (b.receipt_issued ? 1 : 0)
+    if (donationSortBy === 'receiptNo') cmp = (a.receipt_number || a.payment_ref || '').localeCompare(b.receipt_number || b.payment_ref || '')
+    if (donationSortBy === 'thankYou') cmp = (a.thank_you_sent ? 1 : 0) - (b.thank_you_sent ? 1 : 0)
     return donationSortDir === 'asc' ? cmp : -cmp
   })
 
