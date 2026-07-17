@@ -7390,7 +7390,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (donorSortBy === 'count') return d.count || 0
       if (donorSortBy === 'avg') return d.count > 0 ? d.total / d.count : 0
       if (donorSortBy === 'lastDate') return d.lastDate ? new Date(d.lastDate).getTime() : 0
-      if (donorSortBy === 'tags') return (donorTagsMap[donorKey] || []).length
       if (donorSortBy === 'recurring') { const g = recurringGifts.find(g => g.status === 'active' && (g.donor_email?.trim() || g.donor_name) === donorKey); return g ? Number(g.amount) : -1 }
       if (donorSortBy === 'pledge') { const p = pledges.find(p => p.status === 'pending' && (p.donor_email?.trim() || p.donor_name) === donorKey); return p ? Number(p.amount) : -1 }
       if (donorSortBy === 'warmth') { const w = getDonorWarmth(d); return w.daysSince === null ? Infinity : w.daysSince }
@@ -7402,7 +7401,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (va > vb) return 1 * dir
       return 0
     })
-  }, [filteredDonorList, donorSortBy, donorSortDir, donorTagsMap, recurringGifts, pledges, donorLastContactMap])
+  }, [filteredDonorList, donorSortBy, donorSortDir, recurringGifts, pledges, donorLastContactMap])
 
   const donorsTotalPages = Math.max(1, Math.ceil(sortedDonorList.length / donorsPerPage))
   const paginatedDonorList = sortedDonorList.slice(donorsPage * donorsPerPage, donorsPage * donorsPerPage + donorsPerPage)
