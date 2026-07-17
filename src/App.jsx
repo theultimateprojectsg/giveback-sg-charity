@@ -10143,8 +10143,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </thead>
                   <tbody>
                     {paginatedDonorList.map((d, i) => {
-                      const key = d.email?.trim() || d.name
-                      const b = donorBadgeMap[key]
                       const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
                       const donorKey = d.email?.trim() || d.name
                       const tags = donorTagsMap[donorKey] || []
