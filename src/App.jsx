@@ -3358,24 +3358,26 @@ export default function App() {
   function startEditingRecurringAmount(donation) {
     setEditingRecurringDonationId(donation.id)
     setEditingRecurringAmount(String(donation.amount))
+    setEditingRecurringNote(donation.notes || '')
   }
 
   async function saveRecurringDonationAmount(donation) {
     if (savingRecurringAmount) return
     const newAmount = parseFloat(editingRecurringAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
-    if (newAmount === Number(donation.amount)) { setEditingRecurringDonationId(null); return }
+    const newNotes = editingRecurringNote.trim() || null
+    if (newAmount === Number(donation.amount) && newNotes === (donation.notes || null)) { setEditingRecurringDonationId(null); return }
     setSavingRecurringAmount(true)
-    const { error } = await supabase.from('donations').update({ amount: newAmount }).eq('id', donation.id)
+    const { error } = await supabase.from('donations').update({ amount: newAmount, notes: newNotes }).eq('id', donation.id)
     if (error) { console.error('Error updating recurring payment amount:', error); showToast(`Error saving amount: ${error.message}${error.code ? ` (${error.code})` : ''}`, 'error'); setSavingRecurringAmount(false); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'donation_edited',
       donation_id: donation.id,
-      details: { before: { amount: donation.amount }, after: { amount: newAmount } },
+      details: { before: { amount: donation.amount, notes: donation.notes || null }, after: { amount: newAmount, notes: newNotes } },
     })
-    setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, amount: newAmount } : d))
+    setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, amount: newAmount, notes: newNotes } : d))
     if (donation.recurring_gift_id) {
       const delta = newAmount - Number(donation.amount)
       setRecurringGivenTotals(prev => {
