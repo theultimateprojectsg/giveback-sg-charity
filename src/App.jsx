@@ -5686,7 +5686,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       donorBadgeMap[key].isMajorDonor = donorRunningTotals[key].total >= (majorDonorThreshold || 1000)
     })
     return { donationBadgeInfo, donorBadgeMap }
-  }, [donations, thankYouThreshold])
+  }, [donations, thankYouThreshold, majorDonorThreshold])
   const donorList = React.useMemo(() => {
     const donorMap = {}
     donations.filter(d => !d.is_anonymous && d.payment_status === 'confirmed').forEach(d => {
