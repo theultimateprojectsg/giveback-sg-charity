@@ -18753,24 +18753,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {markReceivedModal && (
-        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount(''); setMarkReceivedNote('') }}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Mark payment as received</div>
-              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>✕</button>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount(''); setMarkReceivedNote('') }}>✕</button>
             </div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
               From {markReceivedModal.donor_name} — confirm the amount received. This will create a donation record and send a thank-you email if they have one on file.
             </div>
-            <label style={{ display: 'block', marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 14 }}>
               <div style={s.formLabel}>Amount received (SGD)</div>
               <input style={s.formInput} type="number" value={markReceivedAmount} onChange={e => setMarkReceivedAmount(e.target.value)} />
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
+              <div style={s.formLabel}>Note (optional)</div>
+              <input style={s.formInput} placeholder={`Recurring ${markReceivedModal.frequency} gift`} value={markReceivedNote} onChange={e => setMarkReceivedNote(e.target.value)} />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={markingReceived} onClick={confirmMarkReceived}>
                 {markingReceived ? 'Recording...' : '✓ Confirm Received'}
               </button>
-              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount('') }}>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setMarkReceivedModal(null); setMarkReceivedAmount(''); setMarkReceivedNote('') }}>
                 Cancel
               </button>
             </div>
