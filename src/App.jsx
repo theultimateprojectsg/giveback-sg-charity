@@ -3425,10 +3425,21 @@ export default function App() {
       ...prev,
       [link.pledge_id]: (prev[link.pledge_id] || []).map(l => l.donation_id === link.donation_id ? { ...l, amount_applied: newAmount } : l),
     }))
-    setPledgeGivenTotals(prev => ({ ...prev, [link.pledge_id]: (prev[link.pledge_id] || 0) + (newAmount - oldAmount) }))
+    const newTotal = (pledgeGivenTotals[link.pledge_id] || 0) + (newAmount - oldAmount)
+    setPledgeGivenTotals(prev => ({ ...prev, [link.pledge_id]: newTotal }))
+    // If editing this payment down pulls a "fulfilled" pledge back under its target amount, revert
+    // it to pending and clear the auto-fulfilled note — otherwise the card would keep claiming it
+    // was fulfilled by an amount that no longer matches what's actually recorded.
+    const relatedPledge = pledges.find(p => p.id === link.pledge_id)
+    if (relatedPledge?.status === 'fulfilled' && newTotal < Number(relatedPledge.amount)) {
+      await supabase.from('pledges').update({ status: 'pending', resolution_notes: null }).eq('id', link.pledge_id)
+      setPledges(prev => prev.map(p => p.id === link.pledge_id ? { ...p, status: 'pending', resolution_notes: null } : p))
+      showToast('Payment updated — pledge reverted to pending (no longer fully covered)')
+    } else {
+      showToast('Payment updated ✓')
+    }
     setEditingPledgeDonationId(null)
     setSavingPledgeAmount(false)
-    showToast('Payment updated ✓')
   }
 
   async function confirmMarkReceived() {
