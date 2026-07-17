@@ -11857,7 +11857,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 ),
                                 receipt: <td key="receipt" style={s.td}>{d.receipt_issued ? <span style={s.badgeIssued}>✓ Issued</span> : <span style={s.badgePending}>Pending</span>}</td>,
                                 receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.receipt_number || d.payment_ref || '—'}</span></td>,
-                                thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
+                                thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : (d.payment_status === 'refunded' || noThankYouExpected) ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>N/A</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
                               }
                               return DONATION_COLUMN_DEFAULTS.map(key => cellRenderers[key]).filter(Boolean)
                             })()}
