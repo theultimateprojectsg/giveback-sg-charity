@@ -18593,7 +18593,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {filteredRecipients.map((r, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: r.donor_name, email: r.donor_email, total: 0, count: 0, receipts: 0 }); setActiveTab('donors') }}>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(r.donor_email, r.donor_name)); setActiveTab('donors') }}>
                         <div>
                           <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
                           <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
