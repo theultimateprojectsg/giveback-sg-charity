@@ -1955,6 +1955,37 @@ export default function App() {
     setDonorLastContactMap(map)
   }
 
+  async function loadInsightDismissals(activeSession = session) {
+    const { data, error } = await supabase
+      .from('audit_log')
+      .select('details')
+      .eq('action', 'insight_dismissed')
+    if (error) { console.error('Could not load insight dismissals:', error); return }
+    setInsightDismissals((data || []).map(r => r.details).filter(Boolean))
+  }
+
+  function isoWeekKey(d) {
+    const date = new Date(d)
+    date.setHours(0, 0, 0, 0)
+    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+    const week1 = new Date(date.getFullYear(), 0, 4)
+    const weekNo = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+    return `${date.getFullYear()}-W${String(weekNo).padStart(2, '0')}`
+  }
+
+  async function dismissInsight(donorKey, insightKey) {
+    const periodKey = isoWeekKey(new Date())
+    const details = { donor_key: donorKey, insight_key: insightKey, period_key: periodKey }
+    setInsightDismissals(prev => [...prev, details])
+    const { error } = await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'insight_dismissed',
+      details,
+    })
+    if (error) { console.error('Could not save dismissal:', error); showToast('Could not mark as handled', 'error') }
+  }
+
   const [pledgesLoaded, setPledgesLoaded] = useState(false)
 
   async function loadPledges(activeSession = session) {
