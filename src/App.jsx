@@ -16355,26 +16355,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {expandedRecurringId === g.id && (
                       <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
                         {donationsByRecurringGift[g.id].map(d => (
-                          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                            <span style={{ color: C.text }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{d.payment_status !== 'confirmed' && <span style={{ color: C.gold }}> · {d.payment_status}</span>}</span>
+                          <div key={d.id} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                             {editingRecurringDonationId === d.id ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: C.text, flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                 <input
                                   type="number"
                                   autoFocus
-                                  style={{ width: 70, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right' }}
+                                  style={{ width: 60, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right', flexShrink: 0 }}
                                   value={editingRecurringAmount}
                                   onChange={e => setEditingRecurringAmount(e.target.value)}
                                   onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
                                 />
-                                <span style={{ color: C.sage, cursor: savingRecurringAmount ? 'default' : 'pointer', opacity: savingRecurringAmount ? 0.5 : 1 }} onClick={() => saveRecurringDonationAmount(d)}>✓</span>
-                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => setEditingRecurringDonationId(null)}>✕</span>
+                                <input
+                                  type="text"
+                                  placeholder="Note..."
+                                  style={{ flex: 1, minWidth: 0, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.text }}
+                                  value={editingRecurringNote}
+                                  onChange={e => setEditingRecurringNote(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
+                                />
+                                <span style={{ color: C.sage, cursor: savingRecurringAmount ? 'default' : 'pointer', opacity: savingRecurringAmount ? 0.5 : 1, flexShrink: 0 }} onClick={() => saveRecurringDonationAmount(d)}>✓</span>
+                                <span style={{ color: C.muted, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingRecurringDonationId(null)}>✕</span>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
-                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
-                                <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <span style={{ color: C.text, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                                  <span style={{ flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                  {d.payment_status !== 'confirmed' && <span style={{ color: C.gold, flexShrink: 0 }}>· {d.payment_status}</span>}
+                                  {d.notes && <span style={{ color: C.muted, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {d.notes}</span>}
+                                </span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
+                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
+                                </span>
                               </div>
                             )}
                           </div>
