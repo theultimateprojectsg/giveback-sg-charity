@@ -1325,6 +1325,7 @@ export default function App() {
   const [recurringSortBy, setRecurringSortBy] = useState('next_asc')
   const [markReceivedModal, setMarkReceivedModal] = useState(null)
   const [markReceivedAmount, setMarkReceivedAmount] = useState('')
+  const [markReceivedNote, setMarkReceivedNote] = useState('')
   const [markingReceived, setMarkingReceived] = useState(false)
   const [recurringGivenTotals, setRecurringGivenTotals] = useState({})
   const [lapsedReminderCandidate, setLapsedReminderCandidate] = useState(null)
@@ -16563,7 +16564,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </label>
                   <label style={{ display: 'block', marginBottom: 16 }}>
                     <div style={s.formLabel}>Message</div>
-                    <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeReminderBody} onChange={e => setPledgeReminderBody(e.target.value)} />
+                    <textarea style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeReminderBody} onChange={e => setPledgeReminderBody(e.target.value)} />
                   </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeReminderCandidate.donor_email} onClick={() => setPledgeReminderPreviewing(true)}>
@@ -16617,7 +16618,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </label>
                   <label style={{ display: 'block', marginBottom: 16 }}>
                     <div style={s.formLabel}>Message</div>
-                    <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeThankYouBody} onChange={e => setPledgeThankYouBody(e.target.value)} />
+                    <textarea style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }} value={pledgeThankYouBody} onChange={e => setPledgeThankYouBody(e.target.value)} />
                   </label>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!pledgeCompletionCandidate.donation.donor_email} onClick={() => setPledgeThankYouPreviewing(true)}>
@@ -18572,7 +18573,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </label>
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
-              <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={lapsedReminderBody} onChange={e => setLapsedReminderBody(e.target.value)} />
+              <textarea style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }} value={lapsedReminderBody} onChange={e => setLapsedReminderBody(e.target.value)} />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!lapsedReminderCandidate.email} onClick={() => setLapsedReminderPreviewing(true)}>
@@ -18624,7 +18625,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </label>
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
-              <textarea style={{ ...s.formInput, minHeight: 140, resize: 'vertical', fontFamily: 'inherit' }} value={recurringReminderBody} onChange={e => setRecurringReminderBody(e.target.value)} />
+              <textarea style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }} value={recurringReminderBody} onChange={e => setRecurringReminderBody(e.target.value)} />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!recurringReminderCandidate.donor_email} onClick={() => setRecurringReminderPreviewing(true)}>
