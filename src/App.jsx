@@ -10064,6 +10064,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <option value="Prospect">Prospects (no gift yet)</option>
                     <option value="DoNotContact">Do Not Contact</option>
                     <option value="Deactivated">Deactivated</option>
+                    <option value="MajorDonor">Major Donor (${majorDonorThreshold.toLocaleString()}+ lifetime)</option>
                   </select>
                   <select style={s.filterSelect} value={donorYearFilter} onChange={e => setDonorYearFilter(e.target.value)}>
                     <option value="All">All years (last donation)</option>
