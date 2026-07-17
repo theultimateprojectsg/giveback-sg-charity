@@ -9953,9 +9953,28 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setAddDonorForm({ full_name: '', email: '', notes: '' }); setAddDonorError(''); setShowAddDonorModal(true) }}>+ Add Donor</button>
             </div>
             {(filterTopDonorNames || filterDonorKeys) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donorFilterLabel || `Showing top ${(filterTopDonorNames || filterDonorKeys).length} donors by lifetime giving`}</span>
-                <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterTopDonorNames(null); setFilterDonorKeys(null); setDonorFilterLabel(null) }}>✕ Clear</button>
+              <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{donorFilterLabel || `Showing top ${(filterTopDonorNames || filterDonorKeys).length} donors by lifetime giving`}</span>
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', marginLeft: 'auto' }} onClick={() => { setFilterTopDonorNames(null); setFilterDonorKeys(null); setDonorFilterLabel(null); setActiveInsightKey(null) }}>✕ Clear</button>
+                </div>
+                {activeInsightKey && filterDonorKeys && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                    {filterDonorKeys.map(key => {
+                      const d = combinedDonorList.find(x => (x.email?.trim() || x.name) === key)
+                      return (
+                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.white, border: `1px solid ${C.border}`, borderRadius: 20, padding: '4px 6px 4px 12px' }}>
+                          <span style={{ fontSize: 12, color: C.text }}>{d?.name || key}</span>
+                          <button
+                            title="Mark handled — won't show for this donor again this week"
+                            style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, border: 'none', borderRadius: 20, padding: '2px 8px', cursor: 'pointer' }}
+                            onClick={() => dismissInsight(key, activeInsightKey)}
+                          >✓ Handled</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
             
