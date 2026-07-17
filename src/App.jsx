@@ -15319,14 +15319,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     generalAppeals.length === 0 ? (
                       <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No general appeals sent yet.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                         {generalAppeals.slice(0, generalAppealsShowAll ? undefined : 4).map(a => (
-                          <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(a.amount).toLocaleString()}</span>
-                              {a.failed_count > 0 ? <span style={{ fontSize: 10, color: C.gold }}>⚠ Partial</span> : <span style={{ fontSize: 10, color: C.sage }}>✓ Sent</span>}
+                          <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                              <span style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{a.cause_name || 'General appeal'}</span>
+                              {a.failed_count > 0 ? (
+                                <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
+                              ) : (
+                                <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
+                              )}
                             </div>
-                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.sent_count} sent</div>
+                            <div style={{ fontSize: 20, fontWeight: 500, color: C.forest, marginBottom: 2 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}> suggested</span></div>
+                            {a.message ? (
+                              <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.4, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>"{a.message}"</div>
+                            ) : (
+                              <div style={{ fontSize: 12.5, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>No message added</div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                              <span>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              <span>{a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</span>
+                            </div>
                           </div>
                         ))}
                         {generalAppeals.length > 4 && !generalAppealsShowAll && (
