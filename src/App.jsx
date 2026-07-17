@@ -1585,6 +1585,7 @@ export default function App() {
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditActionFilter, setAuditActionFilter] = useState('All')
   const [auditDateFilter, setAuditDateFilter] = useState('30')
+  const [auditSearchTerm, setAuditSearchTerm] = useState('')
   const [myCauses, setMyCauses] = useState([])
   const [causeForm, setCauseForm] = useState(EMPTY_CAUSE_FORM)
   const [causeError, setCauseError] = useState('')
