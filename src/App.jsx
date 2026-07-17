@@ -15240,6 +15240,43 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={s.btnGold} onClick={() => { setCauseForm(EMPTY_CAUSE_FORM); setShowCampaignModal(true) }}>+ New Campaign</button>
             </div>
 
+            {(() => {
+              const generalAppeals = [...massAppeals].filter(a => !a.cause_id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              if (massAppeals.length === 0 && generalAppeals.length === 0) return null
+              return (
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: generalAppealsExpanded ? 14 : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setGeneralAppealsExpanded(v => !v)}>
+                      <span style={{ fontSize: 11, color: C.muted }}>{generalAppealsExpanded ? '▾' : '▸'}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 General Appeals</span>
+                      <span style={{ fontSize: 12, color: C.muted }}>({generalAppeals.length} sent · not tied to a campaign)</span>
+                    </div>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true); setActiveTab('massappeal') }}>📣 New Appeal</button>
+                  </div>
+                  {generalAppealsExpanded && (
+                    generalAppeals.length === 0 ? (
+                      <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No general appeals sent yet.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                        {generalAppeals.slice(0, generalAppealsShowAll ? undefined : 4).map(a => (
+                          <div key={a.id} style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                              <span style={{ fontFamily: C.fontVoice, fontSize: 16, fontWeight: 500, color: C.forest }}>${Number(a.amount).toLocaleString()}</span>
+                              {a.failed_count > 0 ? <span style={{ fontSize: 10, color: C.gold }}>⚠ Partial</span> : <span style={{ fontSize: 10, color: C.sage }}>✓ Sent</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.sent_count} sent</div>
+                          </div>
+                        ))}
+                        {generalAppeals.length > 4 && !generalAppealsShowAll && (
+                          <button style={{ ...s.viewBtn, fontSize: 11, justifyContent: 'center' }} onClick={() => setGeneralAppealsShowAll(true)}>+ {generalAppeals.length - 4} more</button>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              )
+            })()}
+
             {myCauses.length > 0 && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
