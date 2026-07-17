@@ -19275,7 +19275,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       {rnOutreach && !rnOutreach.previewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(null)}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: C.forest, marginBottom: 4 }}>{rnOutreach.title} — {rnOutreach.donorName}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{rnOutreach.title} — {rnOutreach.donorName}</div>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} disabled={rnSending} onClick={() => setRnOutreach(null)}>✕</button>
+            </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and personalise, then preview before sending. Sending records it in this donor's log automatically.</div>
             <SenderIdentityLine recipientName={rnOutreach.donorName} recipientEmail={rnOutreach.donorEmail} {...senderIdentity} />
             <label style={{ display: 'block', marginBottom: 12 }}>
