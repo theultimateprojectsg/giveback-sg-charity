@@ -2906,6 +2906,7 @@ export default function App() {
     setRescheduleReason('')
   }
 
+  const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
   async function sendCharityEmail(body) {
@@ -5767,7 +5768,6 @@ export default function App() {
     return c ? c.title : null
   }
 
-  const charityName  = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const charityUen   = session?.user?.user_metadata?.charity_uen  || ''
   const totalAllTime = donations.reduce((s, d) => s + d.amount, 0)
   const totalThisYear = filterYear === 'All'
