@@ -10103,6 +10103,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               return (
                 <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
                   <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 240 }} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  {isMobile && (
+                    <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowDonorFilters(v => !v)}>{showDonorFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
+                  )}
+                  {(!isMobile || showDonorFilters) && (<>
                   <select style={s.filterSelect} value={donorStatusFilter} onChange={e => setDonorStatusFilter(e.target.value)}>
                     <option value="All">All Statuses</option>
                     <option value="Active">Active donors</option>
@@ -10139,6 +10143,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {charityIsIpc && (
                     <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => { if (filterYear === 'All') { showToast('Select a year first to export IRAS data'); return } exportIRASExcel() }}>⬇️ Export IRAS</button>
                   )}
+                  </>)}
                 </div>
               )
             })()}
