@@ -7615,6 +7615,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-MassAppeals-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
+  function exportAuditLogExcel(filteredEntries) {
+    const rows = filteredEntries.map(e => ({
+      'Date': new Date(e.created_at).toLocaleString('en-SG'),
+      'Actor': e.actor_email || e.actor_type || '',
+      'Action': e.action,
+      'Details': e.details ? JSON.stringify(e.details) : '',
+    }))
+    if (rows.length === 0) { showToast('No activity to export with current filters', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 20 }, { wch: 26 }, { wch: 26 }, { wch: 60 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Audit Log')
+    XLSX.writeFile(wb, `GivingTree-AuditLog-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
   function exportDonationsExcel() {
     const rows = filteredDonations.map(d => ({
       'Donor Name': d.donor_name,
