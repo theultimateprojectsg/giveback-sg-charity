@@ -1128,13 +1128,11 @@ export default function App() {
   const [savingBirthday, setSavingBirthday] = useState(false)
   const [savingTaxResidency, setSavingTaxResidency] = useState(false)
   const [savingMailingAddress, setSavingMailingAddress] = useState(false)
-  const [filterDonorTag, setFilterDonorTag] = useState('All')
   const DONOR_COLUMN_OPTIONS = [
     { key: 'total', label: 'Total Given' },
     { key: 'count', label: 'Donations' },
     { key: 'avg', label: 'Avg. Donation' },
     { key: 'lastDate', label: 'Last Donation' },
-    { key: 'tags', label: 'Tags' },
     { key: 'recurring', label: 'Recurring Status' },
     { key: 'pledge', label: 'Pledge Status' },
     { key: 'warmth', label: 'Relationship Warmth' },
