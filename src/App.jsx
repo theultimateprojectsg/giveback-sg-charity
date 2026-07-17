@@ -15948,6 +15948,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by donor name, email, or notes..." value={recurringSearchTerm} onChange={e => setRecurringSearchTerm(e.target.value)} />
+              {isMobile && (
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowRecurringFilters(v => !v)}>{showRecurringFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
+              )}
+              {(!isMobile || showRecurringFilters) && (<>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={recurringUrgencyFilter} onChange={e => setRecurringUrgencyFilter(e.target.value)}>
                 <option value="All">All urgency</option>
                 <option value="Late">Late (7d+)</option>
