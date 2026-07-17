@@ -1135,21 +1135,12 @@ export default function App() {
     { key: 'avg', label: 'Avg. Donation' },
     { key: 'lastDate', label: 'Last Donation' },
     { key: 'tags', label: 'Tags' },
-    { key: 'milestones', label: 'Milestones' },
     { key: 'recurring', label: 'Recurring Status' },
     { key: 'pledge', label: 'Pledge Status' },
     { key: 'warmth', label: 'Relationship Warmth' },
   ]
-  const DONOR_COLUMN_DEFAULTS = ['total', 'count', 'avg', 'lastDate', 'tags']
-  const [selectedDonorColumns, setSelectedDonorColumns] = useState(DONOR_COLUMN_DEFAULTS)
-  const [showColumnPicker, setShowColumnPicker] = useState(false)
-  const toggleDonorColumn = (key) => {
-    setSelectedDonorColumns(prev => {
-      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-      supabase.auth.updateUser({ data: { donor_table_columns: next } })
-      return next
-    })
-  }
+  const [donorSortBy, setDonorSortBy] = useState(null)
+  const [donorSortDir, setDonorSortDir] = useState('asc')
   const DONATION_COLUMN_OPTIONS = [
     { key: 'amount', label: 'Amount' },
     { key: 'date', label: 'Date' },
