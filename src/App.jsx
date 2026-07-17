@@ -5675,12 +5675,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     confirmedOnly.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       const b = donationBadgeInfo[d.id]
-      if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, mostRecent: d.created_at }
+      if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, isMajorDonor: false, mostRecent: d.created_at }
       if (b.isFirstTime) donorBadgeMap[key].isFirstTime = true
       if (b.isBigGift) donorBadgeMap[key].isBigGift = true
       if (b.isLoyal) donorBadgeMap[key].isLoyal = true
       if (b.isBiggestYet) donorBadgeMap[key].isBiggestYet = true
       if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
+    })
+    Object.keys(donorBadgeMap).forEach(key => {
+      donorBadgeMap[key].isMajorDonor = donorRunningTotals[key].total >= (majorDonorThreshold || 1000)
     })
     return { donationBadgeInfo, donorBadgeMap }
   }, [donations, thankYouThreshold])
