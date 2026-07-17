@@ -10179,12 +10179,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <thead>
                   <tr>{(isTablet
                     ? [{ key: 'name', label: 'Donor' }, { key: 'total', label: 'Total Given' }, { key: 'avg', label: 'Avg. Donation' }]
-                    : [{ key: 'name', label: 'Donor' }, ...DONOR_COLUMN_OPTIONS]
+                    : [{ key: 'name', label: 'Donor' }, ...orderedDonorColumns]
                   ).map(h => (
                     <th
                       key={h.key}
-                      style={{ ...s.th, width: h.key === 'name' ? 260 : undefined, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                      draggable={!isTablet && h.key !== 'name'}
+                      onDragStart={() => setDraggedDonorColumn(h.key)}
+                      onDragOver={e => { if (!isTablet && h.key !== 'name') e.preventDefault() }}
+                      onDrop={e => { e.preventDefault(); reorderDonorColumn(draggedDonorColumn, h.key); setDraggedDonorColumn(null) }}
+                      onDragEnd={() => setDraggedDonorColumn(null)}
+                      style={{ ...s.th, width: h.key === 'name' ? 260 : undefined, whiteSpace: 'nowrap', cursor: h.key === 'name' ? 'pointer' : 'grab', userSelect: 'none', opacity: draggedDonorColumn === h.key ? 0.4 : 1 }}
                       onClick={() => setDonorSortBy(prev => { if (prev === h.key) { setDonorSortDir(d => d === 'asc' ? 'desc' : 'asc') } else { setDonorSortDir('desc') }; return h.key })}
+                      title={h.key !== 'name' ? 'Drag to reorder · click to sort' : 'Click to sort'}
                     >{h.label}{donorSortBy === h.key ? (donorSortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>
                   ))}</tr>
                   </thead>
