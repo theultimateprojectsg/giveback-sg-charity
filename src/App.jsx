@@ -10066,15 +10066,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
-                  {(searchTerm !== '' || filterDonorTag !== 'All' || donorStatusFilter !== 'All' || donorYearFilter !== 'All') && (
-                    <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setSearchTerm(''); setFilterDonorTag('All'); setDonorStatusFilter('All'); setDonorYearFilter('All') }}>✕ Clear Filters</button>
+                  {(searchTerm !== '' || donorStatusFilter !== 'All' || donorYearFilter !== 'All') && (
+                    <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setSearchTerm(''); setDonorStatusFilter('All'); setDonorYearFilter('All') }}>✕ Clear Filters</button>
                   )}
                   <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={async () => {
                     const q = searchTerm.toLowerCase()
                     const filtered = combinedDonorList.filter(d => {
                       const matchesSearch = d.name?.toLowerCase().includes(q)
-                      const donorKey = d.email?.trim() || d.name
-                      const matchesTag = filterDonorTag === 'All' || (donorTagsMap[donorKey] || []).some(t => t.tag === filterDonorTag)
                       const matchesStatus = donorStatusFilter === 'All'
                         || (donorStatusFilter === 'Active' && !d.isContactOnly && !d.deactivated)
                         || (donorStatusFilter === 'Prospect' && d.isContactOnly)
@@ -10082,7 +10080,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         || (donorStatusFilter === 'Deactivated' && d.deactivated)
                         || (donorStatusFilter === 'MajorDonor' && d.total >= (majorDonorThreshold || 1000))
                       const matchesYear = donorYearFilter === 'All' || (d.lastDate && fyOf(d.lastDate).toString() === donorYearFilter)
-                      return matchesSearch && matchesTag && matchesStatus && matchesYear
+                      return matchesSearch && matchesStatus && matchesYear
                     })
                     showToast('Preparing export...')
                     await exportDonorsExcel(filtered)
