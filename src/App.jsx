@@ -16921,7 +16921,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             const history = pledgeReminderHistory[p.id]
                             const last = history[0]
                             const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                            const channelLabel = { phone: '📞 Called', in_person: '🤝 Met in person', other: '📝 Followed up' }[last.channel] || '✉ Reminded'
+                            const channelLabel = { phone: '📞 Called', email: '📧 Emailed', in_person: '🤝 Met in person', whatsapp: '💬 WhatsApped', other: '📝 Followed up' }[last.channel] || '✉ Reminded'
                             return `${channelLabel} ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× logged`
                           })()}
                         </span>
