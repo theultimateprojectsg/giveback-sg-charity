@@ -11002,28 +11002,45 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 })()}
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {donations
+                {(() => {
+                  const donorHistoryPageSize = 8
+                  const donorDonations = donations
                     .filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name))
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                    .map(d => {
-                      const statusLabel = d.payment_status === 'refunded' ? '↩ Refunded' : d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
-                      const statusColor = d.payment_status === 'refunded' ? C.red : d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
-                      return (
-                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : `${d.payment_method ? d.payment_method + ' via ' : ''}Giving Tree App`}{d.recurring_gift_id ? ' · Recurring' : ''}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {causeNameForDonation(d) || 'General'}</div>
-                            {(d.receipt_number || d.payment_ref) && <div style={{ fontSize: 10.5, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{d.receipt_number || d.payment_ref}</div>}
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
-                            <div style={{ fontSize: 10, color: statusColor, fontWeight: 500 }}>{statusLabel}</div>
-                          </div>
+                  const totalPages = Math.max(1, Math.ceil(donorDonations.length / donorHistoryPageSize))
+                  const page = Math.min(donorHistoryPage, totalPages)
+                  const pageDonations = donorDonations.slice((page - 1) * donorHistoryPageSize, page * donorHistoryPageSize)
+                  return (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {pageDonations.map(d => {
+                          const statusLabel = d.payment_status === 'refunded' ? '↩ Refunded' : d.payment_status !== 'confirmed' ? 'Awaiting Payment' : d.receipt_issued ? '✓ Issued' : 'Receipt Pending'
+                          const statusColor = d.payment_status === 'refunded' ? C.red : d.payment_status !== 'confirmed' ? C.red : d.receipt_issued ? C.sage : C.warning
+                          return (
+                            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.source === 'manual' ? `${d.payment_method || 'Manual'}` : `${d.payment_method ? d.payment_method + ' via ' : ''}Giving Tree App`}{d.recurring_gift_id ? ' · Recurring' : ''}</div>
+                                <div style={{ fontSize: 11, color: C.muted }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · {causeNameForDonation(d) || 'General'}</div>
+                                {(d.receipt_number || d.payment_ref) && <div style={{ fontSize: 10.5, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{d.receipt_number || d.payment_ref}</div>}
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</div>
+                                <div style={{ fontSize: 10, color: statusColor, fontWeight: 500 }}>{statusLabel}</div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 14 }}>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', opacity: page <= 1 ? 0.5 : 1 }} disabled={page <= 1} onClick={() => setDonorHistoryPage(page - 1)}>← Prev</button>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>Page {page} of {totalPages}</span>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', opacity: page >= totalPages ? 0.5 : 1 }} disabled={page >= totalPages} onClick={() => setDonorHistoryPage(page + 1)}>Next →</button>
                         </div>
-                      )
-                    })}
-                </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
                   </div>
               )}
