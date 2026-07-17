@@ -1722,9 +1722,6 @@ export default function App() {
     if (session?.user?.user_metadata?.last_selected_donor) {
       setPendingSelectedDonorKey(session.user.user_metadata.last_selected_donor)
     }
-    if (session?.user?.user_metadata?.donor_table_columns) {
-      setSelectedDonorColumns(session.user.user_metadata.donor_table_columns)
-    }
   }, [session?.user?.id])
 
   useEffect(() => {
