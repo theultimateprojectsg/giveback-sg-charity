@@ -11070,8 +11070,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   }
 
                   // Lapsed-donor re-engagement folded in as a moment too — reuses the same lapsed
-                  // reminder modal (Reach Out) and the dismiss-reason modal (Not interested) as the
-                  // dedicated Outreach History card used to, so there's one action surface per donor.
+                  // reminder modal for the primary action. "Mark done" behaves the same as every
+                  // other moment here (a silent log, no reason needed) — it'll simply resurface if
+                  // they're still lapsed next time this renders, same as any other moment would.
                   {
                     const lastGiftDate = myConfirmed.length ? new Date([...myConfirmed].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at) : null
                     const daysSinceLastGift = lastGiftDate ? Math.floor((rnToday - lastGiftDate) / (1000 * 60 * 60 * 24)) : null
@@ -11081,9 +11082,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         icon: '⏰',
                         text: `Hasn't given in ${daysSinceLastGift}+ days — reach out before they lapse further`,
                         button: 'Reach Out',
-                        doneLabel: 'Not interested',
                         onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) },
-                        onDone: () => { setLapsedDismissReason(''); setShowLapsedDismissModal({ name: selectedDonor.name, email: selectedDonor.email }) },
+                        onDone: async () => { await logDonorContact(dk, 'Lapsed donor reach-out — logged as done', 'note'); showToast('Logged as done ✓') },
                       })
                     }
                   }
