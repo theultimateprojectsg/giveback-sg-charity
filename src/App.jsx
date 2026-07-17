@@ -3375,6 +3375,7 @@ export default function App() {
   function startEditingPledgeAmount(link) {
     setEditingPledgeDonationId(link.donation_id)
     setEditingPledgeAmount(String(link.amount_applied))
+    setEditingPledgeNotes(link.notes || '')
   }
 
   async function savePledgeDonationAmount(link) {
@@ -3382,12 +3383,13 @@ export default function App() {
     const newAmount = parseFloat(editingPledgeAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
     const oldAmount = Number(link.amount_applied)
-    if (newAmount === oldAmount) { setEditingPledgeDonationId(null); return }
+    const newNotes = editingPledgeNotes.trim() || null
+    if (newAmount === oldAmount && newNotes === (link.notes || null)) { setEditingPledgeDonationId(null); return }
     setSavingPledgeAmount(true)
     // Keep the underlying donation and the pledge's applied amount in sync — a pledge fulfillment
     // is a real donation row plus a pledge_donations link, and both need to agree on the amount or
     // the pledge's progress bar drifts from what was actually recorded.
-    const { error: donationError } = await supabase.from('donations').update({ amount: newAmount }).eq('id', link.donation_id)
+    const { error: donationError } = await supabase.from('donations').update({ amount: newAmount, notes: newNotes }).eq('id', link.donation_id)
     if (donationError) { console.error('Error updating pledge payment amount:', donationError); showToast(`Error saving amount: ${donationError.message}`, 'error'); setSavingPledgeAmount(false); return }
     const { error: linkError } = await supabase.from('pledge_donations').update({ amount_applied: newAmount }).eq('pledge_id', link.pledge_id).eq('donation_id', link.donation_id)
     if (linkError) { console.error('Error updating pledge link amount:', linkError); showToast(`Error saving pledge total: ${linkError.message}`, 'error'); setSavingPledgeAmount(false); return }
@@ -3396,9 +3398,9 @@ export default function App() {
       actor_email: session.user.email,
       action: 'donation_edited',
       donation_id: link.donation_id,
-      details: { before: { amount: oldAmount }, after: { amount: newAmount } },
+      details: { before: { amount: oldAmount, notes: link.notes || null }, after: { amount: newAmount, notes: newNotes } },
     })
-    setDonations(prev => prev.map(d => d.id === link.donation_id ? { ...d, amount: newAmount } : d))
+    setDonations(prev => prev.map(d => d.id === link.donation_id ? { ...d, amount: newAmount, notes: newNotes } : d))
     setPledgeDonationLinks(prev => ({
       ...prev,
       [link.pledge_id]: (prev[link.pledge_id] || []).map(l => l.donation_id === link.donation_id ? { ...l, amount_applied: newAmount } : l),
@@ -3406,7 +3408,7 @@ export default function App() {
     setPledgeGivenTotals(prev => ({ ...prev, [link.pledge_id]: (prev[link.pledge_id] || 0) + (newAmount - oldAmount) }))
     setEditingPledgeDonationId(null)
     setSavingPledgeAmount(false)
-    showToast('Amount updated ✓')
+    showToast('Payment updated ✓')
   }
 
   async function confirmMarkReceived() {
