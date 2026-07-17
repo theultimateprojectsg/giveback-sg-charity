@@ -3491,7 +3491,7 @@ export default function App() {
         charity_uen: charityUen,
         amount: amount,
         date: new Date(today).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
-        notes: `Recurring ${gift.frequency} gift`,
+        notes: markReceivedNote.trim() || `Recurring ${gift.frequency} gift`,
       })
     }
 
@@ -3499,6 +3499,7 @@ export default function App() {
     setMarkingReceived(false)
     setMarkReceivedModal(null)
     setMarkReceivedAmount('')
+    setMarkReceivedNote('')
   }
 
   function skipRecurringCycle(gift) {
