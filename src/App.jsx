@@ -1139,6 +1139,19 @@ export default function App() {
   ]
   const [donorSortBy, setDonorSortBy] = useState(null)
   const [donorSortDir, setDonorSortDir] = useState('asc')
+  const [donorColumnOrder, setDonorColumnOrder] = useState(DONOR_COLUMN_OPTIONS.map(o => o.key))
+  const [draggedDonorColumn, setDraggedDonorColumn] = useState(null)
+  const orderedDonorColumns = donorColumnOrder.map(k => DONOR_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
+  const reorderDonorColumn = (fromKey, toKey) => {
+    if (!fromKey || fromKey === toKey) return
+    setDonorColumnOrder(prev => {
+      const next = prev.filter(k => k !== fromKey)
+      const toIndex = next.indexOf(toKey)
+      next.splice(toIndex, 0, fromKey)
+      supabase.auth.updateUser({ data: { donor_column_order: next } })
+      return next
+    })
+  }
   const DONATION_COLUMN_OPTIONS = [
     { key: 'amount', label: 'Amount' },
     { key: 'date', label: 'Date' },
