@@ -1438,6 +1438,7 @@ export default function App() {
   const [donorFilterLabel, setDonorFilterLabel] = useState(null)
   const [activeInsightKey, setActiveInsightKey] = useState(null)
   const [insightDismissals, setInsightDismissals] = useState([])
+  const [donorHistoryPage, setDonorHistoryPage] = useState(1)
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
   const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
