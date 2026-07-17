@@ -10146,7 +10146,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {paginatedDonorList.map((d, i) => {
                       const avgDonationForDonor = d.count > 0 ? Math.round(d.total / d.count) : 0
                       const donorKey = d.email?.trim() || d.name
-                      const tags = donorTagsMap[donorKey] || []
                       return (
                         <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setSelectedDonor(d)}>
                           <td style={s.td}>
