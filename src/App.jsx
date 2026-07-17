@@ -10135,7 +10135,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div key={i} style={s.donationCard} onClick={() => setSelectedDonor(d)}>
                       <div style={s.donationCardTop}>
                         <div style={s.donationCardDonor}>
-                          <div style={{ ...s.donorAvatar, background: C.forest }}>{d.name?.charAt(0)}</div>
+                          <div style={{ ...s.donorAvatar, background: (() => { const w = getDonorWarmth(d); return w.level === 'green' ? C.sage : w.level === 'amber' ? C.gold : C.red })() }}>{d.name?.charAt(0)}</div>
                           <div>
                             <div style={s.donationCardName}>{d.name}</div>
                             <div style={s.donationCardDate}>{d.isContactOnly ? 'No donations yet' : `${d.count} donation${d.count > 1 ? 's' : ''} · Last ${new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`}</div>
