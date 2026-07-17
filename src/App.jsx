@@ -957,6 +957,7 @@ export default function App() {
   const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [donorProfileTab, setDonorProfileTab] = useState('donations')
+  const [donorHistoryPage, setDonorHistoryPage] = useState(1)
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
   useEffect(() => { setDonorProfileTab('donations'); setDonorHistoryPage(1) }, [selectedDonor?.email, selectedDonor?.name])
 
