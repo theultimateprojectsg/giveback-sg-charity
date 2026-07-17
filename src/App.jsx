@@ -15222,12 +15222,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.pageHeader}>
               <div>
                 <div style={s.pageTitle}>🗒️ Audit Log</div>
-                <div style={s.pageSub}>Live activity feed — all actions by your team, most recent first. Export from Reports.</div>
+                <div style={s.pageSub}>Live activity feed — all actions by your team, most recent first.</div>
               </div>
             </div>
 
 
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 240 }} placeholder="🔍 Search by actor or details..." value={auditSearchTerm} onChange={e => setAuditSearchTerm(e.target.value)} />
               <select style={s.filterSelect} value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)}>
                 <option value="7">Last 7 days</option>
                 <option value="30">Last 30 days</option>
@@ -15249,14 +15250,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {charityIsIpc && <option value="bulk_nric_requested">Bulk NRIC requests</option>}
                 <option value="bulk_receipts_issued">Bulk receipts issued</option>
               </select>
+              {(auditSearchTerm !== '' || auditActionFilter !== 'All' || auditDateFilter !== '30') && (
+                <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setAuditSearchTerm(''); setAuditActionFilter('All'); setAuditDateFilter('30') }}>✕ Clear Filters</button>
+              )}
+              <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
+                const q = auditSearchTerm.toLowerCase().trim()
+                const filtered = auditLog.filter(entry => {
+                  const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
+                  const matchDate = auditDateFilter === 'All' || (Date.now() - new Date(entry.created_at).getTime()) < parseInt(auditDateFilter) * 24 * 60 * 60 * 1000
+                  const matchSearch = !q || [entry.actor_email, entry.action, JSON.stringify(entry.details || {})].some(f => f?.toLowerCase().includes(q))
+                  return matchAction && matchDate && matchSearch
+                })
+                exportAuditLogExcel(filtered)
+              }}>⬇️ Export to Excel</button>
             </div>
             <div style={s.tableCard}>
               <div style={s.tableHeader}>
                 <div style={s.tableTitle}>Recent Activity</div>
                 <div style={s.tableCount}>{auditLog.filter(entry => {
+                  const q = auditSearchTerm.toLowerCase().trim()
                   const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
                   const matchDate = auditDateFilter === 'All' || (Date.now() - new Date(entry.created_at).getTime()) < parseInt(auditDateFilter) * 24 * 60 * 60 * 1000
-                  return matchAction && matchDate
+                  const matchSearch = !q || [entry.actor_email, entry.action, JSON.stringify(entry.details || {})].some(f => f?.toLowerCase().includes(q))
+                  return matchAction && matchDate && matchSearch
                 }).length} entries</div>
               </div>
               {auditLoading ? <div style={s.empty}>Loading...</div> : auditLog.length === 0 ? (
@@ -15264,9 +15280,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               ) : (
                 <div>
                   {auditLog.filter(entry => {
+                    const q = auditSearchTerm.toLowerCase().trim()
                     const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
                     const matchDate = auditDateFilter === 'All' || (Date.now() - new Date(entry.created_at).getTime()) < parseInt(auditDateFilter) * 24 * 60 * 60 * 1000
-                    return matchAction && matchDate
+                    const matchSearch = !q || [entry.actor_email, entry.action, JSON.stringify(entry.details || {})].some(f => f?.toLowerCase().includes(q))
+                    return matchAction && matchDate && matchSearch
                   }).map(entry => {
                     const actionLabels = {
                       cause_deleted: { label: 'Campaign/banner deleted', icon: '🗑️', color: C.red },
