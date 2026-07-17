@@ -17106,15 +17106,41 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Appears in the email above the QR code. Type <strong>[name]</strong> anywhere to insert each donor's first name automatically.</div>
                   </label>
                   <label style={{ display: 'block' }}>
-                    <div style={s.formLabel}>Send only to donors tagged (Optional)</div>
-                    <select style={s.formInput} value={massAppealForm.targetTag || 'All'} onChange={e => setMassAppealForm(f => ({ ...f, targetTag: e.target.value }))}>
-                      <option value="All">Everyone with email on file</option>
-                      {[...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort().map(tag => (
-                        <option key={tag} value={tag}>{tag}</option>
-                      ))}
-                    </select>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Use this to send targeted updates — e.g. tag donors by programme interest and reach just that group instead of everyone.</div>
+                    <div style={s.formLabel}>Send only to donors in a segment (Optional)</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select style={s.formInput} value={massAppealForm.targetTag || 'All'} onChange={e => setMassAppealForm(f => ({ ...f, targetTag: e.target.value }))}>
+                        <option value="All">Everyone with email on file</option>
+                        {[...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort().map(tag => (
+                          <option key={tag} value={tag}>{tag}</option>
+                        ))}
+                      </select>
+                      <button type="button" style={{ ...s.viewBtn, flexShrink: 0, whiteSpace: 'nowrap' }} onClick={() => setShowTagSegmentManager(v => !v)}>{showTagSegmentManager ? '✕ Close' : '+ New segment'}</button>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Use this to send targeted updates — e.g. group donors by programme interest and reach just that segment instead of everyone.</div>
                   </label>
+                  {showTagSegmentManager && (
+                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
+                      <div style={s.formLabel}>Segment name</div>
+                      <input style={{ ...s.formInput, marginBottom: 10 }} placeholder="e.g. Board Members, Gala 2024 Attendees" value={tagSegmentName} onChange={e => setTagSegmentName(e.target.value)} maxLength={40} />
+                      <div style={s.formLabel}>Select donors for this segment</div>
+                      <input style={{ ...s.formInput, marginBottom: 8 }} placeholder="🔍 Search donors..." value={tagSegmentSearch} onChange={e => setTagSegmentSearch(e.target.value)} />
+                      <div style={{ maxHeight: 220, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 6, background: C.white, marginBottom: 10 }}>
+                        {donorList.filter(d => d.name?.toLowerCase().includes(tagSegmentSearch.toLowerCase())).map(d => {
+                          const key = d.email?.trim() || d.name
+                          const checked = tagSegmentSelectedKeys.has(key)
+                          return (
+                            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer', fontSize: 12.5 }}>
+                              <input type="checkbox" checked={checked} onChange={() => setTagSegmentSelectedKeys(prev => { const next = new Set(prev); if (checked) next.delete(key); else next.add(key); return next })} />
+                              {d.name}
+                            </label>
+                          )
+                        })}
+                        {donorList.length === 0 && <div style={{ padding: 12, fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No donors yet.</div>}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{tagSegmentSelectedKeys.size} donor{tagSegmentSelectedKeys.size !== 1 ? 's' : ''} selected</div>
+                      <button style={{ ...s.btnForest, justifyContent: 'center', width: '100%', opacity: savingTagSegment ? 0.6 : 1 }} disabled={savingTagSegment} onClick={saveTagSegment}>{savingTagSegment ? 'Saving...' : '✓ Save Segment'}</button>
+                    </div>
+                  )}
                   <div style={{ background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Who will receive this?</div>
                     <div style={{ fontSize: 13, color: C.forest }}><strong>{donorList.filter(d => {
