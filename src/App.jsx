@@ -7786,15 +7786,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       setterMap[role](updated)
       showToast('Removed')
     }
+    const roleLabel = role === 'ed' ? 'Executive Director' : role === 'staff' ? 'Staff' : role === 'board' ? 'a Board Member' : 'a Volunteer'
     if (email === session?.user?.email) {
       setConfirmModal({
         title: 'Remove your own access?',
-        description: `You're about to remove yourself as ${role === 'ed' ? 'Executive Director' : role === 'staff' ? 'Staff' : role === 'board' ? 'a Board Member' : 'a Volunteer'}. You'll immediately lose that access level and may be logged out of parts of the app.`,
+        description: `You're about to remove yourself as ${roleLabel}. You'll immediately lose that access level and may be logged out of parts of the app.`,
         confirmLabel: 'Remove My Access',
         onConfirm: proceed,
       })
     } else {
-      proceed()
+      setConfirmModal({
+        title: 'Remove this team member?',
+        description: `${email} will immediately lose ${roleLabel} access to this charity's Giving Tree account. This can be undone by re-adding them.`,
+        confirmLabel: 'Remove Access',
+        onConfirm: proceed,
+      })
     }
   }
 
