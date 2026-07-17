@@ -9368,6 +9368,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const periodKey69 = isoWeekKey(today)
               const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
 
+              const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
+                if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
+                if (d.count < lapsedMinGifts) return false
+                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                if (daysSince < lapsedMinDays) return false
+                if (lapsedDismissals[d.key]) return false
+                const history = lapsedReminderHistory[d.key]
+                if (history && history.length > 0) {
+                  const daysSinceReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                  if (daysSinceReminder < 30) return false
+                }
+                return true
+              })
+              if (lapsedFiltered69.length > 0) {
+                const lapsedCount = lapsedFiltered69.length
+                items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
+              }
+
               const milestonesThisWeek = donations.filter(d => {
                 if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo || d.is_anonymous) return false
                 const b = donationBadgeInfo[d.id]
