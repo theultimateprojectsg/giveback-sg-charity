@@ -5622,11 +5622,11 @@ export default function App() {
     if (linkRow) {
       const { data: pledgeRow, error: pledgeErr } = await supabase
         .from('pledges')
-        .select('donor_name, status')
+        .select('donor_name, status, resolution_notes')
         .eq('id', linkRow.pledge_id)
         .maybeSingle()
       if (pledgeErr) console.error('Error fetching pledge for link warning:', pledgeErr)
-      pledgeLink = { ...linkRow, pledgeDonorName: pledgeRow?.donor_name, pledgeStatus: pledgeRow?.status }
+      pledgeLink = { ...linkRow, pledgeDonorName: pledgeRow?.donor_name, pledgeStatus: pledgeRow?.status, pledgeResolutionNotes: pledgeRow?.resolution_notes }
     }
 
     let description = donationToDelete?.receipt_issued
