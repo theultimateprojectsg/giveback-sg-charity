@@ -16876,7 +16876,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             })()}
 
             {showMassAppealModal && (
-              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { if (!massAppealProgress) { setShowMassAppealModal(false); setMassAppealStep('setup') } }}>
+              <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { if (!massAppealProgress) { setShowMassAppealModal(false); setMassAppealStep('setup'); setActiveTab('promotions') } }}>
                 <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>
