@@ -9294,12 +9294,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
                 return Object.values(byDonorMonth71).filter(donor => {
                   const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
-                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime())
+                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime()) && notDismissed69(donor.key, 'seasonal_pattern')
                 })
               })()
               if (seasonalPatternDonors71.length > 0) {
                 const names = seasonalPatternDonors71.map(d => d.name)
-                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`) })
+                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`, 'seasonal_pattern') })
               }
 
               const birthdaysThisWeek70 = donorContacts.filter(c => {
