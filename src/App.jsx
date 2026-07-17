@@ -13058,7 +13058,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: 0, count: d.gaveCount, receipts: d.gaveCount }); setActiveTab('donors') }}>
+                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
                                 <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
