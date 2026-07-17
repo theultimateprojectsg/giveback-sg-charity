@@ -958,7 +958,7 @@ export default function App() {
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [donorProfileTab, setDonorProfileTab] = useState('donations')
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
-  useEffect(() => { setDonorProfileTab('donations') }, [selectedDonor?.email, selectedDonor?.name])
+  useEffect(() => { setDonorProfileTab('donations'); setDonorHistoryPage(1) }, [selectedDonor?.email, selectedDonor?.name])
 
   // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
