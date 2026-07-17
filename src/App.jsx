@@ -15503,6 +15503,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {myCauses.length > 0 && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
+                {isMobile && (
+                  <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowCampaignFilters(v => !v)}>{showCampaignFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
+                )}
+                {(!isMobile || showCampaignFilters) && (<>
                 <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={campaignYearFilter} onChange={e => setCampaignYearFilter(e.target.value)}>
                   <option value="All">All years</option>
                   {[...new Set(myCauses.filter(c => c.type === 'campaign').map(c => fyOf(c.created_at)))].sort((a, b) => b - a).map(y => (
