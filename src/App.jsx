@@ -7408,7 +7408,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   useEffect(() => {
     setDonorsPage(0)
-  }, [searchTerm, filterDonorTag, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter])
+  }, [searchTerm, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter])
 
 
   function exportPledgesExcel(searchedPledges) {
