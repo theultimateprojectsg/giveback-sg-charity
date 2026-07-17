@@ -16460,7 +16460,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: p.donor_name, email: p.donor_email, total: pledgeGivenTotals[p.id] || 0, count: (donationsByPledge[p.id] || []).length, receipts: (donationsByPledge[p.id] || []).length }); setActiveTab('donors') }}>{p.donor_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
                         {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
