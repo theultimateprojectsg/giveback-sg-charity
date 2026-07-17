@@ -10173,17 +10173,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               count: <td key="count" style={s.td}><span style={s.dateText}>{d.count} donation{d.count !== 1 ? 's' : ''}</span></td>,
                               avg: <td key="avg" style={s.td}><span style={s.amountText}>{d.count > 0 ? `$${avgDonationForDonor.toLocaleString()}` : '—'}</span></td>,
                               lastDate: <td key="lastDate" style={s.td}><span style={s.dateText}>{d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span></td>,
-                              tags: (
-                                <td key="tags" style={s.td}>
-                                  {tags.length > 0 ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                      {tags.map(t => (
-                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, padding: '2px 7px', borderRadius: 4 }}>{t.tag}</span>
-                                      ))}
-                                    </div>
-                                  ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
-                                </td>
-                              ),
                               recurring: (
                                 <td key="recurring" style={s.td}>
                                   {activeRecurring ? <span style={s.badgeIssued}>🔁 ${activeRecurring.amount}/{activeRecurring.frequency}</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
