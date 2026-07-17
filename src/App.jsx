@@ -19721,7 +19721,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
                   </div>
                   {rd.donor_email && (
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>Will be emailed to {rd.donor_email} as a PDF attachment along with the thank-you note.</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>Will be emailed to {rd.donor_email} as a PDF attachment along with the thank-you notes.</div>
                   )}
                 </div>
               )
