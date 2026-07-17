@@ -1436,6 +1436,8 @@ export default function App() {
   // records by key. Filtering by name would over-select when several donors share a name.
   const [filterDonorKeys, setFilterDonorKeys] = useState(null)
   const [donorFilterLabel, setDonorFilterLabel] = useState(null)
+  const [activeInsightKey, setActiveInsightKey] = useState(null)
+  const [insightDismissals, setInsightDismissals] = useState([])
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
   const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
