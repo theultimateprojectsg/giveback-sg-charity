@@ -13935,25 +13935,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
 
-                      <div style={s.analyticsSubTitleDivider}>Not yet tagged as recurring</div>
-                      {recurringPatternSuggestions.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No untagged recurring patterns detected.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {(showAllUntaggedRecurring ? recurringPatternSuggestions : recurringPatternSuggestions.slice(0, 5)).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
-                              <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
-                            </div>
-                          ))}
-                          {recurringPatternSuggestions.length > 5 && (
-                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUntaggedRecurring(v => !v)}>
-                              {showAllUntaggedRecurring ? 'Show fewer' : `Show all ${recurringPatternSuggestions.length}`}
-                            </button>
-                          )}
-                        </div>
-                      )}
-
                       {(missedFiltered.length > 0 || frequentSkippers.length > 0 || endingSoon.length > 0) ? (
                         <ActionBanner tone="danger" text={`${missedFiltered.length + frequentSkippers.length + endingSoon.length} donor${(missedFiltered.length + frequentSkippers.length + endingSoon.length) !== 1 ? 's' : ''} need follow-up`} sub="A missed GIRO cycle usually means a bank authorization issue; PayNow is often just forgetfulness" />
                       ) : (
