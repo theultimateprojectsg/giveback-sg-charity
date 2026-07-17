@@ -16854,11 +16854,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       )
                     })()}
 
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: C.text, marginTop: 4 }}>
                       Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                       {p.notes && ` · ${p.notes}`}
                     </div>
-                    <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
                     {(donationsByPledge[p.id] || []).length > 0 && (
                       <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
