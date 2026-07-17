@@ -14339,7 +14339,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         {flags.map((f, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: f.name, email: f.email, total: f.recent, count: givingChangeMinGifts, receipts: 0 }); setActiveTab('donors') }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(f.email, f.name)); setActiveTab('donors') }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
