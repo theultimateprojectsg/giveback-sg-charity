@@ -1241,6 +1241,7 @@ export default function App() {
   const [expandedRecurringId, setExpandedRecurringId] = useState(null)
   const [editingRecurringDonationId, setEditingRecurringDonationId] = useState(null)
   const [editingRecurringAmount, setEditingRecurringAmount] = useState('')
+  const [editingRecurringNote, setEditingRecurringNote] = useState('')
   const [savingRecurringAmount, setSavingRecurringAmount] = useState(false)
   const [editingPledgeDonationId, setEditingPledgeDonationId] = useState(null)
   const [editingPledgeAmount, setEditingPledgeAmount] = useState('')
