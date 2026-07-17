@@ -1738,6 +1738,14 @@ export default function App() {
     if (session?.user?.user_metadata?.last_selected_donor) {
       setPendingSelectedDonorKey(session.user.user_metadata.last_selected_donor)
     }
+    if (session?.user?.user_metadata?.donor_column_order) {
+      const saved = session.user.user_metadata.donor_column_order
+      const validKeys = DONOR_COLUMN_OPTIONS.map(o => o.key)
+      // Merge saved order with any columns added since it was saved, so a stale preference never
+      // hides a newer column — anything not in the saved list is appended at the end.
+      const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
+      setDonorColumnOrder(merged)
+    }
   }, [session?.user?.id])
 
   useEffect(() => {
