@@ -10049,14 +10049,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
             
             {(() => {
-              const allTags = [...new Set(Object.values(donorTagsMap).flat().map(t => t.tag))].sort()
               return (
                 <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
                   <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 240 }} placeholder="🔍 Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                  <select style={s.filterSelect} value={filterDonorTag} onChange={e => setFilterDonorTag(e.target.value)}>
-                    <option value="All">All Tags</option>
-                    {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
                   <select style={s.filterSelect} value={donorStatusFilter} onChange={e => setDonorStatusFilter(e.target.value)}>
                     <option value="All">All Statuses</option>
                     <option value="Active">Active donors</option>
