@@ -11308,22 +11308,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       },
                     })
                   }}>{selectedDonor.deceased ? '✓ Unmark Deceased' : '🕊️ Mark Deceased'}</button>
-                  <button style={(issuing || bulkActionInProgress) ? s.issuingBtn : s.btnForest} disabled={!!issuing || bulkActionInProgress} onClick={async () => {
-                    if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
-                    setBulkActionInProgress(true)
-                    const pending = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name) && !d.receipt_issued)
-                    for (const d of pending) await issueReceipt(d, true)
-                    if (pending.length > 1) {
-                      await supabase.from('audit_log').insert({
-                        actor_type: 'charity',
-                        actor_email: session.user.email,
-                        action: 'bulk_receipts_issued',
-                        details: { donation_count: pending.length, donor_name: selectedDonor.name },
-                      })
-                    }
-                    setBulkActionInProgress(false)
-                    showToast(`${pending.length} receipt${pending.length > 1 ? 's' : ''} issued for ${selectedDonor.name}`)
-                  }}>{(issuing || bulkActionInProgress) ? '⏳ Issuing...' : '🧾 Issue All Receipts'}</button>
                 </div>
               </div>
               )}
