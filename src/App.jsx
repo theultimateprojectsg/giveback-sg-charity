@@ -11577,6 +11577,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder={charityIsIpc ? "🔍 Search name, email, NRIC, ref, or notes..." : "🔍 Search name, email, ref, or notes..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              {isMobile && (
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowDonationFilters(v => !v)}>{showDonationFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
+              )}
+              {(!isMobile || showDonationFilters) && (<>
               <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterType} onChange={e => setFilterType(e.target.value)}>
                 <option>All</option><option>Awaiting Payment</option><option>Receipt Pending</option><option>Issued</option><option>Refunded</option>
               </select>
@@ -11608,6 +11612,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {activeDonationFilterCount > 0 && (
                 <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
               )}
+              </>)}
             </div>
 
             {bulkProgress && (
