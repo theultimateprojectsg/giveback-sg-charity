@@ -9414,7 +9414,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
 
               const milestonesThisWeek = donations.filter(d => {
-                if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo) return false
+                if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo || d.is_anonymous) return false
                 const b = donationBadgeInfo[d.id]
                 return b && (b.isFirstTime || b.isBiggestYet)
               })
