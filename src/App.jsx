@@ -9275,10 +9275,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const lastVisited80b = contact80b?.last_visited_date
                 const monthsSinceVisit80b = lastVisited80b ? (today - new Date(lastVisited80b)) / (1000 * 60 * 60 * 24 * 30) : null
                 return { ...d, lastVisited: lastVisited80b, needsVisit: monthsSinceVisit80b === null || monthsSinceVisit80b >= 6 }
-              }).filter(d => d.needsVisit && notSuppressed(d.email?.trim() || d.name) && !contactedSince(d.email?.trim() || d.name, monthAgo.getTime()))
+              }).filter(d => d.needsVisit && notSuppressed(d.email?.trim() || d.name) && !contactedSince(d.email?.trim() || d.name, monthAgo.getTime()) && notDismissed69(d.email?.trim() || d.name, 'major_donor_visits'))
               if (majorDonorsNeedingVisit80.length > 0) {
                 const names = majorDonorsNeedingVisit80.map(d => d.name)
-                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`) })
+                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
               }
 
               const seasonalPatternDonors71 = (() => {
