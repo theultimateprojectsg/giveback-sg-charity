@@ -9311,7 +9311,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
               if (birthdaysThisWeek70.length > 0) {
                 const names = birthdaysThisWeek70.map(c => c.full_name)
-                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => c.email?.trim() || c.full_name), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`) })
+                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => c.email?.trim() || c.full_name), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
               }
 
               const lapsedReturningKeys = new Set()
