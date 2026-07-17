@@ -9418,7 +9418,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               const cumulativeThresholds69 = cumulativeThresholds
               const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
-                if (!notSuppressed(key) || !contactedSince || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'cumulative_thresholds')) return false
+                if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'cumulative_thresholds')) return false
                 const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
                 return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
               }).map(([key]) => key)
