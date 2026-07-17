@@ -5721,8 +5721,8 @@ export default function App() {
             [pledgeLink.pledge_id]: (prev[pledgeLink.pledge_id] || 0) + Number(pledgeLink.amount_applied)
           }))
           if (pledgeLink.pledgeStatus === 'fulfilled') {
-            await supabase.from('pledges').update({ status: 'fulfilled' }).eq('id', pledgeLink.pledge_id)
-            setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'fulfilled' } : p))
+            await supabase.from('pledges').update({ status: 'fulfilled', resolution_notes: pledgeLink.pledgeResolutionNotes || null }).eq('id', pledgeLink.pledge_id)
+            setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'fulfilled', resolution_notes: pledgeLink.pledgeResolutionNotes || null } : p))
           }
         }
 
