@@ -1165,6 +1165,19 @@ export default function App() {
     { key: 'thankYou', label: 'Thank You' },
   ]
   const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'reference', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
+  const [donationColumnOrder, setDonationColumnOrder] = useState(DONATION_COLUMN_OPTIONS.map(o => o.key))
+  const [draggedDonationColumn, setDraggedDonationColumn] = useState(null)
+  const orderedDonationColumns = donationColumnOrder.map(k => DONATION_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
+  const reorderDonationColumn = (fromKey, toKey) => {
+    if (!fromKey || fromKey === toKey) return
+    setDonationColumnOrder(prev => {
+      const next = prev.filter(k => k !== fromKey)
+      const toIndex = next.indexOf(toKey)
+      next.splice(toIndex, 0, fromKey)
+      supabase.auth.updateUser({ data: { donation_column_order: next } })
+      return next
+    })
+  }
   const [userRole, setUserRole] = useState('volunteer')
   const [roleLoaded, setRoleLoaded] = useState(false)
   const [volunteerInput, setVolunteerInput] = useState('')
