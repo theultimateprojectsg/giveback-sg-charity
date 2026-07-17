@@ -13751,7 +13751,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {(showAllUntaggedRecurring ? recurringPatternSuggestions : recurringPatternSuggestions.slice(0, 5)).map((d, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor({ name: d.name, email: d.email, total: 0, count: 0, receipts: 0 }); setActiveTab('donors') }}>
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                               <span style={{ fontSize: 11, color: C.muted }}>~${d.avgAmount}/mo · every ~{d.avgGapDays}d</span>
                             </div>
