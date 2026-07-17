@@ -9217,22 +9217,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const fd = new Date(firstDate)
                 const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
                 const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
-                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime())
+                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'donor_anniversaries')
               })
               if (anniversariesThisWeek.length > 0) {
                 const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
-                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`) })
+                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`, 'donor_anniversaries') })
               }
 
               const cumulativeThresholds69 = cumulativeThresholds
               const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
-                if (!notSuppressed(key)) return false
+                if (!notSuppressed(key) || !notDismissed69(key, 'cumulative_thresholds')) return false
                 const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
                 return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
               }).map(([key]) => key)
               if (crossedThresholdKeys.length > 0) {
                 const names = crossedThresholdKeys.map(key => keyToName69[key])
-                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`) })
+                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`, 'cumulative_thresholds') })
               }
 
               const streakMilestones69 = [12, 24, 36, 60]
@@ -9245,7 +9245,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 streakDonorMonths69[key].add(monthIndex)
               })
               const streakHitKeys = Object.entries(streakDonorMonths69).filter(([key, monthSet]) => {
-                if (!notSuppressed(key)) return false
+                if (!notSuppressed(key) || !notDismissed69(key, 'streak_milestones')) return false
                 const months = [...monthSet].sort((a, b) => b - a)
                 let consecutiveStreak = 1
                 for (let i = 1; i < months.length; i++) {
@@ -9256,7 +9256,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               }).map(([key]) => key)
               if (streakHitKeys.length > 0) {
                 const names = streakHitKeys.map(key => keyToName69[key])
-                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`) })
+                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`, 'streak_milestones') })
               }
 
               const grantReportsDue83 = grantsWithNextReport.filter(g => {
