@@ -11050,7 +11050,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     const lastGiftDate = myConfirmed.length ? new Date([...myConfirmed].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at) : null
                     const daysSinceLastGift = lastGiftDate ? Math.floor((rnToday - lastGiftDate) / (1000 * 60 * 60 * 24)) : null
                     const isLapsedRn = daysSinceLastGift !== null && daysSinceLastGift >= lapsedMinDays && myConfirmed.length >= lapsedMinGifts
-                    if (isLapsedRn && !lapsedDismissals[dk]) {
+                    if (isLapsedRn && !lapsedDismissals[dk] && !rnHandled('Lapsed donor reach-out', rnMonthMs)) {
                       moments.push({
                         icon: '⏰',
                         text: `Hasn't given in ${daysSinceLastGift}+ days — reach out before they lapse further`,
