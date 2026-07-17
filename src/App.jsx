@@ -10186,18 +10186,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
                                 </td>
                               ),
-                              milestones: (
-                                <td key="milestones" style={s.td}>
-                                  {b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet) ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                      {b.isFirstTime && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>🆕 First gift</span>}
-                                      {b.isBigGift && <span style={s.badgeIssued}>💰 Big gift</span>}
-                                      {b.isLoyal && <span style={{ ...s.badgeIssued, color: C.sage, background: C.successBg }}>🔁 Loyal</span>}
-                                      {b.isBiggestYet && <span style={{ ...s.badgeIssued, color: C.gold, background: '#FDF8EC' }}>📈 Biggest yet</span>}
-                                    </div>
-                                  ) : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
-                                </td>
-                              ),
                               recurring: (
                                 <td key="recurring" style={s.td}>
                                   {activeRecurring ? <span style={s.badgeIssued}>🔁 ${activeRecurring.amount}/{activeRecurring.frequency}</span> : <span style={{ fontSize: 11, color: C.muted }}>—</span>}
