@@ -16230,7 +16230,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
+                          <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
                           {isLate && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>⚠ {Math.abs(daysUntil)}d late</span>}
                           {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>Due today</span>}
                           {isDueSoon && daysUntil > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.gold, padding: '4px 10px', borderRadius: 20 }}>Due in {daysUntil}d</span>}
@@ -16241,15 +16241,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {/* Amount + timeline */}
                     <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
                         <span>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                           <span style={{ fontSize: 12.5, color: C.muted }}> / {frequencyLabel}</span>
                         </span>
-                        <span style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</div>
-                          {g.created_at && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
-                        </span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</span>
                       </div>
                       {needsBankInfo && g.bank_name && (
                         <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Bank: {g.bank_name}</div>
