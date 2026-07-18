@@ -16805,10 +16805,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
-                          {(p.donor_email || p.donor_phone || linkedCause) && (
-                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                          {(p.donor_email || p.donor_phone) && (
+                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{[p.donor_email, p.donor_phone].filter(Boolean).join(' · ')}</div>
                           )}
                           {p.reference && <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{p.reference}</div>}
+                          <div style={{ marginTop: 6 }}>
+                            {linkedCause ? (
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.teal + '1A', color: C.teal, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎯 {linkedCause.title} · Restricted</span>
+                            ) : (
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>General / unrestricted</span>
+                            )}
+                          </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                           {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
@@ -16875,7 +16882,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                         <span style={{ fontSize: 11.5, color: C.muted }}>Recorded {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       </div>
-                      {p.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 4 }}>{p.notes}</div>}
+                      {p.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 4 }}><span style={{ color: C.muted }}>Notes:</span> {p.notes}</div>}
                     </div>
 
                     {/* Activity */}
@@ -17060,7 +17067,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {outstanding.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                         {outstanding.map(renderPledgeCard)}
                       </div>
                     )}
@@ -17078,7 +17085,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       fulfilled.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {fulfilled.map(renderPledgeCard)}
                         </div>
                       )
@@ -17095,7 +17102,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledPledges && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {cancelled.map(renderPledgeCard)}
                         </div>
                       )}
