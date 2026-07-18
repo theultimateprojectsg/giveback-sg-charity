@@ -12163,12 +12163,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {/* ── KEY METRICS ── */}
             {(() => {
               const now = new Date()
-              const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1)
-              const samePeriodLastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1)
-              const samePeriodLastYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-              const mtd = confirmedDonations.filter(d => new Date(d.created_at) >= mtdStart).reduce((s, d) => s + d.amount, 0)
-              const lyMtd = confirmedDonations.filter(d => new Date(d.created_at) >= samePeriodLastYearStart && new Date(d.created_at) <= samePeriodLastYearEnd).reduce((s, d) => s + d.amount, 0)
-              const mtdDiff = lyMtd > 0 ? Math.round(((mtd - lyMtd) / lyMtd) * 100) : null
               const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
               const activeRecurring = recurringGifts.filter(g => g.status === 'active')
               const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
@@ -12178,38 +12172,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const unrestrictedGrantTotal = grants.filter(g => g.status === 'active').reduce((s, g) => s + Number(g.unrestricted_amount || 0), 0)
               const unrestrictedCoverageMonths = monthlyExpenses > 0 ? (unrestrictedGrantTotal / monthlyExpenses) : null
 
-              // New donors this month — first-ever donation falls within MTD
-              const donorFirstGift = {}
-              confirmedDonations.filter(d => !d.is_anonymous).forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorFirstGift[key] || new Date(d.created_at) < new Date(donorFirstGift[key])) {
-                  donorFirstGift[key] = d.created_at
-                }
-              })
-              const newDonorsThisMonth = Object.values(donorFirstGift).filter(date => new Date(date) >= mtdStart).length
-              const newDonorsSameMonthLY = Object.values(donorFirstGift).filter(date => new Date(date) >= samePeriodLastYearStart && new Date(date) <= samePeriodLastYearEnd).length
-              const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
-
-              const donorTotalsFH = {}
-              confirmedDonations.forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorTotalsFH[key]) donorTotalsFH[key] = 0
-                donorTotalsFH[key] += d.amount
-              })
-              const sortedFH = Object.values(donorTotalsFH).sort((a, b) => b - a)
-              const grandTotalFH = sortedFH.reduce((s, t) => s + t, 0)
-              const top3TotalFH = sortedFH.slice(0, 3).reduce((s, t) => s + t, 0)
-              const concentrationPctFH = grandTotalFH > 0 ? Math.round((top3TotalFH / grandTotalFH) * 100) : 0
-              const concentrationHighRiskFH = concentrationPctFH >= 70
-              const concentrationMedRiskFH = concentrationPctFH >= 50
-
-              const thisYearNumFH = fyOf(now)
-              const lastYearNumFH = thisYearNumFH - 1
-              const donorsLastYearFH = new Set(donations.filter(d => fyOf(d.created_at) === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const donorsThisYearFH = new Set(donations.filter(d => fyOf(d.created_at) === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
-              const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
-
               const threeMoAgoFH = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
               const recentTotalFH = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgoFH).reduce((s, d) => s + d.amount, 0)
               const trailingAvgMonthlyFH = recentTotalFH / 3
@@ -12217,19 +12179,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
-                  {/* MTD donations */}
-                  <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: 'white', lineHeight: 1 }}>${mtd.toLocaleString()}</div>
-                    {mtdDiff !== null ? (
-                      <div style={{ fontSize: 11.5, color: mtdDiff >= 0 ? '#9FD9BC' : '#F0B8A8', marginTop: 6 }}>
-                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs last year
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>No prior year data</div>
-                    )}
-                  </div>
-
                   {/* Coverage ratio */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
@@ -12282,17 +12231,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
 
-                  {/* MRR */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Donations<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
-                      {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
-                      {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
-                      {totalMRR === 0 && <span>None set up yet</span>}
-                    </div>
-                  </div>
-
                   {/* Fixed-cost coverage from recurring income */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
@@ -12309,20 +12247,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </>
                     )}
-                  </div>
-
-                  {/* Donor concentration */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: concentrationHighRiskFH ? C.red : concentrationMedRiskFH ? C.gold : C.forest, lineHeight: 1 }}>{concentrationPctFH}%</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>from your top 3 donors</div>
-                  </div>
-
-                  {/* Donor retention */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
@@ -12352,83 +12276,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
-
-            {(() => {
-              const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
-              if (withTiming.length === 0) {
-                return (
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
-                    <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
-                  </div>
-                )
-              }
-              const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
-              const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
-              const avgDays = avgHours / 24
-              const overSla = avgHours > 48
-              return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
-                  <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
-                  <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
-                    {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
-                  </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
-                </div>
-              )
-            })()}
-
-            </div>
-            </div>
-
-            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
-              </div>
-
-              {analyticsGoalStats.hasGoal && (() => {
-                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
-                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-                return (
-                <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                    {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
-                  </div>
-                </div>
-                )
-              })()}
-
-              {(() => {
-                const { yr, tiles } = fundraisingSnapshotStats
-                return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
-                        ) : (
-                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
-                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
-                          </div>
-                        )}
-                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
 
             {(() => {
               const now03 = new Date()
@@ -12563,6 +12410,83 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
+
+            {(() => {
+              const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
+              if (withTiming.length === 0) {
+                return (
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
+                  </div>
+                )
+              }
+              const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
+              const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
+              const avgDays = avgHours / 24
+              const overSla = avgHours > 48
+              return (
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
+                  <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
+                    {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
+                </div>
+              )
+            })()}
+
+            </div>
+            </div>
+
+            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
+              </div>
+
+              {analyticsGoalStats.hasGoal && (() => {
+                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                  </div>
+                </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, tiles } = fundraisingSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
 
               <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {(() => {
