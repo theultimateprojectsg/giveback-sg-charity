@@ -4125,6 +4125,7 @@ export default function App() {
     if (selectedDonation && selectedRowRef.current) {
       selectedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
+    setShowDonationMoreActions(false)
   }, [selectedDonation])
 
   useEffect(() => {
@@ -11399,52 +11400,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             </div>
                           ) : null
                         })()}
-                        {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
-                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
-                        )}
-                        {(selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') && (() => {
+                        {(() => {
                           const myRefunds119 = refunds.filter(r => r.donation_id === selectedDonation.id)
-                          const totalRefunded119 = myRefunds119.reduce((s, r) => s + Number(r.refund_amount), 0)
-                          return (
-                            <div style={{ marginTop: 4 }}>
-                              {myRefunds119.length > 0 && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-                                  {myRefunds119.map(r => (
-                                    <div key={r.id} style={{ fontSize: 12, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 6, padding: '8px 10px', color: C.red, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                      <span>Refunded ${Number(r.refund_amount).toLocaleString()} on {new Date(r.refund_date).toLocaleDateString('en-SG')} — {r.reason}</span>
-                                      <button
-                                        style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: 11, textDecoration: 'underline', flexShrink: 0, padding: 0 }}
-                                        onClick={() => setConfirmModal({
-                                          title: 'Delete this refund record?',
-                                          description: `This will permanently remove the $${Number(r.refund_amount).toLocaleString()} refund entered on ${new Date(r.refund_date).toLocaleDateString('en-SG')}, freeing up that amount to be refunded again if needed.`,
-                                          confirmLabel: 'Delete refund',
-                                          onConfirm: () => deleteRefund(r),
-                                        })}
-                                      >Delete</button>
-                                    </div>
-                                  ))}
+                          return myRefunds119.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {myRefunds119.map(r => (
+                                <div key={r.id} style={{ fontSize: 12, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 6, padding: '8px 10px', color: C.red, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                  <span>Refunded ${Number(r.refund_amount).toLocaleString()} on {new Date(r.refund_date).toLocaleDateString('en-SG')} — {r.reason}</span>
+                                  <button
+                                    style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontSize: 11, textDecoration: 'underline', flexShrink: 0, padding: 0 }}
+                                    onClick={() => setConfirmModal({
+                                      title: 'Delete this refund record?',
+                                      description: `This will permanently remove the $${Number(r.refund_amount).toLocaleString()} refund entered on ${new Date(r.refund_date).toLocaleDateString('en-SG')}, freeing up that amount to be refunded again if needed.`,
+                                      confirmLabel: 'Delete refund',
+                                      onConfirm: () => deleteRefund(r),
+                                    })}
+                                  >Delete</button>
                                 </div>
-                              )}
-                              {totalRefunded119 === 0 && (
-                                showRefundForm ? (
-                                  <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
-                                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
-                                    <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                      <button style={{ ...s.btnForest, fontSize: 12, opacity: savingRefund ? 0.7 : 1 }} disabled={savingRefund} onClick={() => saveRefund(selectedDonation)}>{savingRefund ? 'Refunding...' : 'Confirm Full Refund'}</button>
-                                      <button style={{ ...s.viewBtn, fontSize: 12 }} disabled={savingRefund} onClick={() => setShowRefundForm(false)}>Cancel</button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }} onClick={() => setShowRefundForm(true)}>↩️ Refund This Donation</button>
-                                )
-                              )}
+                              ))}
                             </div>
-                          )
+                          ) : null
                         })()}
-                        {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded' && (
-                          <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
-                        )}
                         {selectedDonation.payment_status === 'confirmed' && !selectedDonation.receipt_issued && (
                           <button style={{ ...s.btnForest, justifyContent: 'center' }} onClick={() => {
                             setConfirmModal({
@@ -11515,16 +11491,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ fontSize: 12, color: C.muted, textAlign: 'center', padding: '10px 0' }}>Only an Executive Director can confirm this payment.</div>
                           )
                         )}
-                        {selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed' && (
-                          <button style={{ ...s.viewBtn, justifyContent: 'center', color: C.warning, borderColor: C.warningBorder }} onClick={() => {
-                            setConfirmModal({
-                              title: 'Undo this payment confirmation?',
-                              description: 'This will revert the donation to "awaiting confirmation" and un-issue its receipt. Use this if the payment was confirmed by mistake.',
-                              confirmLabel: 'Undo confirmation',
-                              onConfirm: () => unconfirmPayment(selectedDonation),
-                            })
-                          }}>↩️ Undo Confirmation</button>
-                        )}
                         {selectedDonation.payment_status === 'confirmed' && selectedDonation.donor_email?.trim() && (
                           <button
                             style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
@@ -11556,9 +11522,61 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             setShowManualForm(true)
                           }}>✏️ Edit Entry</button>
                         )}
-                        {selectedDonation.source === 'manual' && (
-                          <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
-                        )}
+
+                        {(() => {
+                          const hasMoreActions =
+                            (selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0) ||
+                            (selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') ||
+                            (selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded') ||
+                            (selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed') ||
+                            selectedDonation.source === 'manual'
+                          if (!hasMoreActions) return null
+                          return (
+                            <>
+                              <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowDonationMoreActions(v => !v)}>{showDonationMoreActions ? '▲ Fewer actions' : '⋯ More actions'}</button>
+                              {showDonationMoreActions && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 10 }}>
+                                  {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
+                                    <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
+                                  )}
+                                  {(selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') && (() => {
+                                    const myRefunds120 = refunds.filter(r => r.donation_id === selectedDonation.id)
+                                    const totalRefunded120 = myRefunds120.reduce((s, r) => s + Number(r.refund_amount), 0)
+                                    if (totalRefunded120 > 0) return null
+                                    return showRefundForm ? (
+                                      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
+                                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
+                                        <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                          <button style={{ ...s.btnForest, fontSize: 12, opacity: savingRefund ? 0.7 : 1 }} disabled={savingRefund} onClick={() => saveRefund(selectedDonation)}>{savingRefund ? 'Refunding...' : 'Confirm Full Refund'}</button>
+                                          <button style={{ ...s.viewBtn, fontSize: 12 }} disabled={savingRefund} onClick={() => setShowRefundForm(false)}>Cancel</button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowRefundForm(true)}>↩️ Refund This Donation</button>
+                                    )
+                                  })()}
+                                  {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded' && (
+                                    <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
+                                  )}
+                                  {selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed' && (
+                                    <button style={{ ...s.viewBtn, justifyContent: 'center', color: C.warning, borderColor: C.warningBorder }} onClick={() => {
+                                      setConfirmModal({
+                                        title: 'Undo this payment confirmation?',
+                                        description: 'This will revert the donation to "awaiting confirmation" and un-issue its receipt. Use this if the payment was confirmed by mistake.',
+                                        confirmLabel: 'Undo confirmation',
+                                        onConfirm: () => unconfirmPayment(selectedDonation),
+                                      })
+                                    }}>↩️ Undo Confirmation</button>
+                                  )}
+                                  {selectedDonation.source === 'manual' && (
+                                    <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                       </div>
 
                       </div>
