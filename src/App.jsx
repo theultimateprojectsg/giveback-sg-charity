@@ -974,7 +974,15 @@ export default function App() {
   const [donorProfileTab, setDonorProfileTab] = useState('donations')
   const [donorHistoryPage, setDonorHistoryPage] = useState(1)
   const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
-  useEffect(() => { setDonorProfileTab('donations'); setDonorHistoryPage(1) }, [selectedDonor?.email, selectedDonor?.name])
+  // Callers that need to open the profile on a specific tab (e.g. jumping to Logs) set this
+  // ref right before calling setSelectedDonor — this effect consumes it instead of always
+  // resetting to 'donations'.
+  const pendingDonorProfileTabRef = React.useRef(null)
+  useEffect(() => {
+    setDonorProfileTab(pendingDonorProfileTabRef.current || 'donations')
+    pendingDonorProfileTabRef.current = null
+    setDonorHistoryPage(1)
+  }, [selectedDonor?.email, selectedDonor?.name])
 
   // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
@@ -1271,6 +1279,7 @@ export default function App() {
   const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
   const [pledgeDonationLinks, setPledgeDonationLinks] = useState({})
   const [expandedPledgeId, setExpandedPledgeId] = useState(null)
+  const [pledgeMoreMenuId, setPledgeMoreMenuId] = useState(null)
   const [pledgeRescheduleHistory, setPledgeRescheduleHistory] = useState({})
   const [rescheduleModal, setRescheduleModal] = useState(null)
   const [rescheduleNewDate, setRescheduleNewDate] = useState('')
@@ -16787,172 +16796,200 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
                 }
                 const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
+                const hasActivity = (donationsByPledge[p.id] || []).length > 0 || (p.status === 'pending' && ((pledgeReminderHistory[p.id] || []).length > 0 || (pledgeRescheduleHistory[p.id] || []).length > 0)) || p.resolution_notes
                 return (
-                  <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
-                        {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
-                        {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
-                        {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
-                        {isDueSoon && !isOverdue && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
-                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
+                  <div key={p.id} style={{ background: C.white, borderRadius: 6, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+                    {/* Header: who */}
+                    <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
+                          {(p.donor_email || p.donor_phone || linkedCause) && (
+                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
+                          )}
+                          {p.reference && <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{p.reference}</div>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
+                          {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
+                          {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                          {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
+                          {isDueSoon && !isOverdue && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
+                          <span style={{ fontSize: 10.5, fontWeight: 500, padding: '3px 9px', borderRadius: 20, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
+                        </div>
                       </div>
                     </div>
-                    {(p.donor_email || p.donor_phone || linkedCause) && (
-                      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 10 }}>{[p.donor_email, p.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
-                    )}
-                    {p.reference && <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginBottom: 6 }}>{p.reference}</div>}
 
-                    {(p.is_multi_year || p.status !== 'pending') && (
-                      <div style={{ marginBottom: 2 }}>
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${(p.is_multi_year ? pledgedAmount / p.total_years : pledgedAmount).toLocaleString()}</span>
-                        {p.is_multi_year && <span style={{ fontSize: 12, color: C.muted }}> / year</span>}
-                      </div>
-                    )}
-                    {p.is_multi_year && (
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>${pledgedAmount.toLocaleString()} total over {p.total_years} years</div>
-                    )}
+                    {/* Amount + timeline */}
+                    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      {(p.is_multi_year || p.status !== 'pending') && (
+                        <div style={{ marginBottom: 2 }}>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${(p.is_multi_year ? pledgedAmount / p.total_years : pledgedAmount).toLocaleString()}</span>
+                          {p.is_multi_year && <span style={{ fontSize: 12.5, color: C.muted }}> / year</span>}
+                        </div>
+                      )}
+                      {p.is_multi_year && (
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>${pledgedAmount.toLocaleString()} total over {p.total_years} years</div>
+                      )}
 
-                    {p.is_multi_year && (() => {
-                      const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id).sort((a, b) => a.year_number - b.year_number)
-                      const nextDue = myInstalments.find(i => !i.received)
-                      return (
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {myInstalments.map(i => (
-                              <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.ivory), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
-                                Year {i.year_number}{i.received ? ' ✓' : ` · ${new Date(i.expected_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}`}
+                      {p.is_multi_year && (() => {
+                        const myInstalments = pledgeInstalments.filter(i => i.pledge_id === p.id).sort((a, b) => a.year_number - b.year_number)
+                        const nextDue = myInstalments.find(i => !i.received)
+                        return (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              {myInstalments.map(i => (
+                                <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.ivory), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
+                                  Year {i.year_number}{i.received ? ' ✓' : ` · ${new Date(i.expected_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}`}
+                                </span>
+                              ))}
+                            </div>
+                            {nextDue && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Next instalment due {new Date(nextDue.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+                          </div>
+                        )
+                      })()}
+
+                      {p.status === 'pending' && (() => {
+                        const progressColor = pct >= 80 ? C.sage : pct >= 50 ? C.gold : C.red
+                        return (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${given.toLocaleString()}</span>
+                                <span style={{ fontSize: 12.5, color: C.muted }}>of ${pledgedAmount.toLocaleString()} pledged</span>
                               </span>
-                            ))}
+                              <span style={{ fontSize: 15, fontWeight: 700, color: progressColor }}>{pct}%</span>
+                            </div>
+                            <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
+                            </div>
                           </div>
-                          {nextDue && <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Next instalment due {new Date(nextDue.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
-                        </div>
-                      )
-                    })()}
+                        )
+                      })()}
 
-                    {p.status === 'pending' && (() => {
-                      const progressColor = pct >= 80 ? C.sage : pct >= 50 ? C.gold : C.red
-                      return (
-                        <div style={{ marginBottom: 5 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${given.toLocaleString()}</span>
-                              <span style={{ fontSize: 12, color: C.muted }}>of</span>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${pledgedAmount.toLocaleString()}</span>
-                            </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
-                          </div>
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
-                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            given <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." />
-                          </div>
-                        </div>
-                      )
-                    })()}
-
-                    <div style={{ fontSize: 13, color: C.text, marginTop: 4 }}>
-                      Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      {p.notes && ` · ${p.notes}`}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontSize: 12.5, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {p.status === 'pending' && <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." />}
+                        </span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Recorded {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      {p.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 4 }}>{p.notes}</div>}
                     </div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, marginBottom: 12 }}>Recorded by {p.created_by} on {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
 
-                    {(donationsByPledge[p.id] || []).length > 0 && (
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
-                        {expandedPledgeId === p.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByPledge[p.id].length})`}
-                      </button>
-                    )}
-                    {expandedPledgeId === p.id && (
-                      <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
-                        {donationsByPledge[p.id].map((l, i) => (
-                          <div key={i} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                            {editingPledgeDonationId === l.donation_id ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ color: C.text, flexShrink: 0 }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                <input
-                                  type="number"
-                                  autoFocus
-                                  style={{ width: 60, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right', flexShrink: 0 }}
-                                  value={editingPledgeAmount}
-                                  onChange={e => setEditingPledgeAmount(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') savePledgeDonationAmount(l); if (e.key === 'Escape') setEditingPledgeDonationId(null) }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Note..."
-                                  style={{ flex: 1, minWidth: 0, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.text }}
-                                  value={editingPledgeNotes}
-                                  onChange={e => setEditingPledgeNotes(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') savePledgeDonationAmount(l); if (e.key === 'Escape') setEditingPledgeDonationId(null) }}
-                                />
-                                <span style={{ color: C.sage, cursor: savingPledgeAmount ? 'default' : 'pointer', opacity: savingPledgeAmount ? 0.5 : 1, flexShrink: 0 }} onClick={() => savePledgeDonationAmount(l)}>✓</span>
-                                <span style={{ color: C.muted, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingPledgeDonationId(null)}>✕</span>
+                    {/* Activity */}
+                    {hasActivity && (
+                      <div style={{ padding: '12px 16px', background: C.ivory, borderBottom: `1px solid ${C.ivoryDark}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {p.status === 'pending' && (pledgeReminderHistory[p.id] || []).length > 0 && (() => {
+                          const history = pledgeReminderHistory[p.id]
+                          const last = history[0]
+                          const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                          const channelInfo = { phone: ['📞', 'Called'], email: ['📧', 'Emailed'], in_person: ['🤝', 'Met in person'], whatsapp: ['💬', 'WhatsApped'], other: ['📝', 'Followed up'] }[last.channel] || ['✉', 'Reminded']
+                          return (
+                            <div
+                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                              title="View in donor's Communication Log"
+                              onClick={() => { pendingDonorProfileTabRef.current = 'logs'; setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setDonorProfileTab('logs'); setActiveTab('donors') }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                <span style={{ fontSize: 15, flexShrink: 0 }}>{channelInfo[0]}</span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{channelInfo[1]} {daysAgo === 0 ? 'today' : `${daysAgo}d ago`}</div>
+                                  <div style={{ fontSize: 11, color: C.muted }}>{history.length} follow-up{history.length > 1 ? 's' : ''} logged</div>
+                                </div>
                               </div>
-                            ) : (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                <span style={{ color: C.text, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, overflow: 'hidden' }}>
-                                  <span style={{ flexShrink: 0 }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                  {l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold, flexShrink: 0 }}>· {l.payment_status}</span>}
-                                  {l.notes && <span style={{ color: C.muted, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {l.notes}</span>}
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
-                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
-                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(l.donation_id)}>✕</span>
-                                </span>
+                              <span style={{ fontSize: 11, color: C.gold, fontWeight: 500, flexShrink: 0 }}>View log →</span>
+                            </div>
+                          )
+                        })()}
+                        {p.status === 'pending' && (pledgeRescheduleHistory[p.id] || []).length > 0 && (
+                          <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>
+                            Rescheduled from {new Date(pledgeRescheduleHistory[p.id][0].old_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(pledgeRescheduleHistory[p.id][0].new_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {pledgeRescheduleHistory[p.id][0].reason && ` — "${pledgeRescheduleHistory[p.id][0].reason}"`}
+                          </div>
+                        )}
+                        {p.resolution_notes && (
+                          <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>"{p.resolution_notes}"</div>
+                        )}
+                        {(donationsByPledge[p.id] || []).length > 0 && (
+                          <div>
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
+                              {expandedPledgeId === p.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByPledge[p.id].length})`}
+                            </button>
+                            {expandedPledgeId === p.id && (
+                              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                                {donationsByPledge[p.id].map((l, i) => (
+                                  <div key={i} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                                    {editingPledgeDonationId === l.donation_id ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ color: C.text, flexShrink: 0 }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                        <input
+                                          type="number"
+                                          autoFocus
+                                          style={{ width: 60, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right', flexShrink: 0 }}
+                                          value={editingPledgeAmount}
+                                          onChange={e => setEditingPledgeAmount(e.target.value)}
+                                          onKeyDown={e => { if (e.key === 'Enter') savePledgeDonationAmount(l); if (e.key === 'Escape') setEditingPledgeDonationId(null) }}
+                                        />
+                                        <input
+                                          type="text"
+                                          placeholder="Note..."
+                                          style={{ flex: 1, minWidth: 0, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.text }}
+                                          value={editingPledgeNotes}
+                                          onChange={e => setEditingPledgeNotes(e.target.value)}
+                                          onKeyDown={e => { if (e.key === 'Enter') savePledgeDonationAmount(l); if (e.key === 'Escape') setEditingPledgeDonationId(null) }}
+                                        />
+                                        <span style={{ color: C.sage, cursor: savingPledgeAmount ? 'default' : 'pointer', opacity: savingPledgeAmount ? 0.5 : 1, flexShrink: 0 }} onClick={() => savePledgeDonationAmount(l)}>✓</span>
+                                        <span style={{ color: C.muted, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingPledgeDonationId(null)}>✕</span>
+                                      </div>
+                                    ) : (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ color: C.text, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                                          <span style={{ flexShrink: 0 }}>{new Date(l.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                          {l.payment_status && l.payment_status !== 'confirmed' && <span style={{ color: C.gold, flexShrink: 0 }}>· {l.payment_status}</span>}
+                                          {l.notes && <span style={{ color: C.muted, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {l.notes}</span>}
+                                        </span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                          <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
+                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
+                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(l.donation_id)}>✕</span>
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
 
-                    {p.status === 'pending' && (pledgeReminderHistory[p.id] || []).length > 0 && (
-                      <div
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start', cursor: 'pointer' }}
-                        title="View in donor's Communication Log"
-                        onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setDonorProfileTab('logs'); setActiveTab('donors') }}
-                      >
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
-                          {(() => {
-                            const history = pledgeReminderHistory[p.id]
-                            const last = history[0]
-                            const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                            const channelLabel = { phone: '📞 Called', email: '📧 Emailed', in_person: '🤝 Met in person', whatsapp: '💬 WhatsApped', other: '📝 Followed up' }[last.channel] || '✉ Reminded'
-                            return `${channelLabel} ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× logged`
-                          })()}
-                        </span>
-                        <span style={{ fontSize: 10.5, color: C.gold, textDecoration: 'underline' }}>view →</span>
-                      </div>
-                    )}
-                    {p.status === 'pending' && (pledgeRescheduleHistory[p.id] || []).length > 0 && (
-                      <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>
-                        Rescheduled from {new Date(pledgeRescheduleHistory[p.id][0].old_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} to {new Date(pledgeRescheduleHistory[p.id][0].new_expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {pledgeRescheduleHistory[p.id][0].reason && ` — "${pledgeRescheduleHistory[p.id][0].reason}"`}
-                      </div>
-                    )}
+                    {/* Actions */}
                     {p.status === 'pending' && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Fulfilled</button>
-                        {(isOverdue || isDueSoon) && (
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Send Reminder</button>
+                      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto', position: 'relative' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', width: '100%', justifyContent: 'center' }} onClick={() => fulfillPledge(p)}>✓ Mark fulfilled</button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {(isOverdue || isDueSoon) && (
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setPledgeReminderCandidate(p); setShowPledgeReminderModal(true) }}>✉ Remind</button>
+                          )}
+                          {(isOverdue || isDueSoon) && (
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setLogContactModal(p); setLogContactMethod('phone'); setLogContactNote('') }}>📞 Log contact</button>
+                          )}
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setPledgeMoreMenuId(pledgeMoreMenuId === p.id ? null : p.id)}>⋯ More</button>
+                        </div>
+                        {pledgeMoreMenuId === p.id && (
+                          <div style={{ position: 'absolute', bottom: '100%', right: 16, marginBottom: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', overflow: 'hidden', zIndex: 5, minWidth: 140 }}>
+                            <button style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 12, padding: '8px 12px', background: 'transparent', border: 'none', cursor: 'pointer', color: C.text }} onClick={() => { setPledgeMoreMenuId(null); setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
+                            <button style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 12, padding: '8px 12px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.ivoryDark}`, cursor: 'pointer', color: C.text }} onClick={() => { setPledgeMoreMenuId(null); setEditingPledge(p) }}>✏️ Edit</button>
+                          </div>
                         )}
-                        {(isOverdue || isDueSoon) && (
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setLogContactModal(p); setLogContactMethod('phone'); setLogContactNote('') }}>📞 Log Contact</button>
-                        )}
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRescheduleModal(p); setRescheduleNewDate(''); setRescheduleReason('') }}>📅 Reschedule</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingPledge(p)}>✏️ Edit</button>
                       </div>
-                    )}
-                    {p.resolution_notes && (
-                      <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 8, background: C.ivory, borderRadius: 4, padding: '6px 8px' }}>"{p.resolution_notes}"</div>
                     )}
                     {(p.status === 'fulfilled' || p.status === 'cancelled') && (
-                      <div style={{ marginTop: 'auto' }}>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to Pending</button>
+                      <div style={{ padding: '12px 16px', marginTop: 'auto' }}>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to pending</button>
                       </div>
                     )}
                   </div>
