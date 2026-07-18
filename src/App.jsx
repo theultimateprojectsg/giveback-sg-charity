@@ -968,7 +968,7 @@ export default function App() {
   const [issuing, setIssuing] = useState(null)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('analytics')
   const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [donorProfileTab, setDonorProfileTab] = useState('donations')
@@ -1039,7 +1039,7 @@ export default function App() {
   }, [activeTab])
 
   const ANALYTICS_NAV_OFFSET = 64 // approx height of the sticky section-jump bar, so scrolled-to titles land just below it instead of hidden behind it
-  const [activeAnalyticsSection, setActiveAnalyticsSection] = useState('analytics-section-overview')
+  const [activeAnalyticsSection, setActiveAnalyticsSection] = useState('analytics-section-today')
 
   // Shared keyboard handling for every modal: Escape triggers the topmost overlay's own
   // backdrop-click handler (so each modal's existing close/guard logic — e.g. blocking
@@ -1673,11 +1673,12 @@ export default function App() {
   const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
-    if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
+    if (disabledTabIds.includes(activeTab)) setActiveTab('analytics')
   }, [enabledModules, activeTab])
   useEffect(() => {
     if (activeTab !== 'analytics') return
     const sectionIds = [
+      'analytics-section-today',
       'analytics-section-overview',
       'analytics-section-fundraising',
       ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
@@ -1705,9 +1706,9 @@ export default function App() {
   useEffect(() => {
     if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
   }, [roleLoaded, userRole, activeTab])
-  const BOARD_ALLOWED_TABS = ['dashboard', 'settings']
+  const BOARD_ALLOWED_TABS = ['analytics', 'settings']
   useEffect(() => {
-    if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('dashboard')
+    if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('analytics')
   }, [roleLoaded, userRole, activeTab])
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
@@ -4107,7 +4108,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (session && (activeTab === 'activity' || activeTab === 'dashboard')) loadAuditLog()
+    if (session && activeTab === 'activity') loadAuditLog()
     setShowMobileMenu(false)
   }, [session?.user?.id, activeTab])
 
@@ -7914,7 +7915,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       action: updated[key] ? 'module_enabled' : 'module_disabled',
       details: { module: key, charity_uen: charityUen },
     })
-    if (!updated[key] && activeTab === key) setActiveTab('dashboard')
+    if (!updated[key] && activeTab === key) setActiveTab('analytics')
     showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} ${updated[key] ? 'enabled' : 'hidden'} ✓`)
   }
 
@@ -9149,11 +9150,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
-            { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
-            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff', 'board'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
-            
+
           ].filter(item => item.roles.includes(userRole)).map(item => (
             <div key={item.id}
               title={item.label}
@@ -9254,8 +9254,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       {isMobile && (
       <div style={s.mobileTabBar}>
         {[
-          { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
-          { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff'] },
+          { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff', 'board'] },
           { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
           { id: 'donors',    icon: '👥', label: 'Donors', roles: ['ed', 'staff'] },
         ].filter(item => item.roles.includes(userRole)).map(item => (
@@ -9269,894 +9268,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {/* ── MAIN ── */}
       <div style={isMobile ? s.mainMobile : { ...s.main, marginLeft: sidebarCollapsed ? 64 : 232, width: `calc(100vw - ${sidebarCollapsed ? 64 : 232}px)`, transition: 'margin-left 0.2s ease, width 0.2s ease' }}>
-
-        {/* ── DASHBOARD ── */}
-        {activeTab === 'dashboard' && (
-          <div style={s.content}>
-            <div style={{ ...s.pageHeader, marginBottom: 32 }}>
-              <div>
-                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>{greeting}, {charityName}</div>
-                <div style={{ ...s.pageSub, marginTop: 4 }}>Here's what's happening right now</div>
-              </div>
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
-              </div>
-
-            {/* ── THIS WEEK, IN WORDS ── */}
-            {(() => {
-              const now = new Date()
-              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-              const prevWeekAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
-
-              const thisWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= weekAgo)
-              const lastWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= prevWeekAgo && new Date(d.created_at) < weekAgo)
-              const weekTotal = thisWeekDonations.reduce((s, d) => s + d.amount, 0)
-              const lastWeekTotal = lastWeekDonations.reduce((s, d) => s + d.amount, 0)
-              const weekDonorKeys = new Set(thisWeekDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const weekGrowthPct = lastWeekTotal > 0 ? Math.round(((weekTotal - lastWeekTotal) / lastWeekTotal) * 100) : null
-
-              const donorFirstGiftW = {}
-              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorFirstGiftW[key]) donorFirstGiftW[key] = d.created_at
-              })
-              const newDonorsThisWeek = [...weekDonorKeys].filter(k => new Date(donorFirstGiftW[k]) >= weekAgo).length
-              const biggestGiftThisWeek = thisWeekDonations.sort((a, b) => b.amount - a.amount)[0]
-
-              const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-              const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
-              const escalatedGiroW = giroMissedCycles.filter(g => g.missedCycles >= 2).length
-              const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
-
-              const monthlyExpensesSet = monthlyExpenses > 0
-              const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
-
-              const sentences = []
-              sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
-              if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
-              if (biggestGiftThisWeek) sentences.push(`Your biggest gift this week was $${Number(biggestGiftThisWeek.amount).toLocaleString()} from ${biggestGiftThisWeek.donor_name}.`)
-              sentences.push(attentionCount > 0
-                ? `${attentionCount} item${attentionCount > 1 ? 's need' : ' needs'} your attention — see below.`
-                : `Nothing urgent needs your attention right now.`)
-              if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
-
-              return (
-                <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
-                  <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
-                </div>
-              )
-            })()}
-
-            {/* ── ACTION ITEMS ── */}
-            {(() => {
-              const today = new Date()
-              today.setHours(0, 0, 0, 0)
-
-              const items = []
-
-              // Donors marked deceased or do-not-contact must never generate relationship / outreach
-              // prompts (birthdays, anniversaries, thank-yous, check-ins, etc.).
-              const suppressedKeys = new Set()
-              donations.forEach(d => { if (d.donor_deceased || d.donor_do_not_contact) suppressedKeys.add(d.donor_email?.trim() || d.donor_nric || d.donor_name) })
-              const notSuppressed = (key) => !suppressedKeys.has(key)
-
-              const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-              if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
-
-              const wasRecentlyReminded = (p) => {
-                const history = pledgeReminderHistory[p.id]
-                if (!history || history.length === 0) return false
-                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-                return daysSinceLastReminder < 7
-              }
-              const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
-              const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
-              if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days and need${dueSoonPledges.length > 1 ? '' : 's'} a reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
-
-              const wasRecurringRecentlyReminded = (g) => {
-                const history = recurringReminderHistory[g.id]
-                if (!history || history.length === 0) return false
-                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-                return daysSinceLastReminder < 7
-              }
-              const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
-              const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
-              const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
-              if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
-              if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
-
-              const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
-              if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
-
-
-              const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} waiting on a thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
-
-              const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-              // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
-              // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
-              // items also count a sent thank-you. The item's count shows only who's left, and it
-              // clears itself once everyone's been actioned.
-              const contactedSince = (key, sinceMs) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
-              const donationKey = (d) => d.donor_email?.trim() || d.donor_nric || d.donor_name
-              const jumpToDonors69 = (keys, label, insightKey = null) => () => { setFilterDonorKeys(keys); setFilterTopDonorNames(null); setDonorFilterLabel(label); setActiveInsightKey(insightKey); setActiveTab('donors') }
-              const periodKey69 = isoWeekKey(today)
-              const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
-
-              const monthAgo69 = today.getTime() - 30 * 24 * 60 * 60 * 1000
-              const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
-                if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
-                if (d.count < lapsedMinGifts) return false
-                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
-                if (daysSince < lapsedMinDays) return false
-                if (lapsedDismissals[d.key]) return false
-                // Matches the per-donor "Right now" card's clearing check — any logged contact
-                // (Reach Out send, or Mark done) within 30 days counts, not just a sent reminder.
-                if (contactedSince(d.key, monthAgo69)) return false
-                return true
-              })
-              if (lapsedFiltered69.length > 0) {
-                const lapsedCount = lapsedFiltered69.length
-                items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
-              }
-
-              const milestonesThisWeek = donations.filter(d => {
-                if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo || d.is_anonymous) return false
-                const b = donationBadgeInfo[d.id]
-                return b && (b.isFirstTime || b.isBiggestYet)
-              })
-              const firstTimeToWelcome = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_first_time'))
-              const biggestYetToThank = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_biggest_yet'))
-              if (firstTimeToWelcome.length > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week to welcome`, priority: 'medium', jump: jumpToDonors69(firstTimeToWelcome.map(d => donationKey(d)), `Showing ${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week`, 'milestones_first_time') })
-              if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', jump: jumpToDonors69(biggestYetToThank.map(d => donationKey(d)), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`, 'milestones_biggest_yet') })
-
-              // Anniversary + cumulative threshold + streak milestones
-              const donorFirstGiftDate69 = {}
-              const donorCumulative69 = {}
-              const keyToName69 = {}
-              confirmedDonations.forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorFirstGiftDate69[key] || new Date(d.created_at) < new Date(donorFirstGiftDate69[key])) donorFirstGiftDate69[key] = d.created_at
-                donorCumulative69[key] = (donorCumulative69[key] || 0) + d.amount
-                keyToName69[key] = d.donor_name
-              })
-
-              const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-              const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
-                const fd = new Date(firstDate)
-                const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
-                const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
-                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'donor_anniversaries')
-              })
-              if (anniversariesThisWeek.length > 0) {
-                const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
-                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`, 'donor_anniversaries') })
-              }
-
-              const cumulativeThresholds69 = cumulativeThresholds
-              const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
-                if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'cumulative_thresholds')) return false
-                const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
-                return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
-              }).map(([key]) => key)
-              if (crossedThresholdKeys.length > 0) {
-                const names = crossedThresholdKeys.map(key => keyToName69[key])
-                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`, 'cumulative_thresholds') })
-              }
-
-              const streakMilestones69 = [12, 24, 36, 60]
-              const streakDonorMonths69 = {}
-              confirmedDonations.forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                const dt = new Date(d.created_at)
-                const monthIndex = dt.getFullYear() * 12 + dt.getMonth()
-                if (!streakDonorMonths69[key]) streakDonorMonths69[key] = new Set()
-                streakDonorMonths69[key].add(monthIndex)
-              })
-              const streakHitKeys = Object.entries(streakDonorMonths69).filter(([key, monthSet]) => {
-                if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'streak_milestones')) return false
-                const months = [...monthSet].sort((a, b) => b - a)
-                let consecutiveStreak = 1
-                for (let i = 1; i < months.length; i++) {
-                  if (months[i - 1] - months[i] === 1) consecutiveStreak++
-                  else break
-                }
-                return streakMilestones69.includes(consecutiveStreak)
-              }).map(([key]) => key)
-              if (streakHitKeys.length > 0) {
-                const names = streakHitKeys.map(key => keyToName69[key])
-                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`, 'streak_milestones') })
-              }
-
-              const grantReportsDue83 = grantsWithNextReport.filter(g => {
-                if (!g.report_due_date || g.status !== 'active') return false
-                const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
-                return days >= 0 && days <= 60
-              })
-              grantReportsDue83.forEach(g => {
-                const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
-                items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
-              })
-
-              const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (majorDonorThreshold || 1000) && !d.deactivated).map(d => {
-                const donorKey80b = d.email?.trim() || d.name
-                const contact80b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey80b)
-                const lastVisited80b = contact80b?.last_visited_date
-                const monthsSinceVisit80b = lastVisited80b ? (today - new Date(lastVisited80b)) / (1000 * 60 * 60 * 24 * 30) : null
-                return { ...d, lastVisited: lastVisited80b, needsVisit: monthsSinceVisit80b === null || monthsSinceVisit80b >= 6 }
-              }).filter(d => d.needsVisit && notSuppressed(d.email?.trim() || d.name) && !contactedSince(d.email?.trim() || d.name, monthAgo.getTime()) && notDismissed69(d.email?.trim() || d.name, 'major_donor_visits'))
-              if (majorDonorsNeedingVisit80.length > 0) {
-                const names = majorDonorsNeedingVisit80.map(d => d.name)
-                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
-              }
-
-              const seasonalPatternDonors71 = (() => {
-                const byDonorMonth71 = {}
-                confirmedDonations.forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  const dt = new Date(d.created_at)
-                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { key, name: d.donor_name, yearsGivingInMonth: {} }
-                  const month = dt.getMonth()
-                  if (!byDonorMonth71[key].yearsGivingInMonth[month]) byDonorMonth71[key].yearsGivingInMonth[month] = new Set()
-                  byDonorMonth71[key].yearsGivingInMonth[month].add(dt.getFullYear())
-                })
-                const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
-                return Object.values(byDonorMonth71).filter(donor => {
-                  const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
-                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime()) && notDismissed69(donor.key, 'seasonal_pattern')
-                })
-              })()
-              if (seasonalPatternDonors71.length > 0) {
-                const names = seasonalPatternDonors71.map(d => d.name)
-                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`, 'seasonal_pattern') })
-              }
-
-              const birthdaysThisWeek70 = donorContacts.filter(c => {
-                if (!c.birth_date) return false
-                const bd = new Date(c.birth_date)
-                const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
-                const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
-                return daysUntil >= 0 && daysUntil <= 7 && notSuppressed(c.email?.trim() || c.full_name) && !contactedSince(c.email?.trim() || c.full_name, weekAgo.getTime()) && notDismissed69(c.email?.trim() || c.full_name, 'donor_birthdays')
-              })
-              if (birthdaysThisWeek70.length > 0) {
-                const names = birthdaysThisWeek70.map(c => c.full_name)
-                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => c.email?.trim() || c.full_name), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
-              }
-
-              const lapsedReturningKeys = new Set()
-              confirmedDonations.forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (new Date(d.created_at) < weekAgo) return
-                const priorGifts = confirmedDonations.filter(p => (p.donor_email?.trim() || p.donor_nric || p.donor_name) === key && new Date(p.created_at) < new Date(d.created_at))
-                if (priorGifts.length === 0) return
-                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-                const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
-                if (gapDays >= lapsedMinDays && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'lapsed_returning')) lapsedReturningKeys.add(key)
-              })
-              if (lapsedReturningKeys.size > 0) {
-                const names = [...lapsedReturningKeys].map(key => keyToName69[key])
-                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69([...lapsedReturningKeys], `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`, 'lapsed_returning') })
-              }
-
-              const obligationsDue = (() => {
-                const builtIn = [
-                  ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
-                  
-                ]
-                const custom = (customObligations || []).map(o => {
-                  let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
-                  if (d < today) d.setFullYear(today.getFullYear() + 1)
-                  const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24))
-                  return days >= 0 && days <= 30 ? { title: o.title, days } : null
-                }).filter(Boolean)
-                return [...builtIn, ...custom]
-              })()
-              obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
-
-              const nowMs = Date.now()
-              // Obligations with a real "done" state stay in Needs Action; everything else (donor
-              // moments, trends, soft opportunities) is informational → Worth Knowing.
-              const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
-              const isActionItem = (i) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
-              const notSnoozed = (i) => !i.key || !(snoozedItems[i.key] > nowMs)
-
-              const actionItemsVisible = items.filter(i => isActionItem(i) && notSnoozed(i))
-                .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
-              const fyiItemsVisible = items.filter(i => !isActionItem(i) && notSnoozed(i))
-              const highItems = actionItemsVisible.filter(i => i.priority === 'high')
-              const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key] > nowMs)
-
-              const snoozeControl = (item) => item.key && (
-                snoozeMenuOpen === item.key ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
-                    {[1, 3, 7].map(d => (
-                      <span key={d} style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, cursor: 'pointer', padding: '6px 12px', background: C.ivory, border: `1px solid ${C.borderStrong}`, borderRadius: 6, lineHeight: 1 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = C.forest; e.currentTarget.style.color = 'white' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.color = C.forest }}
-                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d} day{d > 1 ? 's' : ''}</span>
-                    ))}
-                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, cursor: 'pointer', flexShrink: 0, padding: '5px 12px', border: `1px solid ${C.border}`, borderRadius: 6, lineHeight: 1, whiteSpace: 'nowrap' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.borderColor = C.borderStrong }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border }}
-                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤 Snooze</span>
-                )
-              )
-
-              const snoozedSection = snoozedActiveItems.length > 0 ? (
-                <div style={{ marginBottom: 16 }}>
-                  <span style={{ fontSize: 12, color: C.muted, cursor: 'pointer' }} onClick={() => setShowSnoozedItems(v => !v)}>
-                    {snoozedActiveItems.length} snoozed · {showSnoozedItems ? 'Hide' : 'Show'}
-                  </span>
-                  {showSnoozedItems && (
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {snoozedActiveItems.map((item, i) => {
-                        const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
-                        return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
-                            <span style={{ flex: 1, color: C.muted }}>{item.label}</span>
-                            <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{daysLeft}d left</span>
-                            <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }} onClick={() => unsnoozeActionItem(item.key)}>Un-snooze</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              ) : null
-
-              if (actionItemsVisible.length === 0 && fyiItemsVisible.length === 0) {
-                return (
-                  <>
-                    <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
-                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
-                      <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
-                    </div>
-                    {snoozedSection}
-                  </>
-                )
-              }
-
-              return (
-                <>
-                {actionItemsVisible.length > 0 && (
-                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
-                    <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
-                    </div>
-                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {actionItemsVisible.map((item, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
-                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
-                          onMouseLeave={e => e.currentTarget.style.background = C.white}
-                        >
-                          <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
-                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                          {snoozeControl(item)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {fyiItemsVisible.length > 0 && (
-                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}` }}>
-                    <div style={{ background: C.gold, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
-                    </div>
-                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {fyiItemsVisible.map((item, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
-                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
-                          onMouseLeave={e => e.currentTarget.style.background = C.white}
-                        >
-                          <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
-                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                          {snoozeControl(item)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {snoozedSection}
-                </>
-              )
-            })()}
-
-            {(() => {
-              const today = new Date()
-              today.setHours(0, 0, 0, 0)
-              const builtIn = [
-                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
-              ]
-              const custom = (customObligations || []).map(o => {
-                let d = new Date(o.date)
-                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
-                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
-              }).map(o => {
-                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
-                if (d < today) d.setFullYear(today.getFullYear() + 1)
-                return { ...o, dateObj: d }
-              })
-              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
-                .sort((a, b) => a.dateObj - b.dateObj)
-                .filter(o => {
-                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
-                  return days >= 0 && days <= 180
-                })
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-                  <div id="upcoming-obligations-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0, scrollMarginTop: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
-                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
-                    </div>
-                  {showAddObligation && (
-                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                        <label style={{ display: 'block' }}>
-                          <div style={s.formLabel}>Title</div>
-                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
-                        </label>
-                        <label style={{ display: 'block' }}>
-                          <div style={s.formLabel}>Date</div>
-                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
-                        </label>
-                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
-                          if (!obligationForm.title.trim() || !obligationForm.date) return
-                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
-                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error saving', 'error'); return }
-                          setCustomObligations(updated)
-                          setObligationForm({ title: '', date: '', repeat: 'annual' })
-                          setShowAddObligation(false)
-                          showToast('Obligation added ✓')
-                        }}>Save</button>
-                      </div>
-                    </div>
-                  )}
-                  {all.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {all.map((o, i) => {
-                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
-                        const urgent = days <= 7
-                        const soon = days <= 30
-                        return (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
-                              {o.type !== 'iras' && o.type !== 'coc' && (
-                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
-                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                  if (!error) { setCustomObligations(updated); showToast('Removed') }
-                }}>✕</span>
-              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Tasks and Reminders <InfoTip text="Informal to-dos, like scheduling a call or following up with someone. Nothing here is a fixed deadline." /></div>
-                    <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(v => !v)}>+ Add</button>
-                  </div>
-                  {showAddTask && (
-                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
-                        <label style={{ display: 'block' }}>
-                          <div style={s.formLabel}>Task</div>
-                          <input style={s.formInput} placeholder="e.g. Call Mrs Tan back" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
-                        </label>
-                        <label style={{ display: 'block' }}>
-                          <div style={s.formLabel}>Date (optional)</div>
-                          <input style={s.formInput} type="date" value={taskForm.date} onChange={e => setTaskForm(f => ({ ...f, date: e.target.value }))} />
-                        </label>
-                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
-                          if (!taskForm.title.trim()) return
-                          const updated = [...(customTasks || []), { title: taskForm.title.trim(), date: taskForm.date || null, done: false }]
-                          const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                          if (error) { showToast('Error saving', 'error'); return }
-                          setCustomTasks(updated)
-                          setTaskForm({ title: '', date: '' })
-                          setShowAddTask(false)
-                          showToast('Task added ✓')
-                        }}>Save</button>
-                      </div>
-                    </div>
-                  )}
-                  {(customTasks || []).filter(t => !t.done).length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No open tasks right now.</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(customTasks || []).filter(t => !t.done).map((t, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <input type="checkbox" checked={false} onChange={async () => {
-                              const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x)
-                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                              if (!error) { setCustomTasks(updated); showToast('Task done ✓') }
-                            }} />
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{t.title}</div>
-                              {t.date && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(t.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                            const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
-                            const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                            if (!error) { setCustomTasks(updated); showToast('Removed') }
-                          }}>✕</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                </div>
-              )
-            })()}
-
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Health</span>
-              </div>
-
-            {/* ── KEY METRICS ── */}
-            {(() => {
-              const now = new Date()
-              const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1)
-              const samePeriodLastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1)
-              const samePeriodLastYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-              const mtd = confirmedDonations.filter(d => new Date(d.created_at) >= mtdStart).reduce((s, d) => s + d.amount, 0)
-              const lyMtd = confirmedDonations.filter(d => new Date(d.created_at) >= samePeriodLastYearStart && new Date(d.created_at) <= samePeriodLastYearEnd).reduce((s, d) => s + d.amount, 0)
-              const mtdDiff = lyMtd > 0 ? Math.round(((mtd - lyMtd) / lyMtd) * 100) : null
-              const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
-              const activeRecurring = recurringGifts.filter(g => g.status === 'active')
-              const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
-              const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
-              const totalMRR = giroMRR + habitualMRR
-
-              // New donors this month — first-ever donation falls within MTD
-              const donorFirstGift = {}
-              confirmedDonations.filter(d => !d.is_anonymous).forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorFirstGift[key] || new Date(d.created_at) < new Date(donorFirstGift[key])) {
-                  donorFirstGift[key] = d.created_at
-                }
-              })
-              const newDonorsThisMonth = Object.values(donorFirstGift).filter(date => new Date(date) >= mtdStart).length
-              const newDonorsSameMonthLY = Object.values(donorFirstGift).filter(date => new Date(date) >= samePeriodLastYearStart && new Date(date) <= samePeriodLastYearEnd).length
-              const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
-
-              const donorTotalsFH = {}
-              confirmedDonations.forEach(d => {
-                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                if (!donorTotalsFH[key]) donorTotalsFH[key] = 0
-                donorTotalsFH[key] += d.amount
-              })
-              const sortedFH = Object.values(donorTotalsFH).sort((a, b) => b - a)
-              const grandTotalFH = sortedFH.reduce((s, t) => s + t, 0)
-              const top3TotalFH = sortedFH.slice(0, 3).reduce((s, t) => s + t, 0)
-              const concentrationPctFH = grandTotalFH > 0 ? Math.round((top3TotalFH / grandTotalFH) * 100) : 0
-              const concentrationHighRiskFH = concentrationPctFH >= 70
-              const concentrationMedRiskFH = concentrationPctFH >= 50
-
-              const thisYearNumFH = fyOf(now)
-              const lastYearNumFH = thisYearNumFH - 1
-              const donorsLastYearFH = new Set(donations.filter(d => fyOf(d.created_at) === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const donorsThisYearFH = new Set(donations.filter(d => fyOf(d.created_at) === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-              const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
-              const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
-
-              const threeMoAgoFH = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
-              const recentTotalFH = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgoFH).reduce((s, d) => s + d.amount, 0)
-              const trailingAvgMonthlyFH = recentTotalFH / 3
-              const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
-
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
-                  {/* MTD donations */}
-                  <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: 'white', lineHeight: 1 }}>${mtd.toLocaleString()}</div>
-                    {mtdDiff !== null ? (
-                      <div style={{ fontSize: 11.5, color: mtdDiff >= 0 ? '#9FD9BC' : '#F0B8A8', marginTop: 6 }}>
-                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs last year
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>No prior year data</div>
-                    )}
-                  </div>
-
-                  {/* Coverage ratio */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
-                    {coverageRatio === null ? (
-                      <div>
-                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: coverageRatio >= 1 ? C.forest : C.red, lineHeight: 1 }}>{coverageRatio.toFixed(1)}×</div>
-                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
-                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠ Shortfall'}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Cash runway */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
-                    {runwayMonthsFH === null ? (
-                      <div>
-                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: runwayMonthsFH >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonthsFH.toFixed(1)} mo</div>
-                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
-                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : '⚠ Worth a closer look'}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* MRR */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Donations<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
-                      {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
-                      {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
-                      {totalMRR === 0 && <span>None set up yet</span>}
-                    </div>
-                  </div>
-
-                  {/* Donor concentration */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: concentrationHighRiskFH ? C.red : concentrationMedRiskFH ? C.gold : C.forest, lineHeight: 1 }}>{concentrationPctFH}%</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>from your top 3 donors</div>
-                  </div>
-
-                  {/* Donor retention */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
-                    {(() => {
-                      const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
-                      const totalDaysYE = Math.ceil((yearEndYE - yearStartYE) / (1000 * 60 * 60 * 24))
-                      const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
-                      if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
-                      const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
-                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
-                      return <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${projectedYE.toLocaleString()}</div>
-                    })()}
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
-                    {(() => {
-                      const cm = now.getMonth()
-                      const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
-                      const histTotals = priorYears.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === cm }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
-                      if (histTotals.length === 0) return <div style={{ fontSize: 12.5, color: C.muted }}>Needs prior year data</div>
-                      const avg = histTotals.reduce((s, t) => s + t, 0) / histTotals.length
-                      return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
-                    })()}
-                  </div>
-                </div>
-              )
-            })()}
-
-            </div>
-
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Status</span>
-              </div>
-
-            {(() => {
-              const goalYear = fyOf(new Date())
-              const totalThisGoalYear = donations.filter(d => fyOf(d.created_at) === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
-              if (!annualGoal) return null
-              const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
-              const { start: yearStart, end: yearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-              const now5 = new Date()
-              const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
-              const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
-              const dailyRate = totalThisGoalYear / daysElapsed
-              const projectedTotal = Math.round(dailyRate * totalDaysInYear)
-              const onTrack = projectedTotal >= annualGoal
-              const gap = Math.abs(annualGoal - projectedTotal)
-              const yearEndLabel = yearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-              return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                    {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} short of goal`}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {(() => {
-              const now03 = new Date()
-              const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
-              const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
-              const behindPaceCampaigns = liveCampaignsList.filter(c => {
-                const stats = causeRaisedMap[c.id] || { total: 0 }
-                const goal = c.target_amount || 0
-                const pct = goal > 0 ? (stats.total / goal) * 100 : 100
-                return goal > 0 && pct < 40
-              })
-
-              const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
-              const grantsReceived = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
-              const grantsSpent = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
-              const grantsRemaining = grantsReceived - grantsSpent
-              const nearestGrantDeadline = activeGrantsList
-                .filter(g => g.report_due_date)
-                .map(g => Math.ceil((new Date(g.report_due_date) - now03) / (1000 * 60 * 60 * 24)))
-                .filter(d => d >= 0)
-                .sort((a, b) => a - b)[0]
-
-              const pendingPledgesList = pledges.filter(p => p.status === 'pending')
-              const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
-              const upcomingPledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) >= now03)
-              const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + Number(p.amount), 0)
-              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + Number(p.amount), 0)
-
-              const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
-              const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-              const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
-
-              const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
-              const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
-                const amt = Number(g.amount) || 0
-                if (g.frequency === 'weekly') return s + amt * 4.33
-                if (g.frequency === 'quarterly') return s + amt / 3
-                if (g.frequency === 'annually') return s + amt / 12
-                return s + amt
-              }, 0)
-              const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
-
-              const pledgesFulfilledRevenue = pledges.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
-              const massAppealRevenue = thisYearAppeals.reduce((s, a) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
-              const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
-              const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
-
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
-                    {behindPaceCampaigns.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
-                    ) : liveCampaignsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ On pace</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${campaignRevenue.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(campaignRevenue)}% of total revenue</div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('grants')}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeGrantsList.length}</div>
-                    {nearestGrantDeadline !== undefined ? (
-                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
-                    ) : activeGrantsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ No deadlines soon</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${grantsReceived.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(grantsReceived)}% of total revenue</div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{pendingPledgesList.length}</div>
-                    {overduePledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
-                    ) : pendingPledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ None overdue</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${pledgesFulfilledRevenue.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(pledgesFulfilledRevenue)}% of total revenue</div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearAppeals.length}</div>
-                    {daysSinceLastAppeal !== null ? (
-                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue</div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeRecurringList.length}</div>
-                    {escalatedGiroList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
-                    ) : activeRecurringList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ All on schedule</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(recurringMonthlyTotal)}% of total revenue</div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-            
-
-            </div>
-
-            </div>
-        )}
-
         {/* ── DONORS ── */}
         {activeTab === 'donors' && !selectedDonor && (
           <div style={s.content}>
@@ -12490,6 +11601,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={{ position: 'sticky', top: isMobile ? 56 : 0, zIndex: 15, background: C.ivory, paddingTop: 10, paddingBottom: 10, marginBottom: 24, borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8, overflowX: isMobile ? 'auto' : 'visible', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
               {[
+                { id: 'analytics-section-today', label: 'Today' },
                 { id: 'analytics-section-overview', label: 'Overview' },
                 { id: 'analytics-section-fundraising', label: 'Fundraising' },
                 ...(enabledModules.campaigns !== false ? [{ id: 'analytics-section-campaigns', label: 'Campaigns' }] : []),
@@ -12514,6 +11626,883 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 >{section.label}</button>
               ))}
             </div>
+            <div id="analytics-section-today" style={{ scrollMarginTop: 20 }}>
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
+              </div>
+
+            {/* ── THIS WEEK, IN WORDS ── */}
+            {(() => {
+              const now = new Date()
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+              const prevWeekAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+
+              const thisWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= weekAgo)
+              const lastWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= prevWeekAgo && new Date(d.created_at) < weekAgo)
+              const weekTotal = thisWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const lastWeekTotal = lastWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const weekDonorKeys = new Set(thisWeekDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const weekGrowthPct = lastWeekTotal > 0 ? Math.round(((weekTotal - lastWeekTotal) / lastWeekTotal) * 100) : null
+
+              const donorFirstGiftW = {}
+              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGiftW[key]) donorFirstGiftW[key] = d.created_at
+              })
+              const newDonorsThisWeek = [...weekDonorKeys].filter(k => new Date(donorFirstGiftW[k]) >= weekAgo).length
+              const biggestGiftThisWeek = thisWeekDonations.sort((a, b) => b.amount - a.amount)[0]
+
+              const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
+              const escalatedGiroW = giroMissedCycles.filter(g => g.missedCycles >= 2).length
+              const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
+
+              const monthlyExpensesSet = monthlyExpenses > 0
+              const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
+
+              const sentences = []
+              sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
+              if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
+              if (biggestGiftThisWeek) sentences.push(`Your biggest gift this week was $${Number(biggestGiftThisWeek.amount).toLocaleString()} from ${biggestGiftThisWeek.donor_name}.`)
+              sentences.push(attentionCount > 0
+                ? `${attentionCount} item${attentionCount > 1 ? 's need' : ' needs'} your attention — see below.`
+                : `Nothing urgent needs your attention right now.`)
+              if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
+
+              return (
+                <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
+                  <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
+                </div>
+              )
+            })()}
+
+            {/* ── ACTION ITEMS ── */}
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+
+              const items = []
+
+              // Donors marked deceased or do-not-contact must never generate relationship / outreach
+              // prompts (birthdays, anniversaries, thank-yous, check-ins, etc.).
+              const suppressedKeys = new Set()
+              donations.forEach(d => { if (d.donor_deceased || d.donor_do_not_contact) suppressedKeys.add(d.donor_email?.trim() || d.donor_nric || d.donor_name) })
+              const notSuppressed = (key) => !suppressedKeys.has(key)
+
+              const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
+
+              const wasRecentlyReminded = (p) => {
+                const history = pledgeReminderHistory[p.id]
+                if (!history || history.length === 0) return false
+                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                return daysSinceLastReminder < 7
+              }
+              const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
+              const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
+              if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
+              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days and need${dueSoonPledges.length > 1 ? '' : 's'} a reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+
+              const wasRecurringRecentlyReminded = (g) => {
+                const history = recurringReminderHistory[g.id]
+                if (!history || history.length === 0) return false
+                const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+                return daysSinceLastReminder < 7
+              }
+              const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
+              const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
+              const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
+              if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+              if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+
+              const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
+              if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+
+
+              const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} waiting on a thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
+
+              const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
+              // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
+              // items also count a sent thank-you. The item's count shows only who's left, and it
+              // clears itself once everyone's been actioned.
+              const contactedSince = (key, sinceMs) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
+              const donationKey = (d) => d.donor_email?.trim() || d.donor_nric || d.donor_name
+              const jumpToDonors69 = (keys, label, insightKey = null) => () => { setFilterDonorKeys(keys); setFilterTopDonorNames(null); setDonorFilterLabel(label); setActiveInsightKey(insightKey); setActiveTab('donors') }
+              const periodKey69 = isoWeekKey(today)
+              const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
+
+              const monthAgo69 = today.getTime() - 30 * 24 * 60 * 60 * 1000
+              const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
+                if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
+                if (d.count < lapsedMinGifts) return false
+                const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                if (daysSince < lapsedMinDays) return false
+                if (lapsedDismissals[d.key]) return false
+                // Matches the per-donor "Right now" card's clearing check — any logged contact
+                // (Reach Out send, or Mark done) within 30 days counts, not just a sent reminder.
+                if (contactedSince(d.key, monthAgo69)) return false
+                return true
+              })
+              if (lapsedFiltered69.length > 0) {
+                const lapsedCount = lapsedFiltered69.length
+                items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
+              }
+
+              const milestonesThisWeek = donations.filter(d => {
+                if (d.payment_status !== 'confirmed' || new Date(d.created_at) < weekAgo || d.is_anonymous) return false
+                const b = donationBadgeInfo[d.id]
+                return b && (b.isFirstTime || b.isBiggestYet)
+              })
+              const firstTimeToWelcome = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_first_time'))
+              const biggestYetToThank = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_biggest_yet'))
+              if (firstTimeToWelcome.length > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week to welcome`, priority: 'medium', jump: jumpToDonors69(firstTimeToWelcome.map(d => donationKey(d)), `Showing ${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week`, 'milestones_first_time') })
+              if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', jump: jumpToDonors69(biggestYetToThank.map(d => donationKey(d)), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`, 'milestones_biggest_yet') })
+
+              // Anniversary + cumulative threshold + streak milestones
+              const donorFirstGiftDate69 = {}
+              const donorCumulative69 = {}
+              const keyToName69 = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGiftDate69[key] || new Date(d.created_at) < new Date(donorFirstGiftDate69[key])) donorFirstGiftDate69[key] = d.created_at
+                donorCumulative69[key] = (donorCumulative69[key] || 0) + d.amount
+                keyToName69[key] = d.donor_name
+              })
+
+              const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
+                const fd = new Date(firstDate)
+                const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
+                const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
+                return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'donor_anniversaries')
+              })
+              if (anniversariesThisWeek.length > 0) {
+                const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
+                items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`, 'donor_anniversaries') })
+              }
+
+              const cumulativeThresholds69 = cumulativeThresholds
+              const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
+                if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'cumulative_thresholds')) return false
+                const priorTotal = total - confirmedDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
+                return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
+              }).map(([key]) => key)
+              if (crossedThresholdKeys.length > 0) {
+                const names = crossedThresholdKeys.map(key => keyToName69[key])
+                items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`, 'cumulative_thresholds') })
+              }
+
+              const streakMilestones69 = [12, 24, 36, 60]
+              const streakDonorMonths69 = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                const dt = new Date(d.created_at)
+                const monthIndex = dt.getFullYear() * 12 + dt.getMonth()
+                if (!streakDonorMonths69[key]) streakDonorMonths69[key] = new Set()
+                streakDonorMonths69[key].add(monthIndex)
+              })
+              const streakHitKeys = Object.entries(streakDonorMonths69).filter(([key, monthSet]) => {
+                if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'streak_milestones')) return false
+                const months = [...monthSet].sort((a, b) => b - a)
+                let consecutiveStreak = 1
+                for (let i = 1; i < months.length; i++) {
+                  if (months[i - 1] - months[i] === 1) consecutiveStreak++
+                  else break
+                }
+                return streakMilestones69.includes(consecutiveStreak)
+              }).map(([key]) => key)
+              if (streakHitKeys.length > 0) {
+                const names = streakHitKeys.map(key => keyToName69[key])
+                items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`, 'streak_milestones') })
+              }
+
+              const grantReportsDue83 = grantsWithNextReport.filter(g => {
+                if (!g.report_due_date || g.status !== 'active') return false
+                const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+                return days >= 0 && days <= 60
+              })
+              grantReportsDue83.forEach(g => {
+                const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+                items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
+              })
+
+              const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (majorDonorThreshold || 1000) && !d.deactivated).map(d => {
+                const donorKey80b = d.email?.trim() || d.name
+                const contact80b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey80b)
+                const lastVisited80b = contact80b?.last_visited_date
+                const monthsSinceVisit80b = lastVisited80b ? (today - new Date(lastVisited80b)) / (1000 * 60 * 60 * 24 * 30) : null
+                return { ...d, lastVisited: lastVisited80b, needsVisit: monthsSinceVisit80b === null || monthsSinceVisit80b >= 6 }
+              }).filter(d => d.needsVisit && notSuppressed(d.email?.trim() || d.name) && !contactedSince(d.email?.trim() || d.name, monthAgo.getTime()) && notDismissed69(d.email?.trim() || d.name, 'major_donor_visits'))
+              if (majorDonorsNeedingVisit80.length > 0) {
+                const names = majorDonorsNeedingVisit80.map(d => d.name)
+                items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
+              }
+
+              const seasonalPatternDonors71 = (() => {
+                const byDonorMonth71 = {}
+                confirmedDonations.forEach(d => {
+                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                  const dt = new Date(d.created_at)
+                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { key, name: d.donor_name, yearsGivingInMonth: {} }
+                  const month = dt.getMonth()
+                  if (!byDonorMonth71[key].yearsGivingInMonth[month]) byDonorMonth71[key].yearsGivingInMonth[month] = new Set()
+                  byDonorMonth71[key].yearsGivingInMonth[month].add(dt.getFullYear())
+                })
+                const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
+                return Object.values(byDonorMonth71).filter(donor => {
+                  const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
+                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime()) && notDismissed69(donor.key, 'seasonal_pattern')
+                })
+              })()
+              if (seasonalPatternDonors71.length > 0) {
+                const names = seasonalPatternDonors71.map(d => d.name)
+                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`, 'seasonal_pattern') })
+              }
+
+              const birthdaysThisWeek70 = donorContacts.filter(c => {
+                if (!c.birth_date) return false
+                const bd = new Date(c.birth_date)
+                const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
+                const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
+                return daysUntil >= 0 && daysUntil <= 7 && notSuppressed(c.email?.trim() || c.full_name) && !contactedSince(c.email?.trim() || c.full_name, weekAgo.getTime()) && notDismissed69(c.email?.trim() || c.full_name, 'donor_birthdays')
+              })
+              if (birthdaysThisWeek70.length > 0) {
+                const names = birthdaysThisWeek70.map(c => c.full_name)
+                items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => c.email?.trim() || c.full_name), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
+              }
+
+              const lapsedReturningKeys = new Set()
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (new Date(d.created_at) < weekAgo) return
+                const priorGifts = confirmedDonations.filter(p => (p.donor_email?.trim() || p.donor_nric || p.donor_name) === key && new Date(p.created_at) < new Date(d.created_at))
+                if (priorGifts.length === 0) return
+                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+                if (gapDays >= lapsedMinDays && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'lapsed_returning')) lapsedReturningKeys.add(key)
+              })
+              if (lapsedReturningKeys.size > 0) {
+                const names = [...lapsedReturningKeys].map(key => keyToName69[key])
+                items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69([...lapsedReturningKeys], `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`, 'lapsed_returning') })
+              }
+
+              const obligationsDue = (() => {
+                const builtIn = [
+                  ...(charityIsIpc && daysToDeadline > 0 && daysToDeadline <= 30 ? [{ title: 'IRAS submission', days: daysToDeadline }] : []),
+                  
+                ]
+                const custom = (customObligations || []).map(o => {
+                  let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                  if (d < today) d.setFullYear(today.getFullYear() + 1)
+                  const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 30 ? { title: o.title, days } : null
+                }).filter(Boolean)
+                return [...builtIn, ...custom]
+              })()
+              obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
+
+              const nowMs = Date.now()
+              // Obligations with a real "done" state stay in Needs Action; everything else (donor
+              // moments, trends, soft opportunities) is informational → Worth Knowing.
+              const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
+              const isActionItem = (i) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
+              const notSnoozed = (i) => !i.key || !(snoozedItems[i.key] > nowMs)
+
+              const actionItemsVisible = items.filter(i => isActionItem(i) && notSnoozed(i))
+                .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
+              const fyiItemsVisible = items.filter(i => !isActionItem(i) && notSnoozed(i))
+              const highItems = actionItemsVisible.filter(i => i.priority === 'high')
+              const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key] > nowMs)
+
+              const snoozeControl = (item) => item.key && (
+                snoozeMenuOpen === item.key ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
+                    {[1, 3, 7].map(d => (
+                      <span key={d} style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, cursor: 'pointer', padding: '6px 12px', background: C.ivory, border: `1px solid ${C.borderStrong}`, borderRadius: 6, lineHeight: 1 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = C.forest; e.currentTarget.style.color = 'white' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.color = C.forest }}
+                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d} day{d > 1 ? 's' : ''}</span>
+                    ))}
+                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, cursor: 'pointer', flexShrink: 0, padding: '5px 12px', border: `1px solid ${C.border}`, borderRadius: 6, lineHeight: 1, whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.borderColor = C.borderStrong }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border }}
+                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤 Snooze</span>
+                )
+              )
+
+              const snoozedSection = snoozedActiveItems.length > 0 ? (
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ fontSize: 12, color: C.muted, cursor: 'pointer' }} onClick={() => setShowSnoozedItems(v => !v)}>
+                    {snoozedActiveItems.length} snoozed · {showSnoozedItems ? 'Hide' : 'Show'}
+                  </span>
+                  {showSnoozedItems && (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {snoozedActiveItems.map((item, i) => {
+                        const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
+                            <span style={{ flex: 1, color: C.muted }}>{item.label}</span>
+                            <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{daysLeft}d left</span>
+                            <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }} onClick={() => unsnoozeActionItem(item.key)}>Un-snooze</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null
+
+              if (actionItemsVisible.length === 0 && fyiItemsVisible.length === 0) {
+                return (
+                  <>
+                    <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
+                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
+                      <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
+                    </div>
+                    {snoozedSection}
+                  </>
+                )
+              }
+
+              return (
+                <>
+                {actionItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                    <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {actionItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {fyiItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}` }}>
+                    <div style={{ background: C.gold, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {fyiItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {snoozedSection}
+                </>
+              )
+            })()}
+
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const builtIn = [
+                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
+              ]
+              const custom = (customObligations || []).map(o => {
+                let d = new Date(o.date)
+                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
+                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
+              }).map(o => {
+                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                if (d < today) d.setFullYear(today.getFullYear() + 1)
+                return { ...o, dateObj: d }
+              })
+              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
+                .sort((a, b) => a.dateObj - b.dateObj)
+                .filter(o => {
+                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 180
+                })
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                  <div id="upcoming-obligations-card" style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0, scrollMarginTop: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
+                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                    </div>
+                  {showAddObligation && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Title</div>
+                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
+                        </label>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Date</div>
+                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
+                        </label>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!obligationForm.title.trim() || !obligationForm.date) return
+                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
+                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomObligations(updated)
+                          setObligationForm({ title: '', date: '', repeat: 'annual' })
+                          setShowAddObligation(false)
+                          showToast('Obligation added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {all.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {all.map((o, i) => {
+                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                        const urgent = days <= 7
+                        const soon = days <= 30
+                        return (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
+                              {o.type !== 'iras' && o.type !== 'coc' && (
+                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
+                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                  if (!error) { setCustomObligations(updated); showToast('Removed') }
+                }}>✕</span>
+              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '18px 20px', marginBottom: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, display: 'flex', alignItems: 'center', gap: 5 }}>Tasks and Reminders <InfoTip text="Informal to-dos, like scheduling a call or following up with someone. Nothing here is a fixed deadline." /></div>
+                    <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(v => !v)}>+ Add</button>
+                  </div>
+                  {showAddTask && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Task</div>
+                          <input style={s.formInput} placeholder="e.g. Call Mrs Tan back" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
+                        </label>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Date (optional)</div>
+                          <input style={s.formInput} type="date" value={taskForm.date} onChange={e => setTaskForm(f => ({ ...f, date: e.target.value }))} />
+                        </label>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!taskForm.title.trim()) return
+                          const updated = [...(customTasks || []), { title: taskForm.title.trim(), date: taskForm.date || null, done: false }]
+                          const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomTasks(updated)
+                          setTaskForm({ title: '', date: '' })
+                          setShowAddTask(false)
+                          showToast('Task added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {(customTasks || []).filter(t => !t.done).length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No open tasks right now.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(customTasks || []).filter(t => !t.done).map((t, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input type="checkbox" checked={false} onChange={async () => {
+                              const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x)
+                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                              if (!error) { setCustomTasks(updated); showToast('Task done ✓') }
+                            }} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{t.title}</div>
+                              {t.date && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(t.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
+                            const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
+                            const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                            if (!error) { setCustomTasks(updated); showToast('Removed') }
+                          }}>✕</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                </div>
+              )
+            })()}
+
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Health</span>
+              </div>
+
+            {/* ── KEY METRICS ── */}
+            {(() => {
+              const now = new Date()
+              const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1)
+              const samePeriodLastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+              const samePeriodLastYearEnd = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+              const mtd = confirmedDonations.filter(d => new Date(d.created_at) >= mtdStart).reduce((s, d) => s + d.amount, 0)
+              const lyMtd = confirmedDonations.filter(d => new Date(d.created_at) >= samePeriodLastYearStart && new Date(d.created_at) <= samePeriodLastYearEnd).reduce((s, d) => s + d.amount, 0)
+              const mtdDiff = lyMtd > 0 ? Math.round(((mtd - lyMtd) / lyMtd) * 100) : null
+              const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
+              const activeRecurring = recurringGifts.filter(g => g.status === 'active')
+              const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
+              const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
+              const totalMRR = giroMRR + habitualMRR
+
+              // New donors this month — first-ever donation falls within MTD
+              const donorFirstGift = {}
+              confirmedDonations.filter(d => !d.is_anonymous).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGift[key] || new Date(d.created_at) < new Date(donorFirstGift[key])) {
+                  donorFirstGift[key] = d.created_at
+                }
+              })
+              const newDonorsThisMonth = Object.values(donorFirstGift).filter(date => new Date(date) >= mtdStart).length
+              const newDonorsSameMonthLY = Object.values(donorFirstGift).filter(date => new Date(date) >= samePeriodLastYearStart && new Date(date) <= samePeriodLastYearEnd).length
+              const newDonorsDiff = newDonorsSameMonthLY > 0 ? Math.round(((newDonorsThisMonth - newDonorsSameMonthLY) / newDonorsSameMonthLY) * 100) : null
+
+              const donorTotalsFH = {}
+              confirmedDonations.forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorTotalsFH[key]) donorTotalsFH[key] = 0
+                donorTotalsFH[key] += d.amount
+              })
+              const sortedFH = Object.values(donorTotalsFH).sort((a, b) => b - a)
+              const grandTotalFH = sortedFH.reduce((s, t) => s + t, 0)
+              const top3TotalFH = sortedFH.slice(0, 3).reduce((s, t) => s + t, 0)
+              const concentrationPctFH = grandTotalFH > 0 ? Math.round((top3TotalFH / grandTotalFH) * 100) : 0
+              const concentrationHighRiskFH = concentrationPctFH >= 70
+              const concentrationMedRiskFH = concentrationPctFH >= 50
+
+              const thisYearNumFH = fyOf(now)
+              const lastYearNumFH = thisYearNumFH - 1
+              const donorsLastYearFH = new Set(donations.filter(d => fyOf(d.created_at) === lastYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const donorsThisYearFH = new Set(donations.filter(d => fyOf(d.created_at) === thisYearNumFH).map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const retainedFH = [...donorsLastYearFH].filter(k => donorsThisYearFH.has(k)).length
+              const retentionPctFH = donorsLastYearFH.size > 0 ? Math.round((retainedFH / donorsLastYearFH.size) * 100) : null
+
+              const threeMoAgoFH = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+              const recentTotalFH = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgoFH).reduce((s, d) => s + d.amount, 0)
+              const trailingAvgMonthlyFH = recentTotalFH / 3
+              const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                  {/* MTD donations */}
+                  <div style={{ background: C.forest, border: `1px solid ${C.forest}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>This Month <InfoTip text="Total confirmed donations received so far this calendar month." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: 'white', lineHeight: 1 }}>${mtd.toLocaleString()}</div>
+                    {mtdDiff !== null ? (
+                      <div style={{ fontSize: 11.5, color: mtdDiff >= 0 ? '#9FD9BC' : '#F0B8A8', marginTop: 6 }}>
+                        {mtdDiff >= 0 ? '↑' : '↓'} {Math.abs(mtdDiff)}% vs last year
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>No prior year data</div>
+                    )}
+                  </div>
+
+                  {/* Coverage ratio */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
+                    {coverageRatio === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: coverageRatio >= 1 ? C.forest : C.red, lineHeight: 1 }}>{coverageRatio.toFixed(1)}×</div>
+                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠ Shortfall'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Cash runway */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
+                    {runwayMonthsFH === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: runwayMonthsFH >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonthsFH.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : '⚠ Worth a closer look'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* MRR */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Donations<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalMRR.toLocaleString()}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
+                      {giroMRR > 0 && <span>GIRO ${giroMRR.toLocaleString()} </span>}
+                      {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
+                      {totalMRR === 0 && <span>None set up yet</span>}
+                    </div>
+                  </div>
+
+                  {/* Donor concentration */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Concentration <InfoTip text="Share of total revenue from your top 3 donors. High concentration means your income depends heavily on a small number of people. See Analytics for more detail." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: concentrationHighRiskFH ? C.red : concentrationMedRiskFH ? C.gold : C.forest, lineHeight: 1 }}>{concentrationPctFH}%</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>from your top 3 donors</div>
+                  </div>
+
+                  {/* Donor retention */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Retention <InfoTip text="Share of last year's donors who gave again this year. Sector average is roughly 40-45%." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: retentionPctFH === null ? C.muted : retentionPctFH >= 45 ? C.forest : retentionPctFH >= 25 ? C.gold : C.red, lineHeight: 1 }}>{retentionPctFH === null ? '—' : `${retentionPctFH}%`}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>{donorsLastYearFH.size > 0 ? `${retainedFH} of ${donorsLastYearFH.size} from ${lastYearNumFH}` : 'No prior-year data'}</div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
+                    {(() => {
+                      const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
+                      const totalDaysYE = Math.ceil((yearEndYE - yearStartYE) / (1000 * 60 * 60 * 24))
+                      const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
+                      if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
+                      const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
+                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
+                      return <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${projectedYE.toLocaleString()}</div>
+                    })()}
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
+                    {(() => {
+                      const cm = now.getMonth()
+                      const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
+                      const histTotals = priorYears.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === cm }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+                      if (histTotals.length === 0) return <div style={{ fontSize: 12.5, color: C.muted }}>Needs prior year data</div>
+                      const avg = histTotals.reduce((s, t) => s + t, 0) / histTotals.length
+                      return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
+                    })()}
+                  </div>
+                </div>
+              )
+            })()}
+
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Status</span>
+              </div>
+
+            {(() => {
+              const goalYear = fyOf(new Date())
+              const totalThisGoalYear = donations.filter(d => fyOf(d.created_at) === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              if (!annualGoal) return null
+              const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
+              const { start: yearStart, end: yearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+              const now5 = new Date()
+              const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
+              const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
+              const dailyRate = totalThisGoalYear / daysElapsed
+              const projectedTotal = Math.round(dailyRate * totalDaysInYear)
+              const onTrack = projectedTotal >= annualGoal
+              const gap = Math.abs(annualGoal - projectedTotal)
+              const yearEndLabel = yearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+              return (
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {(() => {
+              const now03 = new Date()
+              const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
+              const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
+              const behindPaceCampaigns = liveCampaignsList.filter(c => {
+                const stats = causeRaisedMap[c.id] || { total: 0 }
+                const goal = c.target_amount || 0
+                const pct = goal > 0 ? (stats.total / goal) * 100 : 100
+                return goal > 0 && pct < 40
+              })
+
+              const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
+              const grantsReceived = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+              const grantsSpent = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+              const grantsRemaining = grantsReceived - grantsSpent
+              const nearestGrantDeadline = activeGrantsList
+                .filter(g => g.report_due_date)
+                .map(g => Math.ceil((new Date(g.report_due_date) - now03) / (1000 * 60 * 60 * 24)))
+                .filter(d => d >= 0)
+                .sort((a, b) => a - b)[0]
+
+              const pendingPledgesList = pledges.filter(p => p.status === 'pending')
+              const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
+              const upcomingPledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) >= now03)
+              const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + Number(p.amount), 0)
+              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + Number(p.amount), 0)
+
+              const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
+              const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+              const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
+
+              const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
+              const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
+                const amt = Number(g.amount) || 0
+                if (g.frequency === 'weekly') return s + amt * 4.33
+                if (g.frequency === 'quarterly') return s + amt / 3
+                if (g.frequency === 'annually') return s + amt / 12
+                return s + amt
+              }, 0)
+              const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
+
+              const pledgesFulfilledRevenue = pledges.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
+              const massAppealRevenue = thisYearAppeals.reduce((s, a) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
+              const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
+              const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{liveCampaignsList.length}</div>
+                    {behindPaceCampaigns.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
+                    ) : liveCampaignsList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ On pace</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${campaignRevenue.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(campaignRevenue)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('grants')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeGrantsList.length}</div>
+                    {nearestGrantDeadline !== undefined ? (
+                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
+                    ) : activeGrantsList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ No deadlines soon</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${grantsReceived.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(grantsReceived)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{pendingPledgesList.length}</div>
+                    {overduePledgesList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
+                    ) : pendingPledgesList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ None overdue</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${pledgesFulfilledRevenue.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(pledgesFulfilledRevenue)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{thisYearAppeals.length}</div>
+                    {daysSinceLastAppeal !== null ? (
+                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 24, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{activeRecurringList.length}</div>
+                    {escalatedGiroList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
+                    ) : activeRecurringList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ All on schedule</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(recurringMonthlyTotal)}% of total revenue</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+            
+
+            </div>
+            </div>
+
+
 
             <div id="analytics-section-overview" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
