@@ -9150,7 +9150,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
-            { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff', 'board'] },
+            { id: 'analytics', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
 
@@ -9231,6 +9231,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Main</div>
+            {[
+              { id: 'analytics', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
+              { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
+              { id: 'donors',    icon: '👥', label: 'Donors', roles: ['ed', 'staff'] },
+            ].filter(item => item.roles.includes(userRole)).map(item => (
+              <div key={item.id} style={s.mobileOverflowItem} onClick={() => { setActiveTab(item.id); setSelectedDonor(null); setShowMobileMenu(false) }}>{item.icon} {item.label}</div>
+            ))}
             {(userRole === 'staff' || userRole === 'ed') && (
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fundraising</div>
@@ -9247,22 +9255,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('settings'); setSelectedDonor(null); setShowMobileMenu(false) }}>⚙️ Settings</div>
           </div>
         )}
-      </div>
-      )}
-
-      {/* ── BOTTOM TAB BAR (mobile) ── */}
-      {isMobile && (
-      <div style={s.mobileTabBar}>
-        {[
-          { id: 'analytics', icon: '📈', label: 'Analytics', roles: ['ed', 'staff', 'board'] },
-          { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
-          { id: 'donors',    icon: '👥', label: 'Donors', roles: ['ed', 'staff'] },
-        ].filter(item => item.roles.includes(userRole)).map(item => (
-          <div key={item.id} style={s.mobileTabItem} onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
-            <div style={{ fontSize: 18, opacity: activeTab === item.id ? 1 : 0.5 }}>{item.icon}</div>
-            <div style={{ ...s.mobileTabLabel, color: activeTab === item.id ? C.sage : 'rgba(255,255,255,0.5)' }}>{item.label}</div>
-          </div>
-        ))}
       </div>
       )}
 
@@ -11584,8 +11576,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.content}>
             <div style={s.pageHeader}>
               <div>
-                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Analytics</div>
-                <div style={{ ...s.pageSub, marginTop: 4 }}>Detailed analysis to drive your charity goals.</div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Dashboard</div>
+                <div style={{ ...s.pageSub, marginTop: 4 }}>Here's what's happening, plus the detailed analysis behind it.</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12, color: C.muted }}>Fiscal year:</span>
@@ -19904,7 +19896,7 @@ const s = {
   sidebarTabletNav: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
   sidebarTabletItem: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' },
   sidebarTabletItemActive: { background: C.sage, color: 'white' },
-  mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 72, width: '100%', boxSizing: 'border-box' },
+  mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 20, width: '100%', boxSizing: 'border-box' },
   mobileTopBar: {
   position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 20,
   background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -19924,16 +19916,6 @@ mobileOverflowItem: {
   padding: '12px 18px', fontSize: 13, fontWeight: 500, color: C.forest,
   cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.ivoryDark}`,
 },
-mobileTabBar: {
-  position: 'fixed', bottom: 0, left: 0, right: 0, height: 64, zIndex: 20,
-  background: C.teal, display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-  boxSizing: 'border-box',
-},
-mobileTabItem: {
-  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-  cursor: 'pointer', flex: 1,
-},
-mobileTabLabel: { fontSize: 10, fontWeight: 500 },
   content: { padding: 32 },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   pageTitle: { fontSize: 24, fontWeight: 800, color: C.forest, marginBottom: 4 },
