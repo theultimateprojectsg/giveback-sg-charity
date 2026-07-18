@@ -16810,7 +16810,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
                           {(p.donor_email || p.donor_phone) && (
-                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{[p.donor_email, p.donor_phone].filter(Boolean).join(' · ')}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 3 }}>
+                              {p.donor_email && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>✉️</span>{p.donor_email}</span>}
+                              {p.donor_phone && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>📞</span>{p.donor_phone}</span>}
+                            </div>
                           )}
                           {p.reference && <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{p.reference}</div>}
                           <div style={{ marginTop: 6 }}>
@@ -16827,7 +16830,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {isOverdue && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>⚠ {Math.abs(daysUntil)}d late</span>}
                           {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>Due today</span>}
                           {isDueSoon && !isOverdue && daysUntil > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.gold, padding: '4px 10px', borderRadius: 20 }}>Due in {daysUntil}d</span>}
-                          <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
+                          <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
                         </div>
                       </div>
                     </div>
