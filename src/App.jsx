@@ -17689,8 +17689,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {g.is_matching && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.teal }}>🔁 Matching</span>}
-                          {g.is_renewable && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.sage }}>↻ Renewable</span>}
+                          {g.is_matching && <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: C.ivory, border: `1px solid ${C.border}`, color: C.teal }}>🔁 Matching</span>}
+                          {g.is_renewable && <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: C.ivory, border: `1px solid ${C.border}`, color: C.sage }}>↻ Renewable</span>}
                           <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: statusBadgeInfo(g.status).bg, color: statusBadgeInfo(g.status).color }}>{statusBadgeInfo(g.status).label}</span>
                         </div>
                       </div>
@@ -17711,7 +17711,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                           <span style={{ fontSize: 13, color: C.muted }}>utilized</span>
                         </span>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</span>
+                        <span style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</div>
+                          <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        </span>
                       </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.max(pctUtilized, 2)}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage, borderRadius: 3 }} />
@@ -17788,7 +17791,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           onSaveNote={noteText => saveGrantNote(g.id, noteText)}
                         />
                       )}
-                      <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
 
                     {/* Actions */}
