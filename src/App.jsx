@@ -10131,6 +10131,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const daysUntil = Math.ceil((bday - rnToday) / (1000 * 60 * 60 * 24))
                       if (daysUntil >= 0 && daysUntil <= 7) mk('🎂', 'Birthday this week — send a greeting', 'Send birthday greeting', `Happy birthday from ${charityName}`, `Wishing you a very happy birthday from all of us at ${charityName}! We are so grateful to have you as part of our community, and we hope your day is wonderful.`, 'Birthday greeting')
                     }
+                    const thisWeekGifts = myConfirmed.filter(d => new Date(d.created_at) >= rnWeekAgo)
+                    if (thisWeekGifts.length > 0) {
+                      const mostRecentThisWeek = [...thisWeekGifts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                      const priorGifts = myConfirmed.filter(d => new Date(d.created_at) < new Date(mostRecentThisWeek.created_at))
+                      if (priorGifts.length > 0) {
+                        const mostRecentPrior = [...priorGifts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                        const gapDays = Math.floor((new Date(mostRecentThisWeek.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24))
+                        if (gapDays >= lapsedMinDays) mk('🎉', `Came back this week after ${gapDays}+ days away — thank them`, 'Send thank-you', 'Welcome back!', `It's wonderful to see your support again after some time away. Thank you for coming back to ${charityName} — it means a great deal to us and to those we serve.`, 'Welcome-back thank-you')
+                      }
+                    }
                   }
 
                   {
