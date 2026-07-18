@@ -7484,7 +7484,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All'
       || (filterThankYou === 'Sent' && d.thank_you_sent)
-      || (filterThankYou === 'Not Sent' && !d.thank_you_sent && d.donor_email?.trim())
+      || (filterThankYou === 'Not Sent' && !d.thank_you_sent && d.donor_email?.trim() && d.payment_status === 'confirmed')
       || (filterThankYou === 'No Email' && !d.donor_email?.trim())
     const matchMinAmount = !filterMinAmount || d.amount >= filterMinAmount
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou && matchMinAmount
@@ -9389,17 +9389,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const periodKey69 = isoWeekKey(today)
               const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
 
+              const monthAgo69 = today.getTime() - 30 * 24 * 60 * 60 * 1000
               const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
                 if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
                 if (d.count < lapsedMinGifts) return false
                 const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
                 if (daysSince < lapsedMinDays) return false
                 if (lapsedDismissals[d.key]) return false
-                const history = lapsedReminderHistory[d.key]
-                if (history && history.length > 0) {
-                  const daysSinceReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-                  if (daysSinceReminder < 30) return false
-                }
+                // Matches the per-donor "Right now" card's clearing check — any logged contact
+                // (Reach Out send, or Mark done) within 30 days counts, not just a sent reminder.
+                if (contactedSince(d.key, monthAgo69)) return false
                 return true
               })
               if (lapsedFiltered69.length > 0) {
