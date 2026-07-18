@@ -1492,6 +1492,7 @@ export default function App() {
   const [insightDismissals, setInsightDismissals] = useState([])
   const [concentrationTopN, setConcentrationTopN] = useState(10)
   const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
+  const [pledgeDueSoonDays, setPledgeDueSoonDays] = useState(7)
   const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
   const [recurringMissedThreshold, setRecurringMissedThreshold] = useState(2)
 
@@ -1881,7 +1882,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1928,6 +1929,7 @@ export default function App() {
     setGivingChangeMinPct(data?.giving_change_min_pct ?? 30)
     setConcentrationTopN(data?.concentration_top_n ?? 10)
     setPledgeWatchThreshold(data?.pledge_watch_threshold ?? 2)
+    setPledgeDueSoonDays(data?.pledge_due_soon_days ?? 7)
     setRecurringTrendCycles(data?.recurring_trend_cycles ?? 2)
     setRecurringMissedThreshold(data?.recurring_missed_threshold ?? 2)
     setLapsedMinGifts(data?.lapsed_min_gifts ?? 2)
@@ -11727,9 +11729,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return daysSinceLastReminder < 7
               }
               const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
-              const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= 7 }) : []
+              const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= pledgeDueSoonDays }) : []
               if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within 7 days and need${dueSoonPledges.length > 1 ? '' : 's'} a reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+              if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within ${pledgeDueSoonDays} days and may need a gentle reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
               const wasRecurringRecentlyReminded = (g) => {
                 const history = recurringReminderHistory[g.id]
@@ -16304,7 +16306,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeUrgencyFilter} onChange={e => setPledgeUrgencyFilter(e.target.value)}>
                 <option value="All">All urgency</option>
                 <option value="Overdue">Overdue</option>
-                <option value="Due Soon">Due soon (7d)</option>
+                <option value="Due Soon">Due soon ({pledgeDueSoonDays}d)</option>
                 <option value="Healthy">Healthy</option>
               </select>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={pledgeAmountFilter} onChange={e => setPledgeAmountFilter(e.target.value)}>
@@ -16829,8 +16831,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (p.status !== 'pending') return false
                 const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24))
                 if (pledgeUrgencyFilter === 'Overdue') return days < 0
-                if (pledgeUrgencyFilter === 'Due Soon') return days >= 0 && days <= 7
-                if (pledgeUrgencyFilter === 'Healthy') return days > 7
+                if (pledgeUrgencyFilter === 'Due Soon') return days >= 0 && days <= pledgeDueSoonDays
+                if (pledgeUrgencyFilter === 'Healthy') return days > pledgeDueSoonDays
                 return true
               }
               const matchesAmount = (p) => {
@@ -18158,6 +18160,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <span>Pledge watch: donor has broken</span>
                       <input type="number" min={1} style={nStyle} value={pledgeWatchThreshold} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setPledgeWatchThreshold(v); saveNum('pledge_watch_threshold', v) }} />
                       <span>+ pledges</span>
+                    </div>
+                    <div style={rowStyle}>
+                      <span>Flag a pledge as due soon when it's within</span>
+                      <input type="number" min={1} style={nStyle} value={pledgeDueSoonDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setPledgeDueSoonDays(v); saveNum('pledge_due_soon_days', v) }} />
+                      <span>days</span>
                     </div>
                     <div style={{ ...rowStyle, borderBottom: 'none' }}>
                       <span>Donor concentration: track top</span>
