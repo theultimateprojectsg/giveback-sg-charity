@@ -1238,6 +1238,7 @@ export default function App() {
   const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
   const [refunds, setRefunds] = useState([])
   const [showRefundForm, setShowRefundForm] = useState(false)
+  const [showDonationMoreActions, setShowDonationMoreActions] = useState(false)
   const [refundForm, setRefundForm] = useState({ reason: '' })
   const [savingRefund, setSavingRefund] = useState(false)
   const [grantExpenses, setGrantExpenses] = useState([])
