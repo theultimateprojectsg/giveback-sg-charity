@@ -12174,6 +12174,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
               const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
               const totalMRR = giroMRR + habitualMRR
+              const fixedCostCoveragePct = monthlyExpenses > 0 ? Math.round((totalMRR / monthlyExpenses) * 100) : null
+              const unrestrictedGrantTotal = grants.filter(g => g.status === 'active').reduce((s, g) => s + Number(g.unrestricted_amount || 0), 0)
+              const unrestrictedCoverageMonths = monthlyExpenses > 0 ? (unrestrictedGrantTotal / monthlyExpenses) : null
 
               // New donors this month — first-ever donation falls within MTD
               const donorFirstGift = {}
@@ -12263,6 +12266,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     )}
                   </div>
 
+                  {/* Unrestricted funding coverage */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
+                    {unrestrictedCoverageMonths === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: unrestrictedCoverageMonths >= 3 ? C.forest : C.red, lineHeight: 1 }}>{unrestrictedCoverageMonths.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>${unrestrictedGrantTotal.toLocaleString()} unrestricted from active grants</div>
+                      </>
+                    )}
+                  </div>
+
                   {/* MRR */}
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Recurring Donations<InfoTip text="Expected monthly income from active GIRO and habitual PayNow donors. Manage these under Recurring." /></div>
@@ -12272,6 +12291,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {habitualMRR > 0 && <span>PayNow ${habitualMRR.toLocaleString()}</span>}
                       {totalMRR === 0 && <span>None set up yet</span>}
                     </div>
+                  </div>
+
+                  {/* Fixed-cost coverage from recurring income */}
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
+                    {fixedCostCoveragePct === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: fixedCostCoveragePct >= 50 ? C.forest : C.red, lineHeight: 1 }}>{fixedCostCoveragePct}%</div>
+                        <div style={{ fontSize: 11.5, color: fixedCostCoveragePct >= 50 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {fixedCostCoveragePct >= 50 ? '✓ Solid recurring base' : '⚠ Reliant on one-off giving'}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Donor concentration */}
