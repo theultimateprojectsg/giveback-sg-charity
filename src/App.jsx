@@ -16795,9 +16795,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
                 const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
                 const pledgeStatusMap = {
-                  pending: { bg: C.successBg, color: '#27500A', label: 'Active' },
+                  pending: { bg: C.sage, color: C.white, label: 'Active' },
                   fulfilled: { bg: C.sage, color: C.white, label: 'Fulfilled' },
-                  cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
+                  cancelled: { bg: C.muted, color: C.white, label: 'Cancelled' },
                 }
                 const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
                 const hasActivity = (donationsByPledge[p.id] || []).length > 0 || (p.status === 'pending' && ((pledgeReminderHistory[p.id] || []).length > 0 || (pledgeRescheduleHistory[p.id] || []).length > 0)) || p.resolution_notes
@@ -16824,10 +16824,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                           {p.is_multi_year && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{p.total_years}-YEAR</span>}
                           {p.is_anonymous && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted, textTransform: 'uppercase' }}>Anonymous</span>}
-                          {isOverdue && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
-                          {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
-                          {isDueSoon && !isOverdue && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
-                          <span style={{ fontSize: 10.5, fontWeight: 500, padding: '3px 9px', borderRadius: 20, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
+                          {isOverdue && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                          {isDueSoon && !isOverdue && daysUntil <= 0 && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>Due today</span>}
+                          {isDueSoon && !isOverdue && daysUntil > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: C.white, background: C.gold, padding: '4px 10px', borderRadius: 20 }}>Due in {daysUntil}d</span>}
+                          <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: pledgeStatusInfo.bg, color: pledgeStatusInfo.color }}>{pledgeStatusInfo.label}</span>
                         </div>
                       </div>
                     </div>
