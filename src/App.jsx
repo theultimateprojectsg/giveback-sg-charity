@@ -15598,7 +15598,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {myCauses.length > 0 && (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
-                <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title or description..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
+                <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title, description, or category..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
                 {isMobile && (
                   <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowCampaignFilters(v => !v)}>{showCampaignFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
                 )}
@@ -15639,7 +15639,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   const q = campaignSearchTerm.toLowerCase().trim()
                   const filtered = myCauses.filter(c => {
                     if (c.type !== 'campaign') return false
-                    const matchesSearch = !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
+                    const matchesSearch = !q || [c.title, c.description, c.category].some(f => f?.toLowerCase().includes(q))
                     const matchesYear = campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
                     const amt = Number(c.target_amount) || 0
                     const matchesAmt = campaignAmountFilter === 'All'
@@ -15658,7 +15658,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {(() => {
               const q = campaignSearchTerm.toLowerCase().trim()
-              const matchesSearch = c => !q || [c.title, c.description].some(f => f?.toLowerCase().includes(q))
+              const matchesSearch = c => !q || [c.title, c.description, c.category].some(f => f?.toLowerCase().includes(q))
               const matchesYear = c => campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
               const matchesAmt = c => {
                 const amt = Number(c.target_amount) || 0
@@ -16036,7 +16036,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
-              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by donor name, email, or notes..." value={recurringSearchTerm} onChange={e => setRecurringSearchTerm(e.target.value)} />
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search by donor name, email, phone, reference, bank, or notes..." value={recurringSearchTerm} onChange={e => setRecurringSearchTerm(e.target.value)} />
               {isMobile && (
                 <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowRecurringFilters(v => !v)}>{showRecurringFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
               )}
@@ -16095,7 +16095,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const q = recurringSearchTerm.toLowerCase().trim()
                 const today = new Date(); today.setHours(0,0,0,0)
                 const filtered = recurringGifts.filter(g => {
-                  const matchesSearch = !q || [g.donor_name, g.donor_email, g.notes, g.giro_reference].some(f => f?.toLowerCase().includes(q))
+                  const matchesSearch = !q || [g.donor_name, g.donor_email, g.donor_phone, g.notes, g.giro_reference, g.reference, g.bank_name].some(f => f?.toLowerCase().includes(q))
                   const matchesType = recurringTypeFilter === 'All' || g.type === recurringTypeFilter
                   const amt = Number(g.amount)
                   const matchesAmt = recurringAmountFilter === 'All'
@@ -16129,7 +16129,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const q = recurringSearchTerm.toLowerCase().trim()
               const matchesSearch = (g) => {
                 if (!q) return true
-                const fields = [g.donor_name, g.donor_email, g.notes, g.giro_reference]
+                const fields = [g.donor_name, g.donor_email, g.donor_phone, g.notes, g.giro_reference, g.reference, g.bank_name]
                 return fields.some(f => f?.toLowerCase().includes(q))
               }
               const matchesUrgency = (g) => {
@@ -16522,7 +16522,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
-              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search pledges by donor name, email, phone, reference, or notes..." value={pledgeSearchTerm} onChange={e => setPledgeSearchTerm(e.target.value)} />
               {isMobile && (
                 <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowPledgeFilters(v => !v)}>{showPledgeFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
               )}
@@ -16572,7 +16572,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = pledgeSearchTerm.toLowerCase().trim()
                 const filtered = pledges.filter(p => {
-                  const matchesSearch = !q || [p.donor_name, p.donor_email, p.notes].some(f => f?.toLowerCase().includes(q))
+                  const matchesSearch = !q || [p.donor_name, p.donor_email, p.donor_phone, p.notes, p.reference].some(f => f?.toLowerCase().includes(q))
                   const matchesYear = pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
                   const matchesType = pledgeTypeFilter === 'All' || (pledgeTypeFilter === 'Multi-year' ? !!p.is_multi_year : !p.is_multi_year)
                   const matchesProgramme = pledgeProgrammeFilter === 'All' || (pledgeProgrammeFilter === '__none__' ? !p.cause_id : p.cause_id === pledgeProgrammeFilter)
@@ -17047,7 +17047,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const q = pledgeSearchTerm.toLowerCase().trim()
               const matchesSearch = (p) => {
                 if (!q) return true
-                const searchFields = [p.donor_name, p.donor_email, p.notes]
+                const searchFields = [p.donor_name, p.donor_email, p.donor_phone, p.notes, p.reference]
                 return searchFields.some(field => field?.toLowerCase().includes(q))
               }
               const matchesUrgency = (p) => {
@@ -17534,7 +17534,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
-              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search grants by funder name..." value={grantSearchTerm} onChange={e => setGrantSearchTerm(e.target.value)} />
+              <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search grants by funder, agreement ref, or contact..." value={grantSearchTerm} onChange={e => setGrantSearchTerm(e.target.value)} />
               {isMobile && (
                 <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowGrantFilters(v => !v)}>{showGrantFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
               )}
@@ -17586,7 +17586,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => {
                 const q = grantSearchTerm.toLowerCase().trim()
                 const filtered = grantsWithNextReport.filter(g => {
-                  const matchesSearch = q === '' || g.funder_name.toLowerCase().includes(q)
+                  const matchesSearch = q === '' || [g.funder_name, g.agreement_reference, g.contact_name, g.contact_email, g.contact_phone].some(f => f?.toLowerCase().includes(q))
                   const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
                   const matchesUrgency = grantUrgencyFilter === 'All'
                     || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
@@ -17613,7 +17613,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {(() => {
               const filteredGrants = grantsWithNextReport.filter(g => {
                 const q = grantSearchTerm.toLowerCase().trim()
-                const matchesSearch = q === '' || g.funder_name.toLowerCase().includes(q)
+                const matchesSearch = q === '' || [g.funder_name, g.agreement_reference, g.contact_name, g.contact_email, g.contact_phone].some(f => f?.toLowerCase().includes(q))
                 const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
                 const matchesUrgency = grantUrgencyFilter === 'All'
                   || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
