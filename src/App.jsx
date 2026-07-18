@@ -1679,7 +1679,6 @@ export default function App() {
     if (activeTab !== 'analytics') return
     const sectionIds = [
       'analytics-section-today',
-      'analytics-section-overview',
       'analytics-section-fundraising',
       ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
       ...(enabledModules.massappeal !== false ? ['analytics-section-massappeals'] : []),
@@ -11594,7 +11593,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'sticky', top: isMobile ? 56 : 0, zIndex: 15, background: C.ivory, paddingTop: 10, paddingBottom: 10, marginBottom: 24, borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8, overflowX: isMobile ? 'auto' : 'visible', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
               {[
                 { id: 'analytics-section-today', label: 'Today' },
-                { id: 'analytics-section-overview', label: 'Overview' },
                 { id: 'analytics-section-fundraising', label: 'Fundraising' },
                 ...(enabledModules.campaigns !== false ? [{ id: 'analytics-section-campaigns', label: 'Campaigns' }] : []),
                 ...(enabledModules.massappeal !== false ? [{ id: 'analytics-section-massappeals', label: 'Mass Appeals' }] : []),
@@ -12319,42 +12317,55 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             })()}
 
             </div>
+            </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Status</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
 
-            {(() => {
-              const goalYear = fyOf(new Date())
-              const totalThisGoalYear = donations.filter(d => fyOf(d.created_at) === goalYear && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
-              if (!annualGoal) return null
-              const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
-              const { start: yearStart, end: yearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-              const now5 = new Date()
-              const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
-              const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
-              const dailyRate = totalThisGoalYear / daysElapsed
-              const projectedTotal = Math.round(dailyRate * totalDaysInYear)
-              const onTrack = projectedTotal >= annualGoal
-              const gap = Math.abs(annualGoal - projectedTotal)
-              const yearEndLabel = yearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-              return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+              {(() => {
+                const { yr, tiles } = fundraisingSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {analyticsGoalStats.hasGoal && (() => {
+                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
                     <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
                   </div>
                   <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
                     {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${yearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
                   </div>
                 </div>
-              )
-            })()}
+                )
+              })()}
 
             {(() => {
               const now03 = new Date()
@@ -12489,106 +12500,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 </div>
               )
             })()}
-            
-
-            </div>
-            </div>
-
-
-
-            <div id="analytics-section-overview" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Overview</span>
-              </div>
-
-              {(() => {
-                const scoped = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
-                if (scoped.length === 0) return null
-                const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
-                const donorKeys = new Set(scoped.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
-                const periodYear = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-                const lastYearScoped = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === periodYear - 1)
-                const lastYearTotal = lastYearScoped.reduce((s, d) => s + d.amount, 0)
-                const growthPct = lastYearTotal > 0 ? Math.round(((totalAmt - lastYearTotal) / lastYearTotal) * 100) : null
-                const byDonorCount = {}
-                scoped.forEach(d => { const key = d.donor_email?.trim() || d.donor_nric || d.donor_name; byDonorCount[key] = (byDonorCount[key] || 0) + 1 })
-                const mostLoyalEntry = Object.entries(byDonorCount).sort((a, b) => b[1] - a[1])[0]
-                const mostLoyalDonor = mostLoyalEntry ? scoped.find(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === mostLoyalEntry[0])?.donor_name : null
-                const monthTotals = {}
-                scoped.forEach(d => { const m = new Date(d.created_at).toLocaleDateString('en-SG', { month: 'long' }); monthTotals[m] = (monthTotals[m] || 0) + d.amount })
-                const bestMonthEntry = Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]
-                const donorFirstYear = {}
-                ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
-                  const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-                  if (!donorFirstYear[key]) donorFirstYear[key] = fyOf(d.created_at)
-                })
-                const firstTimeCount = [...donorKeys].filter(k => donorFirstYear[k] === periodYear).length
-
-                const sentences = []
-                sentences.push(`This ${filterYear === 'All' ? 'period' : 'year'}, ${donorKeys.size} donor${donorKeys.size !== 1 ? 's' : ''} gave a total of $${totalAmt.toLocaleString()}${growthPct !== null ? ` — ${growthPct >= 0 ? 'up' : 'down'} ${Math.abs(growthPct)}% from the year before` : ''}.`)
-                if (mostLoyalDonor && mostLoyalEntry[1] > 1) sentences.push(`${mostLoyalDonor} was your most loyal supporter with ${mostLoyalEntry[1]} gifts.`)
-                if (bestMonthEntry) sentences.push(`Your best month was ${bestMonthEntry[0]}, raising $${bestMonthEntry[1].toLocaleString()}.`)
-                if (firstTimeCount > 0) sentences.push(`${firstTimeCount} first-time donor${firstTimeCount > 1 ? 's' : ''} joined this ${filterYear === 'All' ? 'period' : 'year'} — if even half return, that's real momentum.`)
-
-                return (
-                  <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 24 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>Your Story So Far <InfoTip text="An auto-generated recap of the selected period — total raised, your most loyal donor, best month, and first-time donors — written in plain sentences." /></div>
-                    <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
-                  </div>
-                )
-              })()}
-      
-
-              </div>
-
-            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
-              </div>
-
-              {(() => {
-                const { yr, tiles } = fundraisingSnapshotStats
-                return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
-                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
-                        ) : (
-                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
-                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
-                          </div>
-                        )}
-                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-
-              {analyticsGoalStats.hasGoal && (() => {
-                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
-                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-                return (
-                <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                    {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
-                  </div>
-                </div>
-                )
-              })()}
 
               <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {(() => {
