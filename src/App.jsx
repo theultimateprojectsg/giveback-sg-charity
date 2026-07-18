@@ -12316,6 +12316,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
+            {(() => {
+              const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
+              if (withTiming.length === 0) {
+                return (
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
+                  </div>
+                )
+              }
+              const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
+              const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
+              const avgDays = avgHours / 24
+              const overSla = avgHours > 48
+              return (
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
+                  <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
+                  <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
+                    {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
+                </div>
+              )
+            })()}
+
             </div>
             </div>
 
@@ -12324,6 +12350,26 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
+
+              {analyticsGoalStats.hasGoal && (() => {
+                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                  </div>
+                </div>
+                )
+              })()}
 
               {(() => {
                 const { yr, tiles } = fundraisingSnapshotStats
@@ -12344,26 +12390,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ))}
                   </div>
-                )
-              })()}
-
-              {analyticsGoalStats.hasGoal && (() => {
-                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
-                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-                return (
-                <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={s.analyticsCardTitle}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                    {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
-                  </div>
-                </div>
                 )
               })()}
 
@@ -14842,131 +14868,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              {(() => {
-                const now5 = new Date()
-                const threeMoAgo = new Date(now5.getFullYear(), now5.getMonth() - 3, now5.getDate())
-                const recentTotal = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgo).reduce((s, d) => s + d.amount, 0)
-                const trailingAvgMonthly = recentTotal / 3
-                const runwayMonths = monthlyExpenses > 0 ? (trailingAvgMonthly / monthlyExpenses) : null
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>🛢️ Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover — not your actual bank balance." /></div>
-                    {runwayMonths === null ? (
-                      <div>
-                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Set your monthly expenses in Settings to see this.</div>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set expenses →</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: runwayMonths >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonths.toFixed(1)} months</div>
-                        <div style={{ fontSize: 11.5, color: runwayMonths >= 3 ? C.sage : C.red, marginTop: 8, fontWeight: 500 }}>
-                          {runwayMonths >= 3 ? '✓ Healthy pace' : '⚠ Below 3 months — worth a closer look'}
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Avg ${Math.round(trailingAvgMonthly).toLocaleString()}/month over last 3 months · expenses ${monthlyExpenses.toLocaleString()}/month</div>
-                      </>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
-                if (withTiming.length === 0) {
-                  return (
-                    <div style={{ ...s.card, marginBottom: 24 }}>
-                      <div style={s.analyticsCardTitle}>Gift Acknowledgment Timing</div>
-                      <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
-                    </div>
-                  )
-                }
-                const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
-                const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
-                const avgDays = avgHours / 24
-                const overSla = avgHours > 48
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>Gift Acknowledgment Timing</div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
-                    <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
-                      {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const now11 = new Date()
-                const fyNow11 = fyOf(now11)
-                const { start: yearStart11, end: yearEnd11 } = fiscalYearBounds(fyNow11, fyEndMonth, fyEndDay)
-                const totalDays11 = Math.ceil((yearEnd11 - yearStart11) / (1000 * 60 * 60 * 24))
-                const daysElapsed = Math.max(1, Math.ceil((now11 - yearStart11) / (1000 * 60 * 60 * 24)))
-                if (daysElapsed / totalDays11 < 0.75) {
-                  return (
-                    <div style={{ ...s.card, marginBottom: 24 }}>
-                      <div style={s.analyticsCardTitle}>Year-End Projection</div>
-                      <div style={{ fontSize: 13, color: C.muted }}>This projection becomes available once at least 75% of the fiscal year has elapsed.</div>
-                    </div>
-                  )
-                }
-                const ytdTotal = confirmedDonations.filter(d => new Date(d.created_at) >= yearStart11).reduce((s, d) => s + d.amount, 0)
-                const projectedTotal = Math.round((ytdTotal / daysElapsed) * totalDays11)
-                const { start: lastYearStart11, end: lastYearEnd11 } = fiscalYearBounds(fyNow11 - 1, fyEndMonth, fyEndDay)
-                const lastYearTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastYearStart11 && new Date(d.created_at) <= lastYearEnd11).reduce((s, d) => s + d.amount, 0)
-                const trendPct = lastYearTotal > 0 ? Math.round(((projectedTotal - lastYearTotal) / lastYearTotal) * 100) : null
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>Year-End Projection</div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 8 }}>${projectedTotal.toLocaleString()}</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>Based on your pace so far, that's where FY{fyNow11} is likely to land.</div>
-                    {lastYearTotal > 0 ? (
-                      <div style={{ fontSize: 12.5, color: trendPct >= 0 ? C.sage : C.red, fontWeight: 500 }}>
-                        {trendPct >= 0 ? '↑' : '↓'} {Math.abs(trendPct)}% vs FY{fyNow11 - 1}'s ${lastYearTotal.toLocaleString()}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: C.muted }}>No data from FY{fyNow11 - 1} to compare against.</div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const activeRecurring6 = recurringGifts.filter(g => g.status === 'active')
-                const monthlyize6 = (g) => {
-                  const amt = Number(g.amount) || 0
-                  if (g.frequency === 'weekly') return amt * 4.33
-                  if (g.frequency === 'quarterly') return amt / 3
-                  if (g.frequency === 'annually') return amt / 12
-                  return amt
-                }
-                const giroMonthly6 = activeRecurring6.filter(g => g.type === 'giro').reduce((s, g) => s + monthlyize6(g), 0)
-                const habitualMonthly6 = activeRecurring6.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
-                const otherMonthly6 = activeRecurring6.filter(g => g.type !== 'giro' && g.type !== 'habitual_paynow').reduce((s, g) => s + monthlyize6(g), 0)
-                const totalMonthly6 = giroMonthly6 + habitualMonthly6 + otherMonthly6
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>Monthly Recurring Revenue</div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 30, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 4 }}>${Math.round(totalMonthly6).toLocaleString()}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 14 }}>per month, from {activeRecurring6.length} active recurring gift{activeRecurring6.length !== 1 ? 's' : ''} — separate from one-off donations</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: C.forest }}>GIRO (confirmed)</span>
-                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(giroMonthly6).toLocaleString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: C.forest }}>Habitual PayNow (expected)</span>
-                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(habitualMonthly6).toLocaleString()}</span>
-                      </div>
-                      {otherMonthly6 > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span style={{ color: C.muted }}>Other (standing order, etc.)</span>
-                          <span style={{ fontWeight: 500, color: C.muted }}>${Math.round(otherMonthly6).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })()}
             </div>
 
           </div>
