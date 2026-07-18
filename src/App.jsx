@@ -6911,7 +6911,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     Object.entries(pledgeDonationLinks).forEach(([pledgeId, links]) => {
       m[pledgeId] = links.map(l => {
         const donation = donations.find(d => d.id === l.donation_id)
-        return { ...l, payment_status: donation?.payment_status, notes: donation?.notes }
+        return { ...l, payment_status: donation?.payment_status, notes: donation?.notes, source: donation?.source }
       }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     })
     return m
@@ -16215,6 +16215,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               {g.donor_phone && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>📞</span>{g.donor_phone}</span>}
                             </div>
                           )}
+                          {(g.giro_reference || g.reference) && (
+                            <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginTop: 2 }}>{[g.giro_reference && `Bank ref: ${g.giro_reference}`, g.reference].filter(Boolean).join(' · ')}</div>
+                          )}
                           <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             {linkedCause ? (
                               <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.teal + '1A', color: C.teal, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎯 {linkedCause.title} · Restricted</span>
@@ -16245,9 +16248,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </span>
                         <span style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</span>
                       </div>
-                      {(g.giro_reference || g.reference) && (
-                        <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginBottom: 8 }}>{[g.giro_reference && `Bank ref: ${g.giro_reference}`, g.reference].filter(Boolean).join(' · ')}</div>
-                      )}
                       {needsBankInfo && g.bank_name && (
                         <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Bank: {g.bank_name}</div>
                       )}
@@ -16388,7 +16388,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                                           <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
-                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
+                                          {d.source === 'manual' ? (
+                                            <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
+                                          ) : (
+                                            <span style={{ color: C.muted, opacity: 0.4, cursor: 'default' }} title="Only manually-entered payments can be edited">🔒</span>
+                                          )}
                                           <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
                                         </span>
                                       </div>
@@ -16995,7 +16999,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                                           <span style={{ fontWeight: 500, color: C.forest }}>${Number(l.amount_applied).toLocaleString()}</span>
-                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
+                                          {l.source === 'manual' ? (
+                                            <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingPledgeAmount(l)}>✏️</span>
+                                          ) : (
+                                            <span style={{ color: C.muted, opacity: 0.4, cursor: 'default' }} title="Only manually-entered payments can be edited">🔒</span>
+                                          )}
                                           <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(l.donation_id)}>✕</span>
                                         </span>
                                       </div>
