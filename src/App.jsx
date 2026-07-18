@@ -16868,7 +16868,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                               <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                                 <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${given.toLocaleString()}</span>
-                                <span style={{ fontSize: 12.5, color: C.muted }}>of ${pledgedAmount.toLocaleString()} pledged</span>
+                                <span style={{ fontSize: 13, color: C.muted }}>of</span>
+                                <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${pledgedAmount.toLocaleString()}</span>
+                                <span style={{ fontSize: 13, color: C.muted }}>pledged</span>
                               </span>
                               <span style={{ fontSize: 15, fontWeight: 700, color: progressColor }}>{pct}%</span>
                             </div>
@@ -16884,7 +16886,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           Expected by {expectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                           {p.status === 'pending' && <InfoTip text="Donations are matched automatically by donor and applied here. If a donor has more than one pending pledge, donations apply to whichever is due soonest." />}
                         </span>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>Recorded {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <span style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Recorded {new Date(p.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       </div>
                       {p.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 4 }}><span style={{ color: C.muted }}>Notes:</span> {p.notes}</div>}
                     </div>
