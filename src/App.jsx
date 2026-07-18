@@ -5692,6 +5692,10 @@ export default function App() {
         ...prev,
         [pledgeLink.pledge_id]: Math.max(0, (prev[pledgeLink.pledge_id] || 0) - Number(pledgeLink.amount_applied))
       }))
+      setPledgeDonationLinks(prev => ({
+        ...prev,
+        [pledgeLink.pledge_id]: (prev[pledgeLink.pledge_id] || []).filter(l => l.donation_id !== id)
+      }))
       if (pledgeLink.pledgeStatus === 'fulfilled') {
         await supabase.from('pledges').update({ status: 'pending', resolution_notes: null }).eq('id', pledgeLink.pledge_id)
         setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending', resolution_notes: null } : p))
