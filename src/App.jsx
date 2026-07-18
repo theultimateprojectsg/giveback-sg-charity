@@ -11706,7 +11706,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
               const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
               if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
-              if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+              if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Escalated'); setActiveTab('recurring') } })
 
               const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
               if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
@@ -15770,7 +15770,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(!isMobile || showRecurringFilters) && (<>
               <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={recurringUrgencyFilter} onChange={e => setRecurringUrgencyFilter(e.target.value)}>
                 <option value="All">All urgency</option>
-                <option value="Late">Late (7d+)</option>
+                <option value="Late">Late — single miss</option>
+                <option value="Escalated">Escalated (2+ missed)</option>
                 <option value="Due Soon">Due soon</option>
                 <option value="Healthy">Healthy</option>
               </select>
@@ -15835,7 +15836,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (g.status !== 'active') matchesUrgency = false
                     else {
                       const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
-                      if (recurringUrgencyFilter === 'Late') matchesUrgency = days < -7
+                      const gapDaysF = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
+                      const missedCyclesF = -days > 7 ? Math.floor(-days / gapDaysF) + 1 : 0
+                      if (recurringUrgencyFilter === 'Late') matchesUrgency = days < -7 && missedCyclesF < 2
+                      else if (recurringUrgencyFilter === 'Escalated') matchesUrgency = missedCyclesF >= 2
                       else if (recurringUrgencyFilter === 'Due Soon') matchesUrgency = days >= -7 && days <= 7
                       else if (recurringUrgencyFilter === 'Healthy') matchesUrgency = days > 7
                     }
@@ -15863,7 +15867,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (recurringUrgencyFilter === 'All') return true
                 if (g.status !== 'active') return false
                 const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
-                if (recurringUrgencyFilter === 'Late') return days < -7
+                const gapDaysF = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
+                const missedCyclesF = -days > 7 ? Math.floor(-days / gapDaysF) + 1 : 0
+                if (recurringUrgencyFilter === 'Late') return days < -7 && missedCyclesF < 2
+                if (recurringUrgencyFilter === 'Escalated') return missedCyclesF >= 2
                 if (recurringUrgencyFilter === 'Due Soon') return days >= -7 && days <= 7
                 if (recurringUrgencyFilter === 'Healthy') return days > 7
                 return true
