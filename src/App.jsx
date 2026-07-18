@@ -15724,11 +15724,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{c.title}</div>
                           {c.description && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, lineHeight: 1.5 }}>{c.description}</div>}
                           {(c.category || (charityIsIpc && c.tax_deductible === false) || (c.permit_status === 'pending') || (c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date())) && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-                              {c.category && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>{c.category}</span>}
-                              {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
-                              {c.permit_status === 'pending' && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
-                              {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                              {c.category && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>{c.category}</span>}
+                              {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
+                              {c.permit_status === 'pending' && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
+                              {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
                             </div>
                           )}
                         </div>
@@ -15736,42 +15736,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     </div>
 
-                    {/* Amount + timeline */}
+                    {/* Fundraising */}
                     <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                       {c.target_amount > 0 && (() => {
                         const progressColor = goalMet ? C.sage : behindPace ? C.gold : C.sage
                         return (
-                          <div style={{ marginBottom: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                               <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                                 <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
                                 <span style={{ fontSize: 13, color: C.muted }}>of</span>
                                 <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(c.target_amount).toLocaleString()}</span>
+                                <span style={{ fontSize: 13, color: C.muted }}>raised</span>
                               </span>
-                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                                <span style={{ fontSize: 15, fontWeight: 700, color: progressColor }}>{pct}%</span>
-                                {costForRoi > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
-                                {costForRoi > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>}
-                              </span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: progressColor }}>{pct}%</span>
                             </div>
                             <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
                               <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
                             </div>
-                            <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                              raised <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
-                            </div>
                           </div>
                         )
                       })()}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
                         <div>
                           <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
                           <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{donorCount}</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>{isActive ? 'Ends' : 'Ended'}</div>
-                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: isActive && daysLeft !== null && daysLeft < 0 ? C.red : C.forest }}>
                             {daysLeft === null ? '—' : isActive ? (daysLeft >= 0 ? `${daysLeft}d` : 'Overdue') : new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Pace</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: c.target_amount <= 0 ? C.muted : c.status === 'completed' ? (goalMet ? C.sage : C.muted) : (behindPace ? C.gold : C.sage) }}>
+                            {c.target_amount <= 0 ? '—' : c.status === 'completed' ? (goalMet ? 'Goal met' : 'Ended') : (behindPace ? 'Behind' : 'On track')}
                           </div>
                         </div>
                       </div>
@@ -15783,24 +15783,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </div>
                       )}
-                      {costForRoi > 0 && (
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>
-                          {spent > 0 ? `Spent $${spent.toLocaleString()}` : `Budgeted cost $${Number(c.cost).toLocaleString()}`}
-                          {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
-                        </div>
-                      )}
-                      {grantFunding > 0 && (
-                        <div style={{ fontSize: 12, color: C.teal, fontWeight: 500, marginTop: 4 }}>Includes ${grantFunding.toLocaleString()} from grants</div>
-                      )}
-                      {isActive && behindPace && (
-                        <div style={{ fontSize: 12, color: C.gold, fontWeight: 500, marginTop: 4 }}>⚠ Behind pace · {pct}% funded</div>
-                      )}
-                      {c.status === 'completed' && (
-                        <div style={{ fontSize: 12, color: goalMet ? C.sage : C.muted, fontWeight: 500, marginTop: 4 }}>
-                          {goalMet ? `✓ Goal met · ${pct}% funded` : `Ended · ${pct !== null ? `${pct}% funded` : 'no target set'}`}
-                        </div>
-                      )}
                     </div>
+
+                    {/* Budget */}
+                    {costForRoi > 0 && (
+                      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontSize: 12.5, color: C.text }}>
+                            {spent > 0 ? `$${spent.toLocaleString()} spent` : `$${Number(c.cost).toLocaleString()} budgeted`}
+                            {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Activity */}
                     {cHasActivity && (
