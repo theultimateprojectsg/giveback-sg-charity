@@ -15784,6 +15784,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         )}
                       </div>
+                      <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic', marginTop: 8 }}>Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
 
                     {/* Activity */}
@@ -15835,7 +15836,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             }}
                           />
                         )}
-                        <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                       </div>
                     )}
 
