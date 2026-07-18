@@ -12411,32 +12411,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               )
             })()}
 
-            {(() => {
-              const withTiming = donations.filter(d => d.receipt_issued && d.receipt_issued_at && d.created_at)
-              if (withTiming.length === 0) {
-                return (
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
-                    <div style={{ fontSize: 13, color: C.muted }}>No timing data yet — this builds up as new receipts are issued.</div>
-                  </div>
-                )
-              }
-              const diffsHours = withTiming.map(d => (new Date(d.receipt_issued_at) - new Date(d.created_at)) / (1000 * 60 * 60))
-              const avgHours = diffsHours.reduce((s, h) => s + h, 0) / diffsHours.length
-              const avgDays = avgHours / 24
-              const overSla = avgHours > 48
-              return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', marginTop: 20 }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Thank You Acknowledgment Timeline</div>
-                  <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: overSla ? C.red : C.forest, lineHeight: 1, marginBottom: 8 }}>{avgDays.toFixed(1)} days</div>
-                  <div style={{ fontSize: 12.5, color: overSla ? C.red : C.sage, fontWeight: 500 }}>
-                    {overSla ? `⚠ Averaging above the 48-hour target` : `✓ Within the 48-hour target`}
-                  </div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>Based on {withTiming.length} receipt{withTiming.length !== 1 ? 's' : ''} with timing data</div>
-                </div>
-              )
-            })()}
-
             </div>
             </div>
 
