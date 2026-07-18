@@ -1247,6 +1247,7 @@ export default function App() {
   const [grantNotes, setGrantNotes] = useState({})
   const [expandedGrantId, setExpandedGrantId] = useState(null)
   const [expandedRecurringId, setExpandedRecurringId] = useState(null)
+  const [recurringMoreMenuId, setRecurringMoreMenuId] = useState(null)
   const [editingRecurringDonationId, setEditingRecurringDonationId] = useState(null)
   const [editingRecurringAmount, setEditingRecurringAmount] = useState('')
   const [editingRecurringNote, setEditingRecurringNote] = useState('')
@@ -15703,167 +15704,181 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   behindPace = pct < elapsedPct - 15
                 }
 
+                const campaignStatusMap = {
+                  approved: { bg: C.sage, color: C.white, label: 'Active' },
+                  pending: { bg: C.gold, color: C.white, label: '⏳ Pending' },
+                  rejected: { bg: C.red, color: C.white, label: '✕ Rejected' },
+                  deleted: { bg: C.muted, color: C.white, label: '🗑 Deleted' },
+                  completed: goalMet ? { bg: C.sage, color: C.white, label: '✓ Goal Met!' } : { bg: C.muted, color: C.white, label: '◻ Ended' },
+                }
+                const cStatusInfo = campaignStatusMap[c.status] || { bg: C.muted, color: C.white, label: c.status }
+                const campaignAppeals = massAppeals.filter(a => a.cause_id === c.id)
+                const cHasActivity = true
                 return (
-                  <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{c.title}</div>
-                      {(() => {
-                        const campaignStatusMap = {
-                          approved: { bg: C.successBg, color: '#27500A', label: 'Active' },
-                          pending: { bg: C.warningBg, color: C.warning, label: '⏳ Pending' },
-                          rejected: { bg: '#FBEEE9', color: C.red, label: '✕ Rejected' },
-                          deleted: { bg: C.ivory, color: C.muted, label: '🗑 Deleted' },
-                          completed: goalMet ? { bg: C.successBg, color: '#27500A', label: '✓ Goal Met!' } : { bg: C.ivory, color: C.muted, label: '◻ Ended' },
-                        }
-                        const info = campaignStatusMap[c.status] || { bg: C.ivory, color: C.muted, label: c.status }
-                        return <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: info.bg, color: info.color, flexShrink: 0 }}>{info.label}</span>
+                  <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+                    {/* Header: who */}
+                    <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{c.title}</div>
+                          {c.description && <div style={{ fontSize: 12, color: C.muted, marginTop: 2, lineHeight: 1.5 }}>{c.description}</div>}
+                          {(c.category || (charityIsIpc && c.tax_deductible === false) || (c.permit_status === 'pending') || (c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date())) && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+                              {c.category && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>{c.category}</span>}
+                              {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
+                              {c.permit_status === 'pending' && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
+                              {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: cStatusInfo.bg, color: cStatusInfo.color, flexShrink: 0 }}>{cStatusInfo.label}</span>
+                      </div>
+                    </div>
+
+                    {/* Amount + timeline */}
+                    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      {c.target_amount > 0 && (() => {
+                        const progressColor = goalMet ? C.sage : behindPace ? C.gold : C.sage
+                        return (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
+                                <span style={{ fontSize: 13, color: C.muted }}>of</span>
+                                <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(c.target_amount).toLocaleString()}</span>
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                <span style={{ fontSize: 15, fontWeight: 700, color: progressColor }}>{pct}%</span>
+                                {costForRoi > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
+                                {costForRoi > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>}
+                              </span>
+                            </div>
+                            <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                              raised <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
+                            </div>
+                          </div>
+                        )
                       })()}
-                    </div>
-                    {(c.category || (charityIsIpc && c.tax_deductible === false) || (c.permit_status === 'pending') || (c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date())) && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                        {c.category && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.ivory, color: C.muted }}>{c.category}</span>}
-                        {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
-                        {c.permit_status === 'pending' && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
-                        {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
-                      </div>
-                    )}
-                    {c.description && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{c.description}</div>}
-                    {c.target_amount > 0 && (() => {
-                      const progressColor = goalMet ? C.sage : behindPace ? C.gold : C.sage
-                      return (
-                        <div style={{ marginBottom: 5 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${raised.toLocaleString()}</span>
-                              <span style={{ fontSize: 12, color: C.muted }}>of</span>
-                              <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(c.target_amount).toLocaleString()}</span>
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>{pct}%</span>
-                              {costForRoi > 0 && <span style={{ fontSize: 12, color: C.muted }}>/</span>}
-                              {costForRoi > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>}
-                            </span>
-                          </div>
-                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginTop: 5, marginBottom: 5 }}>
-                            <div style={{ width: `${Math.max(pct, 2)}%`, height: '100%', background: progressColor, borderRadius: 3 }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            raised <InfoTip text="Confirmed donations tagged to this campaign — manually selected, or auto-tagged when a Mass Appeal payment reference is confirmed." />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{donorCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>{isActive ? 'Ends' : 'Ended'}</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>
+                            {daysLeft === null ? '—' : isActive ? (daysLeft >= 0 ? `${daysLeft}d` : 'Overdue') : new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
                           </div>
                         </div>
-                      )
-                    })()}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{donorCount}</div>
                       </div>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>{isActive ? 'Ends' : 'Ended'}</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>
-                          {daysLeft === null ? '—' : isActive ? (daysLeft >= 0 ? `${daysLeft}d` : 'Overdue') : new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
+                      {(c.start_date || c.end_date) && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                            {c.start_date ? new Date(c.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    {(c.start_date || c.end_date) && (
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
-                          {c.start_date ? new Date(c.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                      )}
+                      {costForRoi > 0 && (
+                        <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>
+                          {spent > 0 ? `Spent $${spent.toLocaleString()}` : `Budgeted cost $${Number(c.cost).toLocaleString()}`}
+                          {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
                         </div>
-                      </div>
-                    )}
-                    {costForRoi > 0 && (
-                      <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, marginBottom: 10 }}>
-                        {spent > 0 ? `Spent $${spent.toLocaleString()}` : `Budgeted cost $${Number(c.cost).toLocaleString()}`}
-                        {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
-                      </div>
-                    )}
-                    {grantFunding > 0 && (
-                      <div style={{ fontSize: 11.5, color: C.teal, fontWeight: 500, marginBottom: 10 }}>
-                        Includes ${grantFunding.toLocaleString()} from grants
-                      </div>
-                    )}
-                    {isActive && behindPace && (
-                      <div style={{ fontSize: 11, color: C.gold, fontWeight: 500, marginBottom: 10 }}>⚠ Behind pace · {pct}% funded</div>
-                    )}
-                    {c.status === 'completed' && (
-                      <div style={{ fontSize: 11, color: goalMet ? C.sage : C.muted, fontWeight: 500, marginBottom: 10 }}>
-                        {goalMet ? `✓ Goal met · ${pct}% funded` : `Ended · ${pct !== null ? `${pct}% funded` : 'no target set'}`}
-                      </div>
-                    )}
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
-                      Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      )}
+                      {grantFunding > 0 && (
+                        <div style={{ fontSize: 12, color: C.teal, fontWeight: 500, marginTop: 4 }}>Includes ${grantFunding.toLocaleString()} from grants</div>
+                      )}
+                      {isActive && behindPace && (
+                        <div style={{ fontSize: 12, color: C.gold, fontWeight: 500, marginTop: 4 }}>⚠ Behind pace · {pct}% funded</div>
+                      )}
+                      {c.status === 'completed' && (
+                        <div style={{ fontSize: 12, color: goalMet ? C.sage : C.muted, fontWeight: 500, marginTop: 4 }}>
+                          {goalMet ? `✓ Goal met · ${pct}% funded` : `Ended · ${pct !== null ? `${pct}% funded` : 'no target set'}`}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
+
+                    {/* Activity */}
+                    {cHasActivity && (
+                      <div style={{ padding: '12px 16px', background: C.ivory, borderBottom: `1px solid ${C.ivoryDark}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedCampaignId(expandedCampaignId === c.id ? null : c.id)}>{expandedCampaignId === c.id ? '▲ Hide ledger' : '▼ View ledger'}</button>
+                          {campaignAppeals.length > 0 && (
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedCampaignAppeals(prev => {
+                              const next = new Set(prev)
+                              if (next.has(c.id)) next.delete(c.id); else next.add(c.id)
+                              return next
+                            })}>{expandedCampaignAppeals.has(c.id) ? '▲ Hide appeals' : `▼ Appeals (${campaignAppeals.length})`}</button>
+                          )}
+                        </div>
+                        {expandedCampaignAppeals.has(c.id) && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {campaignAppeals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(a => (
+                              <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{a.cause_name || 'Campaign appeal'}</span>
+                                  {a.failed_count > 0 ? (
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
+                                  ) : (
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 500, color: C.forest, marginBottom: 4 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 11, fontWeight: 400, color: C.muted }}> suggested</span></div>
+                                <div style={{ fontSize: 11.5, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {expandedCampaignId === c.id && (
+                          <CampaignExpensePanel
+                            cause={c} s={s} C={C}
+                            expenses={campaignExpensesByCause[c.id] || []}
+                            categories={campaignExpenseCategories}
+                            onSaveExpense={form => saveCampaignExpense(c.id, form)}
+                            onEditExpense={(expense, updates) => editCampaignExpense(expense, updates)}
+                            onDeleteExpense={id => {
+                              const exp = (campaignExpensesByCause[c.id] || []).find(e => e.id === id)
+                              setConfirmModal({
+                                title: 'Delete this expense?',
+                                description: exp ? `"${exp.description}" — $${Number(exp.amount).toLocaleString()} will be permanently removed. This cannot be undone.` : 'This expense will be permanently removed. This cannot be undone.',
+                                confirmLabel: 'Delete',
+                                onConfirm: () => deleteCampaignExpense(id),
+                              })
+                            }}
+                          />
+                        )}
+                        <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Submitted {new Date(c.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto', position: 'relative' }}>
                       {c.status === 'pending' && (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => startEditCause(c)}>✏️ Edit</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', width: '100%', justifyContent: 'center' }} onClick={() => startEditCause(c)}>✏️ Edit</button>
                       )}
                       {isActive && (
                         <>
-                          <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 Appeal</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
+                          <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', width: '100%', justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 Appeal</button>
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
+                          </div>
                         </>
                       )}
                       {c.status === 'deleted' && (
-                        <>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Permanently Delete</button>
-                        </>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Delete permanently</button>
+                        </div>
                       )}
                       {(c.status === 'completed' || c.status === 'rejected') && (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', color: C.red, borderColor: C.red, width: '100%', justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setExpandedCampaignId(expandedCampaignId === c.id ? null : c.id)}>{expandedCampaignId === c.id ? '▲ Hide ledger' : '▼ View ledger'}</button>
-                      {(() => {
-                        const campaignAppeals = massAppeals.filter(a => a.cause_id === c.id)
-                        if (campaignAppeals.length === 0) return null
-                        return (
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setExpandedCampaignAppeals(prev => {
-                            const next = new Set(prev)
-                            if (next.has(c.id)) next.delete(c.id); else next.add(c.id)
-                            return next
-                          })}>{expandedCampaignAppeals.has(c.id) ? '▲ Hide appeals' : `▼ Appeals (${campaignAppeals.length})`}</button>
-                        )
-                      })()}
                     </div>
-                    {expandedCampaignAppeals.has(c.id) && (
-                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {massAppeals.filter(a => a.cause_id === c.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(a => (
-                          <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{a.cause_name || 'Campaign appeal'}</span>
-                              {a.failed_count > 0 ? (
-                                <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
-                              ) : (
-                                <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 18, fontWeight: 500, color: C.forest, marginBottom: 6 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 11, fontWeight: 400, color: C.muted }}> suggested</span></div>
-                            <div style={{ fontSize: 11.5, color: C.muted }}>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {expandedCampaignId === c.id && (
-                      <CampaignExpensePanel
-                        cause={c} s={s} C={C}
-                        expenses={campaignExpensesByCause[c.id] || []}
-                        categories={campaignExpenseCategories}
-                        onSaveExpense={form => saveCampaignExpense(c.id, form)}
-                        onEditExpense={(expense, updates) => editCampaignExpense(expense, updates)}
-                        onDeleteExpense={id => {
-                          const exp = (campaignExpensesByCause[c.id] || []).find(e => e.id === id)
-                          setConfirmModal({
-                            title: 'Delete this expense?',
-                            description: exp ? `"${exp.description}" — $${Number(exp.amount).toLocaleString()} will be permanently removed. This cannot be undone.` : 'This expense will be permanently removed. This cannot be undone.',
-                            confirmLabel: 'Delete',
-                            onConfirm: () => deleteCampaignExpense(id),
-                          })
-                        }}
-                      />
-                    )}
                   </div>
                 )
               }
@@ -15883,7 +15898,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     ) : activeCauses.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns right now — click "+ New Campaign" to start one.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                         {activeCauses.map(renderCard)}
                       </div>
                     )}
@@ -15899,7 +15914,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Past Campaigns ({pastCauses.length})
                       </div>
                       {showPastCampaigns && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {pastCauses.map(renderCard)}
                         </div>
                       )}
@@ -16201,207 +16216,235 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const reliabilityPct = Math.min(100, Math.round((receivedCount / cyclesElapsed) * 100))
                 const reliabilityColor = reliabilityPct >= 80 ? C.sage : reliabilityPct >= 50 ? C.gold : C.red
 
+                const rHasActivity = recurringGivenTotals[g.id] || g.status !== 'cancelled' || (recurringSkipHistory[g.id] || []).length > 0 || (recurringFailedDeductionHistory[g.id] || []).length > 0 || (g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0) || (donationsByRecurringGift[g.id] || []).length > 0
                 return (
-                  <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(g.donor_email, g.donor_name)); setActiveTab('donors') }}>{g.donor_name}</div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
-                        {isLate && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>⚠ {Math.abs(daysUntil)}d late</span>}
-                        {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ ...s.badgePending, color: C.red, background: '#FBEEE9' }}>Due today</span>}
-                        {isDueSoon && daysUntil > 0 && <span style={s.badgePending}>Due in {daysUntil}d</span>}
-                        <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</span>
-                      </div>
-                    </div>
-                    {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
-                      <div style={{ marginBottom: 6 }}>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '2px 8px', borderRadius: 20 }}>{authLabel}</span>
-                      </div>
-                    )}
-                    {(g.donor_email || g.donor_phone || linkedCause) && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>{[g.donor_email, g.donor_phone, linkedCause?.title].filter(Boolean).join(' · ')}</div>
-                    )}
+                  <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-                    <div style={{ marginBottom: 2 }}>
-                      <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
-                      <span style={{ fontSize: 12, color: C.muted }}> / {frequencyLabel}</span>
-                      {g.giro_reference && <span style={{ fontSize: 11.5, color: C.muted }}> · Bank ref: {g.giro_reference}</span>}
-                      {g.reference && <span style={{ fontSize: 11.5, color: C.muted, fontFamily: C.fontMono }}> · {g.reference}</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>~${annualizedValue.toLocaleString()} / year{g.notes && ` · ${g.notes}`}</div>
-                    {needsBankInfo && g.bank_name && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Bank: {g.bank_name}</div>
-                    )}
-                    {g.type === 'other' && g.type_detail && (
-                      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>{g.type_detail}</div>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Last received</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Next expected</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: isLate ? C.red : C.forest }}>{nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>End</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: g.end_date && new Date(g.end_date) < today ? C.red : C.muted }}>{endLabel}</div>
-                      </div>
-                    </div>
-                    {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (
-                      <div style={{ fontSize: 11.5, color: C.gold, background: C.warningBg, borderRadius: 4, padding: '6px 10px', marginBottom: 8 }}>
-                        {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
-                        {g.pause_resume_date && <div>Expected to resume {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
-                      </div>
-                    )}
-                    {recurringGivenTotals[g.id] && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.sage + '1A', border: `1px solid ${C.sage}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.sage, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          ${recurringGivenTotals[g.id].total.toLocaleString()} total · {recurringGivenTotals[g.id].count} payment{recurringGivenTotals[g.id].count !== 1 ? 's' : ''}
-                          <InfoTip text="Sum of every payment recorded via Mark Received for this recurring gift, not an estimate." />
-                        </span>
-                      </div>
-                    )}
-                    {g.status !== 'cancelled' && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: reliabilityColor + '1A', border: `1px solid ${reliabilityColor}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: reliabilityColor, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {reliabilityPct}% reliability · {receivedCount} of ~{cyclesElapsed} expected
-                          <InfoTip text="Payments received so far divided by roughly how many cycles should have happened since the start date. An estimate, not exact — skipped cycles still count against it." />
-                        </span>
-                      </div>
-                    )}
-                    {(recurringSkipHistory[g.id] || []).length > 0 && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
-                          ⏭ {recurringSkipHistory[g.id].length} cycle{recurringSkipHistory[g.id].length !== 1 ? 's' : ''} skipped
-                        </span>
-                        {g.status !== 'cancelled' && (
-                          <span style={{ fontSize: 11, color: C.gold, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setConfirmModal({
-                            title: 'Undo last skip?',
-                            description: `This will restore ${g.donor_name}'s next expected date to the skipped cycle date.`,
-                            confirmLabel: 'Undo',
-                            onConfirm: () => undoSkipCycle(g),
-                          })}>↺ Undo last</span>
-                        )}
-                      </div>
-                    )}
-                    {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (() => {
-                      const failCount = recurringFailedDeductionHistory[g.id].length
-                      const tier = failCount >= 3 ? 'urgent' : failCount === 2 ? 'high' : 'low'
-                      const tierBg = tier === 'urgent' ? C.red : tier === 'high' ? '#FBEEE9' : C.warningBg
-                      const tierColor = tier === 'urgent' ? '#fff' : tier === 'high' ? C.red : C.warning
-                      return (
-                        <div style={{ marginBottom: 8 }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: tierBg, border: tier === 'urgent' ? 'none' : `1px solid ${tierColor}`, borderRadius: 4, padding: '4px 8px', alignSelf: 'flex-start' }}>
-                            <span style={{ fontSize: 11.5, fontWeight: 500, color: tierColor }}>
-                              ⚠ {failCount} failed deduction{failCount !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}
-                            </span>
-                            <span style={{ fontSize: 11, color: tierColor, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setConfirmModal({
-                              title: 'Undo last failed deduction entry?',
-                              description: `This will remove the most recent failed deduction record for ${g.donor_name}.`,
-                              confirmLabel: 'Undo',
-                              onConfirm: () => undoFailedDeduction(g, recurringFailedDeductionHistory[g.id][0]),
-                            })}>↺ Undo last</span>
-                          </div>
-                          {tier !== 'low' && (
-                            <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: tier === 'urgent' ? 500 : 400 }}>
-                              {tier === 'urgent' ? 'Repeated failures — ' : 'Second failure — '}
-                              {g.donor_phone ? `call ${g.donor_name} directly at ${g.donor_phone}` : `email is unreliable here, get a phone number for ${g.donor_name}`}
+                    {/* Header: who */}
+                    <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(g.donor_email, g.donor_name)); setActiveTab('donors') }}>{g.donor_name}</div>
+                          {(g.donor_email || g.donor_phone) && (
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 3 }}>
+                              {g.donor_email && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>✉️</span>{g.donor_email}</span>}
+                              {g.donor_phone && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>📞</span>{g.donor_phone}</span>}
                             </div>
                           )}
-                        </div>
-                      )
-                    })()}
-                    {g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0 && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 4, padding: '4px 8px', marginBottom: 8, alignSelf: 'flex-start' }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 500, color: C.gold }}>
-                          {(() => {
-                            const history = recurringReminderHistory[g.id]
-                            const last = history[0]
-                            const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
-                            return `✉ Last reminded ${daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · ${history.length}× sent`
-                          })()}
-                        </span>
-                      </div>
-                    )}
-                    {g.created_at && (
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
-                        Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                    )}
-                    {(donationsByRecurringGift[g.id] || []).length > 0 && (
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', marginBottom: 8 }} onClick={() => setExpandedRecurringId(expandedRecurringId === g.id ? null : g.id)}>
-                        {expandedRecurringId === g.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByRecurringGift[g.id].length})`}
-                      </button>
-                    )}
-                    {expandedRecurringId === g.id && (
-                      <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
-                        {donationsByRecurringGift[g.id].map(d => (
-                          <div key={d.id} style={{ background: C.ivory, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
-                            {editingRecurringDonationId === d.id ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ color: C.text, flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                <input
-                                  type="number"
-                                  autoFocus
-                                  style={{ width: 60, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right', flexShrink: 0 }}
-                                  value={editingRecurringAmount}
-                                  onChange={e => setEditingRecurringAmount(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Note..."
-                                  style={{ flex: 1, minWidth: 0, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.text }}
-                                  value={editingRecurringNote}
-                                  onChange={e => setEditingRecurringNote(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
-                                />
-                                <span style={{ color: C.sage, cursor: savingRecurringAmount ? 'default' : 'pointer', opacity: savingRecurringAmount ? 0.5 : 1, flexShrink: 0 }} onClick={() => saveRecurringDonationAmount(d)}>✓</span>
-                                <span style={{ color: C.muted, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingRecurringDonationId(null)}>✕</span>
-                              </div>
+                          <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {linkedCause ? (
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.teal + '1A', color: C.teal, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎯 {linkedCause.title} · Restricted</span>
                             ) : (
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                <span style={{ color: C.text, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, overflow: 'hidden' }}>
-                                  <span style={{ flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                  {d.payment_status !== 'confirmed' && <span style={{ color: C.gold, flexShrink: 0 }}>· {d.payment_status}</span>}
-                                  {d.notes && <span style={{ color: C.muted, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {d.notes}</span>}
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                  <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
-                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
-                                  <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
-                                </span>
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>General / unrestricted</span>
+                            )}
+                            {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
+                              <span style={{ fontSize: 11, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '3px 8px', borderRadius: 4 }}>{authLabel}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.forest }}>{typeLabel}</span>
+                          {isLate && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>⚠ {Math.abs(daysUntil)}d late</span>}
+                          {isDueSoon && !isLate && daysUntil <= 0 && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.red, padding: '4px 10px', borderRadius: 20 }}>Due today</span>}
+                          {isDueSoon && daysUntil > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: C.white, background: C.gold, padding: '4px 10px', borderRadius: 20 }}>Due in {daysUntil}d</span>}
+                          <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: statusInfo.bg, color: statusInfo.color }}>{statusInfo.label}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Amount + timeline */}
+                    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
+                        <span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
+                          <span style={{ fontSize: 12.5, color: C.muted }}> / {frequencyLabel}</span>
+                        </span>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</span>
+                      </div>
+                      {(g.giro_reference || g.reference) && (
+                        <div style={{ fontSize: 11, color: C.muted, fontFamily: C.fontMono, marginBottom: 8 }}>{[g.giro_reference && `Bank ref: ${g.giro_reference}`, g.reference].filter(Boolean).join(' · ')}</div>
+                      )}
+                      {needsBankInfo && g.bank_name && (
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Bank: {g.bank_name}</div>
+                      )}
+                      {g.type === 'other' && g.type_detail && (
+                        <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{g.type_detail}</div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Last received</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.last_received_date ? new Date(g.last_received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Next expected</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: isLate ? C.red : C.forest }}>{nextDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>End</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: g.end_date && new Date(g.end_date) < today ? C.red : C.muted }}>{endLabel}</div>
+                        </div>
+                      </div>
+                      {g.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 8 }}><span style={{ color: C.muted }}>Notes:</span> {g.notes}</div>}
+                      {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (
+                        <div style={{ fontSize: 11.5, color: C.warning, background: C.warningBg, borderRadius: 4, padding: '6px 10px', marginTop: 8 }}>
+                          {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
+                          {g.pause_resume_date && <div>Expected to resume {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Activity */}
+                    {rHasActivity && (
+                      <div style={{ padding: '12px 16px', background: C.ivory, borderBottom: `1px solid ${C.ivoryDark}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {recurringGivenTotals[g.id] && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 12.5, color: C.text, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              ${recurringGivenTotals[g.id].total.toLocaleString()} total · {recurringGivenTotals[g.id].count} payment{recurringGivenTotals[g.id].count !== 1 ? 's' : ''}
+                              <InfoTip text="Sum of every payment recorded via Mark Received for this recurring gift, not an estimate." />
+                            </span>
+                          </div>
+                        )}
+                        {g.status !== 'cancelled' && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 12.5, color: reliabilityColor, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {reliabilityPct}% reliability · {receivedCount} of ~{cyclesElapsed} expected
+                              <InfoTip text="Payments received so far divided by roughly how many cycles should have happened since the start date. An estimate, not exact — skipped cycles still count against it." />
+                            </span>
+                          </div>
+                        )}
+                        {(recurringSkipHistory[g.id] || []).length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 12.5, color: C.gold, fontWeight: 500 }}>⏭ {recurringSkipHistory[g.id].length} cycle{recurringSkipHistory[g.id].length !== 1 ? 's' : ''} skipped</span>
+                            {g.status !== 'cancelled' && (
+                              <span style={{ fontSize: 11, color: C.gold, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setConfirmModal({
+                                title: 'Undo last skip?',
+                                description: `This will restore ${g.donor_name}'s next expected date to the skipped cycle date.`,
+                                confirmLabel: 'Undo',
+                                onConfirm: () => undoSkipCycle(g),
+                              })}>↺ Undo last</span>
+                            )}
+                          </div>
+                        )}
+                        {(recurringFailedDeductionHistory[g.id] || []).length > 0 && (() => {
+                          const failCount = recurringFailedDeductionHistory[g.id].length
+                          const tier = failCount >= 3 ? 'urgent' : failCount === 2 ? 'high' : 'low'
+                          const tierColor = tier === 'urgent' ? C.red : tier === 'high' ? C.red : C.warning
+                          return (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: tierColor }}>⚠ {failCount} failed deduction{failCount !== 1 ? 's' : ''} · last: {recurringFailedDeductionHistory[g.id][0].reason}</span>
+                                <span style={{ fontSize: 11, color: tierColor, textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setConfirmModal({
+                                  title: 'Undo last failed deduction entry?',
+                                  description: `This will remove the most recent failed deduction record for ${g.donor_name}.`,
+                                  confirmLabel: 'Undo',
+                                  onConfirm: () => undoFailedDeduction(g, recurringFailedDeductionHistory[g.id][0]),
+                                })}>↺ Undo last</span>
+                              </div>
+                              {tier !== 'low' && (
+                                <div style={{ fontSize: 11.5, color: C.red, marginTop: 4, fontWeight: tier === 'urgent' ? 500 : 400 }}>
+                                  {tier === 'urgent' ? 'Repeated failures — ' : 'Second failure — '}
+                                  {g.donor_phone ? `call ${g.donor_name} directly at ${g.donor_phone}` : `email is unreliable here, get a phone number for ${g.donor_name}`}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+                        {g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0 && (() => {
+                          const history = recurringReminderHistory[g.id]
+                          const last = history[0]
+                          const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                          return (
+                            <div style={{ fontSize: 12.5, color: C.gold, fontWeight: 500 }}>✉ Last reminded {daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · {history.length}× sent</div>
+                          )
+                        })()}
+                        {(donationsByRecurringGift[g.id] || []).length > 0 && (
+                          <div>
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedRecurringId(expandedRecurringId === g.id ? null : g.id)}>
+                              {expandedRecurringId === g.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByRecurringGift[g.id].length})`}
+                            </button>
+                            {expandedRecurringId === g.id && (
+                              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+                                {donationsByRecurringGift[g.id].map(d => (
+                                  <div key={d.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+                                    {editingRecurringDonationId === d.id ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ color: C.text, flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                        <input
+                                          type="number"
+                                          autoFocus
+                                          style={{ width: 60, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, textAlign: 'right', flexShrink: 0 }}
+                                          value={editingRecurringAmount}
+                                          onChange={e => setEditingRecurringAmount(e.target.value)}
+                                          onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
+                                        />
+                                        <input
+                                          type="text"
+                                          placeholder="Note..."
+                                          style={{ flex: 1, minWidth: 0, fontSize: 12, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.text }}
+                                          value={editingRecurringNote}
+                                          onChange={e => setEditingRecurringNote(e.target.value)}
+                                          onKeyDown={e => { if (e.key === 'Enter') saveRecurringDonationAmount(d); if (e.key === 'Escape') setEditingRecurringDonationId(null) }}
+                                        />
+                                        <span style={{ color: C.sage, cursor: savingRecurringAmount ? 'default' : 'pointer', opacity: savingRecurringAmount ? 0.5 : 1, flexShrink: 0 }} onClick={() => saveRecurringDonationAmount(d)}>✓</span>
+                                        <span style={{ color: C.muted, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingRecurringDonationId(null)}>✕</span>
+                                      </div>
+                                    ) : (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ color: C.text, display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                                          <span style={{ flexShrink: 0 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                          {d.payment_status !== 'confirmed' && <span style={{ color: C.gold, flexShrink: 0 }}>· {d.payment_status}</span>}
+                                          {d.notes && <span style={{ color: C.muted, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {d.notes}</span>}
+                                        </span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                          <span style={{ fontWeight: 500, color: C.forest }}>${Number(d.amount).toLocaleString()}</span>
+                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => startEditingRecurringAmount(d)}>✏️</span>
+                                          <span style={{ color: C.muted, cursor: 'pointer' }} onClick={() => deleteDonation(d.id)}>✕</span>
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
-                        ))}
+                        )}
+                        {g.created_at && (
+                          <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        )}
                       </div>
                     )}
+
+                    {/* Actions */}
                     {g.status === 'active' && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark Received</button>
-                        {isLate && (
-                          <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Send Reminder</button>
+                      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto', position: 'relative' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', width: '100%', justifyContent: 'center' }} onClick={() => markRecurringReceived(g)}>✓ Mark received</button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {isLate && (
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setRecurringReminderCandidate(g); setShowRecurringReminderModal(true) }}>✉ Remind</button>
+                          )}
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setRecurringMoreMenuId(recurringMoreMenuId === g.id ? null : g.id)}>⋯ More</button>
+                        </div>
+                        {recurringMoreMenuId === g.id && (
+                          <div style={{ position: 'absolute', bottom: '100%', right: 16, marginBottom: 4, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.12)', overflow: 'hidden', zIndex: 5, minWidth: 150 }}>
+                            <button style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 12, padding: '8px 12px', background: 'transparent', border: 'none', cursor: 'pointer', color: C.text }} onClick={() => { setRecurringMoreMenuId(null); pauseRecurringGift(g) }}>⏸ Pause</button>
+                            <button style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 12, padding: '8px 12px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.ivoryDark}`, cursor: 'pointer', color: C.text }} onClick={() => { setRecurringMoreMenuId(null); setEditingRecurringGift(g) }}>✏️ Edit</button>
+                            <button style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 12, padding: '8px 12px', background: 'transparent', border: 'none', borderTop: `1px solid ${C.ivoryDark}`, cursor: 'pointer', color: C.red }} onClick={() => { setRecurringMoreMenuId(null); recordFailedDeduction(g) }}>⚠ Failed deduction</button>
+                          </div>
                         )}
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => skipRecurringCycle(g)}>⏭ Skip Cycle</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => pauseRecurringGift(g)}>⏸ Pause</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red, flex: '1 1 auto', minWidth: 100, justifyContent: 'center' }} onClick={() => recordFailedDeduction(g)}>⚠ Failed Deduction</button>
                       </div>
                     )}
                     {g.status === 'paused' && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
-                        <button style={{ ...s.issueBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
+                      <div style={{ padding: '12px 16px', display: 'flex', gap: 6, marginTop: 'auto' }}>
+                        <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
                       </div>
                     )}
                   </div>
@@ -16431,7 +16474,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {active.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                         {active.map(renderRecurringCard)}
                       </div>
                     )}
@@ -16449,7 +16492,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       paused.length === 0 ? (
                         <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
                       ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {paused.map(renderRecurringCard)}
                         </div>
                       )
@@ -16466,7 +16509,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Cancelled ({cancelled.length})
                       </div>
                       {showCancelledRecurring && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {cancelled.map(renderRecurringCard)}
                         </div>
                       )}
@@ -16562,7 +16605,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {showPledgeReminderModal && pledgeReminderCandidate && !pledgeReminderPreviewing && (
               <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>
-                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send pledge reminder</div>
                     <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null) }}>✕</button>
@@ -16590,7 +16633,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {showPledgeReminderModal && pledgeReminderCandidate && pledgeReminderPreviewing && (
               <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>
-                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
                     <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeReminderModal(false); setPledgeReminderCandidate(null); setPledgeReminderPreviewing(false) }}>✕</button>
@@ -16645,7 +16688,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {showPledgeThankYouModal && pledgeCompletionCandidate && pledgeThankYouPreviewing && (
               <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>
-                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
                     <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null); setPledgeThankYouPreviewing(false) }}>✕</button>
@@ -16930,7 +16973,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         )}
                         {(donationsByPledge[p.id] || []).length > 0 && (
                           <div>
-                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center' }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedPledgeId(expandedPledgeId === p.id ? null : p.id)}>
                               {expandedPledgeId === p.id ? '▲ Hide payment history' : `▼ View payment history (${donationsByPledge[p.id].length})`}
                             </button>
                             {expandedPledgeId === p.id && (
@@ -17613,14 +17656,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const activeGrants = filteredGrants.filter(g => g.status === 'active')
               const pastGrants = filteredGrants.filter(g => g.status !== 'active')
 
-              const statusBadge = (status) => {
+              const statusBadgeInfo = (status) => {
                 const map = {
-                  active: { bg: '#EAF3DE', color: '#27500A', label: 'Active' },
-                  completed: { bg: C.ivory, color: C.muted, label: 'Completed' },
-                  closed: { bg: C.ivory, color: C.muted, label: 'Closed' },
+                  active: { bg: C.sage, color: C.white, label: 'Active' },
+                  completed: { bg: C.muted, color: C.white, label: 'Completed' },
+                  closed: { bg: C.muted, color: C.white, label: 'Closed' },
                 }
-                const m = map[status] || { bg: C.ivory, color: C.muted, label: status }
-                return <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: m.bg, color: m.color }}>{m.label}</span>
+                return map[status] || { bg: C.muted, color: C.white, label: status }
               }
 
               const funderTypeLabels = { government: 'Government / statutory board', corporate: 'Corporate foundation', trust: 'Private trust / individual', other: 'Other' }
@@ -17639,113 +17681,132 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
                 const subtitleParts = [funderTypeLabels[g.funder_type], linkedCause?.title, g.agreement_reference ? `Ref: ${g.agreement_reference}` : null, g.contact_name].filter(Boolean)
                 return (
-                  <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, padding: '16px 18px', transition: 'background 0.3s, border-color 0.3s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{g.funder_name}</div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        {g.is_matching && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.teal }}>🔁 Matching</span>}
-                        {g.is_renewable && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.sage }}>↻ Renewable</span>}
-                        {statusBadge(g.status)}
+                  <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'background 0.3s, border-color 0.3s' }}>
+
+                    {/* Header: who */}
+                    <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{g.funder_name}</div>
+                          {subtitleParts.length > 0 && (
+                            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{subtitleParts.join(' · ')}</div>
+                          )}
+                          <div style={{ marginTop: 6 }}>
+                            {linkedCause ? (
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.teal + '1A', color: C.teal, display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎯 {linkedCause.title} · Restricted</span>
+                            ) : (
+                              <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>General / unrestricted</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {g.is_matching && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.teal }}>🔁 Matching</span>}
+                          {g.is_renewable && <span style={{ fontSize: 10.5, fontWeight: 500, padding: '2px 8px', borderRadius: 4, background: C.ivory, color: C.sage }}>↻ Renewable</span>}
+                          <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: statusBadgeInfo(g.status).bg, color: statusBadgeInfo(g.status).color }}>{statusBadgeInfo(g.status).label}</span>
+                        </div>
                       </div>
                     </div>
-                    {subtitleParts.length > 0 && (
-                      <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, marginBottom: 10 }}>{subtitleParts.join(' · ')}</div>
-                    )}
-                    {g.purpose_restriction && (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                        <span>⚠</span>
-                        <span>{g.purpose_restriction}</span>
-                      </div>
-                    )}
 
-                    <div style={{ marginBottom: 5 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    {/* Amount + timeline */}
+                    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                      {g.purpose_restriction && (
+                        <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                          <span>⚠</span>
+                          <span>{g.purpose_restriction}</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                         <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${spent84.toLocaleString()}</span>
-                          <span style={{ fontSize: 12, color: C.muted }}>of</span>
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${spent84.toLocaleString()}</span>
+                          <span style={{ fontSize: 13, color: C.muted }}>of</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
+                          <span style={{ fontSize: 13, color: C.muted }}>utilized</span>
                         </span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</span>
                       </div>
-                    </div>
-                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 5 }}>
-                      <div style={{ width: `${Math.max(pctUtilized, 2)}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage, borderRadius: 3 }} />
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10 }}>
-                      utilized <InfoTip text="Sum of all expenses logged against this grant, from the ledger below." />
+                      <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(pctUtilized, 2)}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage, borderRadius: 3 }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <InfoTip text="Sum of all expenses logged against this grant, from the ledger below." />
+                      </div>
+
+                      {g.is_matching && (
+                        <div style={{ marginTop: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                            <span style={{ fontSize: 11.5, color: C.text }}>${claimedTotal.toLocaleString()} claimed of ${Number(g.match_cap || 0).toLocaleString()} cap{g.match_ratio ? ` · ${g.match_ratio}` : ''}</span>
+                            <span style={{ fontSize: 11, fontWeight: 500, color: C.teal }}>{Number(g.match_cap) > 0 ? Math.round((claimedTotal / Number(g.match_cap)) * 100) : 0}%</span>
+                          </div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${Number(g.match_cap) > 0 ? Math.min(100, Math.round((claimedTotal / Number(g.match_cap)) * 100)) : 0}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Unrestricted</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>${Number(g.unrestricted_amount || 0).toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Restricted</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: Number(g.restricted_amount) > 0 ? C.red : C.forest }}>${Number(g.restricted_amount || 0).toLocaleString()}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{g.end_date ? ` – ${new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Next report</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: g.report_due_date && new Date(g.report_due_date) < new Date() ? C.red : C.forest }}>{g.report_due_date ? new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : myReports.length > 0 ? 'all submitted' : '—'}</div>
+                        </div>
+                      </div>
+                      {g.disbursement_schedule && <div style={{ fontSize: 12.5, color: C.text, marginTop: 8 }}><span style={{ color: C.muted }}>Disbursement:</span> {g.disbursement_schedule}</div>}
                     </div>
 
-                    {g.is_matching && (
-                      <div style={{ marginBottom: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                          <span style={{ fontSize: 11.5, color: C.text }}>${claimedTotal.toLocaleString()} claimed of ${Number(g.match_cap || 0).toLocaleString()} cap{g.match_ratio ? ` · ${g.match_ratio}` : ''}</span>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: C.teal }}>{Number(g.match_cap) > 0 ? Math.round((claimedTotal / Number(g.match_cap)) * 100) : 0}%</span>
-                        </div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                          <div style={{ width: `${Number(g.match_cap) > 0 ? Math.min(100, Math.round((claimedTotal / Number(g.match_cap)) * 100)) : 0}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
-                        </div>
-                      </div>
-                    )}
+                    {/* Activity */}
+                    <div style={{ padding: '12px 16px', background: C.ivory, borderBottom: `1px solid ${C.ivoryDark}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', width: '100%', justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</button>
+                      {isExpanded84 && (
+                        <GrantLedgerPanel
+                          grant={g} s={s} C={C}
+                          expenses={myExpenses84} tranches={myTranches} reports={myReports} claims={myClaims} notes={grantNotes[g.id] || []}
+                          categories={grantExpenseCategories}
+                          onSaveExpense={form => saveGrantExpense(g.id, form)}
+                          onEditExpense={(expense, updates) => editGrantExpense(expense, updates)}
+                          onDeleteExpense={id => {
+                            const exp = (myExpenses84 || []).find(e => e.id === id)
+                            setConfirmModal({
+                              title: 'Delete this expense?',
+                              description: exp ? `"${exp.description}" — ${Number(exp.amount).toLocaleString()} will be permanently removed. This cannot be undone.` : 'This expense will be permanently removed. This cannot be undone.',
+                              confirmLabel: 'Delete',
+                              onConfirm: () => deleteGrantExpense(id),
+                            })
+                          }}
+                          onSaveTranche={form => saveGrantTranche(g.id, form)}
+                          onToggleTranche={toggleGrantTrancheReceived}
+                          onEditTranche={editGrantTranche}
+                          onDeleteTranche={deleteGrantTranche}
+                          onSaveReport={form => saveGrantReport(g.id, form)}
+                          onToggleReport={toggleGrantReportSubmitted}
+                          onEditReport={editGrantReport}
+                          onDeleteReport={deleteGrantReport}
+                          onSaveClaim={form => saveGrantMatchClaim(g.id, form)}
+                          onEditClaim={editGrantMatchClaim}
+                          onDeleteClaim={deleteGrantMatchClaim}
+                          onSaveNote={noteText => saveGrantNote(g.id, noteText)}
+                        />
+                      )}
+                      <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Unrestricted</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>${Number(g.unrestricted_amount || 0).toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Restricted</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: Number(g.restricted_amount) > 0 ? C.red : C.forest }}>${Number(g.restricted_amount || 0).toLocaleString()}</div>
-                      </div>
+                    {/* Actions */}
+                    <div style={{ padding: '12px 16px', display: 'flex', gap: 6, marginTop: 'auto' }}>
+                      <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
+                      <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>{g.start_date ? new Date(g.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{g.end_date ? ` – ${new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Next report</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: g.report_due_date && new Date(g.report_due_date) < new Date() ? C.red : C.forest }}>{g.report_due_date ? new Date(g.report_due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : myReports.length > 0 ? 'all submitted' : '—'}</div>
-                      </div>
-                    </div>
-                    {g.disbursement_schedule && <div style={{ fontSize: 12, color: C.text, marginBottom: 10 }}>{g.disbursement_schedule}</div>}
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
-                      Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setExpandedGrantId(isExpanded84 ? null : g.id)}>{isExpanded84 ? '▲ Hide ledger' : '▼ View ledger'}</button>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
-                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
-                    </div>
-                    {isExpanded84 && (
-                      <GrantLedgerPanel
-                        grant={g} s={s} C={C}
-                        expenses={myExpenses84} tranches={myTranches} reports={myReports} claims={myClaims} notes={grantNotes[g.id] || []}
-                        categories={grantExpenseCategories}
-                        onSaveExpense={form => saveGrantExpense(g.id, form)}
-                        onEditExpense={(expense, updates) => editGrantExpense(expense, updates)}
-                        onDeleteExpense={id => {
-                          const exp = (myExpenses84 || []).find(e => e.id === id)
-                          setConfirmModal({
-                            title: 'Delete this expense?',
-                            description: exp ? `"${exp.description}" — ${Number(exp.amount).toLocaleString()} will be permanently removed. This cannot be undone.` : 'This expense will be permanently removed. This cannot be undone.',
-                            confirmLabel: 'Delete',
-                            onConfirm: () => deleteGrantExpense(id),
-                          })
-                        }}
-                        onSaveTranche={form => saveGrantTranche(g.id, form)}
-                        onToggleTranche={toggleGrantTrancheReceived}
-                        onEditTranche={editGrantTranche}
-                        onDeleteTranche={deleteGrantTranche}
-                        onSaveReport={form => saveGrantReport(g.id, form)}
-                        onToggleReport={toggleGrantReportSubmitted}
-                        onEditReport={editGrantReport}
-                        onDeleteReport={deleteGrantReport}
-                        onSaveClaim={form => saveGrantMatchClaim(g.id, form)}
-                        onEditClaim={editGrantMatchClaim}
-                        onDeleteClaim={deleteGrantMatchClaim}
-                        onSaveNote={noteText => saveGrantNote(g.id, noteText)}
-                      />
-                    )}
                   </div>
                 )
               }
@@ -17772,7 +17833,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {activeGrants.length === 0 ? (
                       <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                         {activeGrants.map(renderGrantCard)}
                       </div>
                     )}
@@ -17788,7 +17849,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         Completed / Closed Grants ({pastGrants.length})
                       </div>
                       {showPastGrants && (
-                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                           {pastGrants.map(renderGrantCard)}
                         </div>
                       )}
@@ -18671,7 +18732,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showRecurringReminderModal && recurringReminderCandidate && !recurringReminderPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Send reminder</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null) }}>✕</button>
@@ -18699,7 +18760,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showRecurringReminderModal && recurringReminderCandidate && recurringReminderPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowRecurringReminderModal(false); setRecurringReminderCandidate(null); setRecurringReminderPreviewing(false) }}>✕</button>
