@@ -15757,7 +15757,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         )
                       })()}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${costForRoi > 0 ? 4 : 3}, minmax(0, 1fr))`, gap: 8 }}>
                         <div>
                           <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Donors</div>
                           <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: C.forest }}>{donorCount}</div>
@@ -15774,29 +15774,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             {c.target_amount <= 0 ? '—' : c.status === 'completed' ? (goalMet ? 'Goal met' : 'Ended') : (behindPace ? 'Behind' : 'On track')}
                           </div>
                         </div>
-                      </div>
-                      {(c.start_date || c.end_date) && (
-                        <div style={{ marginTop: 8 }}>
-                          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2 }}>Start / end</div>
-                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
-                            {c.start_date ? new Date(c.start_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                        {costForRoi > 0 && (
+                          <div>
+                            <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: C.muted, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              ROI
+                              <InfoTip text={`${spent > 0 ? `$${spent.toLocaleString()} spent` : `$${Number(c.cost).toLocaleString()} budgeted`}${spent > 0 && Number(c.cost) > 0 ? ` of $${Number(c.cost).toLocaleString()} budget` : ''}`} />
+                            </div>
+                            <div style={{ fontFamily: C.fontMono, fontSize: 14, fontWeight: 500, color: raised >= costForRoi ? C.sage : C.red }}>{(raised / costForRoi).toFixed(1)}×</div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Budget */}
-                    {costForRoi > 0 && (
-                      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                          <span style={{ fontSize: 12.5, color: C.text }}>
-                            {spent > 0 ? `$${spent.toLocaleString()} spent` : `$${Number(c.cost).toLocaleString()} budgeted`}
-                            {spent > 0 && Number(c.cost) > 0 && ` of $${Number(c.cost).toLocaleString()} budget`}
-                          </span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: raised >= costForRoi ? C.sage : C.red }}>ROI {(raised / costForRoi).toFixed(1)}×</span>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     {/* Activity */}
                     {cHasActivity && (
