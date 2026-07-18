@@ -10150,9 +10150,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       const monthsSince = lastVisit ? (rnToday - new Date(lastVisit)) / (1000 * 60 * 60 * 24 * 30) : null
                       if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', "Let's catch up", `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note', rnMonthMs)
                     }
-                    const upcomingMonth = new Date(rnToday.getFullYear(), rnToday.getMonth() + 1, 1).getMonth()
-                    const yearsInUpcoming = new Set(myConfirmed.filter(d => new Date(d.created_at).getMonth() === upcomingMonth).map(d => new Date(d.created_at).getFullYear()))
-                    if (yearsInUpcoming.size >= 2) mk('📅', 'Usually gives next month — a soft note now can help', 'Send a soft note', 'Thinking of you', `We were thinking of you and wanted to reach out. Thank you for your continued generosity to ${charityName} — supporters like you make our work possible, and we are grateful for you.`, 'Seasonal note', rnMonthMs)
+                    // Reactive: only flags once this month is mostly over and they haven't given
+                    // yet this year, so it reads as "haven't heard from you," not a pre-emptive
+                    // nudge timed right before they'd normally give.
+                    if (rnToday.getDate() >= 15) {
+                      const thisMonthNum = rnToday.getMonth()
+                      const yearsGivingThisMonth = new Set(myConfirmed.filter(d => { const dt = new Date(d.created_at); return dt.getMonth() === thisMonthNum && dt.getFullYear() < rnToday.getFullYear() }).map(d => new Date(d.created_at).getFullYear()))
+                      const gaveThisMonthThisYear = myConfirmed.some(d => { const dt = new Date(d.created_at); return dt.getMonth() === thisMonthNum && dt.getFullYear() === rnToday.getFullYear() })
+                      if (yearsGivingThisMonth.size >= 2 && !gaveThisMonthThisYear) mk('📅', "Usually gives around this time of year, hasn't yet — worth a check-in", 'Send a check-in note', 'Thinking of you', `We were thinking of you and wanted to check in — your support over the years has meant so much to us, and we hope all is well with you.`, 'Seasonal check-in note', rnMonthMs)
+                    }
                   }
 
                   // Giving-change (folded in from the former "Giving Pattern" card). Uses the existing
@@ -11862,25 +11868,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => d.email?.trim() || d.nric || d.name), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
               }
 
+              // Reactive, not predictive: only flags a donor once their usual giving month is
+              // mostly over and they haven't given yet this year — a "haven't heard from you"
+              // check-in, not a reminder timed to land right before they'd normally give.
               const seasonalPatternDonors71 = (() => {
                 const byDonorMonth71 = {}
                 confirmedDonations.forEach(d => {
                   const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                   const dt = new Date(d.created_at)
-                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { key, name: d.donor_name, yearsGivingInMonth: {} }
+                  if (!byDonorMonth71[key]) byDonorMonth71[key] = { key, name: d.donor_name, yearsGivingInMonth: {}, gaveThisMonthThisYear: false }
                   const month = dt.getMonth()
                   if (!byDonorMonth71[key].yearsGivingInMonth[month]) byDonorMonth71[key].yearsGivingInMonth[month] = new Set()
                   byDonorMonth71[key].yearsGivingInMonth[month].add(dt.getFullYear())
+                  if (month === today.getMonth() && dt.getFullYear() === today.getFullYear()) byDonorMonth71[key].gaveThisMonthThisYear = true
                 })
-                const upcomingMonth71 = new Date(today.getFullYear(), today.getMonth() + 1, 1).getMonth()
+                const thisMonth71 = today.getMonth()
+                if (today.getDate() < 15) return []
                 return Object.values(byDonorMonth71).filter(donor => {
-                  const yearsInUpcomingMonth = donor.yearsGivingInMonth[upcomingMonth71]
-                  return yearsInUpcomingMonth && yearsInUpcomingMonth.size >= 2 && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime()) && notDismissed69(donor.key, 'seasonal_pattern')
+                  const yearsInThisMonth = donor.yearsGivingInMonth[thisMonth71]
+                  return yearsInThisMonth && yearsInThisMonth.size >= 2 && !donor.gaveThisMonthThisYear && notSuppressed(donor.key) && !contactedSince(donor.key, monthAgo.getTime()) && notDismissed69(donor.key, 'seasonal_pattern')
                 })
               })()
               if (seasonalPatternDonors71.length > 0) {
                 const names = seasonalPatternDonors71.map(d => d.name)
-                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} next month — worth a soft note before they do`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give next month`, 'seasonal_pattern') })
+                items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} around this time — haven't yet this year`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give around this time and haven't yet`, 'seasonal_pattern') })
               }
 
               const birthdaysThisWeek70 = donorContacts.filter(c => {
