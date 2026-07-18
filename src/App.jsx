@@ -16186,9 +16186,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const authLabel = { pending: 'Pending bank approval', active: 'Authorized', terminated: 'Terminated by bank' }[g.authorization_status] || null
                 const authColor = g.authorization_status === 'terminated' ? C.red : g.authorization_status === 'pending' ? C.gold : C.sage
                 const statusMap = {
-                  active: { bg: C.successBg, color: '#27500A', label: 'Active' },
-                  paused: { bg: C.warningBg, color: C.warning, label: 'Paused' },
-                  cancelled: { bg: C.ivory, color: C.muted, label: 'Cancelled' },
+                  active: { bg: C.sage, color: C.white, label: 'Active' },
+                  paused: { bg: C.gold, color: C.white, label: 'Paused' },
+                  cancelled: { bg: C.muted, color: C.white, label: 'Cancelled' },
                 }
                 const statusInfo = statusMap[g.status] || { bg: C.ivory, color: C.muted, label: g.status }
                 const endLabel = g.end_date ? new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : (g.status === 'cancelled' && g.cancelled_at ? new Date(g.cancelled_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Ongoing')
@@ -16241,12 +16241,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {/* Amount + timeline */}
                     <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
                         <span>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                           <span style={{ fontSize: 12.5, color: C.muted }}> / {frequencyLabel}</span>
                         </span>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</span>
+                        <span style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 11.5, color: C.muted }}>~${annualizedValue.toLocaleString()} / year</div>
+                          {g.created_at && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
+                        </span>
                       </div>
                       {needsBankInfo && g.bank_name && (
                         <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Bank: {g.bank_name}</div>
@@ -16402,9 +16405,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               </div>
                             )}
                           </div>
-                        )}
-                        {g.created_at && (
-                          <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                         )}
                       </div>
                     )}
