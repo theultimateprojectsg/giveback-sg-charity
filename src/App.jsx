@@ -17687,6 +17687,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>General / unrestricted</span>
                             )}
                           </div>
+                          {g.purpose_restriction && (
+                            <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                              <span>⚠</span>
+                              <span>{g.purpose_restriction}</span>
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                           {g.is_matching && <span style={{ fontSize: 12, fontWeight: 500, padding: '4px 10px', borderRadius: 20, background: C.ivory, border: `1px solid ${C.border}`, color: C.teal }}>🔁 Matching</span>}
@@ -17698,12 +17704,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                     {/* Amount + timeline */}
                     <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                      {g.purpose_restriction && (
-                        <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                          <span>⚠</span>
-                          <span>{g.purpose_restriction}</span>
-                        </div>
-                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                         <span style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${spent84.toLocaleString()}</span>
@@ -17711,10 +17711,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                           <span style={{ fontSize: 13, color: C.muted }}>utilized</span>
                         </span>
-                        <span style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</div>
-                          <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>Recorded {new Date(g.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                        </span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</span>
                       </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.max(pctUtilized, 2)}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage, borderRadius: 3 }} />
