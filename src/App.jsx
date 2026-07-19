@@ -172,30 +172,30 @@ const EMAIL_TEMPLATE_DEFS = [
   ]},
   { group: 'Other', items: [
     { key: 'milestone_thank_you', label: 'Milestone Note', description: 'Freeform thank-you note, e.g. for a giving milestone.', tokens: ['donor_name', 'charity_name'] },
-    { key: 'mass_appeal', label: 'Mass Appeal', description: 'Default draft used when composing a mass appeal.', tokens: ['donor_name', 'charity_name', 'cause_title'] },
+    { key: 'mass_appeal', label: 'Mass Appeal', description: 'Default draft used when composing a mass appeal. Use [name] (not {{donor_name}}) for the recipient\'s first name in the body.', tokens: ['charity_name', 'cause_title'] },
   ]},
 ]
 
 const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
-    body: '',
+    body: 'Thank you so much for your donation. Your generosity means a great deal to us and to the community we serve.',
   },
   major_gift: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at {{charity_name}}, thank you.",
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for joining us.",
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift, and for your continued generosity.",
   },
   nric_request: {
     subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
-    body: '',
+    body: "To qualify for the 250% tax deduction, we need your NRIC/FIN number. Please log in to your Giving Tree profile and update your NRIC under the Profile tab.",
   },
   milestone_thank_you: {
     subject: 'A note from {{charity_name}} 💚',
@@ -227,7 +227,7 @@ const EMAIL_TEMPLATE_DEFAULTS = {
   },
   mass_appeal: {
     subject: '{{charity_name}} needs your support — {{cause_title}}',
-    body: '',
+    body: "Hi [name], we're reaching out because your support has always meant so much to us. If you're able, we'd be truly grateful for your gift today.",
   },
 }
 
@@ -3032,7 +3032,12 @@ export default function App() {
 
   function defaultMassAppealMessage() {
     const saved = emailTemplates.mass_appeal
-    return saved?.body ? fillTemplate(saved.body, { charity_name: charityName }) : ''
+    return fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS.mass_appeal.body, { charity_name: charityName })
+  }
+
+  function massAppealSubject(causeTitle) {
+    const saved = emailTemplates.mass_appeal
+    return fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS.mass_appeal.subject, { charity_name: charityName, cause_title: causeTitle || '' })
   }
 
   async function sendCharityEmail(body) {
@@ -4608,6 +4613,7 @@ export default function App() {
       amount: massAppealForm.amount,
       payment_ref: sampleDonor?.ref || 'TEST-REF',
       cause_title: causeName,
+      subject_override: massAppealSubject(causeName),
       custom_message: testMessage,
       paynow_url: sampleDonor?.qrValue,
     })
@@ -4689,6 +4695,7 @@ export default function App() {
         amount: donor.amount,
         payment_ref: donor.ref,
         cause_title: causeName,
+        subject_override: massAppealSubject(causeName),
         custom_message: massAppealForm.message
           ? massAppealForm.message.replace(/\[name\]/gi, donor.donor_name?.split(' ')[0] || 'there')
           : null,
@@ -4766,6 +4773,7 @@ export default function App() {
         amount: recipient.amount,
         payment_ref: recipient.payment_ref,
         cause_title: appeal.cause_name,
+        subject_override: massAppealSubject(appeal.cause_name),
         custom_message: appeal.message
           ? appeal.message.replace(/\[name\]/gi, recipient.donor_name?.split(' ')[0] || 'there')
           : null,
