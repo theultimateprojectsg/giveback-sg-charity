@@ -12418,7 +12418,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Health</span>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
               </div>
 
             {/* ── KEY METRICS ── */}
