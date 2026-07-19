@@ -393,16 +393,6 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
               </label>
             </>
           )}
-          {isEditing && (
-            <label style={{ display: 'block' }}>
-              <div style={s.formLabel}>Status</div>
-              <select style={s.formInput} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="closed">Closed</option>
-              </select>
-            </label>
-          )}
         </div>
 
         <div style={dividerStyle} />
@@ -2951,6 +2941,28 @@ export default function App() {
     setGrants(prev => prev.map(g => g.id === grantId ? data : g).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
     setEditingGrant(null)
     showToast('Grant updated ✓')
+  }
+
+  async function setGrantStatus(grant, newStatus) {
+    const { data, error } = await supabase.from('grants').update({ status: newStatus }).eq('id', grant.id).select().single()
+    if (error) { showToast('Error updating grant status', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'grant_status_changed',
+      details: { funder_name: grant.funder_name, from: grant.status, to: newStatus, charity_uen: charityUen },
+    })
+    setGrants(prev => prev.map(g => g.id === grant.id ? data : g))
+    showToast(newStatus === 'active' ? `"${grant.funder_name}" restored to active ✓` : `Grant marked ${newStatus} ✓`)
+  }
+
+  function changeGrantStatus(grant, newStatus) {
+    const copy = {
+      completed: { title: 'Mark this grant as completed?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'Mark Completed' },
+      closed: { title: 'Close this grant?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'Close Grant' },
+      active: { title: 'Restore this grant to active?', description: `"${grant.funder_name}" will move back into your active grants.`, confirmLabel: 'Restore' },
+    }[newStatus]
+    setConfirmModal({ ...copy, onConfirm: () => setGrantStatus(grant, newStatus) })
   }
 
   function deleteGrant(grant) {
@@ -17792,9 +17804,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </div>
 
                     {/* Actions */}
-                    <div style={{ padding: '12px 16px', display: 'flex', gap: 6, marginTop: 'auto' }}>
-                      <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
-                      <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
+                    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => exportGrantReportPDF(g)}>📄 Export report</button>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
+                      </div>
+                      {g.status === 'active' ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.issueBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'completed')}>✓ Mark Completed</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'closed')}>⊘ Close</button>
+                        </div>
+                      ) : (
+                        <button style={{ ...s.issueBtn, fontSize: 11.5, padding: '7px 8px', width: '100%', justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'active')}>↺ Restore to Active</button>
+                      )}
                     </div>
                   </div>
                 )
