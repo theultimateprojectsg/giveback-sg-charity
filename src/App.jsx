@@ -1647,6 +1647,7 @@ export default function App() {
   const [massAppealStep, setMassAppealStep] = useState('setup')
   const [massAppealProgress, setMassAppealProgress] = useState(null)
   const massAppealCancelRef = useRef(false)
+  const massAppealSendingRef = useRef(false)
   const [massAppeals, setMassAppeals] = useState([])
   const [showMigrationTool, setShowMigrationTool] = useState(false)
   const [migrationFile, setMigrationFile] = useState(null)
@@ -4732,7 +4733,10 @@ export default function App() {
 
   function generateAppealRef(donorName, causeId) {
     const clean = donorName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()
-    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase()
+    // 7 base36 chars (~78 billion combinations) instead of 4 (~1.7 million) -- refs aren't
+    // namespaced by appeal, so low entropy risked two different appeals minting the same ref
+    // and one donation getting attributed as "converted" for both.
+    const suffix = Math.random().toString(36).substring(2, 9).toUpperCase()
     return `GT-${clean}-${suffix}`
   }
 
@@ -4768,7 +4772,10 @@ export default function App() {
       showToast('Please enter a default amount', 'error'); return
     }
     const targetDonors = donorList.filter(d => {
-      if (d.deactivated || !d.email?.trim()) return false
+      // Must match the "Who will receive this?" count shown on the setup step, which already
+      // excludes doNotContact donors -- previously this list still included them (just
+      // pre-unchecked), so the preview list could be longer than what staff were told to expect.
+      if (d.deactivated || d.doNotContact || !d.email?.trim()) return false
       if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
         const donorKey45 = d.email?.trim() || d.name
         const tags45 = donorTagsMap[donorKey45] || []
@@ -4785,7 +4792,9 @@ export default function App() {
       const donorKey44b = donor.email?.trim() || donor.name
       const contact44b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44b)
       const restrictions44b = contact44b?.communication_restrictions?.toLowerCase() || ''
-      const flaggedRestricted = donor.doNotContact || /no mass|no appeal|do not send appeal|no bulk/.test(restrictions44b)
+      // Free-text matching is inherently fragile -- this catches common phrasings as a soft
+      // pre-uncheck (staff can still see and override it in the preview list), not a hard block.
+      const flaggedRestricted = /no mass|no appeal|do not send appeal|no bulk|don'?t (include|send|contact|email)|not.{0,15}appeal|exclude.{0,15}appeal|no (further |more )?(mass )?email/.test(restrictions44b)
       return {
         donor_name: donor.name,
         donor_email: donor.email,
@@ -4793,7 +4802,7 @@ export default function App() {
         amount: parseFloat(massAppealForm.amount),
         qrValue: `https://www.paynow.com.sg/pay?uen=${charityUen}&amount=${massAppealForm.amount}&ref=${ref}`,
         selected: !flaggedRestricted,
-        restrictionNote: donor.doNotContact ? 'Marked Do Not Contact' : (flaggedRestricted ? contact44b.communication_restrictions : null),
+        restrictionNote: flaggedRestricted ? contact44b.communication_restrictions : null,
       }
     })
     setMassAppealRefs(finalRefs)
@@ -4803,6 +4812,8 @@ export default function App() {
   async function sendMassAppealEmails() {
     const selected = massAppealRefs.filter(r => r.selected)
     if (selected.length === 0) { showToast('No donors selected', 'error'); return }
+    if (massAppealSendingRef.current) return
+    massAppealSendingRef.current = true
     massAppealCancelRef.current = false
     setMassAppealProgress({ done: 0, total: selected.length, sent: 0, failed: 0, blocked: 0 })
     let sent = 0
@@ -4814,6 +4825,7 @@ export default function App() {
       charity_uen: charityUen,
       cause_id: massAppealForm.cause_id || null,
       cause_name: causeName,
+      target_tag: massAppealForm.targetTag && massAppealForm.targetTag !== 'All' ? massAppealForm.targetTag : null,
       amount: parseFloat(massAppealForm.amount),
       message: massAppealForm.message || null,
       donor_count: selected.length,
@@ -4887,14 +4899,19 @@ export default function App() {
       const { data: updatedAppeal } = await supabase.from('mass_appeals').update({
         sent_count: persistedSent,
         failed_count: persistedFailed,
-        status: 'sent',
+        // A cancelled send previously still got marked "sent", indistinguishable from a
+        // fully-completed appeal in both the data and the card badge.
+        status: massAppealCancelRef.current ? 'cancelled' : 'sent',
       }).eq('id', appealId).select()
       if (updatedAppeal?.[0]) setMassAppeals(prev => [updatedAppeal[0], ...prev.filter(a => a.id !== appealId)])
     }
 
     setMassAppealStep('done')
     setMassAppealProgress(null)
-    showToast(`Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
+    massAppealSendingRef.current = false
+    showToast(massAppealCancelRef.current
+      ? `Appeal cancelled after ${sent} donor${sent !== 1 ? 's' : ''} sent`
+      : `Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
   }
 
   async function retryAppealRecipients(appeal, recipientsToRetry) {
@@ -12815,11 +12832,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
                     ) : null}
                     <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
+                        <InfoTip text="Estimated, not actual matched donations: (suggested amount × recipients sent) ÷ donors reached, averaged per appeal. See Analytics > Mass Appeals for real matched-donation revenue." />
+                      </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue (est.)</div>
                     </div>
                   </div>
 
@@ -17466,7 +17486,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }} onClick={() => openAppealDetail(a)}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{a.cause_name || 'General Appeal'}</div>
-                    {a.failed_count > 0 ? (
+                    {a.status === 'sending' ? (
+                      <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 20, padding: '3px 10px' }}>⏳ Sending…</span>
+                    ) : a.status === 'cancelled' ? (
+                      <span style={{ fontSize: 10, fontWeight: 500, color: C.muted, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px' }}>⊘ Cancelled</span>
+                    ) : a.failed_count > 0 ? (
                       <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.gold + '1A', border: `1px solid ${C.gold}`, borderRadius: 20, padding: '3px 10px' }}>⚠ Partial</span>
                     ) : (
                       <span style={s.badgeIssued}>✓ Sent</span>
@@ -17665,7 +17689,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={sendMassAppealEmails}>📧 Send to {massAppealRefs.filter(r => r.selected).length} Donors</button>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => {
+                      const n = massAppealRefs.filter(r => r.selected).length
+                      setConfirmModal({
+                        title: `Send this appeal to ${n} donor${n !== 1 ? 's' : ''}?`,
+                        description: 'This sends a real email with a payment QR code to each selected donor right now. This cannot be undone once sent.',
+                        confirmLabel: `Send to ${n} donor${n !== 1 ? 's' : ''}`,
+                        onConfirm: sendMassAppealEmails,
+                      })
+                    }}>📧 Send to {massAppealRefs.filter(r => r.selected).length} Donors</button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={downloadMassAppealQRZip}>⬇️ Download QR ZIP</button>
                   </div>
                 </div>
@@ -19334,6 +19366,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   onClick={() => {
                     setMassAppealForm({
                       cause_id: selectedAppealDetail.cause_id || '',
+                      customLabel: !selectedAppealDetail.cause_id ? (selectedAppealDetail.cause_name || '') : '',
+                      targetTag: selectedAppealDetail.target_tag || 'All',
                       amount: String(selectedAppealDetail.amount || ''),
                       message: selectedAppealDetail.message || '',
                     })
