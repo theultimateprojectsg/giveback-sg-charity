@@ -12473,7 +12473,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   {/* Coverage ratio */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
@@ -12482,16 +12482,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: coverageRatio >= 1 ? C.forest : C.red, lineHeight: 1 }}>{coverageRatio.toFixed(1)}×</div>
-                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
-                          {coverageRatio >= 1 ? '✓ Covering costs' : '⚠ Shortfall'}
+                        <div style={{ ...s.analyticsStatNumber, color: coverageRatio >= 1 ? C.forest : coverageRatio >= 0.75 ? C.gold : C.red }}>{coverageRatio.toFixed(1)}×</div>
+                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : coverageRatio >= 0.75 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {coverageRatio >= 1 ? '✓ Covering costs' : coverageRatio >= 0.75 ? '⚠ Close to breaking even' : '⚠ Shortfall'}
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Cash runway */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
                     {runwayMonthsFH === null ? (
                       <div>
@@ -12500,16 +12500,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: runwayMonthsFH >= 3 ? C.forest : C.red, lineHeight: 1 }}>{runwayMonthsFH.toFixed(1)} mo</div>
-                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
-                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : '⚠ Worth a closer look'}
+                        <div style={{ ...s.analyticsStatNumber, color: runwayMonthsFH >= 3 ? C.forest : runwayMonthsFH >= 1 ? C.gold : C.red }}>{runwayMonthsFH.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : runwayMonthsFH >= 1 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : runwayMonthsFH >= 1 ? '⚠ Worth a closer look' : '⚠ Critical'}
                         </div>
                       </>
                     )}
                   </div>
 
                   {/* Unrestricted funding coverage */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
                     {unrestrictedCoverageMonths === null ? (
                       <div>
@@ -12518,14 +12518,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: unrestrictedCoverageMonths >= 3 ? C.forest : C.red, lineHeight: 1 }}>{unrestrictedCoverageMonths.toFixed(1)} mo</div>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>${unrestrictedGrantTotal.toLocaleString()} unrestricted from active grants</div>
+                        <div style={{ ...s.analyticsStatNumber, color: unrestrictedCoverageMonths >= 3 ? C.forest : unrestrictedCoverageMonths >= 1 ? C.gold : C.red }}>{unrestrictedCoverageMonths.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: unrestrictedCoverageMonths >= 3 ? C.sage : unrestrictedCoverageMonths >= 1 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {unrestrictedCoverageMonths >= 3 ? '✓' : '⚠'} ${unrestrictedGrantTotal.toLocaleString()} unrestricted from active grants
+                        </div>
                       </>
                     )}
                   </div>
 
                   {/* Fixed-cost coverage from recurring income */}
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
                     {fixedCostCoveragePct === null ? (
                       <div>
@@ -12534,15 +12536,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: fixedCostCoveragePct >= 50 ? C.forest : C.red, lineHeight: 1 }}>{fixedCostCoveragePct}%</div>
-                        <div style={{ fontSize: 11.5, color: fixedCostCoveragePct >= 50 ? C.sage : C.red, marginTop: 6, fontWeight: 500 }}>
-                          {fixedCostCoveragePct >= 50 ? '✓ Solid recurring base' : '⚠ Reliant on one-off giving'}
+                        <div style={{ ...s.analyticsStatNumber, color: fixedCostCoveragePct >= 50 ? C.forest : fixedCostCoveragePct >= 25 ? C.gold : C.red }}>{fixedCostCoveragePct}%</div>
+                        <div style={{ fontSize: 11.5, color: fixedCostCoveragePct >= 50 ? C.sage : fixedCostCoveragePct >= 25 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {fixedCostCoveragePct >= 50 ? '✓ Solid recurring base' : fixedCostCoveragePct >= 25 ? '⚠ Partial recurring base' : '⚠ Reliant on one-off giving'}
                         </div>
                       </>
                     )}
                   </div>
 
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
                     {(() => {
                       const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
@@ -12551,11 +12553,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
                       const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
                       const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
-                      return <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${projectedYE.toLocaleString()}</div>
+                      const goalPct = annualGoal ? projectedYE / annualGoal : null
+                      return (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: goalPct === null ? C.forest : goalPct >= 1 ? C.forest : goalPct >= 0.9 ? C.gold : C.red }}>${projectedYE.toLocaleString()}</div>
+                          {goalPct !== null && (
+                            <div style={{ fontSize: 11.5, color: goalPct >= 1 ? C.sage : goalPct >= 0.9 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                              {goalPct >= 1 ? '✓ On track for goal' : goalPct >= 0.9 ? '⚠ Slightly behind goal pace' : '⚠ Behind goal pace'}
+                            </div>
+                          )}
+                        </>
+                      )
                     })()}
                   </div>
 
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px' }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={s.statTileLabel}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
                     {(() => {
                       const cm = now.getMonth()
