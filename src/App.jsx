@@ -17045,7 +17045,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
                 const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
                 const pledgeStatusMap = {
-                  pending: { bg: C.gold, color: C.white, label: 'Pending' },
+                  pending: { bg: C.sage, color: C.white, label: 'Active' },
                   fulfilled: { bg: C.sage, color: C.white, label: 'Fulfilled' },
                   cancelled: { bg: C.red, color: C.white, label: 'Cancelled' },
                 }
