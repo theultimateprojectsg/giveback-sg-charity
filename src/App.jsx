@@ -1756,6 +1756,9 @@ export default function App() {
   const [thankYouPreviewModal, setThankYouPreviewModal] = useState(null)
   const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
   const [thankYouSubjectInput, setThankYouSubjectInput] = useState('')
+  const [aiWeekSummary, setAiWeekSummary] = useState(null)
+  const [aiWeekSummaryLoading, setAiWeekSummaryLoading] = useState(false)
+  const [aiWeekSummaryError, setAiWeekSummaryError] = useState(null)
   const [thankYouPreviewing, setThankYouPreviewing] = useState(false)
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
@@ -11840,6 +11843,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const monthlyExpensesSet = monthlyExpenses > 0
               const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
 
+              const recurringThisWeek = thisWeekDonations.filter(d => d.recurring_gift_id)
+              const recurringGiftsThisWeekCount = recurringThisWeek.length
+              const recurringGiftsThisWeekTotal = recurringThisWeek.reduce((s, d) => s + d.amount, 0)
+
+              const lapsedReturningThisWeek = [...weekDonorKeys].filter(key => {
+                const priorGifts = confirmedDonations.filter(p => {
+                  const pk = p.donor_email?.trim() || p.donor_nric || p.donor_name
+                  return pk === key && new Date(p.created_at) < weekAgo
+                })
+                if (priorGifts.length === 0) return false
+                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                const gapDays = (now - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+                return gapDays >= lapsedMinDays
+              })
+
               const sentences = []
               sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
               if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
@@ -11849,10 +11867,57 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 : `Nothing urgent needs your attention right now.`)
               if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
 
+              const weekStats = {
+                charity_name: charityName,
+                weekTotal,
+                weekDonorCount: weekDonorKeys.size,
+                weekGrowthPct,
+                newDonorsThisWeek,
+                biggestGift: biggestGiftThisWeek ? { amount: biggestGiftThisWeek.amount, donor_name: biggestGiftThisWeek.donor_name } : null,
+                attentionCount,
+                monthlyExpensesSet,
+                coverageOk,
+                recurringGiftsThisWeekCount,
+                recurringGiftsThisWeekTotal,
+                lapsedReturningCount: lapsedReturningThisWeek.length,
+              }
+
+              const generateAiSummary = async () => {
+                setAiWeekSummaryLoading(true)
+                setAiWeekSummaryError(null)
+                const { data, error } = await supabase.functions.invoke('generate-week-summary', { body: weekStats })
+                setAiWeekSummaryLoading(false)
+                if (error || data?.error) {
+                  setAiWeekSummaryError(
+                    (data?.error || '').includes('not configured')
+                      ? "AI summary isn't set up yet — ask your admin to add an Anthropic API key."
+                      : 'Could not generate an AI summary right now.'
+                  )
+                  return
+                }
+                setAiWeekSummary(data.summary)
+              }
+
               return (
                 <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
                   <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
+                  {aiWeekSummary && (
+                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>✨ AI Summary</div>
+                      <div style={{ fontSize: 15, color: 'white', lineHeight: 1.7, fontStyle: 'italic' }}>{aiWeekSummary}</div>
+                    </div>
+                  )}
+                  {aiWeekSummaryError && (
+                    <div style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>{aiWeekSummaryError}</div>
+                  )}
+                  <button
+                    style={{ marginTop: 16, background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '7px 14px', fontSize: 12.5, fontWeight: 500, cursor: aiWeekSummaryLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: aiWeekSummaryLoading ? 0.6 : 1 }}
+                    disabled={aiWeekSummaryLoading}
+                    onClick={generateAiSummary}
+                  >
+                    {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
+                  </button>
                 </div>
               )
             })()}
