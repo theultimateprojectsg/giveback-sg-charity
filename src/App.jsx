@@ -13000,12 +13000,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                     </div>
                                     <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: isMobile ? 0 : 16 }}>
                                       <div style={isMobile ? {} : { textAlign: 'right' }}>
-                                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
+                                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
                                         <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
                                       </div>
                                       {row.cost > 0 && (
                                         <div style={isMobile ? {} : { textAlign: 'right' }}>
-                                          <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
+                                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
                                           <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
                                         </div>
                                       )}
@@ -13063,7 +13063,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
 
                             <div style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-                              <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
+                              <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
                               {aggTotal === 0 ? (
                                 <div style={{ fontSize: 12.5, color: C.muted }}>No campaign revenue yet.</div>
                               ) : (
@@ -13242,18 +13242,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 6 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                             <span style={s.analyticsStatNumber}>{scopedAppeals.length}</span>
                             {lastYearAppeals.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: appealCountDiff >= 0 ? C.sage : C.red }}>{appealCountDiff === 0 ? '—' : appealCountDiff > 0 ? `↑${appealCountDiff}` : `↓${Math.abs(appealCountDiff)}`}</span>}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
                           <div style={s.analyticsStatNumber}>${totalRaised.toLocaleString()}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                             <span style={{ ...s.analyticsStatNumber, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
                             {conversionDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: conversionDiff >= 0 ? C.sage : C.red }}>{conversionDiff === 0 ? '—' : conversionDiff > 0 ? `↑${conversionDiff}pt` : `↓${Math.abs(conversionDiff)}pt`}</span>}
@@ -13343,7 +13343,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                             <span style={{ ...s.analyticsStatNumber, color: curDelivery.bouncedPct >= 20 ? C.red : curDelivery.bouncedPct >= 10 ? C.gold : C.forest }}>{curDelivery.bouncedPct}%</span>
                             {ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) !== null && (
@@ -13355,7 +13355,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>bad contact data</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Opted Out</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Opted Out</div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                             <span style={{ ...s.analyticsStatNumber, color: curDelivery.blockedPct >= 20 ? C.red : curDelivery.blockedPct >= 10 ? C.gold : C.forest }}>{curDelivery.blockedPct}%</span>
                             {ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) !== null && (
@@ -13389,12 +13389,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
                           <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>List Fatigue</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>List Fatigue</div>
                           <div style={{ ...s.analyticsStatNumber, color: fatiguedCount > 0 ? C.gold : C.forest }}>{fatiguedCount}</div>
                           <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>gave before, skipped last appeal</div>
                         </div>
@@ -13948,15 +13948,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={s.analyticsCardTitle}>Authorization & Mandate Risk <InfoTip text="GIRO and Standing Order gifts by bank authorization status. A terminated mandate means the bank has cut off the deduction — the donor needs to be contacted to re-authorize, or the gift will keep silently failing." /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pending</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pending</div>
                           <div style={{ ...s.analyticsStatNumber, color: C.gold }}>{pendingCount}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Authorized</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Authorized</div>
                           <div style={{ ...s.analyticsStatNumber, color: C.sage }}>{authorizedCount}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Terminated</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Terminated</div>
                           <div style={{ ...s.analyticsStatNumber, color: C.red }}>{terminatedCount}</div>
                         </div>
                       </div>
@@ -14439,14 +14439,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                           <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>On-time rate — {reportCompliance.yr}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>On-time rate — {reportCompliance.yr}</div>
                             <div style={{ ...s.analyticsStatNumber, color: reportCompliance.onTimeRate === null ? C.forest : reportCompliance.onTimeRate >= 80 ? C.sage : reportCompliance.onTimeRate >= 50 ? C.gold : C.red }}>{reportCompliance.onTimeRate !== null ? `${reportCompliance.onTimeRate}%` : '—'}</div>
                             <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.submitted} of {reportCompliance.total} submitted{reportCompliance.onTimeRateDelta !== null && (
                               <span style={{ color: reportCompliance.onTimeRateDelta >= 0 ? C.sage : C.red, fontWeight: 500 }}> · {reportCompliance.onTimeRateDelta >= 0 ? '▲' : '▼'} {Math.abs(reportCompliance.onTimeRateDelta)}pt vs last FY</span>
                             )}</div>
                           </div>
                           <div>
-                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overdue now</div>
+                            <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overdue now</div>
                             <div style={{ ...s.analyticsStatNumber, color: reportCompliance.overdueCount > 0 ? C.red : C.forest }}>{reportCompliance.overdueCount}</div>
                             <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.avgDaysLate !== null ? `avg ${reportCompliance.avgDaysLate}d late when late` : 'no late submissions yet'}</div>
                           </div>
