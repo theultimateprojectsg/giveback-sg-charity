@@ -179,55 +179,55 @@ const EMAIL_TEMPLATE_DEFS = [
 const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
-    body: 'Thank you so much for your donation. Your generosity means a great deal to us and to the community we serve.',
+    body: "Dear {{donor_name}},\n\nThank you so much for thinking of us. Gifts like yours don't just cover a line item in a budget — they let us keep showing up for the people and causes we care about, and today that's a little easier because of you.\n\nWith warm thanks,\n{{charity_name}}",
   },
   major_gift: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at {{charity_name}}, thank you.",
+    body: "Dear {{donor_name}},\n\nWe had to pause for a moment when we saw your gift come through. A gesture this generous doesn't just help — it changes what we're able to do, and we don't take that lightly. On behalf of everyone at {{charity_name}}, thank you.\n\nWith deep gratitude,\n{{charity_name}}",
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for joining us.",
+    body: "Dear {{donor_name}},\n\nWelcome — and thank you. Your first gift means more than the number on this receipt; it's the start of you becoming part of our story, and we're genuinely glad you're here. We hope this is the first of many moments we get to share with you.\n\nWarmly,\n{{charity_name}}",
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift, and for your continued generosity.",
+    body: "Dear {{donor_name}},\n\nWe noticed your gift come through again, and we don't want that kind of steady, quiet generosity to go unnoticed. Support like yours is what lets us plan ahead with confidence instead of crossing our fingers. Thank you for sticking with us.\n\nWith continued gratitude,\n{{charity_name}}",
   },
   nric_request: {
     subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
-    body: "To qualify for the 250% tax deduction, we need your NRIC/FIN number. Please log in to your Giving Tree profile and update your NRIC under the Profile tab.",
+    body: "Dear {{donor_name}},\n\nOne small thing before we close the loop on your gift — to pass along the 250% tax deduction you're entitled to, we'll need your NRIC/FIN number. You can add it in just a minute by logging in to your Giving Tree profile and updating it under the Profile tab.\n\nThanks for taking care of this — and again, for your generosity.\n\n{{charity_name}}",
   },
   milestone_thank_you: {
     subject: 'A note from {{charity_name}} 💚',
-    body: 'Thank you so much for your continued support — it means a great deal to us and to those we serve.\n\nWith gratitude,\n{{charity_name}}',
+    body: "Dear {{donor_name}},\n\nWe wanted to take a moment, outside of any receipt or transaction, to just say thank you. Your support has genuinely meant a great deal to us and to the people we serve.\n\nWith gratitude,\n{{charity_name}}",
   },
   pledge_thank_you: {
     subject: 'Thank you for fulfilling your pledge, {{donor_name}}!',
-    body: 'Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n{{charity_name}}',
+    body: "Dear {{donor_name}},\n\nYour pledge just came through — thank you for following through on it. Promises like this are easy to make and easy to forget, so the fact that you didn't means a great deal to us.\n\nWith gratitude,\n{{charity_name}}",
   },
   pledge_reminder_upcoming: {
     subject: 'Following up on your pledge to {{charity_name}}',
-    body: "Just a friendly reminder that your pledge of ${{amount}} is expected by {{due_date}}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nJust a gentle, friendly reminder that your pledge of ${{amount}} is expected around {{due_date}}. No pressure at all — we just wanted to give you a heads-up. Thank you again for your generosity; we're genuinely looking forward to it.\n\nWith thanks,\n{{charity_name}}",
   },
   pledge_reminder_overdue: {
     subject: 'Following up on your pledge to {{charity_name}}',
-    body: "Just a friendly note — we haven't yet received your pledge of ${{amount}}, which was expected by {{due_date}}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nWe haven't yet received your pledge of ${{amount}}, which was expected around {{due_date}} — just wanted to check in, no rush and no worries at all. If something's come up or you need a hand with anything, just let us know.\n\nWith thanks,\n{{charity_name}}",
   },
   recurring_gift_reminder: {
     subject: 'A quick note about your recurring gift to {{charity_name}}',
-    body: "We noticed we haven't received your usual ${{amount}} {{frequency}} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nWe noticed we haven't received your usual ${{amount}} {{frequency}} gift recently. This happens sometimes — an expired card, updated bank details, a lapsed standing instruction — so nothing to worry about, we just wanted to flag it in case you'd like to check on your end.\n\nThank you, as always, for your continued support.\n\nWith thanks,\n{{charity_name}}",
   },
   lapsed_reminder_lapsed: {
     subject: 'We miss you, {{donor_name}}!',
-    body: "It's been a while since your last gift, and we wanted to reach out. Your past support of ${{amount}} over {{count}} gifts has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nIt's been a while since your last gift, and we wanted to reach out simply because we've missed you. Your past support of ${{amount}} over {{count}} gifts made a real difference, and we'd love to have you back whenever the time feels right.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n{{charity_name}}",
   },
   lapsed_reminder_giving_change: {
     subject: 'Just checking in, {{donor_name}}',
-    body: "We noticed your most recent gift was a bit different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nWe noticed your most recent gift looked a little different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n{{charity_name}}",
   },
   mass_appeal: {
     subject: '{{charity_name}} needs your support — {{cause_title}}',
-    body: "Hi [name], we're reaching out because your support has always meant so much to us. If you're able, we'd be truly grateful for your gift today.",
+    body: "Hi [name],\n\nI'm reaching out personally because your support has meant so much to us over the years, and we could really use it again right now. If you're able to help, even a small gift would mean the world to us today.\n\nThank you, as always, for being in our corner.\n\n{{charity_name}}",
   },
 }
 
