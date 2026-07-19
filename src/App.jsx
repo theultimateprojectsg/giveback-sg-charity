@@ -2747,8 +2747,8 @@ export default function App() {
         [linkRow.pledge_id]: Math.max(0, (prev[linkRow.pledge_id] || 0) - Number(linkRow.amount_applied))
       }))
       if (linkedPledge?.status === 'fulfilled') {
-        await supabase.from('pledges').update({ status: 'pending' }).eq('id', linkRow.pledge_id)
-        setPledges(prev => prev.map(p => p.id === linkRow.pledge_id ? { ...p, status: 'pending' } : p))
+        await supabase.from('pledges').update({ status: 'pending', resolution_notes: null, fulfilled_donation_id: null }).eq('id', linkRow.pledge_id)
+        setPledges(prev => prev.map(p => p.id === linkRow.pledge_id ? { ...p, status: 'pending', resolution_notes: null, fulfilled_donation_id: null } : p))
       }
     }
 
@@ -3370,7 +3370,7 @@ export default function App() {
       description: `The pledge of $${Number(pledge.amount).toLocaleString()} from ${pledge.donor_name} will be moved back to Outstanding Pledges.`,
       confirmLabel: 'Revert to Pending',
       onConfirm: async () => {
-        const { error } = await supabase.from('pledges').update({ status: 'pending' }).eq('id', pledge.id)
+        const { error } = await supabase.from('pledges').update({ status: 'pending', resolution_notes: null, fulfilled_donation_id: null }).eq('id', pledge.id)
         if (error) { showToast('Error reverting pledge', 'error'); return }
         await supabase.from('audit_log').insert({
           actor_type: 'charity',
@@ -3378,7 +3378,7 @@ export default function App() {
           action: 'pledge_reverted_to_pending',
           details: { donor_name: pledge.donor_name, amount: pledge.amount },
         })
-        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'pending' } : p))
+        setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'pending', resolution_notes: null, fulfilled_donation_id: null } : p))
         showToast(`Pledge from ${pledge.donor_name} reverted to pending`)
       },
     })
@@ -3660,8 +3660,8 @@ export default function App() {
     // fully paid via an amount correction stays stuck showing "pending" with no way to fix it in the UI.
     const relatedPledge = pledges.find(p => p.id === link.pledge_id)
     if (relatedPledge?.status === 'fulfilled' && newTotal < Number(relatedPledge.amount)) {
-      await supabase.from('pledges').update({ status: 'pending', resolution_notes: null }).eq('id', link.pledge_id)
-      setPledges(prev => prev.map(p => p.id === link.pledge_id ? { ...p, status: 'pending', resolution_notes: null } : p))
+      await supabase.from('pledges').update({ status: 'pending', resolution_notes: null, fulfilled_donation_id: null }).eq('id', link.pledge_id)
+      setPledges(prev => prev.map(p => p.id === link.pledge_id ? { ...p, status: 'pending', resolution_notes: null, fulfilled_donation_id: null } : p))
       showToast('Payment updated — pledge reverted to pending (no longer fully covered)')
     } else if (relatedPledge?.status === 'pending' && newTotal >= Number(relatedPledge.amount)) {
       const autoNote = `Auto-fulfilled by an amount correction to $${newAmount.toLocaleString()} on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -6012,8 +6012,10 @@ export default function App() {
         [pledgeLink.pledge_id]: (prev[pledgeLink.pledge_id] || []).filter(l => l.donation_id !== id)
       }))
       if (pledgeLink.pledgeStatus === 'fulfilled') {
-        await supabase.from('pledges').update({ status: 'pending', resolution_notes: null }).eq('id', pledgeLink.pledge_id)
-        setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending', resolution_notes: null } : p))
+        // fulfilled_donation_id must be cleared alongside status/resolution_notes -- otherwise it's
+        // left dangling, still pointing at the donation that was just unlinked/deleted.
+        await supabase.from('pledges').update({ status: 'pending', resolution_notes: null, fulfilled_donation_id: null }).eq('id', pledgeLink.pledge_id)
+        setPledges(prev => prev.map(p => p.id === pledgeLink.pledge_id ? { ...p, status: 'pending', resolution_notes: null, fulfilled_donation_id: null } : p))
       }
     }
 
