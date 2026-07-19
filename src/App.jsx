@@ -1756,6 +1756,7 @@ export default function App() {
   const [thankYouPreviewModal, setThankYouPreviewModal] = useState(null)
   const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
   const [thankYouSubjectInput, setThankYouSubjectInput] = useState('')
+  const [thankYouPreviewing, setThankYouPreviewing] = useState(false)
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const [editingEmailTemplate, setEditingEmailTemplate] = useState(null)
@@ -11661,6 +11662,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               const defaults = thankYouDefaultsFor(selectedDonation)
                               setThankYouSubjectInput(defaults.subject)
                               setThankYouCustomMessage(defaults.body)
+                              setThankYouPreviewing(false)
                               setThankYouPreviewModal(selectedDonation)
                             }}
                           >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : selectedDonation.thank_you_sent ? '💌 Resend Thank You + Receipt' : '💌 Send Thank You + Receipt'}</button>
@@ -19553,10 +19555,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {thankYouPreviewModal && (() => {
+      {thankYouPreviewModal && !thankYouPreviewing && (() => {
         const d = thankYouPreviewModal
-        const previewBodyHtml = buildThankYouPreviewHtml(d, thankYouCustomMessage)
-        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
         return (
           <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setThankYouPreviewModal(null)}>
             <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -19580,7 +19580,30 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   onChange={e => setThankYouCustomMessage(e.target.value)}
                 />
               </label>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Preview · Receipt PDF will be attached</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewing(true)}>
+                  Preview email →
+                </button>
+                <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewModal(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {thankYouPreviewModal && thankYouPreviewing && (() => {
+        const d = thankYouPreviewModal
+        const previewBodyHtml = buildThankYouPreviewHtml(d, thankYouCustomMessage)
+        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
+        return (
+          <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setThankYouPreviewModal(null); setThankYouPreviewing(false) }}>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
+                <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setThankYouPreviewModal(null); setThankYouPreviewing(false) }}>✕</button>
+              </div>
+              <SenderIdentityLine recipientName={d.donor_name} recipientEmail={d.donor_email} {...senderIdentity} />
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Receipt PDF will be attached</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
                 <iframe
                   srcDoc={fullPreviewHtml}
@@ -19589,10 +19612,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 />
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingThankYouId === d.id} onClick={async () => { setThankYouPreviewModal(null); await sendThankYouEmail(d) }}>
+                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingThankYouId === d.id} onClick={async () => { setThankYouPreviewModal(null); setThankYouPreviewing(false); await sendThankYouEmail(d) }}>
                   {sendingThankYouId === d.id ? 'Sending...' : (d.thank_you_sent ? '✓ Send again' : '✓ Send email')}
                 </button>
-                <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewModal(null)}>Cancel</button>
+                <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewing(false)}>
+                  ← Back to edit
+                </button>
               </div>
             </div>
           </div>
