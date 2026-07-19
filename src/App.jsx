@@ -145,6 +145,43 @@ function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
   return { start, end }
 }
 
+function fillTemplate(str, vars) {
+  if (!str) return str
+  return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars?.[k] ?? ''))
+}
+
+const EMAIL_TEMPLATE_DEFS = [
+  { group: 'Donation Receipts', items: [
+    { key: 'standard', label: 'Standard Receipt', description: 'Sent for a regular donation.', tokens: ['donor_name', 'charity_name', 'amount', 'date', 'cause_title'] },
+    { key: 'major_gift', label: 'Major Gift', description: 'Sent when a single gift is at or above your major gift threshold.', tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
+    { key: 'new_donor', label: 'First-Time Donor', description: "Sent to a donor's very first gift.", tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
+    { key: 'recurring_donor', label: 'Recurring Donor', description: 'Sent for donors with an ongoing giving history.', tokens: ['donor_name', 'charity_name', 'amount'] },
+    { key: 'nric_request', label: 'NRIC Request', description: 'Sent asking a donor to provide their NRIC for tax deduction.', tokens: ['donor_name', 'charity_name', 'amount', 'date'] },
+  ]},
+  { group: 'Pledges', items: [
+    { key: 'pledge_thank_you', label: 'Pledge Fulfilled', description: 'Sent when a donor completes a pledge.', tokens: ['donor_name', 'charity_name', 'pledge_amount'] },
+    { key: 'pledge_reminder_upcoming', label: 'Pledge Reminder — upcoming', description: 'Sent as a friendly nudge before a pledge is due.', tokens: ['donor_name', 'charity_name', 'amount', 'due_date'] },
+    { key: 'pledge_reminder_overdue', label: 'Pledge Reminder — overdue', description: 'Sent when a pledge has passed its expected date.', tokens: ['donor_name', 'charity_name', 'amount', 'due_date'] },
+  ]},
+  { group: 'Recurring Gifts', items: [
+    { key: 'recurring_gift_reminder', label: 'Recurring Gift Check-in', description: "Sent when a donor's usual recurring gift hasn't come in.", tokens: ['donor_name', 'charity_name', 'amount', 'frequency'] },
+  ]},
+  { group: 'Lapsed & Re-engagement', items: [
+    { key: 'lapsed_reminder_lapsed', label: 'Lapsed Donor', description: "Sent to donors who haven't given in a while.", tokens: ['donor_name', 'charity_name', 'amount', 'count'] },
+    { key: 'lapsed_reminder_giving_change', label: 'Giving Pattern Check-in', description: "Sent when a donor's giving pattern noticeably changes.", tokens: ['donor_name', 'charity_name'] },
+  ]},
+  { group: 'Other', items: [
+    { key: 'milestone_thank_you', label: 'Milestone Note', description: 'Freeform thank-you note, e.g. for a giving milestone.', tokens: ['donor_name', 'charity_name'] },
+    { key: 'mass_appeal', label: 'Mass Appeal', description: 'Default draft used when composing a mass appeal.', tokens: ['donor_name', 'charity_name', 'cause_title'] },
+  ]},
+]
+
+const EMAIL_TEMPLATE_PREVIEW_VARS = {
+  donor_name: 'Sarah Tan', charity_name: 'Your Charity', amount: '150', pledge_amount: '500',
+  date: '19 July 2026', due_date: '30 July 2026', cause_title: 'Youth Mentorship Fund',
+  frequency: 'monthly', count: '4',
+}
+
 const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'Social & Welfare', 'Arts & Heritage', 'Sports', 'Environment', 'Advancement of Religion', 'Others']
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
@@ -1450,19 +1487,23 @@ export default function App() {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
       const d = lapsedReminderCandidate
       if (d.givingChangeMeta) {
-        setLapsedReminderSubject(`Just checking in, ${d.name}`)
-        setLapsedReminderBody(
+        const saved = emailTemplates.lapsed_reminder_giving_change
+        const vars = { donor_name: d.name, charity_name: charityName }
+        setLapsedReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Just checking in, ${d.name}`)
+        setLapsedReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
           `We noticed your most recent gift was a bit different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n${charityName}`
         )
       } else {
-        setLapsedReminderSubject(`We miss you, ${d.name}!`)
-        setLapsedReminderBody(
+        const saved = emailTemplates.lapsed_reminder_lapsed
+        const vars = { donor_name: d.name, charity_name: charityName, amount: d.total.toLocaleString(), count: d.count }
+        setLapsedReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `We miss you, ${d.name}!`)
+        setLapsedReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
           `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
         )
       }
       setLapsedReminderPreviewing(false)
     }
-  }, [showLapsedReminderModal, lapsedReminderCandidate])
+  }, [showLapsedReminderModal, lapsedReminderCandidate, emailTemplates])
   const [skipCycleModal, setSkipCycleModal] = useState(null)
   const [skipCycleReason, setSkipCycleReason] = useState('')
   const [skippingCycle, setSkippingCycle] = useState(false)
@@ -1510,13 +1551,15 @@ export default function App() {
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
       const g = recurringReminderCandidate
-      setRecurringReminderSubject(`A quick note about your recurring gift to ${charityName}`)
-      setRecurringReminderBody(
+      const saved = emailTemplates.recurring_gift_reminder
+      const vars = { donor_name: g.donor_name, charity_name: charityName, amount: Number(g.amount).toLocaleString(), frequency: g.frequency }
+      setRecurringReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `A quick note about your recurring gift to ${charityName}`)
+      setRecurringReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
         `We noticed we haven't received your usual $${Number(g.amount).toLocaleString()} ${g.frequency} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n${charityName}`
       )
       setRecurringReminderPreviewing(false)
     }
-  }, [showRecurringReminderModal, recurringReminderCandidate])
+  }, [showRecurringReminderModal, recurringReminderCandidate, emailTemplates])
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [fulfillAmount, setFulfillAmount] = useState('')
@@ -1538,15 +1581,17 @@ export default function App() {
       const p = pledgeReminderCandidate
       const daysUntil = Math.ceil((new Date(p.expected_date) - new Date()) / (1000 * 60 * 60 * 24))
       const isOverdue = daysUntil < 0
-      setPledgeReminderSubject(`Following up on your pledge to ${charityName}`)
-      setPledgeReminderBody(
+      const saved = emailTemplates[isOverdue ? 'pledge_reminder_overdue' : 'pledge_reminder_upcoming']
+      const vars = { donor_name: p.donor_name, charity_name: charityName, amount: Number(p.amount).toLocaleString(), due_date: new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) }
+      setPledgeReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Following up on your pledge to ${charityName}`)
+      setPledgeReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
         isOverdue
           ? `Just a friendly note — we haven't yet received your pledge of $${Number(p.amount).toLocaleString()}, which was expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n${charityName}`
           : `Just a friendly reminder that your pledge of $${Number(p.amount).toLocaleString()} is expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n${charityName}`
       )
       setPledgeReminderPreviewing(false)
     }
-  }, [showPledgeReminderModal, pledgeReminderCandidate])
+  }, [showPledgeReminderModal, pledgeReminderCandidate, emailTemplates])
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [savingRecurring, setSavingRecurring] = useState(false)
@@ -1662,6 +1707,10 @@ export default function App() {
   const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
+  const [emailTemplates, setEmailTemplates] = useState({})
+  const [editingEmailTemplate, setEditingEmailTemplate] = useState(null)
+  const [emailTemplateSubjectInput, setEmailTemplateSubjectInput] = useState('')
+  const [emailTemplateBodyInput, setEmailTemplateBodyInput] = useState('')
   const [charityLogoUrl, setCharityLogoUrl] = useState(null)
   const [charityLogoDataUrl, setCharityLogoDataUrl] = useState(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -1754,13 +1803,15 @@ export default function App() {
   useEffect(() => {
     if (showPledgeThankYouModal && pledgeCompletionCandidate) {
       const { pledge } = pledgeCompletionCandidate
-      setPledgeThankYouSubject(`Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
-      setPledgeThankYouBody(
+      const saved = emailTemplates.pledge_thank_you
+      const vars = { donor_name: pledge.donor_name, charity_name: charityName, pledge_amount: Number(pledge.amount).toLocaleString() }
+      setPledgeThankYouSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
+      setPledgeThankYouBody(saved?.body ? fillTemplate(saved.body, vars) :
         `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
       )
       setPledgeThankYouPreviewing(false)
     }
-  }, [showPledgeThankYouModal, pledgeCompletionCandidate])
+  }, [showPledgeThankYouModal, pledgeCompletionCandidate, emailTemplates])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1882,7 +1933,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url, email_templates')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1891,6 +1942,7 @@ export default function App() {
     setAnnualGoal(data?.annual_goal || null)
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
     setEnabledModules({ ...DEFAULT_ENABLED_MODULES, ...(data?.enabled_modules || {}) })
+    setEmailTemplates(data?.email_templates || {})
     const month = data?.fy_end_month || 12
     const day = data?.fy_end_day || 31
     setFyEndMonth(month)
@@ -2920,6 +2972,20 @@ export default function App() {
 
   const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
+
+  function saveEmailTemplate(key, val) {
+    const next = { ...emailTemplates }
+    if (val) next[key] = val
+    else delete next[key]
+    setEmailTemplates(next)
+    return supabase.from('charity_contacts').update({ email_templates: next }).eq('charity_uen', charityUen)
+      .then(({ error }) => { if (error) showToast('Could not save this template', 'error') })
+  }
+
+  function defaultMassAppealMessage() {
+    const saved = emailTemplates.mass_appeal
+    return saved?.body ? fillTemplate(saved.body, { charity_name: charityName }) : ''
+  }
 
   async function sendCharityEmail(body) {
     const targetEmail = body.donor_email?.trim()
@@ -5090,6 +5156,9 @@ export default function App() {
       : badgeInfoSend?.isFirstTime ? 'new_donor'
       : 'standard'
 
+    const savedThankYou = emailTemplates[templateTypeSend]
+    const thankYouVars = { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }
+
     const { error } = await sendCharityEmail({
       donor_name: donation.donor_name,
       donor_email: donation.donor_email,
@@ -5103,7 +5172,8 @@ export default function App() {
       receipt_pdf_base64: receiptAttachmentB64b,
       receipt_filename: `Receipt-${donation.receipt_number || donation.payment_ref || donation.id}.pdf`,
       thank_you_template: templateTypeSend,
-      custom_message: thankYouCustomMessage?.trim() || null,
+      subject_override: savedThankYou?.subject ? fillTemplate(savedThankYou.subject, thankYouVars) : undefined,
+      custom_message: thankYouCustomMessage?.trim() || (savedThankYou?.body ? fillTemplate(savedThankYou.body, thankYouVars) : null),
     })
     if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     setThankYouCustomMessage('')
@@ -11256,7 +11326,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {selectedDonation.donor_email?.trim() && (
                             <button style={{ ...s.viewBtn, marginTop: 8, width: '100%', textAlign: 'center', fontSize: 12, opacity: nricRequestSent[selectedDonation.id] ? 0.5 : 1 }} onClick={async () => {
                               if (nricRequestSent[selectedDonation.id]) { showToast('Email already sent for this donation', 'error'); return }
-                              const { error } = await sendCharityEmail({ donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }), request_nric: true })
+                              const nricVars = { donor_name: selectedDonation.donor_name, charity_name: charityName, amount: selectedDonation.amount, date: new Date(selectedDonation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) }
+                              const savedNric = emailTemplates.nric_request
+                              const { error } = await sendCharityEmail({ donor_name: selectedDonation.donor_name, donor_email: selectedDonation.donor_email, charity_name: charityName, amount: selectedDonation.amount, date: nricVars.date, request_nric: true, subject_override: savedNric?.subject ? fillTemplate(savedNric.subject, nricVars) : undefined, custom_message: savedNric?.body ? fillTemplate(savedNric.body, nricVars) : undefined })
                               if (error) { showToast('Failed to send email', 'error'); return }
                               setNricRequestSent(prev => ({ ...prev, [selectedDonation.id]: true }))
                               showToast(`NRIC request sent to ${selectedDonation.donor_email}`)
@@ -15326,7 +15398,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 General Appeals</span>
                       <span style={{ fontSize: 12, color: C.muted }}>({generalAppeals.length} sent · not tied to a campaign)</span>
                     </div>
-                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
+                    <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
                   </div>
                   {generalAppealsExpanded && (
                     generalAppeals.length === 0 ? (
@@ -15617,7 +15689,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <>
                           <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', width: '100%', justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 Appeal</button>
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: c.id, amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 Appeal</button>
                             <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
                           </div>
                         </>
@@ -16939,7 +17011,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={s.pageTitle}>Mass Appeal</div>
                 <div style={s.pageSub}>{massAppeals.length} appeal{massAppeals.length !== 1 ? 's' : ''} sent · Personal PayNow QR codes to your donor base</div>
               </div>
-              <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
+              <button style={s.btnGold} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>+ New Appeal</button>
             </div>
 
             {massAppeals.length > 0 && (
@@ -17009,7 +17081,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 title="No appeals sent yet"
                 description="Send a bulk PayNow QR appeal to a segment of your donor base — great for year-end giving pushes or urgent campaigns."
                 ctaLabel="+ New Appeal"
-                onCta={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}
+                onCta={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}
               />
             ) : (() => {
               const searchedAppeals = massAppeals.filter(a => {
@@ -17274,7 +17346,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ fontSize: 16, fontWeight: 500, color: C.forest, marginBottom: 6 }}>Appeal Sent</div>
                   <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>Each donor received a personalised email with their unique PayNow QR code.</div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: '', customLabel: '' }); setMassAppealRefs([]) }}>Send Another</button>
+                    <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]) }}>Send Another</button>
                     <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => { setShowMassAppealModal(false); setMassAppealStep('setup') }}>Done</button>
                   </div>
                 </div>
@@ -17851,6 +17923,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   { key: 'modules', icon: '🧩', label: 'Feature Modules' },
                   { key: 'thresholds', icon: '🎯', label: 'Thresholds & Goals' },
                   { key: 'financial', icon: '💸', label: 'Financial & Data' },
+                  { key: 'templates', icon: '✉️', label: 'Email Templates' },
                 ].map(sec => (
                   <div
                     key={sec.key}
@@ -18400,6 +18473,79 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )}
               </div>
             )}
+
+              {settingsSection === 'templates' && (
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6, maxWidth: 640 }}>
+                  Customize the subject and wording of your automated donor emails. Use tokens like <code>{'{{donor_name}}'}</code> — they're swapped for real values when each email sends. Leave a template untouched to keep our default wording.
+                </div>
+                {EMAIL_TEMPLATE_DEFS.map(group => (
+                  <div key={group.group} style={{ marginBottom: 22 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: C.muted, marginBottom: 8 }}>{group.group}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                    {group.items.map(t => {
+                      const saved = emailTemplates[t.key]
+                      const isEditing = editingEmailTemplate === t.key
+                      return (
+                        <div key={t.key} style={{ ...s.card, gridColumn: isEditing ? '1 / -1' : 'auto' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>
+                                {t.label}
+                                {saved && <span style={{ fontSize: 10, fontWeight: 600, color: C.sage, marginLeft: 8 }}>● Customized</span>}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{t.description}</div>
+                            </div>
+                            {!isEditing && (
+                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
+                                setEditingEmailTemplate(t.key)
+                                setEmailTemplateSubjectInput(saved?.subject || '')
+                                setEmailTemplateBodyInput(saved?.body || '')
+                              }}>Edit</button>
+                            )}
+                          </div>
+                          {isEditing && (
+                            <div style={{ marginTop: 14 }}>
+                              <label style={{ display: 'block', marginBottom: 10 }}>
+                                <div style={s.formLabel}>Subject</div>
+                                <input style={s.formInput} value={emailTemplateSubjectInput} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
+                              </label>
+                              <label style={{ display: 'block', marginBottom: 8 }}>
+                                <div style={s.formLabel}>Body</div>
+                                <textarea style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
+                              </label>
+                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+                                Available tokens: {t.tokens.map(tok => <code key={tok} style={{ marginRight: 6 }}>{`{{${tok}}}`}</code>)}
+                              </div>
+                              {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim()) && (
+                                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                                  <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8 }}>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                                  <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <button style={s.issueBtn} onClick={() => {
+                                  const trimmedSubject = emailTemplateSubjectInput.trim()
+                                  const trimmedBody = emailTemplateBodyInput.trim()
+                                  saveEmailTemplate(t.key, (trimmedSubject || trimmedBody) ? { subject: trimmedSubject, body: trimmedBody } : null)
+                                  setEditingEmailTemplate(null)
+                                }}>Save</button>
+                                <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
+                                {saved && (
+                                  <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { saveEmailTemplate(t.key, null); setEditingEmailTemplate(null) }}>Reset to default</button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              )}
           </div>
         </div>
       )}
