@@ -3655,12 +3655,19 @@ export default function App() {
     setPledgeGivenTotals(prev => ({ ...prev, [link.pledge_id]: newTotal }))
     // If editing this payment down pulls a "fulfilled" pledge back under its target amount, revert
     // it to pending and clear the auto-fulfilled note — otherwise the card would keep claiming it
-    // was fulfilled by an amount that no longer matches what's actually recorded.
+    // was fulfilled by an amount that no longer matches what's actually recorded. Symmetrically, if
+    // editing it UP now covers a still-"pending" pledge, mark it fulfilled -- otherwise a pledge that's
+    // fully paid via an amount correction stays stuck showing "pending" with no way to fix it in the UI.
     const relatedPledge = pledges.find(p => p.id === link.pledge_id)
     if (relatedPledge?.status === 'fulfilled' && newTotal < Number(relatedPledge.amount)) {
       await supabase.from('pledges').update({ status: 'pending', resolution_notes: null }).eq('id', link.pledge_id)
       setPledges(prev => prev.map(p => p.id === link.pledge_id ? { ...p, status: 'pending', resolution_notes: null } : p))
       showToast('Payment updated — pledge reverted to pending (no longer fully covered)')
+    } else if (relatedPledge?.status === 'pending' && newTotal >= Number(relatedPledge.amount)) {
+      const autoNote = `Auto-fulfilled by an amount correction to $${newAmount.toLocaleString()} on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: link.donation_id, resolution_notes: autoNote }).eq('id', link.pledge_id)
+      setPledges(prev => prev.map(p => p.id === link.pledge_id ? { ...p, status: 'fulfilled', fulfilled_donation_id: link.donation_id, resolution_notes: autoNote } : p))
+      showToast('Payment updated — this now fully covers the pledge, marked fulfilled ✓')
     } else {
       showToast('Payment updated ✓')
     }
