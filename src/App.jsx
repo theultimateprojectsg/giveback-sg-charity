@@ -1755,6 +1755,7 @@ export default function App() {
   const [sendingThankYouId, setSendingThankYouId] = useState(null)
   const [thankYouPreviewModal, setThankYouPreviewModal] = useState(null)
   const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
+  const [thankYouSubjectInput, setThankYouSubjectInput] = useState('')
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
   const [editingEmailTemplate, setEditingEmailTemplate] = useState(null)
@@ -1844,6 +1845,7 @@ export default function App() {
   const [confirmModal, setConfirmModal] = useState(null)
   const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
   const [thankYouDraft, setThankYouDraft] = useState(null)
+  const [thankYouDraftPreviewing, setThankYouDraftPreviewing] = useState(false)
   const [rnOutreach, setRnOutreach] = useState(null)
   const [rnSending, setRnSending] = useState(false)
   const [viewEmailNote, setViewEmailNote] = useState(null)
@@ -5199,21 +5201,33 @@ export default function App() {
       </div>`
   }
 
+  function thankYouTemplateTypeFor(donation) {
+    const badgeInfoSend = donationBadgeInfo[donation.id]
+    const isRecurringSend = !!donation.recurring_gift_id
+    return donation.amount > thankYouThreshold ? 'major_gift'
+      : isRecurringSend ? 'recurring_donor'
+      : badgeInfoSend?.isFirstTime ? 'new_donor'
+      : 'standard'
+  }
+
+  function thankYouDefaultsFor(donation) {
+    const type = thankYouTemplateTypeFor(donation)
+    const saved = emailTemplates[type]
+    const vars = { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }
+    return {
+      type,
+      subject: fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[type].subject, vars),
+      body: fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[type].body, vars),
+    }
+  }
+
   async function sendThankYouEmail(donation) {
     if (sendingThankYouId === donation.id) return
     setSendingThankYouId(donation.id)
     let receiptAttachmentB64b = null
     try { receiptAttachmentB64b = getReceiptPDFBase64(donation) } catch (e) { console.error('Could not generate receipt PDF for attachment:', e) }
 
-    const badgeInfoSend = donationBadgeInfo[donation.id]
-    const isRecurringSend = !!donation.recurring_gift_id
-    const templateTypeSend = donation.amount > thankYouThreshold ? 'major_gift'
-      : isRecurringSend ? 'recurring_donor'
-      : badgeInfoSend?.isFirstTime ? 'new_donor'
-      : 'standard'
-
-    const savedThankYou = emailTemplates[templateTypeSend]
-    const thankYouVars = { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }
+    const templateTypeSend = thankYouTemplateTypeFor(donation)
 
     const { error } = await sendCharityEmail({
       donor_name: donation.donor_name,
@@ -5228,11 +5242,12 @@ export default function App() {
       receipt_pdf_base64: receiptAttachmentB64b,
       receipt_filename: `Receipt-${donation.receipt_number || donation.payment_ref || donation.id}.pdf`,
       thank_you_template: templateTypeSend,
-      subject_override: savedThankYou?.subject ? fillTemplate(savedThankYou.subject, thankYouVars) : undefined,
-      custom_message: thankYouCustomMessage?.trim() || (savedThankYou?.body ? fillTemplate(savedThankYou.body, thankYouVars) : null),
+      subject_override: thankYouSubjectInput?.trim() || undefined,
+      custom_message: thankYouCustomMessage?.trim() || null,
     })
     if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     setThankYouCustomMessage('')
+    setThankYouSubjectInput('')
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
     setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
@@ -8166,6 +8181,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setThankYouDraft({
       donor,
       badgeState,
+      subject: fillTemplate(emailTemplates.milestone_thank_you?.subject || EMAIL_TEMPLATE_DEFAULTS.milestone_thank_you.subject, { donor_name: donor.name, charity_name: charityName }),
       text: buildThankYouNote(donor, badgeState),
     })
   }
@@ -10303,7 +10319,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         showToast('Logged as done ✓')
                       }
                       if (isUp) {
-                        moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onDone: markGivingChangeDone, onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
+                        moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onDone: markGivingChangeDone, onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, subject: fillTemplate(emailTemplates.milestone_thank_you?.subject || EMAIL_TEMPLATE_DEFAULTS.milestone_thank_you.subject, { donor_name: selectedDonor.name, charity_name: charityName }), text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
                       } else {
                         moments.push({ icon: '📉', text: `Giving decreased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — check in`, button: 'Check in about decreased giving', onDone: markGivingChangeDone, onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count, givingChangeMeta: { changePct: gcFlag.changePct } }); setShowLapsedReminderModal(true) } })
                       }
@@ -11641,7 +11657,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <button
                             style={{ ...s.btnGold, justifyContent: 'center', opacity: (selectedDonation.thank_you_sent || sendingThankYouId === selectedDonation.id) ? 0.7 : 1, cursor: sendingThankYouId === selectedDonation.id ? 'default' : 'pointer' }}
                             disabled={sendingThankYouId === selectedDonation.id}
-                            onClick={() => { setThankYouCustomMessage(''); setThankYouPreviewModal(selectedDonation) }}
+                            onClick={() => {
+                              const defaults = thankYouDefaultsFor(selectedDonation)
+                              setThankYouSubjectInput(defaults.subject)
+                              setThankYouCustomMessage(defaults.body)
+                              setThankYouPreviewModal(selectedDonation)
+                            }}
                           >{sendingThankYouId === selectedDonation.id ? '⏳ Sending...' : selectedDonation.thank_you_sent ? '💌 Resend Thank You + Receipt' : '💌 Send Thank You + Receipt'}</button>
                         )}
                         {selectedDonation.source === 'manual' && (
@@ -19279,33 +19300,61 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         </div>
       )}
 
-      {thankYouDraft && (
+      {thankYouDraft && !thankYouDraftPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Thank-you note for {thankYouDraft.donor.name}</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setThankYouDraft(null)}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Review and edit before sending. This won't be sent as-is.</div>
             <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} {...senderIdentity} />
-            <textarea
-              style={{ width: '100%', minHeight: 220, padding: '12px 14px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }}
-              value={thankYouDraft.text}
-              onChange={e => setThankYouDraft(prev => ({ ...prev, text: e.target.value }))}
-            />
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setThankYouDraft(null)}>Cancel</button>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <div style={s.formLabel}>Subject</div>
+              <input style={s.formInput} value={thankYouDraft.subject} onChange={e => setThankYouDraft(prev => ({ ...prev, subject: e.target.value }))} />
+            </label>
+            <label style={{ display: 'block', marginBottom: 16 }}>
+              <div style={s.formLabel}>Message</div>
+              <textarea
+                style={{ ...s.formInput, minHeight: 220, resize: 'vertical', fontFamily: 'inherit' }}
+                value={thankYouDraft.text}
+                onChange={e => setThankYouDraft(prev => ({ ...prev, text: e.target.value }))}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={!thankYouDraft.donor.email?.trim()} onClick={() => setThankYouDraftPreviewing(true)}>
+                {thankYouDraft.donor.email?.trim() ? 'Preview email →' : 'No email on file'}
+              </button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouDraft(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {thankYouDraft && thankYouDraftPreviewing && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setThankYouDraft(null); setThankYouDraftPreviewing(false) }}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
+              <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setThankYouDraft(null); setThankYouDraftPreviewing(false) }}>✕</button>
+            </div>
+            <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} {...senderIdentity} />
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, background: C.ivory, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{thankYouDraft.subject}</div>
+              <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{thankYouDraft.text}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
               <button
-                style={{ flex: 1, background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: thankYouDraft.donor.email?.trim() ? 1 : 0.5 }}
-                disabled={!thankYouDraft.donor.email?.trim()}
+                style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }}
                 onClick={async () => {
-                  const { donor, badgeState, text, givingChangeMeta } = thankYouDraft
+                  const { donor, badgeState, subject, text, givingChangeMeta } = thankYouDraft
                   const { error } = await sendCharityEmail({
                     type: 'milestone_thank_you',
                     donor_name: donor.name,
                     donor_email: donor.email,
                     charity_name: charityName,
                     charity_uen: charityUen,
+                    subject_override: subject,
                     custom_message: text,
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
@@ -19323,14 +19372,18 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     if (inserted) {
                       setGivingChangeAckHistory(prev => ({ ...prev, [donorKey]: [inserted, ...(prev[donorKey] || [])] }))
                     }
-                    await logDonorContact(donorKey, `Giving increase thank-you — email sent`, 'email', true, { subject: 'Thank you for your increased gift', body: text })
+                    await logDonorContact(donorKey, `Giving increase thank-you — email sent`, 'email', true, { subject, body: text })
                   } else {
-                    await logDonorContact(donorKey, `Thank-you note sent`, 'email', true, { subject: 'Thank you for your gift', body: text })
+                    await logDonorContact(donorKey, `Thank-you note sent`, 'email', true, { subject, body: text })
                   }
                   setThankYouDraft(null)
+                  setThankYouDraftPreviewing(false)
                   showToast(`Thank-you note sent to ${donor.email}`)
                 }}
-              >💌 {thankYouDraft.donor.email?.trim() ? 'Send' : 'No email on file'}</button>
+              >✓ Send</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouDraftPreviewing(false)}>
+                ← Back to edit
+              </button>
             </div>
           </div>
         </div>
@@ -19358,12 +19411,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
               <button
-                style={{ ...s.btnForest, flex: 2, justifyContent: 'center', opacity: rnOutreach.donorEmail?.trim() ? 1 : 0.5 }}
+                style={{ ...s.btnForest, flex: 1, justifyContent: 'center', opacity: rnOutreach.donorEmail?.trim() ? 1 : 0.5 }}
                 disabled={!rnOutreach.donorEmail?.trim()}
                 onClick={() => setRnOutreach(prev => ({ ...prev, previewing: true }))}
               >{rnOutreach.donorEmail?.trim() ? 'Preview email →' : 'No email on file'}</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
             </div>
             <div style={{ textAlign: 'center', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Reached out another way — a call, in person, or your own email?</div>
@@ -19394,9 +19447,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{rnOutreach.text}</div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(prev => ({ ...prev, previewing: false }))}>← Back to edit</button>
               <button
-                style={{ ...s.btnForest, flex: 2, justifyContent: 'center' }}
+                style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }}
                 disabled={rnSending}
                 onClick={async () => {
                   setRnSending(true)
@@ -19406,7 +19458,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     donor_email: rnOutreach.donorEmail,
                     charity_name: charityName,
                     charity_uen: charityUen,
-                    subject: rnOutreach.subject,
+                    subject_override: rnOutreach.subject,
                     custom_message: rnOutreach.text,
                   })
                   if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
@@ -19415,6 +19467,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
                 }}
               >{rnSending ? 'Sending...' : '✓ Send email'}</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(prev => ({ ...prev, previewing: false }))}>← Back to edit</button>
             </div>
           </div>
         </div>
@@ -19511,19 +19564,23 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
                 <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setThankYouPreviewModal(null)}>✕</button>
               </div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>
-                {d.thank_you_sent ? 'A thank-you was already sent for this donation. ' : ''}Sending to <strong>{d.donor_email}</strong> · Receipt PDF will be attached
-              </div>
+              {d.thank_you_sent && (
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>A thank-you was already sent for this donation.</div>
+              )}
+              <SenderIdentityLine recipientName={d.donor_name} recipientEmail={d.donor_email} {...senderIdentity} />
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <div style={s.formLabel}>Subject</div>
+                <input style={s.formInput} value={thankYouSubjectInput} onChange={e => setThankYouSubjectInput(e.target.value)} />
+              </label>
               <label style={{ display: 'block', marginBottom: 16 }}>
-                <div style={s.formLabel}>Add a personal message (optional)</div>
+                <div style={s.formLabel}>Message</div>
                 <textarea
-                  style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }}
-                  placeholder="This appears inside the email preview below as you type. Leave blank to send the template as-is."
+                  style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }}
                   value={thankYouCustomMessage}
                   onChange={e => setThankYouCustomMessage(e.target.value)}
                 />
               </label>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Email Preview</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Preview · Receipt PDF will be attached</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
                 <iframe
                   srcDoc={fullPreviewHtml}
@@ -19533,7 +19590,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingThankYouId === d.id} onClick={async () => { setThankYouPreviewModal(null); await sendThankYouEmail(d) }}>
-                  {sendingThankYouId === d.id ? 'Sending...' : (d.thank_you_sent ? 'Send again' : 'Send email')}
+                  {sendingThankYouId === d.id ? 'Sending...' : (d.thank_you_sent ? '✓ Send again' : '✓ Send email')}
                 </button>
                 <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewModal(null)}>Cancel</button>
               </div>
