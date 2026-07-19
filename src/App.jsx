@@ -3384,6 +3384,21 @@ export default function App() {
     })
   }
 
+  function openThankYouForFulfilledPledge(pledge) {
+    // Lets staff trigger the completion thank-you at any time after the fact, not just in the
+    // one-shot popup shown the moment a pledge is fulfilled -- closing/skipping that popup
+    // previously meant there was no way to ever send it later.
+    let donation = pledge.fulfilled_donation_id ? donations.find(d => d.id === pledge.fulfilled_donation_id) : null
+    if (!donation) {
+      const links = pledgeDonationLinks[pledge.id] || []
+      const linkedDonations = links.map(l => donations.find(d => d.id === l.donation_id)).filter(Boolean)
+      donation = linkedDonations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+    }
+    if (!donation) { showToast('No linked payment found for this pledge to thank the donor for', 'error'); return }
+    setPledgeCompletionCandidate({ pledge, donation })
+    setShowPledgeThankYouModal(true)
+  }
+
   function cancelPledge(pledge) {
     setPledgeResolutionNotes('')
     setPledgeResolutionModal({ type: 'cancelled', pledge })
@@ -17258,7 +17273,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </div>
                     )}
                     {(p.status === 'fulfilled' || p.status === 'cancelled') && (
-                      <div style={{ padding: '12px 16px', marginTop: 'auto' }}>
+                      <div style={{ padding: '12px 16px', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {p.status === 'fulfilled' && (
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', width: '100%', justifyContent: 'center' }} onClick={() => openThankYouForFulfilledPledge(p)}>✉ Send Thank-You</button>
+                        )}
                         <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', width: '100%', justifyContent: 'center' }} onClick={() => revertPledgeToPending(p)}>↺ Revert to pending</button>
                       </div>
                     )}
