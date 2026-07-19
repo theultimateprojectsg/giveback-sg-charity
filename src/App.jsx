@@ -274,7 +274,7 @@ function SenderIdentityLine({ recipientName, recipientEmail, senderDomainStatus,
   )
 }
 
-function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
+function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes, hasExistingClaims }) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
     funder_name: grant.funder_name || '',
@@ -311,6 +311,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes }) {
     if (unrestricted < 0 || restricted < 0 || matchCap < 0) { setError('Amounts cannot be negative'); return }
     if (form.end_date && form.end_date < form.start_date) { setError('End date cannot be before start date'); return }
     if (form.is_matching && matchCap <= 0) { setError('Match cap is required for a matching grant'); return }
+    if (!form.is_matching && hasExistingClaims) { setError('This grant has matching claims already logged against it — those would become hidden if you turn off "matching grant". Delete the claims first if you really want to unmark it.'); return }
     if (!form.is_matching && (unrestricted + restricted) <= 0) { setError('At least one amount is required'); return }
     if (restricted > 0 && !form.purpose_restriction?.trim()) { setError('Purpose restriction is required when there is a restricted amount'); return }
     setError('')
@@ -2484,11 +2485,12 @@ export default function App() {
   async function saveGrantTranche(grantId, form) {
     if (!form.label.trim() || !form.amount || !form.expected_date) { showToast('Label, amount, and expected date are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
+    const trancheAmount = parseFloat(form.amount)
     const { data, error } = await supabase.from('grant_tranches').insert({
       charity_uen: charityUen,
       grant_id: grantId,
       label: form.label.trim(),
-      amount: parseFloat(form.amount),
+      amount: trancheAmount,
       expected_date: form.expected_date,
     }).select().single()
     if (error) { showToast('Error adding tranche', 'error'); return }
@@ -2496,10 +2498,17 @@ export default function App() {
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'grant_tranche_added',
-      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), amount: parseFloat(form.amount), expected_date: form.expected_date, charity_uen: charityUen },
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), amount: trancheAmount, expected_date: form.expected_date, charity_uen: charityUen },
     })
     setGrantTranches(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
-    showToast('Tranche added ✓')
+    const grantForTranche = grants.find(g => g.id === grantId)
+    const grantTotal = Number(grantForTranche?.amount) || 0
+    const trancheTotalSoFar = (grantTranches[grantId] || []).reduce((s, t) => s + Number(t.amount), 0) + trancheAmount
+    if (grantTotal > 0 && trancheTotalSoFar > grantTotal) {
+      showToast(`Tranche added, but scheduled tranches ($${trancheTotalSoFar.toLocaleString()}) now exceed the grant total ($${grantTotal.toLocaleString()}) ⚠`, 'error')
+    } else {
+      showToast('Tranche added ✓')
+    }
   }
 
   async function toggleGrantTrancheReceived(tranche) {
@@ -2555,10 +2564,11 @@ export default function App() {
   async function saveGrantMatchClaim(grantId, form) {
     if (!form.amount || !form.claim_date) { showToast('Amount and claim date are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
+    const claimAmount = parseFloat(form.amount)
     const { data, error } = await supabase.from('grant_match_claims').insert({
       charity_uen: charityUen,
       grant_id: grantId,
-      amount: parseFloat(form.amount),
+      amount: claimAmount,
       claim_date: form.claim_date,
       notes: form.notes?.trim() || null,
     }).select().single()
@@ -2567,10 +2577,17 @@ export default function App() {
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'grant_match_claim_added',
-      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, amount: parseFloat(form.amount), claim_date: form.claim_date, charity_uen: charityUen },
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, amount: claimAmount, claim_date: form.claim_date, charity_uen: charityUen },
     })
     setGrantMatchClaims(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
-    showToast('Claim logged ✓')
+    const grantForCap = grants.find(g => g.id === grantId)
+    const capNum = Number(grantForCap?.match_cap) || 0
+    const claimedSoFar = (grantMatchClaims[grantId] || []).reduce((s, c) => s + Number(c.amount), 0) + claimAmount
+    if (capNum > 0 && claimedSoFar > capNum) {
+      showToast(`Claim logged, but total claimed ($${claimedSoFar.toLocaleString()}) now exceeds the $${capNum.toLocaleString()} match cap ⚠`, 'error')
+    } else {
+      showToast('Claim logged ✓')
+    }
   }
 
   async function editGrantMatchClaim(claim, updates) {
@@ -2601,10 +2618,11 @@ export default function App() {
   async function saveGrantExpense(grantId, form) {
     if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
+    const expenseAmount = parseFloat(form.amount)
     const { data, error } = await supabase.from('grant_expenses').insert({
       grant_id: grantId,
       description: form.description.trim(),
-      amount: parseFloat(form.amount),
+      amount: expenseAmount,
       expense_date: form.expense_date,
       category: form.category || null,
       created_by: session.user.email,
@@ -2614,10 +2632,17 @@ export default function App() {
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'grant_expense_logged',
-      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, description: form.description.trim(), amount: parseFloat(form.amount), category: form.category || null, charity_uen: charityUen },
+      details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, description: form.description.trim(), amount: expenseAmount, category: form.category || null, charity_uen: charityUen },
     })
     setGrantExpenses(prev => [...prev, data])
-    showToast('Expense logged ✓')
+    const grantForExpense = grants.find(g => g.id === grantId)
+    const grantTotal = Number(grantForExpense?.amount) || 0
+    const spentSoFar = grantExpenses.filter(e => e.grant_id === grantId).reduce((s, e) => s + Number(e.amount), 0) + expenseAmount
+    if (grantTotal > 0 && spentSoFar > grantTotal) {
+      showToast(`Expense logged, but this grant is now over budget: $${spentSoFar.toLocaleString()} spent of $${grantTotal.toLocaleString()} ⚠`, 'error')
+    } else {
+      showToast('Expense logged ✓')
+    }
   }
 
   async function editGrantExpense(expense, updates) {
@@ -2958,7 +2983,7 @@ export default function App() {
 
   function changeGrantStatus(grant, newStatus) {
     const copy = {
-      completed: { title: 'End this grant?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'End Grant' },
+      completed: { title: 'End this grant?', description: `"${grant.funder_name}" will move out of your active grants. Its expenses, tranches, reports, and matching claims stay exactly as they are — nothing is closed out automatically. You can restore it to active later if needed.`, confirmLabel: 'End Grant' },
       active: { title: 'Restore this grant to active?', description: `"${grant.funder_name}" will move back into your active grants.`, confirmLabel: 'Restore' },
     }[newStatus]
     setConfirmModal({ ...copy, onConfirm: () => setGrantStatus(grant, newStatus) })
@@ -2967,7 +2992,7 @@ export default function App() {
   function deleteGrant(grant) {
     setConfirmModal({
       title: 'Delete this grant?',
-      description: `"${grant.funder_name}" (${'$' + Number(grant.amount).toLocaleString()}) will be permanently deleted, along with any expenses logged against it. This cannot be undone.`,
+      description: `"${grant.funder_name}" (${'$' + Number(grant.amount).toLocaleString()}) will be permanently deleted, along with everything logged against it — expenses, disbursement tranches, report deadlines, matching claims, and notes. This cannot be undone.`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
         const { error } = await supabase.from('grant_expenses').delete().eq('grant_id', grant.id)
@@ -12594,7 +12619,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })
 
               const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
-              const grantsReceived = activeGrantsList.reduce((s, g) => s + Number(g.amount), 0)
+              const grantsReceived = activeGrantsList.reduce((s, g) => {
+                if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0)
+                return s + Number(g.amount)
+              }, 0)
               const grantsSpent = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
               const grantsRemaining = grantsReceived - grantsSpent
               const nearestGrantDeadline = activeGrantsList
@@ -17580,6 +17608,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 onSave={(form) => updateGrant(editingGrant.id, form)}
                 onDelete={deleteGrant}
                 causes={myCauses.filter(c => c.type === 'campaign')}
+                hasExistingClaims={(grantMatchClaims[editingGrant.id] || []).length > 0}
               />
             )}
 
@@ -17711,7 +17740,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const myExpenses84 = grantExpensesByGrant[g.id] || []
                 const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
                 const remaining84 = Number(g.amount) - spent84
-                const pctUtilized = Number(g.amount) > 0 ? Math.min(100, Math.round((spent84 / Number(g.amount)) * 100)) : 0
+                const pctUtilizedRaw = Number(g.amount) > 0 ? Math.round((spent84 / Number(g.amount)) * 100) : 0
+                const pctUtilized = Math.min(100, pctUtilizedRaw)
                 const isExpanded84 = expandedGrantId === g.id
                 const myReports = (grantReports[g.id] || [])
                 const myTranches = (grantTranches[g.id] || [])
@@ -17761,26 +17791,31 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: C.forest }}>${Number(g.amount).toLocaleString()}</span>
                           <span style={{ fontSize: 13, color: C.muted }}>utilized</span>
                         </span>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilized}%</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: remaining84 < 0 ? C.red : pctUtilized >= 50 ? C.sage : C.gold }}>{pctUtilizedRaw}%</span>
                       </div>
                       <div style={{ background: C.ivoryDark, borderRadius: 3, height: 7, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.max(pctUtilized, 2)}%`, height: '100%', background: remaining84 < 0 ? C.red : C.sage, borderRadius: 3 }} />
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                        <InfoTip text="Sum of all expenses logged against this grant, from the ledger below." />
+                      <div style={{ fontSize: 11, color: remaining84 < 0 ? C.red : C.muted, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontWeight: remaining84 < 0 ? 500 : 400 }}>
+                        {remaining84 < 0 ? `⚠ Over budget by $${Math.abs(remaining84).toLocaleString()}` : <InfoTip text="Sum of all expenses logged against this grant, from the ledger below." />}
                       </div>
 
-                      {g.is_matching && (
+                      {g.is_matching && (() => {
+                        const capNum84 = Number(g.match_cap) || 0
+                        const claimPct84 = capNum84 > 0 ? Math.round((claimedTotal / capNum84) * 100) : 0
+                        const overCap84 = capNum84 > 0 && claimedTotal > capNum84
+                        return (
                         <div style={{ marginTop: 10, padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                            <span style={{ fontSize: 11.5, color: C.text }}>${claimedTotal.toLocaleString()} claimed of ${Number(g.match_cap || 0).toLocaleString()} cap{g.match_ratio ? ` · ${g.match_ratio}` : ''}</span>
-                            <span style={{ fontSize: 11, fontWeight: 500, color: C.teal }}>{Number(g.match_cap) > 0 ? Math.round((claimedTotal / Number(g.match_cap)) * 100) : 0}%</span>
+                            <span style={{ fontSize: 11.5, color: overCap84 ? C.red : C.text }}>${claimedTotal.toLocaleString()} claimed of ${capNum84.toLocaleString()} cap{g.match_ratio ? ` · ${g.match_ratio}` : ''}{overCap84 ? ' ⚠ over cap' : ''}</span>
+                            <span style={{ fontSize: 11, fontWeight: 500, color: overCap84 ? C.red : C.teal }}>{claimPct84}%</span>
                           </div>
                           <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                            <div style={{ width: `${Number(g.match_cap) > 0 ? Math.min(100, Math.round((claimedTotal / Number(g.match_cap)) * 100)) : 0}%`, height: '100%', background: C.teal, borderRadius: 3 }} />
+                            <div style={{ width: `${Math.min(100, claimPct84)}%`, height: '100%', background: overCap84 ? C.red : C.teal, borderRadius: 3 }} />
                           </div>
                         </div>
-                      )}
+                        )
+                      })()}
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
                         <div>
