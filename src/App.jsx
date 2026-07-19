@@ -453,7 +453,7 @@ function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes, has
   )
 }
 
-function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
+function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge, instalments }) {
   const [form, setForm] = useState({
     donor_name: pledge.donor_name || '',
     donor_email: pledge.donor_email || '',
@@ -465,6 +465,12 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
     is_anonymous: pledge.is_anonymous || false,
     source: pledge.source || '',
   })
+  // Editable per-year instalments for multi-year pledges. Years already marked "received" stay
+  // locked -- correcting those would disturb payment records that have already come in -- but
+  // unreceived years can be corrected here instead of forcing a cancel-and-re-enter.
+  const [instalmentEdits, setInstalmentEdits] = useState(() =>
+    (instalments || []).map(i => ({ ...i, amount: i.amount?.toString() || '' })).sort((a, b) => a.year_number - b.year_number)
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   function handleSave() {
@@ -474,10 +480,18 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
       if (!form.amount || isNaN(amt) || amt <= 0) { setError('Pledged amount must be a positive number'); return }
       if (!form.expected_date) { setError('Expected date is required'); return }
       if (pledge.status === 'pending' && form.expected_date !== pledge.expected_date && new Date(form.expected_date) < new Date(new Date().setHours(0,0,0,0))) { setError('Expected date cannot be in the past — use Reschedule instead if this pledge is already overdue'); return }
+    } else {
+      for (const inst of instalmentEdits) {
+        if (inst.received) continue
+        const amt = parseFloat(inst.amount)
+        if (!inst.amount || isNaN(amt) || amt <= 0) { setError(`Year ${inst.year_number} amount must be a positive number`); return }
+        if (!inst.expected_date) { setError(`Year ${inst.year_number} expected date is required`); return }
+      }
     }
     setError('')
     setSaving(true)
-    Promise.resolve(onSave(form)).finally(() => setSaving(false))
+    const payload = pledge.is_multi_year ? { ...form, instalmentEdits } : form
+    Promise.resolve(onSave(payload)).finally(() => setSaving(false))
   }
   return (
     <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
@@ -499,8 +513,34 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
           <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={form.donor_phone} onChange={e => setForm(f => ({ ...f, donor_phone: e.target.value }))} />
         </div>
         {pledge.is_multi_year ? (
-          <div style={{ marginBottom: 12, fontSize: 12, color: C.muted, background: C.ivory, borderRadius: 4, padding: '8px 10px' }}>
-            Amount and dates for multi-year pledges are governed by the yearly instalments and can't be edited here.
+          <div style={{ marginBottom: 12 }}>
+            <div style={s.formLabel}>Yearly Instalments</div>
+            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Years already marked received are locked to protect recorded payments. Fix a typo on the rest below.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {instalmentEdits.map((inst, idx) => (
+                <div key={inst.id} style={{ display: 'flex', gap: 6, alignItems: 'center', background: inst.received ? C.ivory : C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '6px 8px' }}>
+                  <span style={{ fontSize: 11.5, color: C.muted, width: 42, flexShrink: 0 }}>Yr {inst.year_number}</span>
+                  {inst.received ? (
+                    <span style={{ fontSize: 12, color: C.sage, flex: 1 }}>✓ ${Number(inst.amount).toLocaleString()} received {inst.received_date ? new Date(inst.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        style={{ ...s.formInput, flex: 1, fontSize: 12, padding: '5px 8px' }}
+                        value={inst.amount}
+                        onChange={e => setInstalmentEdits(prev => prev.map((x, i) => i === idx ? { ...x, amount: e.target.value } : x))}
+                      />
+                      <input
+                        type="date"
+                        style={{ ...s.formInput, flex: 1, fontSize: 12, padding: '5px 8px' }}
+                        value={inst.expected_date || ''}
+                        onChange={e => setInstalmentEdits(prev => prev.map((x, i) => i === idx ? { ...x, expected_date: e.target.value } : x))}
+                      />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
@@ -2272,6 +2312,7 @@ export default function App() {
     setSavingPledge(false)
     if (error) { setPledgeError(`Error: ${error.message}`); return }
 
+    let instalmentsFailed = false
     if (pledgeForm.is_multi_year) {
       const instalments = Array.from({ length: years }, (_, i) => ({
         pledge_id: data[0].id,
@@ -2280,28 +2321,62 @@ export default function App() {
         amount: perYearAmount,
       }))
       const { error: instalmentError } = await supabase.from('pledge_instalments').insert(instalments)
-      if (instalmentError) console.error('Error creating instalments:', instalmentError)
+      if (instalmentError) { console.error('Error creating instalments:', instalmentError); instalmentsFailed = true }
     }
 
     setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
     setPledgeForm({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
     setShowPledgeForm(false)
-    showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
+    // A failed instalment insert would otherwise leave a multi-year pledge with no instalment
+    // rows at all -- invisible to every outstanding/overdue calculation from that point on --
+    // so this must be surfaced loudly rather than only logged to the console.
+    if (instalmentsFailed) {
+      showToast('Pledge saved, but its yearly instalments failed to save — edit the pledge to add them, or delete and re-create it', 'error')
+    } else {
+      showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
+    }
     loadPledgeInstalments()
   }
 
   async function updatePledge(pledgeId, form) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
-    if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
-    if (!form.expected_date) { showToast('Expected date is required', 'error'); return }
     const donorKey = form.donor_email?.trim() || form.donor_name.trim()
+
+    let amount = parseFloat(form.amount)
+    let expectedDate = form.expected_date
+
+    if (form.instalmentEdits) {
+      // Multi-year pledge: persist each corrected (not-yet-received) instalment, then recompute
+      // the parent pledge's total amount and expected date (earliest unreceived instalment) from
+      // the full set, so they stay in sync with what's actually recorded per year.
+      for (const inst of form.instalmentEdits) {
+        if (inst.received) continue
+        const { error: instError } = await supabase.from('pledge_instalments').update({
+          amount: parseFloat(inst.amount),
+          expected_date: inst.expected_date,
+        }).eq('id', inst.id)
+        if (instError) { showToast(`Error saving Year ${inst.year_number} instalment`, 'error'); return }
+      }
+      amount = form.instalmentEdits.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0)
+      const unreceived = form.instalmentEdits.filter(i => !i.received).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date))
+      expectedDate = unreceived[0]?.expected_date || form.instalmentEdits[0]?.expected_date || expectedDate
+      setPledgeInstalments(prev => prev.map(i => {
+        if (i.pledge_id !== pledgeId) return i
+        const edited = form.instalmentEdits.find(e => e.id === i.id)
+        return edited && !edited.received ? { ...i, amount: parseFloat(edited.amount), expected_date: edited.expected_date } : i
+      }))
+    } else {
+      if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+      if (!expectedDate) { showToast('Expected date is required', 'error'); return }
+    }
+
     const { data, error } = await supabase.from('pledges').update({
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
       donor_phone: form.donor_phone?.trim() || null,
       donor_key: donorKey,
-      amount: parseFloat(form.amount),
-      expected_date: form.expected_date,
+      amount,
+      expected_date: expectedDate,
       notes: form.notes?.trim() || null,
       cause_id: form.cause_id || null,
       is_anonymous: form.is_anonymous || false,
@@ -16755,7 +16830,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {editingPledge && (
-              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} causes={myCauses} onCancelPledge={cancelPledge} />
+              <EditPledgeModal pledge={editingPledge} onClose={() => setEditingPledge(null)} onSave={(form) => updatePledge(editingPledge.id, form)} causes={myCauses} onCancelPledge={cancelPledge} instalments={pledgeInstalments.filter(i => i.pledge_id === editingPledge.id)} />
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
