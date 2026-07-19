@@ -14604,7 +14604,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const quiet = quietDonorsStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>🤫 Quiet Donors</div>
+                    <div style={s.analyticsCardTitle}>Quiet Donors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
                     {quiet.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
@@ -14695,7 +14695,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (owedDonations.length === 0) return null
                 return (
                   <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}`, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
-                    <div style={s.analyticsCardTitle}>💌 Silent Thank-You Debt</div>
+                    <div style={s.analyticsCardTitle}>Silent Thank-You Debt</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
                     <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
                     <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
@@ -14711,7 +14711,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div id="donor-highlights-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
-                    <div style={s.analyticsCardTitle}>🌟 Donor Highlights — {filterYear}</div>
+                    <div style={s.analyticsCardTitle}>Donor Highlights — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
                       {cards.map((c, i) => (
@@ -14738,7 +14738,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const streaks = givingStreaksStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>🔥 Giving Streaks</div>
+                    <div style={s.analyticsCardTitle}>Giving Streaks</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors who've given in 3 or more consecutive months — your most dependable supporters, regardless of gift size.</div>
                     {streaks.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
@@ -14763,7 +14763,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Donor Composition & Analysis</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🏆 Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -14832,7 +14832,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>💳 How Donors Are Paying — {filterYear}</div>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
                       {rows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
                     </div>
@@ -14878,7 +14878,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>⚖️ Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
                       <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
                         <option value={5}>Top 5</option>
                         <option value={10}>Top 10</option>
@@ -14886,7 +14886,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       </select>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 34, fontWeight: 500, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2, lineHeight: 1 }}>{concentrationPct}%</div>
+                      <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2 }}>{concentrationPct}%</div>
                       {concentrationTrend !== null && (
                         <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
                           {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
@@ -14969,7 +14969,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
 
               <div style={{ ...s.card, marginBottom: 0 }}>
-                <div style={s.analyticsCardTitle}>💰 Donation Size Breakdown — {filterYear}</div>
+                <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
                   {donationSizeBreakdownStats.map((bucket, i) => (
