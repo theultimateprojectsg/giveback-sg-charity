@@ -18363,6 +18363,79 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               )}
 
+              {settingsSection === 'templates' && (
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6, maxWidth: 640 }}>
+                  Customize the subject and wording of your automated donor emails. Use tokens like <code>{'{{donor_name}}'}</code> — they're swapped for real values when each email sends. Leave a template untouched to keep our default wording.
+                </div>
+                {EMAIL_TEMPLATE_DEFS.map(group => (
+                  <div key={group.group} style={{ marginBottom: 22 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: C.muted, marginBottom: 8 }}>{group.group}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                    {group.items.map(t => {
+                      const saved = emailTemplates[t.key]
+                      const isEditing = editingEmailTemplate === t.key
+                      return (
+                        <div key={t.key} style={{ ...s.card, gridColumn: isEditing ? '1 / -1' : 'auto' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>
+                                {t.label}
+                                {saved && <span style={{ fontSize: 10, fontWeight: 600, color: C.sage, marginLeft: 8 }}>● Customized</span>}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{t.description}</div>
+                            </div>
+                            {!isEditing && (
+                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
+                                setEditingEmailTemplate(t.key)
+                                setEmailTemplateSubjectInput(saved?.subject || '')
+                                setEmailTemplateBodyInput(saved?.body || '')
+                              }}>Edit</button>
+                            )}
+                          </div>
+                          {isEditing && (
+                            <div style={{ marginTop: 14 }}>
+                              <label style={{ display: 'block', marginBottom: 10 }}>
+                                <div style={s.formLabel}>Subject</div>
+                                <input style={s.formInput} value={emailTemplateSubjectInput} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
+                              </label>
+                              <label style={{ display: 'block', marginBottom: 8 }}>
+                                <div style={s.formLabel}>Body</div>
+                                <textarea style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
+                              </label>
+                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+                                Available tokens: {t.tokens.map(tok => <code key={tok} style={{ marginRight: 6 }}>{`{{${tok}}}`}</code>)}
+                              </div>
+                              {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim()) && (
+                                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                                  <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8 }}>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                                  <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <button style={s.issueBtn} onClick={() => {
+                                  const trimmedSubject = emailTemplateSubjectInput.trim()
+                                  const trimmedBody = emailTemplateBodyInput.trim()
+                                  saveEmailTemplate(t.key, (trimmedSubject || trimmedBody) ? { subject: trimmedSubject, body: trimmedBody } : null)
+                                  setEditingEmailTemplate(null)
+                                }}>Save</button>
+                                <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
+                                {saved && (
+                                  <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { saveEmailTemplate(t.key, null); setEditingEmailTemplate(null) }}>Reset to default</button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              )}
+
               </div>
             )}
           </div>
@@ -18474,78 +18547,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
             )}
 
-              {settingsSection === 'templates' && (
-              <div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6, maxWidth: 640 }}>
-                  Customize the subject and wording of your automated donor emails. Use tokens like <code>{'{{donor_name}}'}</code> — they're swapped for real values when each email sends. Leave a template untouched to keep our default wording.
-                </div>
-                {EMAIL_TEMPLATE_DEFS.map(group => (
-                  <div key={group.group} style={{ marginBottom: 22 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: C.muted, marginBottom: 8 }}>{group.group}</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-                    {group.items.map(t => {
-                      const saved = emailTemplates[t.key]
-                      const isEditing = editingEmailTemplate === t.key
-                      return (
-                        <div key={t.key} style={{ ...s.card, gridColumn: isEditing ? '1 / -1' : 'auto' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>
-                                {t.label}
-                                {saved && <span style={{ fontSize: 10, fontWeight: 600, color: C.sage, marginLeft: 8 }}>● Customized</span>}
-                              </div>
-                              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{t.description}</div>
-                            </div>
-                            {!isEditing && (
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
-                                setEditingEmailTemplate(t.key)
-                                setEmailTemplateSubjectInput(saved?.subject || '')
-                                setEmailTemplateBodyInput(saved?.body || '')
-                              }}>Edit</button>
-                            )}
-                          </div>
-                          {isEditing && (
-                            <div style={{ marginTop: 14 }}>
-                              <label style={{ display: 'block', marginBottom: 10 }}>
-                                <div style={s.formLabel}>Subject</div>
-                                <input style={s.formInput} value={emailTemplateSubjectInput} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
-                              </label>
-                              <label style={{ display: 'block', marginBottom: 8 }}>
-                                <div style={s.formLabel}>Body</div>
-                                <textarea style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
-                              </label>
-                              <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
-                                Available tokens: {t.tokens.map(tok => <code key={tok} style={{ marginRight: 6 }}>{`{{${tok}}}`}</code>)}
-                              </div>
-                              {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim()) && (
-                                <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
-                                  <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
-                                  <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8 }}>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
-                                  <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
-                                </div>
-                              )}
-                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                <button style={s.issueBtn} onClick={() => {
-                                  const trimmedSubject = emailTemplateSubjectInput.trim()
-                                  const trimmedBody = emailTemplateBodyInput.trim()
-                                  saveEmailTemplate(t.key, (trimmedSubject || trimmedBody) ? { subject: trimmedSubject, body: trimmedBody } : null)
-                                  setEditingEmailTemplate(null)
-                                }}>Save</button>
-                                <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
-                                {saved && (
-                                  <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { saveEmailTemplate(t.key, null); setEditingEmailTemplate(null) }}>Reset to default</button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              )}
           </div>
         </div>
       )}
