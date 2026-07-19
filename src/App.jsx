@@ -15847,7 +15847,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => permanentlyDeleteCause(c)}>🗑 Delete permanently</button>
                         </div>
                       )}
-                      {(c.status === 'completed' || c.status === 'rejected') && (
+                      {c.status === 'completed' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                        </div>
+                      )}
+                      {c.status === 'rejected' && (
                         <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', color: C.red, borderColor: C.red, width: '100%', justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
                       )}
                     </div>
