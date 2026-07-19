@@ -13082,7 +13082,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                               )}
                             </div>
 
-                            <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Notable</div>
+                            <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                               {appealReliant.map((r, i) => (
                                 <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
@@ -14513,7 +14513,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Needs Attention</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.red }}>Needs Attention</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
               {(() => {
                 const lapsedToday = new Date()
@@ -14704,7 +14704,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               })()}
               </div>
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.sage, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Recognition & Stewardship</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.sage }}>Recognition & Stewardship</div>
               {(() => {
                 const cards = donorHighlightsStats
                 if (cards.length === 0) return null
@@ -14760,7 +14760,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 )
               })()}
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.teal, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Donor Composition & Analysis</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Donor Composition & Analysis</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>🏆 Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
