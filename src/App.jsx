@@ -152,11 +152,11 @@ function fillTemplate(str, vars) {
 
 const EMAIL_TEMPLATE_DEFS = [
   { group: 'Donation Receipts', items: [
-    { key: 'standard', label: 'Standard Receipt', description: 'Sent for a regular donation.', tokens: ['donor_name', 'charity_name', 'amount', 'date', 'cause_title'] },
-    { key: 'major_gift', label: 'Major Gift', description: 'Sent when a single gift is at or above your major gift threshold.', tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
-    { key: 'new_donor', label: 'First-Time Donor', description: "Sent to a donor's very first gift.", tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
-    { key: 'recurring_donor', label: 'Recurring Donor', description: 'Sent for donors with an ongoing giving history.', tokens: ['donor_name', 'charity_name', 'amount'] },
-    { key: 'nric_request', label: 'NRIC Request', description: 'Sent asking a donor to provide their NRIC for tax deduction.', tokens: ['donor_name', 'charity_name', 'amount', 'date'] },
+    { key: 'standard', label: 'Standard Receipt', description: 'Sent for a regular donation. The donation details (amount, date, tax info) are always included automatically — the body below is an optional extra note added above them.', tokens: ['donor_name', 'charity_name', 'amount', 'date', 'cause_title'] },
+    { key: 'major_gift', label: 'Major Gift', description: 'Sent when a single gift is at or above your major gift threshold. The donation details are always included automatically — the body below is an optional extra note added above them.', tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
+    { key: 'new_donor', label: 'First-Time Donor', description: "Sent to a donor's very first gift. The donation details are always included automatically — the body below is an optional extra note added above them.", tokens: ['donor_name', 'charity_name', 'amount', 'cause_title'] },
+    { key: 'recurring_donor', label: 'Recurring Donor', description: 'Sent for donors with an ongoing giving history. The donation details are always included automatically — the body below is an optional extra note added above them.', tokens: ['donor_name', 'charity_name', 'amount'] },
+    { key: 'nric_request', label: 'NRIC Request', description: 'Sent asking a donor to provide their NRIC for tax deduction. The explanation is always included automatically — the body below is an optional extra note added above it.', tokens: ['donor_name', 'charity_name', 'amount', 'date'] },
   ]},
   { group: 'Pledges', items: [
     { key: 'pledge_thank_you', label: 'Pledge Fulfilled', description: 'Sent when a donor completes a pledge.', tokens: ['donor_name', 'charity_name', 'pledge_amount'] },
@@ -179,23 +179,23 @@ const EMAIL_TEMPLATE_DEFS = [
 const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
-    body: "Dear {{donor_name}},\n\nThank you so much for thinking of us. Gifts like yours don't just cover a line item in a budget — they let us keep showing up for the people and causes we care about, and today that's a little easier because of you.\n\nWith warm thanks,\n{{charity_name}}",
+    body: '',
   },
   major_gift: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nWe had to pause for a moment when we saw your gift come through. A gesture this generous doesn't just help — it changes what we're able to do, and we don't take that lightly. On behalf of everyone at {{charity_name}}, thank you.\n\nWith deep gratitude,\n{{charity_name}}",
+    body: '',
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nWelcome — and thank you. Your first gift means more than the number on this receipt; it's the start of you becoming part of our story, and we're genuinely glad you're here. We hope this is the first of many moments we get to share with you.\n\nWarmly,\n{{charity_name}}",
+    body: '',
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nWe noticed your gift come through again, and we don't want that kind of steady, quiet generosity to go unnoticed. Support like yours is what lets us plan ahead with confidence instead of crossing our fingers. Thank you for sticking with us.\n\nWith continued gratitude,\n{{charity_name}}",
+    body: '',
   },
   nric_request: {
     subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
-    body: "Dear {{donor_name}},\n\nOne small thing before we close the loop on your gift — to pass along the 250% tax deduction you're entitled to, we'll need your NRIC/FIN number. You can add it in just a minute by logging in to your Giving Tree profile and updating it under the Profile tab.\n\nThanks for taking care of this — and again, for your generosity.\n\n{{charity_name}}",
+    body: '',
   },
   milestone_thank_you: {
     subject: 'A note from {{charity_name}} 💚',
@@ -19573,9 +19573,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <input style={s.formInput} value={thankYouSubjectInput} onChange={e => setThankYouSubjectInput(e.target.value)} />
               </label>
               <label style={{ display: 'block', marginBottom: 16 }}>
-                <div style={s.formLabel}>Message</div>
+                <div style={s.formLabel}>Add a personal message (optional)</div>
                 <textarea
                   style={{ ...s.formInput, minHeight: 260, resize: 'vertical' }}
+                  placeholder="Appears above the donation details in the email. Leave blank to send just the receipt."
                   value={thankYouCustomMessage}
                   onChange={e => setThankYouCustomMessage(e.target.value)}
                 />
