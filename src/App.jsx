@@ -3974,6 +3974,27 @@ export default function App() {
     })
   }
 
+  function restoreCancelledRecurringGift(gift) {
+    setConfirmModal({
+      title: 'Restore this recurring gift?',
+      description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked active again.`,
+      confirmLabel: 'Restore',
+      onConfirm: async () => {
+        const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
+        const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, cancelled_at: null }).eq('id', gift.id)
+        if (error) { showToast('Error restoring', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'recurring_gift_restored',
+          details: { donor_name: gift.donor_name, charity_uen: charityUen },
+        })
+        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected, cancelled_at: null } : g))
+        showToast(`${gift.donor_name}'s recurring gift restored ✓`)
+      },
+    })
+  }
+
   function recordFailedDeduction(gift) {
     setFailedDeductionReason('Insufficient funds')
     setFailedDeductionModal(gift)
@@ -16443,6 +16464,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ padding: '12px 16px', display: 'flex', gap: 6, marginTop: 'auto' }}>
                         <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => reactivateRecurringGift(g)}>▶ Reactivate</button>
                         <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingRecurringGift(g)}>✏️ Edit</button>
+                      </div>
+                    )}
+                    {g.status === 'cancelled' && (
+                      <div style={{ padding: '12px 16px', marginTop: 'auto' }}>
+                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', width: '100%', justifyContent: 'center' }} onClick={() => restoreCancelledRecurringGift(g)}>↺ Restore</button>
                       </div>
                     )}
                   </div>
