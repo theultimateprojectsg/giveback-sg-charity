@@ -848,7 +848,7 @@ function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense
     <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expenses</div>
-        {cause.cost > 0 && <div style={{ fontSize: 11, color: C.muted }}>${spent.toLocaleString()} logged of ${Number(cause.cost).toLocaleString()} budget</div>}
+        {cause.cost > 0 && <div style={{ fontSize: 11, color: spent > Number(cause.cost) ? C.red : C.muted, fontWeight: spent > Number(cause.cost) ? 500 : 400 }}>{spent > Number(cause.cost) ? '⚠ ' : ''}${spent.toLocaleString()} logged of ${Number(cause.cost).toLocaleString()} budget</div>}
       </div>
       {expenses.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
@@ -2331,10 +2331,11 @@ export default function App() {
   async function saveCampaignExpense(causeId, form) {
     if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
+    const expenseAmount = parseFloat(form.amount)
     const { data, error } = await supabase.from('campaign_expenses').insert({
       cause_id: causeId,
       description: form.description.trim(),
-      amount: parseFloat(form.amount),
+      amount: expenseAmount,
       expense_date: form.expense_date,
       category: form.category || null,
       created_by: session.user.email,
@@ -2344,10 +2345,17 @@ export default function App() {
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'campaign_expense_logged',
-      details: { campaign_title: myCauses.find(c => c.id === causeId)?.title, description: form.description.trim(), amount: parseFloat(form.amount), category: form.category || null, charity_uen: charityUen },
+      details: { campaign_title: myCauses.find(c => c.id === causeId)?.title, description: form.description.trim(), amount: expenseAmount, category: form.category || null, charity_uen: charityUen },
     })
     setCampaignExpenses(prev => [...prev, data])
-    showToast('Expense logged ✓')
+    const causeForBudget = myCauses.find(c => c.id === causeId)
+    const budget = Number(causeForBudget?.cost) || 0
+    const spentSoFar = campaignExpenses.filter(e => e.cause_id === causeId).reduce((s, e) => s + Number(e.amount), 0) + expenseAmount
+    if (budget > 0 && spentSoFar > budget) {
+      showToast(`Expense logged, but this campaign is now over budget: $${spentSoFar.toLocaleString()} spent of $${budget.toLocaleString()} ⚠`, 'error')
+    } else {
+      showToast('Expense logged ✓')
+    }
   }
 
   async function editCampaignExpense(expense, updates) {
@@ -4178,19 +4186,29 @@ export default function App() {
     showToast('Campaign marked complete ✓')
   }
 
-  async function restoreCause(c) {
-    setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').update({ status: 'approved', active: true }).eq('id', c.id)
-    setBulkActionInProgress(false)
-    if (error) { showToast('Error restoring campaign', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'cause_restored',
-      details: { title: c.title, charity_uen: charityUen },
+  function restoreCause(c) {
+    const isPastEndDate = c.end_date && new Date(c.end_date) < new Date()
+    setConfirmModal({
+      title: 'Restore this campaign?',
+      description: isPastEndDate
+        ? `"${c.title}" will be restored, but its end date (${new Date(c.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}) has already passed, so it won't accept new donations as "live" until you edit it with a new end date.`
+        : `"${c.title}" will move back into your active campaigns.`,
+      confirmLabel: 'Restore',
+      onConfirm: async () => {
+        setBulkActionInProgress(true)
+        const { error } = await supabase.from('causes').update({ status: 'approved', active: true }).eq('id', c.id)
+        setBulkActionInProgress(false)
+        if (error) { showToast('Error restoring campaign', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'cause_restored',
+          details: { title: c.title, charity_uen: charityUen },
+        })
+        loadMyCauses()
+        showToast(`"${c.title}" restored ✓`)
+      },
     })
-    loadMyCauses()
-    showToast(`"${c.title}" restored ✓`)
   }
 
   async function permanentlyDeleteCause(c) {
@@ -4208,13 +4226,13 @@ export default function App() {
       title: 'Permanently delete this campaign?',
       description: `This cannot be undone. "${c.title}" will be completely removed, not just hidden.`,
       confirmLabel: 'Permanently Delete',
-      onConfirm: () => permanentlyDeleteCauseConfirmed(c.id),
+      onConfirm: () => permanentlyDeleteCauseConfirmed(c),
     })
   }
 
-  async function permanentlyDeleteCauseConfirmed(id) {
+  async function permanentlyDeleteCauseConfirmed(c) {
     setBulkActionInProgress(true)
-    const { error } = await supabase.from('causes').delete().eq('id', id)
+    const { error } = await supabase.from('causes').delete().eq('id', c.id)
     setBulkActionInProgress(false)
     if (error) {
       showToast(error.message.includes('foreign key') ? 'Cannot delete — donations are still linked to this campaign' : 'Error deleting campaign', 'error')
@@ -4224,9 +4242,9 @@ export default function App() {
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'cause_permanently_deleted',
-      details: { title: undefined, charity_uen: charityUen },
+      details: { title: c.title, charity_uen: charityUen },
     })
-    setMyCauses(prev => prev.filter(c => c.id !== id))
+    setMyCauses(prev => prev.filter(x => x.id !== c.id))
     showToast('Campaign permanently deleted')
   }
 
@@ -4254,6 +4272,7 @@ export default function App() {
       permit_status: c.permit_status || 'not_required',
       permit_expiry: c.permit_expiry || '',
       editingId: c.id,
+      editingStatus: c.status,
     })
     setShowCampaignModal(true)
   }
@@ -4269,6 +4288,8 @@ export default function App() {
     if (causeForm.cost && (isNaN(parseFloat(causeForm.cost)) || parseFloat(causeForm.cost) < 0)) { setCauseError('Cost must be a positive number'); return }
     if (causeForm.benefit_value && (isNaN(parseFloat(causeForm.benefit_value)) || parseFloat(causeForm.benefit_value) < 0)) { setCauseError('Benefit value must be a positive number'); return }
     if (causeForm.start_date && causeForm.end_date && causeForm.end_date < causeForm.start_date) { setCauseError('End date cannot be before start date'); return }
+    if (causeForm.permit_status !== 'not_required' && !causeForm.permit_number?.trim()) { setCauseError('Permit number is required when a permit is applied for or obtained'); return }
+    if (causeForm.permit_status !== 'not_required' && !causeForm.permit_expiry) { setCauseError('Permit expiry date is required when a permit is applied for or obtained'); return }
     setSavingCause(true)
     setCauseError('')
 
@@ -4282,10 +4303,11 @@ export default function App() {
         cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
         category: causeForm.category || null,
         tax_deductible: charityIsIpc ? causeForm.tax_deductible : false,
-        benefit_value: causeForm.benefit_value ? parseFloat(causeForm.benefit_value) : 0,
+        benefit_value: (charityIsIpc && causeForm.tax_deductible && causeForm.benefit_value) ? parseFloat(causeForm.benefit_value) : 0,
         permit_number: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_number || null),
         permit_status: causeForm.permit_status,
         permit_expiry: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_expiry || null),
+        ...(causeForm.editingStatus === 'rejected' ? { status: 'approved', active: true } : {}),
       }).eq('id', causeForm.editingId)
       setSavingCause(false)
       if (error) { setCauseError(`Error: ${error.message}`); return }
@@ -4312,7 +4334,7 @@ export default function App() {
       cost: causeForm.cost ? parseFloat(causeForm.cost) : 0,
       category: causeForm.category || null,
       tax_deductible: charityIsIpc ? causeForm.tax_deductible : false,
-      benefit_value: causeForm.benefit_value ? parseFloat(causeForm.benefit_value) : 0,
+      benefit_value: (charityIsIpc && causeForm.tax_deductible && causeForm.benefit_value) ? parseFloat(causeForm.benefit_value) : 0,
       permit_number: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_number || null),
       permit_status: causeForm.permit_status,
       permit_expiry: causeForm.permit_status === 'not_required' ? null : (causeForm.permit_expiry || null),
@@ -10995,7 +11017,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <label style={{ display: 'block' }}><div style={s.formLabel}>Cause (Optional)</div>
                       <select style={s.formInput} value={manualForm.cause_id} onChange={e => setManualForm(f => ({ ...f, cause_id: e.target.value }))}>
                         <option value="">General Donation</option>
-                        {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                        {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => (
                           <option key={c.id} value={c.id}>{c.title}</option>
                         ))}
                       </select>
@@ -12676,10 +12698,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
               const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
               const behindPaceCampaigns = liveCampaignsList.filter(c => {
+                // Matches the Campaigns page's own time-proportional pace calculation exactly --
+                // a flat "under 40% raised" threshold previously flagged brand-new campaigns as
+                // "behind pace" on day one, disagreeing with the Campaigns page's own verdict.
+                if (!(c.target_amount > 0 && c.end_date)) return false
                 const stats = causeRaisedMap[c.id] || { total: 0 }
-                const goal = c.target_amount || 0
-                const pct = goal > 0 ? (stats.total / goal) * 100 : 100
-                return goal > 0 && pct < 40
+                const pct = Math.min(100, (stats.total / c.target_amount) * 100)
+                const periodStart = new Date(c.start_date || c.created_at)
+                const totalDuration = new Date(c.end_date) - periodStart
+                const elapsed = now03 - periodStart
+                const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
+                return pct < elapsedPct - 15
               })
 
               const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
@@ -15983,6 +16012,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           </div>
                         </>
                       )}
+                      {c.status === 'approved' && !isActive && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ fontSize: 11, color: C.muted }}>Its end date has passed — mark it complete, or edit to extend the date.</div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => completeCause(c, raised)}>✓ Complete</button>
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit</button>
+                            <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                          </div>
+                        </div>
+                      )}
                       {c.status === 'deleted' && (
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button style={{ ...s.issueBtn, fontSize: 12, fontWeight: 500, padding: '8px 10px', flex: 1, justifyContent: 'center' }} onClick={() => restoreCause(c)}>↺ Restore</button>
@@ -15996,7 +16035,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       )}
                       {c.status === 'rejected' && (
-                        <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 10px', color: C.red, borderColor: C.red, width: '100%', justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => requestRevision(c)}>✏️ Edit &amp; Resubmit</button>
+                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', color: C.red, borderColor: C.red, flex: 1, justifyContent: 'center' }} onClick={() => deleteCause(c.id)}>Delete</button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -17503,7 +17545,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={s.formLabel}>Campaign (Optional)</div>
                     <select style={s.formInput} value={massAppealForm.cause_id} onChange={e => setMassAppealForm(f => ({ ...f, cause_id: e.target.value }))}>
                       <option value="">No specific campaign — give it a name below</option>
-                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => (
                         <option key={c.id} value={c.id}>{c.title}</option>
                       ))}
                     </select>
@@ -19913,7 +19955,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <label style={{ display: 'block' }}><div style={s.formLabel}>Cause (Optional)</div>
                     <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
                       <option value="">General Donation</option>
-                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign').map(c => (
+                      {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => (
                         <option key={c.id} value={c.id}>{c.title}</option>
                       ))}
                     </select>
