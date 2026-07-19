@@ -3446,13 +3446,37 @@ export default function App() {
     }
   }
 
+  function addMonthsClamped(date, monthsToAdd) {
+    // Plain Date.setMonth overflows for day-of-month values the target month doesn't have
+    // (e.g. Jan 31 + 1 month naively becomes Mar 3, not Feb 28) -- clamp to the target month's
+    // actual last day instead, so month-end and leap-day donors don't silently drift late.
+    const day = date.getDate()
+    const next = new Date(date.getFullYear(), date.getMonth() + monthsToAdd, 1)
+    const lastDayOfTargetMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()
+    next.setDate(Math.min(day, lastDayOfTargetMonth))
+    return next
+  }
+
+  function monthlyEquivalentAmount(g) {
+    // Normalizes any recurring gift's cadence to a monthly-equivalent amount, so MRR-style
+    // totals are comparable across weekly/monthly/quarterly/annual gifts of any type instead
+    // of just summing raw per-cycle amounts (which understates weekly gifts ~13x and
+    // overstates annual gifts ~12x when treated as if they recur monthly).
+    const amt = Number(g.amount) || 0
+    if (g.frequency === 'weekly') return amt * 4.33
+    if (g.frequency === 'quarterly') return amt / 3
+    if (g.frequency === 'annually') return amt / 12
+    return amt
+  }
+
   function computeNextExpectedDate(startDate, frequency, lastReceivedDate) {
     const base = lastReceivedDate ? new Date(lastReceivedDate) : new Date(startDate)
-    const next = new Date(base)
-    if (frequency === 'weekly')      next.setDate(next.getDate() + 7)
-    else if (frequency === 'monthly') next.setMonth(next.getMonth() + 1)
-    else if (frequency === 'quarterly') next.setMonth(next.getMonth() + 3)
-    else if (frequency === 'annually') next.setFullYear(next.getFullYear() + 1)
+    let next
+    if (frequency === 'weekly') { next = new Date(base); next.setDate(next.getDate() + 7) }
+    else if (frequency === 'monthly') next = addMonthsClamped(base, 1)
+    else if (frequency === 'quarterly') next = addMonthsClamped(base, 3)
+    else if (frequency === 'annually') next = addMonthsClamped(base, 12)
+    else next = new Date(base)
     return next.toISOString().split('T')[0]
   }
 
@@ -3507,7 +3531,9 @@ export default function App() {
     if (form.type === 'giro' && !form.giro_reference?.trim()) { showToast('GIRO reference / account is required for GIRO gifts', 'error'); return }
     if (form.type === 'other' && !form.type_detail?.trim()) { showToast('Please describe what "Other" means for this gift', 'error'); return }
     setSavingRecurring(true)
-    const { data, error } = await supabase.from('recurring_gifts').update({
+    const originalGift = recurringGifts.find(g => g.id === giftId)
+    const cadenceChanged = originalGift && (originalGift.frequency !== form.frequency || originalGift.start_date !== form.start_date)
+    const updatePayload = {
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
       donor_phone: form.donor_phone?.trim() || null,
@@ -3523,7 +3549,11 @@ export default function App() {
       bank_name: form.bank_name?.trim() || null,
       authorization_status: form.authorization_status,
       notes: form.notes?.trim() || null,
-    }).eq('id', giftId).select().single()
+    }
+    // A changed frequency or start date makes the previously stored next_expected_date stale --
+    // recompute it so the card doesn't keep nagging "overdue" using the old cadence.
+    if (cadenceChanged) updatePayload.next_expected_date = nextExpectedFromToday(form.start_date, form.frequency, originalGift.last_received_date)
+    const { data, error } = await supabase.from('recurring_gifts').update(updatePayload).eq('id', giftId).select().single()
     setSavingRecurring(false)
     if (error) { showToast(`Error: ${error.message}`, 'error'); return }
     await supabase.from('audit_log').insert({
@@ -3976,18 +4006,38 @@ export default function App() {
     setPauseGiftModal(null)
   }
 
-  async function reactivateRecurringGift(gift) {
-    const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
-    const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null }).eq('id', gift.id)
-    if (error) { showToast('Error reactivating', 'error'); return }
-    await supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'recurring_gift_reactivated',
-      details: { donor_name: gift.donor_name, charity_uen: charityUen },
+  function nextExpectedFromToday(startDate, frequency, lastReceivedDate) {
+    // Reactivating/restoring a gift that's been paused or cancelled for a while shouldn't
+    // immediately show it as overdue -- roll the projected date forward past today first.
+    let candidate = computeNextExpectedDate(startDate, frequency, lastReceivedDate)
+    const today = new Date(new Date().toDateString())
+    let guard = 0
+    while (new Date(candidate) < today && guard < 500) {
+      candidate = computeNextExpectedDate(startDate, frequency, candidate)
+      guard++
+    }
+    return candidate
+  }
+
+  function reactivateRecurringGift(gift) {
+    setConfirmModal({
+      title: 'Reactivate this recurring gift?',
+      description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will resume. The next expected date will be set to the next upcoming cycle, not the paused period.`,
+      confirmLabel: 'Reactivate',
+      onConfirm: async () => {
+        const nextExpected = nextExpectedFromToday(gift.start_date, gift.frequency, gift.last_received_date)
+        const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null }).eq('id', gift.id)
+        if (error) { showToast('Error reactivating', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'recurring_gift_reactivated',
+          details: { donor_name: gift.donor_name, charity_uen: charityUen },
+        })
+        setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null } : g))
+        showToast(`${gift.donor_name}'s recurring gift reactivated ✓`)
+      },
     })
-    setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'active', next_expected_date: nextExpected, pause_reason: null, pause_resume_date: null } : g))
-    showToast(`${gift.donor_name}'s recurring gift reactivated ✓`)
   }
 
   async function cancelRecurringGift(gift) {
@@ -4010,7 +4060,7 @@ export default function App() {
       description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked active again.`,
       confirmLabel: 'Restore',
       onConfirm: async () => {
-        const nextExpected = computeNextExpectedDate(gift.start_date, gift.frequency, gift.last_received_date)
+        const nextExpected = nextExpectedFromToday(gift.start_date, gift.frequency, gift.last_received_date)
         const { error } = await supabase.from('recurring_gifts').update({ status: 'active', next_expected_date: nextExpected, cancelled_at: null }).eq('id', gift.id)
         if (error) { showToast('Error restoring', 'error'); return }
         await supabase.from('audit_log').insert({
@@ -6200,7 +6250,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const giroMissedCycles = React.useMemo(() => {
     const now26 = new Date()
-    return recurringGifts.filter(g => g.status === 'active').map(g => {
+    // A gift whose bank mandate is still pending approval was never expected to actually
+    // deduct yet, so it shouldn't accumulate "missed cycle" alarms before the bank has even
+    // authorized the arrangement.
+    return recurringGifts.filter(g => g.status === 'active' && g.authorization_status !== 'pending').map(g => {
       const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
       const daysLate = Math.floor((now26 - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24))
       if (daysLate <= 7) return null
@@ -6982,14 +7035,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeGiftsAgo = recurringGifts.filter(g => g.status === 'active' && new Date(g.created_at) < ninetyDaysAgo)
     const giftCountDiff = activeGifts.length - activeGiftsAgo.length
 
-    const mrr = activeGifts.reduce((s, g) => {
-      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
-      return s + monthly
-    }, 0)
-    const mrrAgo = activeGiftsAgo.reduce((s, g) => {
-      const monthly = g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
-      return s + monthly
-    }, 0)
+    // Terminated bank mandates are excluded from revenue-counting MRR -- the bank has cut off
+    // the deduction, so this money will not actually arrive until the donor re-authorizes.
+    const isRevenueGenerating = (g) => g.authorization_status !== 'terminated'
+    const mrr = activeGifts.filter(isRevenueGenerating).reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
+    const mrrAgo = activeGiftsAgo.filter(isRevenueGenerating).reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
     const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
 
     const cancelledGifts = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at)
@@ -7075,13 +7125,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const recurringCompositionStats = React.useMemo(() => {
     const activeGifts = recurringGifts.filter(g => g.status === 'active')
-    const totalActive = activeGifts.reduce((s, g) => s + Number(g.amount), 0)
+    const totalActive = activeGifts.reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
 
     const byProgramme = {}
     activeGifts.forEach(g => {
       const key = g.cause_id || 'none'
       if (!byProgramme[key]) byProgramme[key] = 0
-      byProgramme[key] += Number(g.amount)
+      byProgramme[key] += monthlyEquivalentAmount(g)
     })
     const byProgrammeRows = Object.entries(byProgramme).map(([key, amt]) => ({
       key, title: key === 'none' ? 'General / unrestricted' : (myCauses.find(c => c.id === key)?.title || 'Unknown programme'),
@@ -7093,7 +7143,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     activeGifts.forEach(g => {
       const key = g.type || 'other'
       if (!byType[key]) byType[key] = 0
-      byType[key] += Number(g.amount)
+      byType[key] += monthlyEquivalentAmount(g)
     })
     const byTypeRows = Object.entries(byType).map(([key, amt]) => ({
       key, label: typeLabels[key] || key, amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
@@ -8511,7 +8561,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const yoyPct = lyQTotal > 0 ? Math.round(((qTotal - lyQTotal) / lyQTotal) * 100) : null
 
     const activeRecurring54 = recurringGifts.filter(g => g.status === 'active')
-    const recurringMonthly54 = activeRecurring54.reduce((s, g) => s + Number(g.amount), 0)
+    const recurringMonthly54 = activeRecurring54.filter(g => g.authorization_status !== 'terminated').reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
     const recurringQTotal = recurringMonthly54 * 3
     const oneOffQTotal = qTotal - qDonations.filter(d => d.recurring_gift_id).reduce((s, d) => s + d.amount, 0)
 
@@ -8535,7 +8585,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFontSize(10); doc.setFont('helvetica', 'normal')
     const rows54 = [
       ['Total this quarter', `SGD $${qTotal.toLocaleString()}`],
-      ['  Recurring (GIRO + PayNow)', `SGD $${Math.round(recurringQTotal).toLocaleString()}`],
+      ['  Recurring (projected)', `SGD $${Math.round(recurringQTotal).toLocaleString()}`],
       ['  One-off gifts', `SGD $${Math.round(oneOffQTotal).toLocaleString()}`],
       ...Object.entries(byMethod54).map(([m, amt]) => [`  via ${m}`, `SGD $${amt.toLocaleString()}`]),
     ]
@@ -12499,9 +12549,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const now = new Date()
               const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
               const activeRecurring = recurringGifts.filter(g => g.status === 'active')
-              const giroMRR = activeRecurring.filter(g => g.type === 'giro').reduce((s, g) => s + g.amount, 0)
-              const habitualMRR = activeRecurring.filter(g => g.type === 'habitual_paynow').reduce((s, g) => s + g.amount, 0)
-              const totalMRR = giroMRR + habitualMRR
+              const totalMRR = activeRecurring.filter(g => g.authorization_status !== 'terminated').reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
               const fixedCostCoveragePct = monthlyExpenses > 0 ? Math.round((totalMRR / monthlyExpenses) * 100) : null
               const unrestrictedGrantTotal = grants.filter(g => g.status === 'active').reduce((s, g) => s + Number(g.unrestricted_amount || 0), 0)
               const unrestrictedCoverageMonths = monthlyExpenses > 0 ? (unrestrictedGrantTotal / monthlyExpenses) : null
@@ -16371,12 +16419,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                       </div>
                       {g.notes && <div style={{ fontSize: 12.5, color: C.text, marginTop: 8 }}><span style={{ color: C.muted }}>Notes:</span> {g.notes}</div>}
-                      {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (
-                        <div style={{ fontSize: 11.5, color: C.warning, background: C.warningBg, borderRadius: 4, padding: '6px 10px', marginTop: 8 }}>
+                      {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (() => {
+                        const resumeDatePassed = g.pause_resume_date && new Date(g.pause_resume_date) < today
+                        return (
+                        <div style={{ fontSize: 11.5, color: resumeDatePassed ? C.red : C.warning, background: resumeDatePassed ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', marginTop: 8 }}>
                           {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
-                          {g.pause_resume_date && <div>Expected to resume {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>}
+                          {g.pause_resume_date && <div>{resumeDatePassed ? '⚠ Was expected to resume' : 'Expected to resume'} {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} — remember to reactivate it</div>}
                         </div>
-                      )}
+                        )
+                      })()}
                     </div>
 
                     {/* Activity */}
