@@ -473,6 +473,7 @@ function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge }) {
       const amt = parseFloat(form.amount)
       if (!form.amount || isNaN(amt) || amt <= 0) { setError('Pledged amount must be a positive number'); return }
       if (!form.expected_date) { setError('Expected date is required'); return }
+      if (pledge.status === 'pending' && form.expected_date !== pledge.expected_date && new Date(form.expected_date) < new Date(new Date().setHours(0,0,0,0))) { setError('Expected date cannot be in the past — use Reschedule instead if this pledge is already overdue'); return }
     }
     setError('')
     setSaving(true)
@@ -3026,6 +3027,7 @@ export default function App() {
 
   async function confirmReschedule() {
     if (!rescheduleModal || !rescheduleNewDate) return
+    if (new Date(rescheduleNewDate) < new Date(new Date().setHours(0,0,0,0))) { showToast('New expected date cannot be in the past', 'error'); return }
     setReschedulingPledge(true)
     const pledge = rescheduleModal
     const oldDate = pledge.expected_date
@@ -3255,7 +3257,11 @@ export default function App() {
     setPledgeResolutionNotes('')
 
     if (wouldReach >= Number(pledge.amount)) {
-      // Fully covers the pledge — route through the existing completion flow (offers thank-you)
+      // Fully covers the pledge -- mark it fulfilled now, then offer the thank-you as a separate,
+      // skippable step (closing that modal must never leave a fully-paid pledge stuck as pending)
+      const autoNote = `Auto-fulfilled by donation of $${amount.toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donationData.id, resolution_notes: autoNote }).eq('id', pledge.id)
+      if (!fulfillError) setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donationData.id, resolution_notes: autoNote } : p))
       setPledgeCompletionCandidate({ pledge, donation: donationData })
       setShowPledgeThankYouModal(true)
     } else {
@@ -4988,6 +4994,9 @@ export default function App() {
     setPledgeDonationLinks(prev => ({ ...prev, [matchingPledge.id]: [...(prev[matchingPledge.id] || []), linkData] }))
 
     if (wouldReach >= Number(matchingPledge.amount)) {
+      const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', matchingPledge.id)
+      if (!fulfillError) setPledges(prev => prev.map(p => p.id === matchingPledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
       return matchingPledge
     }
     return null
@@ -5033,6 +5042,9 @@ export default function App() {
     const total = (existingLinks || []).reduce((s, l) => s + Number(l.amount_applied), 0)
 
     if (total >= Number(pledge.amount)) {
+      const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
+      if (!fulfillError) setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
       setPledgeCompletionCandidate({ pledge, donation })
       setShowPledgeThankYouModal(true)
       showToast(`Linked — this completes ${pledge.donor_name}'s pledge!`)
@@ -6862,8 +6874,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (!byDonor[key]) byDonor[key] = { name: p.donor_name, pledges: [] }
       byDonor[key].pledges.push(p)
     })
+    // A pledge that was rescheduled while already overdue broke its original promise even if the
+    // new date hasn't arrived yet -- counting only "currently overdue" here would let a donor
+    // erase their broken-pledge history just by pushing the date forward.
+    const wasRescheduledWhileOverdue = (p) => (pledgeRescheduleHistory[p.id] || []).some(r => new Date(r.old_expected_date) < new Date(r.created_at))
     const watchList = Object.values(byDonor).map(d => {
-      const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today))
+      const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today) || (p.status === 'pending' && wasRescheduledWhileOverdue(p)))
       const rescheduled = d.pledges.filter(p => p.status === 'pending')
       return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
@@ -12634,8 +12650,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const pendingPledgesList = pledges.filter(p => p.status === 'pending')
               const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
               const upcomingPledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) >= now03)
-              const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + Number(p.amount), 0)
-              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + Number(p.amount), 0)
+              // Outstanding value counts only remaining unpaid instalments for multi-year pledges,
+              // matching how the Pledges page itself totals outstanding value -- using the full
+              // multi-year amount here would double-count instalments already paid off.
+              const outstandingAmountForPledge = (p) => p.is_multi_year
+                ? pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s, i) => s + Number(i.amount), 0)
+                : Number(p.amount)
+              const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
+              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
 
               const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
               const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
@@ -16901,9 +16923,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const pct = pledgedAmount > 0 ? Math.min(100, Math.round((given / pledgedAmount) * 100)) : 0
                 const linkedCause = p.cause_id ? myCauses.find(c => c.id === p.cause_id) : null
                 const pledgeStatusMap = {
-                  pending: { bg: C.sage, color: C.white, label: 'Active' },
+                  pending: { bg: C.gold, color: C.white, label: 'Pending' },
                   fulfilled: { bg: C.sage, color: C.white, label: 'Fulfilled' },
-                  cancelled: { bg: C.muted, color: C.white, label: 'Cancelled' },
+                  cancelled: { bg: C.red, color: C.white, label: 'Cancelled' },
                 }
                 const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
                 const hasActivity = (donationsByPledge[p.id] || []).length > 0 || (p.status === 'pending' && ((pledgeReminderHistory[p.id] || []).length > 0 || (pledgeRescheduleHistory[p.id] || []).length > 0)) || p.resolution_notes
