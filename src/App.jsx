@@ -11873,7 +11873,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 weekDonorCount: weekDonorKeys.size,
                 weekGrowthPct,
                 newDonorsThisWeek,
-                biggestGift: biggestGiftThisWeek ? { amount: biggestGiftThisWeek.amount, donor_name: biggestGiftThisWeek.donor_name } : null,
+                biggestGiftAmount: biggestGiftThisWeek ? biggestGiftThisWeek.amount : null,
                 attentionCount,
                 monthlyExpensesSet,
                 coverageOk,
@@ -11911,13 +11911,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {aiWeekSummaryError && (
                     <div style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>{aiWeekSummaryError}</div>
                   )}
-                  <button
-                    style={{ marginTop: 16, background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '7px 14px', fontSize: 12.5, fontWeight: 500, cursor: aiWeekSummaryLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: aiWeekSummaryLoading ? 0.6 : 1 }}
-                    disabled={aiWeekSummaryLoading}
-                    onClick={generateAiSummary}
-                  >
-                    {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                    <button
+                      style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '7px 14px', fontSize: 12.5, fontWeight: 500, cursor: aiWeekSummaryLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: aiWeekSummaryLoading ? 0.6 : 1 }}
+                      disabled={aiWeekSummaryLoading}
+                      onClick={generateAiSummary}
+                    >
+                      {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
+                    </button>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Sends only aggregate totals (amounts, counts) to Anthropic's Claude API — never donor names, emails, NRICs, or any other personal data.</span>
+                  </div>
                 </div>
               )
             })()}
