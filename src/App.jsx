@@ -16569,7 +16569,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {showPledgeThankYouModal && pledgeCompletionCandidate && !pledgeThankYouPreviewing && (
               <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>
-                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>🎉 Pledge completed</div>
                     <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowPledgeThankYouModal(false); setPledgeCompletionCandidate(null) }}>✕</button>
@@ -18672,7 +18672,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showLapsedReminderModal && lapsedReminderCandidate && !lapsedReminderPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>{lapsedReminderCandidate.givingChangeMeta ? 'Check in about decreased giving' : 'Reach out to a lapsed donor'}</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null) }}>✕</button>
@@ -18705,7 +18705,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {showLapsedReminderModal && lapsedReminderCandidate && lapsedReminderPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setShowLapsedReminderModal(false); setLapsedReminderCandidate(null); setLapsedReminderPreviewing(false) }}>✕</button>
@@ -19304,7 +19304,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {thankYouDraft && !thankYouDraftPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setThankYouDraft(null)}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Thank-you note for {thankYouDraft.donor.name}</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setThankYouDraft(null)}>✕</button>
@@ -19318,7 +19318,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea
-                style={{ ...s.formInput, minHeight: 220, resize: 'vertical', fontFamily: 'inherit' }}
+                style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }}
                 value={thankYouDraft.text}
                 onChange={e => setThankYouDraft(prev => ({ ...prev, text: e.target.value }))}
               />
@@ -19335,7 +19335,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {thankYouDraft && thankYouDraftPreviewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => { setThankYouDraft(null); setThankYouDraftPreviewing(false) }}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setThankYouDraft(null); setThankYouDraftPreviewing(false) }}>✕</button>
@@ -19393,7 +19393,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {rnOutreach && !rnOutreach.previewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(null)}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{rnOutreach.title} — {rnOutreach.donorName}</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} disabled={rnSending} onClick={() => setRnOutreach(null)}>✕</button>
@@ -19407,7 +19407,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea
-                style={{ ...s.formInput, minHeight: 200, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+                style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
                 value={rnOutreach.text}
                 onChange={e => setRnOutreach(prev => ({ ...prev, text: e.target.value }))}
               />
@@ -19438,7 +19438,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
       {rnOutreach && rnOutreach.previewing && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(prev => ({ ...prev, previewing: false }))}>
-          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
               <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} disabled={rnSending} onClick={() => setRnOutreach(null)}>✕</button>
@@ -19559,7 +19559,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         const d = thankYouPreviewModal
         return (
           <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setThankYouPreviewModal(null)}>
-            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{d.thank_you_sent ? 'Send this email again?' : 'Send thank-you email'}</div>
                 <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setThankYouPreviewModal(null)}>✕</button>
@@ -19575,7 +19575,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <label style={{ display: 'block', marginBottom: 16 }}>
                 <div style={s.formLabel}>Message</div>
                 <textarea
-                  style={{ ...s.formInput, minHeight: 100, resize: 'vertical' }}
+                  style={{ ...s.formInput, minHeight: 260, resize: 'vertical' }}
                   value={thankYouCustomMessage}
                   onChange={e => setThankYouCustomMessage(e.target.value)}
                 />
@@ -19597,7 +19597,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
         return (
           <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setThankYouPreviewModal(null); setThankYouPreviewing(false) }}>
-            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 560, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
                 <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setThankYouPreviewModal(null); setThankYouPreviewing(false) }}>✕</button>
@@ -19607,7 +19607,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
                 <iframe
                   srcDoc={fullPreviewHtml}
-                  style={{ width: '100%', height: 340, border: 'none', display: 'block' }}
+                  style={{ width: '100%', height: 420, border: 'none', display: 'block' }}
                   title="Email preview"
                 />
               </div>
