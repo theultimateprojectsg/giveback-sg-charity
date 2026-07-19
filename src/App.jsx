@@ -176,6 +176,61 @@ const EMAIL_TEMPLATE_DEFS = [
   ]},
 ]
 
+const EMAIL_TEMPLATE_DEFAULTS = {
+  standard: {
+    subject: 'Thank you for your donation to {{charity_name}}! 💚',
+    body: '',
+  },
+  major_gift: {
+    subject: 'Thank You, {{donor_name}}!',
+    body: '',
+  },
+  new_donor: {
+    subject: 'Thank You, {{donor_name}}!',
+    body: '',
+  },
+  recurring_donor: {
+    subject: 'Thank You, {{donor_name}}!',
+    body: '',
+  },
+  nric_request: {
+    subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
+    body: '',
+  },
+  milestone_thank_you: {
+    subject: 'A note from {{charity_name}} 💚',
+    body: 'Thank you so much for your continued support — it means a great deal to us and to those we serve.\n\nWith gratitude,\n{{charity_name}}',
+  },
+  pledge_thank_you: {
+    subject: 'Thank you for fulfilling your pledge, {{donor_name}}!',
+    body: 'Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n{{charity_name}}',
+  },
+  pledge_reminder_upcoming: {
+    subject: 'Following up on your pledge to {{charity_name}}',
+    body: "Just a friendly reminder that your pledge of ${{amount}} is expected by {{due_date}}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n{{charity_name}}",
+  },
+  pledge_reminder_overdue: {
+    subject: 'Following up on your pledge to {{charity_name}}',
+    body: "Just a friendly note — we haven't yet received your pledge of ${{amount}}, which was expected by {{due_date}}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n{{charity_name}}",
+  },
+  recurring_gift_reminder: {
+    subject: 'A quick note about your recurring gift to {{charity_name}}',
+    body: "We noticed we haven't received your usual ${{amount}} {{frequency}} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n{{charity_name}}",
+  },
+  lapsed_reminder_lapsed: {
+    subject: 'We miss you, {{donor_name}}!',
+    body: "It's been a while since your last gift, and we wanted to reach out. Your past support of ${{amount}} over {{count}} gifts has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n{{charity_name}}",
+  },
+  lapsed_reminder_giving_change: {
+    subject: 'Just checking in, {{donor_name}}',
+    body: "We noticed your most recent gift was a bit different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n{{charity_name}}",
+  },
+  mass_appeal: {
+    subject: '{{charity_name}} needs your support — {{cause_title}}',
+    body: '',
+  },
+}
+
 const EMAIL_TEMPLATE_PREVIEW_VARS = {
   donor_name: 'Sarah Tan', charity_name: 'Your Charity', amount: '150', pledge_amount: '500',
   date: '19 July 2026', due_date: '30 July 2026', cause_title: 'Youth Mentorship Fund',
@@ -1488,19 +1543,17 @@ export default function App() {
     if (showLapsedReminderModal && lapsedReminderCandidate) {
       const d = lapsedReminderCandidate
       if (d.givingChangeMeta) {
-        const saved = emailTemplates.lapsed_reminder_giving_change
+        const key = 'lapsed_reminder_giving_change'
+        const saved = emailTemplates[key]
         const vars = { donor_name: d.name, charity_name: charityName }
-        setLapsedReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Just checking in, ${d.name}`)
-        setLapsedReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
-          `We noticed your most recent gift was a bit different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n${charityName}`
-        )
+        setLapsedReminderSubject(fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[key].subject, vars))
+        setLapsedReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       } else {
-        const saved = emailTemplates.lapsed_reminder_lapsed
+        const key = 'lapsed_reminder_lapsed'
+        const saved = emailTemplates[key]
         const vars = { donor_name: d.name, charity_name: charityName, amount: d.total.toLocaleString(), count: d.count }
-        setLapsedReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `We miss you, ${d.name}!`)
-        setLapsedReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
-          `It's been a while since your last gift, and we wanted to reach out. Your past support of $${d.total.toLocaleString()} over ${d.count} gift${d.count !== 1 ? 's' : ''} has made a real difference, and we'd love to have you back whenever you're ready.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n${charityName}`
-        )
+        setLapsedReminderSubject(fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[key].subject, vars))
+        setLapsedReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       }
       setLapsedReminderPreviewing(false)
     }
@@ -1552,12 +1605,11 @@ export default function App() {
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
       const g = recurringReminderCandidate
-      const saved = emailTemplates.recurring_gift_reminder
+      const key = 'recurring_gift_reminder'
+      const saved = emailTemplates[key]
       const vars = { donor_name: g.donor_name, charity_name: charityName, amount: Number(g.amount).toLocaleString(), frequency: g.frequency }
-      setRecurringReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `A quick note about your recurring gift to ${charityName}`)
-      setRecurringReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
-        `We noticed we haven't received your usual $${Number(g.amount).toLocaleString()} ${g.frequency} gift recently. This sometimes happens due to an expired card, updated bank details, or a lapsed standing instruction — nothing to worry about, just wanted to flag it in case you'd like to check on your end.\n\nThank you for your continued support.\n\nWith thanks,\n${charityName}`
-      )
+      setRecurringReminderSubject(fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[key].subject, vars))
+      setRecurringReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setRecurringReminderPreviewing(false)
     }
   }, [showRecurringReminderModal, recurringReminderCandidate, emailTemplates])
@@ -1582,14 +1634,11 @@ export default function App() {
       const p = pledgeReminderCandidate
       const daysUntil = Math.ceil((new Date(p.expected_date) - new Date()) / (1000 * 60 * 60 * 24))
       const isOverdue = daysUntil < 0
-      const saved = emailTemplates[isOverdue ? 'pledge_reminder_overdue' : 'pledge_reminder_upcoming']
+      const key = isOverdue ? 'pledge_reminder_overdue' : 'pledge_reminder_upcoming'
+      const saved = emailTemplates[key]
       const vars = { donor_name: p.donor_name, charity_name: charityName, amount: Number(p.amount).toLocaleString(), due_date: new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) }
-      setPledgeReminderSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Following up on your pledge to ${charityName}`)
-      setPledgeReminderBody(saved?.body ? fillTemplate(saved.body, vars) :
-        isOverdue
-          ? `Just a friendly note — we haven't yet received your pledge of $${Number(p.amount).toLocaleString()}, which was expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. No rush at all, just wanted to check in. Let us know if there's anything we can help with.\n\nWith thanks,\n${charityName}`
-          : `Just a friendly reminder that your pledge of $${Number(p.amount).toLocaleString()} is expected by ${new Date(p.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}. Thank you again for your generosity — we're looking forward to it.\n\nWith thanks,\n${charityName}`
-      )
+      setPledgeReminderSubject(fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[key].subject, vars))
+      setPledgeReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setPledgeReminderPreviewing(false)
     }
   }, [showPledgeReminderModal, pledgeReminderCandidate, emailTemplates])
@@ -1803,12 +1852,11 @@ export default function App() {
   useEffect(() => {
     if (showPledgeThankYouModal && pledgeCompletionCandidate) {
       const { pledge } = pledgeCompletionCandidate
-      const saved = emailTemplates.pledge_thank_you
+      const key = 'pledge_thank_you'
+      const saved = emailTemplates[key]
       const vars = { donor_name: pledge.donor_name, charity_name: charityName, pledge_amount: Number(pledge.amount).toLocaleString() }
-      setPledgeThankYouSubject(saved?.subject ? fillTemplate(saved.subject, vars) : `Thank you for fulfilling your pledge, ${pledge.donor_name}!`)
-      setPledgeThankYouBody(saved?.body ? fillTemplate(saved.body, vars) :
-        `Thank you so much for fulfilling your pledge. Your generosity and follow-through mean a great deal to us and to those we serve.\n\nWith gratitude,\n${charityName}`
-      )
+      setPledgeThankYouSubject(fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS[key].subject, vars))
+      setPledgeThankYouBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setPledgeThankYouPreviewing(false)
     }
   }, [showPledgeThankYouModal, pledgeCompletionCandidate, emailTemplates])
@@ -18388,9 +18436,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             {!isEditing && (
                               <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
                                 setEditingEmailTemplate(t.key)
-                                setEmailTemplateSubjectInput(saved?.subject || '')
-                                setEmailTemplateBodyInput(saved?.body || '')
-                              }}>Edit</button>
+                                setEmailTemplateSubjectInput(saved?.subject ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.subject ?? '')
+                                setEmailTemplateBodyInput(saved?.body ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.body ?? '')
+                              }}>{saved ? 'Edit' : 'Customize'}</button>
                             )}
                           </div>
                           {isEditing && (
@@ -18417,7 +18465,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                 <button style={s.issueBtn} onClick={() => {
                                   const trimmedSubject = emailTemplateSubjectInput.trim()
                                   const trimmedBody = emailTemplateBodyInput.trim()
-                                  saveEmailTemplate(t.key, (trimmedSubject || trimmedBody) ? { subject: trimmedSubject, body: trimmedBody } : null)
+                                  const def = EMAIL_TEMPLATE_DEFAULTS[t.key]
+                                  const matchesDefault = trimmedSubject === (def?.subject || '') && trimmedBody === (def?.body || '')
+                                  saveEmailTemplate(t.key, matchesDefault ? null : { subject: trimmedSubject, body: trimmedBody })
                                   setEditingEmailTemplate(null)
                                 }}>Save</button>
                                 <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
