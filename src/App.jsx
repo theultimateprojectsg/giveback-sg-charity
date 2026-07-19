@@ -2958,8 +2958,7 @@ export default function App() {
 
   function changeGrantStatus(grant, newStatus) {
     const copy = {
-      completed: { title: 'Mark this grant as completed?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'Mark Completed' },
-      closed: { title: 'Close this grant?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'Close Grant' },
+      completed: { title: 'End this grant?', description: `"${grant.funder_name}" will move out of your active grants. You can restore it to active later if needed.`, confirmLabel: 'End Grant' },
       active: { title: 'Restore this grant to active?', description: `"${grant.funder_name}" will move back into your active grants.`, confirmLabel: 'Restore' },
     }[newStatus]
     setConfirmModal({ ...copy, onConfirm: () => setGrantStatus(grant, newStatus) })
@@ -17836,10 +17835,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => setEditingGrant(g)}>✏️ Edit</button>
                       </div>
                       {g.status === 'active' ? (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button style={{ ...s.issueBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'completed')}>✓ Mark Completed</button>
-                          <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '7px 8px', flex: 1, justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'closed')}>⊘ Close</button>
-                        </div>
+                        <button style={{ ...s.issueBtn, fontSize: 11.5, padding: '7px 8px', width: '100%', justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'completed')}>⊘ End Grant</button>
                       ) : (
                         <button style={{ ...s.issueBtn, fontSize: 11.5, padding: '7px 8px', width: '100%', justifyContent: 'center' }} onClick={() => changeGrantStatus(g, 'active')}>↺ Restore to Active</button>
                       )}
