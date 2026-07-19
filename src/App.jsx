@@ -1001,6 +1001,7 @@ export default function App() {
   const isMobile = screenSize === 'mobile'
   const isTablet = screenSize === 'tablet'
   const [donations, setDonations] = useState([])
+  const [emailTemplates, setEmailTemplates] = useState({})
   const [loading, setLoading] = useState(true)
   const [issuing, setIssuing] = useState(null)
   const [session, setSession] = useState(null)
@@ -1707,7 +1708,6 @@ export default function App() {
   const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
   const [charityIsIpc, setCharityIsIpc] = useState(true)
   const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
-  const [emailTemplates, setEmailTemplates] = useState({})
   const [editingEmailTemplate, setEditingEmailTemplate] = useState(null)
   const [emailTemplateSubjectInput, setEmailTemplateSubjectInput] = useState('')
   const [emailTemplateBodyInput, setEmailTemplateBodyInput] = useState('')
