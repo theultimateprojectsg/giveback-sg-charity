@@ -267,8 +267,24 @@ main win (breaking up the file).
   confirmed duplicate-detection/tags/account-actions all rendered correctly
   with no console errors. 43/43 tests, build (849 modules). `App.jsx` down to
   15,362 lines.
-- [ ] Remaining, in ascending measured size:
-  Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
+- [x] **Settings** → `src/pages/SettingsPage.jsx` (2026-07-21). Smaller than
+  originally estimated (~543 lines, not ~2000 — the original estimate was a
+  rough guess before measuring). Five sub-tabs (General/Feature Modules/
+  Thresholds & Goals/Financial & Data/Email Templates): charity details, logo
+  upload, custom email-sending domain setup, account deletion, team access
+  (add/remove ED/staff/board/volunteer roles), feature module toggles, donor
+  thresholds, cumulative giving milestones, dashboard alert sensitivity
+  (7 tunable numbers), fiscal year end, annual fundraising goal, monthly
+  expenses, CSV migration tool trigger, and email template customization
+  with live preview. The migration-tool modal itself (`showMigrationTool`)
+  stays in `App.jsx` — already correctly unconditional/global, same pattern
+  as prior phases. Verified live with the user's real signed-in session:
+  General tab showed real charity details/logo/team, Thresholds & Goals
+  showed real dollar values (donor thresholds, milestones, fiscal year,
+  goal), Email Templates showed the real template list with working tab
+  navigation — no console errors on any sub-tab. 43/43 tests, build
+  (850 modules). `App.jsx` down to 14,849 lines.
+- [ ] Remaining: Analytics/Dashboard (~3159 lines, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
 from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
