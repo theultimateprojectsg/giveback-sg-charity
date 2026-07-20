@@ -169,7 +169,22 @@ the pattern React apps used for years before hooks-per-domain. Less elegant,
 but honest about what's safe to change today, and doesn't block Phase 5's
 main win (breaking up the file).
 
-### Phase 5 — Split each tab into its own page component
+### Phase 5 — Split each tab into its own page component — 🔄 in progress
+- [x] **Reports** → `src/pages/ReportsPage.jsx` (2026-07-20). Turned out to be the
+  smallest tab (~200 lines), not Settings (~2000 lines) as originally guessed —
+  measured actual line counts between `activeTab ===` blocks before picking
+  the starting tab, rather than trusting the file's declaration order.
+  Genuinely self-contained: no local complex state, just reads a handful of
+  values (`donations`, `charityName`, `grants`, `auditLog`, `filterYear`, ...)
+  and calls PDF/CSV export functions that stay defined in `App()` and get
+  passed down as props (per the Phase 4 deferral). Verified: 43/43 tests,
+  build (842 modules, output size unchanged), and live click-through together
+  with the user — navigated to the tab, confirmed all data renders correctly
+  (FY breakdowns, totals matching pre-refactor), clicked an export button,
+  confirmed no console errors.
+- [ ] Remaining, in ascending measured size: Grants (356), Mass Appeal (364),
+  Recurring (518), Pledges (652), Donations (1040), Donors-detail (1104),
+  Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
 from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
