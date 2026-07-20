@@ -215,8 +215,18 @@ main win (breaking up the file).
   history, opened Edit via the "More" menu and confirmed `RecurringGiftModal`
   pre-fills correctly, closed without saving to avoid touching live data.
   43/43 tests, build (846 modules).
+- [x] **Pledges** → `src/pages/PledgesPage.jsx` (2026-07-20). Biggest slice yet —
+  filters/sort, expandable payment history, plus four inline modals (reminder
+  send + preview, thank-you send + preview, log-contact, new-pledge form),
+  ~55 props drilled through. The reschedule modal stays in `App.jsx` — it was
+  already correctly unconditional (not tab-gated), same pattern as the
+  Mass Appeal fix, so nothing to move there. Verified live with the user:
+  pledge list rendered with exact real data (multi-year instalment badges,
+  contact-log link), opened the reminder modal (`SenderIdentityLine` showing
+  correct From/To/Replies-To), clicked through to the email preview step,
+  closed without sending. 43/43 tests, build (847 modules).
 - [ ] Remaining, in ascending measured size:
-  Pledges (652), Donations (1040), Donors-detail (1104),
+  Donations (1040), Donors-detail (1104),
   Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
