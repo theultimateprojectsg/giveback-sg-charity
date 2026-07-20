@@ -4535,6 +4535,25 @@ export default function App() {
     return { data: data[0] }
   }
 
+  // Logs a contact/dismissal note and immediately offers an undo, rather than leaving the only
+  // way back a trip to the donor's own Notes & Activity tab (which the person dismissing a "Right
+  // now" card while looking at a donor LIST, not this donor's profile, wouldn't even know to visit).
+  async function logDonorContactWithUndo(donorKey, note, noteType, doneMsg = 'Logged as done ✓') {
+    const { data, error } = await logDonorContact(donorKey, note, noteType)
+    if (error) { showToast('Could not log this', 'error'); return }
+    let cancelled = false
+    setToast({
+      msg: doneMsg, undoable: true,
+      onUndo: async () => {
+        cancelled = true
+        if (data?.id) await deleteDonorNote(data.id)
+        setToast(null)
+        showToast('Undone ✓')
+      },
+    })
+    setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+  }
+
   async function loadDonorNotes(donor, isCancelled) {
     setDonorNotesLoading(true)
     const donorKey = donor.email?.trim() || donor.name
@@ -10557,7 +10576,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   // mentions its marker — so acting on one moment clears only that one, not the others.
                   const rnHandled = (marker, sinceMs) => donorNotes.some(n => new Date(n.created_at).getTime() >= sinceMs && (n.note || '').includes(marker))
                   // icon, one-line prompt, button label, email subject, email body, and the short line logged when actioned
-                  const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: async () => { await logDonorContact(dk, `${logNote} — logged as done`, 'note'); showToast('Logged as done ✓') } }) }
+                  const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: () => logDonorContactWithUndo(dk, `${logNote} — logged as done`, 'note') }) }
 
                   {
                     const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -10670,7 +10689,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         text: `Hasn't given in ${daysSinceLastGift}+ days — reach out before they lapse further`,
                         button: 'Reach Out',
                         onAction: () => { setLapsedReminderCandidate({ name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }); setShowLapsedReminderModal(true) },
-                        onDone: async () => { await logDonorContact(dk, 'Lapsed donor reach-out — logged as done', 'note'); showToast('Logged as done ✓') },
+                        onDone: () => logDonorContactWithUndo(dk, 'Lapsed donor reach-out — logged as done', 'note'),
                       })
                     }
                   }
