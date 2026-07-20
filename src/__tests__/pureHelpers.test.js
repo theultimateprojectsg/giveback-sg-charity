@@ -1,18 +1,13 @@
-// Phase 0 of REFACTOR_PLAN.md: tests for the pure, non-JSX logic in App.jsx,
-// written *before* that logic is relocated (Phase 1), so the move can be
-// verified mechanically instead of by eye. These functions are exported from
-// App.jsx today; when Phase 1 moves them into src/lib/, only the import path
-// in this file should need to change — the assertions should not.
+// Phase 0/1 of REFACTOR_PLAN.md: tests for the pure, non-JSX logic that used
+// to live inline in App.jsx and has since been extracted to src/lib/. As
+// predicted when these tests were written, only the import paths changed —
+// the assertions below are untouched, which is exactly what let this move be
+// verified mechanically instead of by eye.
 import { describe, it, expect } from 'vitest'
-import {
-  donationDonorKey,
-  contactDonorKey,
-  isoWeekKey,
-  fiscalYearOf,
-  fiscalYearBounds,
-  fillTemplate,
-  colorForDonor,
-} from '../App.jsx'
+import { donationDonorKey, contactDonorKey } from '../lib/donorKeys'
+import { isoWeekKey, fiscalYearOf, fiscalYearBounds } from '../lib/fiscalYear'
+import { fillTemplate } from '../lib/format'
+import { colorForDonor } from '../lib/color'
 
 describe('donationDonorKey', () => {
   it('prefers email over NRIC and name', () => {
