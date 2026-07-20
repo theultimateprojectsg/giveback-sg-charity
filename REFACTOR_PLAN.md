@@ -99,12 +99,19 @@ after every single commit.** No phase is "in progress" across a commit boundary.
   output unchanged in size (no existing call sites were touched).
 - **Risk:** low — pure functions, all covered by tests before/after the move.
 
-### Phase 2 — Extract the design system
-- `src/theme.js` — the `C` color palette object
-- `src/styles.js` — the `s` shared style dictionary
-- `src/components/ui/` — already-standalone presentational components sitting
-  in `App.jsx` today: `InfoTip`, `EmptyState`, `ActionBanner`, `SenderIdentityLine`
-- **Risk:** low — these are already self-contained functions, just relocating.
+### Phase 2 — Extract the design system — ✅ done
+- [x] `src/theme.js` — the `C` color palette + font-stack object
+- [x] `src/styles.js` — the `s` shared style dictionary (imports `C` from theme.js)
+- [x] `src/components/ui/InfoTip.jsx`, `EmptyState.jsx`, `ActionBanner.jsx`,
+  `SenderIdentityLine.jsx` — already-standalone presentational components,
+  relocated with their imports updated to pull `C` from `theme.js`.
+- Verified: `npm test` (43/43 pass, untouched by this phase — no business logic
+  moved), `npm run build` (836 modules, output size unchanged), and a live
+  `npm run dev` boot with console-error check + full page-text read of the
+  login screen, confirming every relocated piece resolves correctly at
+  runtime, not just at build time.
+- **Risk:** low — no logic changed, only file locations. `App.jsx` is down to
+  20,426 lines (from ~20,665 at the start of this phase).
 
 ### Phase 3 — Extract modals
 - `AddGrantModal`, `EditPledgeModal`, `GrantLedgerPanel`, `CampaignExpensePanel`,

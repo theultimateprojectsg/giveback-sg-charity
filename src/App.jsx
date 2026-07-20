@@ -14,6 +14,12 @@ import { fiscalYearOf, fiscalYearBounds, isoWeekKey } from './lib/fiscalYear'
 import { fillTemplate } from './lib/format'
 import { colorForDonor } from './lib/color'
 import { computeDonationBadges, computeDonationSummaryStats } from './lib/donationStats'
+import { C } from './theme'
+import { s } from './styles'
+import { InfoTip } from './components/ui/InfoTip'
+import { EmptyState } from './components/ui/EmptyState'
+import { ActionBanner } from './components/ui/ActionBanner'
+import { SenderIdentityLine } from './components/ui/SenderIdentityLine'
 
 if (typeof document !== 'undefined' && !document.getElementById('gt-font-import')) {
   const link = document.createElement('link')
@@ -21,29 +27,6 @@ if (typeof document !== 'undefined' && !document.getElementById('gt-font-import'
   link.rel = 'stylesheet'
   link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@500&display=swap'
   document.head.appendChild(link)
-}
-
-const C = {
-  forest:    '#1B4332',
-  forestInk: '#0F2A1F',
-  teal:      '#1A3C34',
-  sage:      '#3D7A5C',
-  gold:      '#B4870E',
-  ivory:     '#FAF7F2',
-  ivoryDark: '#F0EBE1',
-  border:    '#E2D9CC',
-  borderStrong: '#CFC3AF',
-  text:      '#1C1C1C',
-  muted:     '#6B6255',
-  white:     '#FFFFFF',
-  red:       '#A0472F',
-  warning:       '#B4870E',
-  warningBg:     '#FBF2DE',
-  warningBorder: '#E8CC7A',
-  successBg: '#EAF3EC',
-  bucket1:   '#74C69D',
-  fontVoice: "'Fraunces', serif",
-  fontMono:  "'IBM Plex Mono', monospace",
 }
 
 function useScreenSize() {
@@ -60,64 +43,6 @@ function useScreenSize() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
   return screenSize
-}
-
-function InfoTip({ text }) {
-  const [show, setShow] = React.useState(false)
-  return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      onTouchStart={() => setShow(v => !v)}
-    >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'default', flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
-      {show && (
-        <span style={{ position: 'absolute', bottom: '130%', left: '50%', transform: 'translateX(-50%)', background: 'white', color: '#444', fontSize: 11, fontWeight: 400, lineHeight: 1.6, padding: '8px 12px', borderRadius: 8, whiteSpace: 'normal', width: 200, zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid #e5e7eb', pointerEvents: 'none', textTransform: 'none', letterSpacing: 0 }}>
-          {text}
-          <span style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderWidth: 5, borderStyle: 'solid', borderColor: 'white transparent transparent transparent' }} />
-        </span>
-      )}
-    </span>
-  )
-}
-
-function EmptyState({ icon, title, description, ctaLabel, onCta }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '48px 24px', background: C.ivory, borderRadius: 8, border: `1px dashed ${C.border}` }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>
-      <div style={{ fontSize: 14, fontWeight: 500, color: C.forest, marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: onCta ? 18 : 0, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>{description}</div>
-      {onCta && (
-        <button style={{ background: C.forest, color: 'white', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={onCta}>
-          {ctaLabel}
-        </button>
-      )}
-    </div>
-  )
-}
-
-const ACTION_BANNER_TONES = {
-  danger: { fill: '#A0472F' },
-  warning: { fill: '#96700B' },
-  success: { fill: '#2F6A48' },
-}
-
-// Standard bottom-of-card status callout — a dashed divider to separate it from the card body,
-// then a bold filled pill (white text) so it actually pops instead of blending into the card.
-function ActionBanner({ text, sub, tone = 'danger' }) {
-  const t = ACTION_BANNER_TONES[tone] || ACTION_BANNER_TONES.danger
-  const icon = tone === 'success' ? '✓' : '⚠'
-  return (
-    <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${C.border}` }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: t.fill, borderRadius: 20, padding: '7px 14px 7px 10px' }}>
-        <span style={{ fontSize: 14, color: '#fff', lineHeight: 1, flexShrink: 0 }}>{icon}</span>
-        <div style={{ minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff' }}>{text}</span>
-          {sub && <span style={{ fontSize: 12, color: '#fff', opacity: 0.9 }}> — {sub}</span>}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // charity_contacts is a single row per charity holding several JSON list/object columns
@@ -225,39 +150,6 @@ const EMAIL_TEMPLATE_PREVIEW_VARS = {
 const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'Social & Welfare', 'Arts & Heritage', 'Sports', 'Environment', 'Advancement of Religion', 'Others']
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
-
-function SenderIdentityLine({ recipientName, recipientEmail, senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail, charityName }) {
-  const isVerified = senderDomainStatus === 'verified' && senderDomain
-  // Mirrors the "from" header the send-thank-you edge function actually sets, so what the charity
-  // previews here matches exactly what lands in the recipient's inbox — no surprises about who it
-  // looks like it's from.
-  const displayName = isVerified ? (charityName || 'Your charity') : `${charityName || 'Your charity'} via Giving Tree`
-  const fromAddress = isVerified ? `${senderEmailLocalPart}@${senderDomain}` : 'hello@givingtree.sg'
-  const rowStyle = { display: 'flex', gap: 10, padding: '6px 0' }
-  const labelStyle = { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, width: 58, flexShrink: 0, paddingTop: 1 }
-  return (
-    <div style={{ marginBottom: 14, background: isVerified ? '#EAF3EC' : (C.gold + '14'), border: `1px solid ${isVerified ? C.sage : C.gold}`, borderRadius: 8, padding: '10px 14px' }}>
-      <div style={{ ...rowStyle, borderBottom: `1px solid ${isVerified ? C.sage : C.gold}33` }}>
-        <span style={labelStyle}>From</span>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: isVerified ? C.sage : C.gold }}>
-          {isVerified ? '✓ ' : ''}{displayName} <span style={{ fontWeight: 400, color: C.muted }}>&lt;{fromAddress}&gt;</span>
-        </span>
-      </div>
-      <div style={{ ...rowStyle, borderBottom: !isVerified ? `1px solid ${isVerified ? C.sage : C.gold}33` : 'none' }}>
-        <span style={labelStyle}>To</span>
-        <span style={{ fontSize: 13, color: C.text }}>
-          {recipientName} {recipientEmail ? <span style={{ color: C.muted }}>&lt;{recipientEmail}&gt;</span> : <span style={{ color: C.red }}>(no email on file)</span>}
-        </span>
-      </div>
-      {!isVerified && (
-        <div style={rowStyle}>
-          <span style={labelStyle}>Replies to</span>
-          <span style={{ fontSize: 13, color: C.text }}>{replyToEmail}</span>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes, hasExistingClaims }) {
   const isEditing = !!grant
@@ -20531,135 +20423,4 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
     </div>
   )
-}
-
-const s = {
-  page: { display: 'flex', minHeight: '100vh', background: C.ivory, fontFamily: "'Segoe UI', sans-serif", color: C.text },
-  sidebar: { width: 232, background: C.forest, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10 },
-  sidebarLogo: { padding: '28px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)' },
-  logoText: { fontSize: 18, fontWeight: 800, color: 'white' },
-  logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
-  charityBadge: { margin: 16, background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 10 },
-  charityIcon: { width: 36, height: 36, background: '#FFF5E6', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
-  charityName: { fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: 'white', lineHeight: 1.3 },
-  charityUen: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  navSection: { padding: '6px 12px', flex: 1 },
-  navLabel: { fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 500, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, padding: '10px 12px 5px' },
-  navItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 1, fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)' },
-  navItemActive: { background: C.sage, color: 'white' },
-  navIcon: { fontSize: 16, width: 20, textAlign: 'center' },
-  sidebarFooter: { padding: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 10 },
-  footerAvatar: { width: 32, height: 32, background: C.sage, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'white', flexShrink: 0 },
-  footerName: { fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 },
-  footerEmail: { fontSize: 10, color: 'rgba(255,255,255,0.4)' },
-  main: { marginLeft: 232, flex: 1, minWidth: 0, width: 'calc(100vw - 232px)', boxSizing: 'border-box' },
-  mainTablet: { marginLeft: 72, flex: 1, minWidth: 0 },
-  sidebarTablet: { width: 72, background: C.forest, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 10, paddingTop: 16, paddingBottom: 16 },
-  sidebarTabletLogo: { marginBottom: 20 },
-  sidebarTabletNav: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
-  sidebarTabletItem: { width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' },
-  sidebarTabletItemActive: { background: C.sage, color: 'white' },
-  mainMobile: { marginLeft: 0, flex: 1, minWidth: 0, paddingTop: 56, paddingBottom: 20, width: '100%', boxSizing: 'border-box' },
-  mobileTopBar: {
-  position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 20,
-  background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  padding: '0 16px', boxSizing: 'border-box',
-},
-mobileTopBarTitle: { fontSize: 16, fontWeight: 800, color: 'white' },
-mobileOverflowBtn: {
-  color: 'white', fontSize: 20, fontWeight: 800, cursor: 'pointer',
-  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-},
-mobileOverflowMenu: {
-  position: 'absolute', top: 56, right: 16, background: C.white,
-  borderRadius: 12, border: `1.5px solid ${C.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-  overflow: 'hidden', zIndex: 30,
-},
-mobileOverflowItem: {
-  padding: '12px 18px', fontSize: 13, fontWeight: 500, color: C.forest,
-  cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.ivoryDark}`,
-},
-  content: { padding: 32 },
-  pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  pageTitle: { fontSize: 24, fontWeight: 800, color: C.forest, marginBottom: 4 },
-  pageSub: { fontSize: 13, color: C.muted },
-  deadlineBanner: { background: C.red, borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
-  bannerBtn: { background: 'white', color: C.red, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
-  statsGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginBottom: 22 },
-  statsGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 20 },
-  statCard: { background: C.white, borderRadius: 16, padding: 20, border: `1.5px solid ${C.border}` },
-  statLabel: { fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 8 },
-  statValue: { fontSize: 28, fontWeight: 800, color: C.forest, letterSpacing: -0.5 },
-  statNote: { fontSize: 11, color: C.muted, marginTop: 4 },
-  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
-  twoColMobile: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, marginBottom: 24 },
-  threeCol: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
-  threeColTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, marginBottom: 24 },
-  threeColMobile: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, marginBottom: 24 },
-  card: { background: C.white, borderRadius: 4, padding: 20, border: `1px solid ${C.border}`, marginBottom: 0 },
-  cardTitle: { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, marginBottom: 16 },
-  analyticsCardTitle: { fontSize: 12, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
-  statTileLabel: { fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
-  analyticsSubTitle: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  analyticsSubTitleDivider: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 },
-  analyticsStatNumber: { fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 },
-  analyticsStatDelta: (positive) => ({ fontSize: 12, fontWeight: 600, color: positive ? C.sage : C.red }),
-  statusStep: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
-  stepDot: { width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 },
-  stepLine: { width: 2, height: 16, background: C.border, marginLeft: 13, marginBottom: 4 },
-  stepTitle: { fontSize: 12, fontWeight: 700, color: C.forest },
-  stepSub: { fontSize: 11, color: C.muted },
-  autoBadge: { background: C.successBg, color: C.sage, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20 },
-  notifItem: { borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, marginBottom: 8 },
-  irasCard: { background: C.white, borderRadius: 20, border: `1.5px solid ${C.border}`, marginBottom: 24, overflow: 'hidden' },
-  irasHeader: { background: C.teal, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  irasStatus: { background: C.gold, color: C.forest, padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 },
-  irasBody: { padding: 24 },
-  irasInfoGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 },
-  irasInfoGridTablet: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginBottom: 18 },
-  irasInfoGridMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 16 },
-  irasInfoItem: { background: C.ivory, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` },
-  irasInfoLabel: { fontSize: 12, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 500, marginBottom: 6 },
-  irasInfoValue: { fontSize: 30, fontWeight: 800, color: C.forest },
-  irasInfoNote: { fontSize: 12, color: C.muted, marginTop: 2 },
-  tableCard: { background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', marginBottom: 24 },
-  tableHeader: { padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` },
-  tableTitle: { fontSize: 13, fontWeight: 600, color: C.forest },
-  tableCount: { fontSize: 11.5, color: C.muted },
-  pendingBadge: { background: C.warningBg, color: C.warning, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 4 },
-  empty: { padding: 32, textAlign: 'center', color: C.muted, fontSize: 13, fontStyle: 'italic' },
-  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
-  th: { padding: '10px 18px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, fontFamily: C.fontMono, background: C.ivory, borderBottom: `1px solid ${C.border}` },
-  tr: { borderBottom: `1px solid ${C.ivoryDark}` },
-  td: { padding: '11px 18px', fontSize: 13 },
-  donorCell: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 },
-  donorAvatar: { width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: C.fontVoice, fontSize: 12, fontWeight: 500, color: 'white', flexShrink: 0 },
-  donorName: { fontWeight: 600, color: C.forest, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 },
-  amountText: { fontFamily: C.fontVoice, fontWeight: 500, color: C.forest },
-  dateText: { color: C.muted, fontSize: 11.5 },
-  badgeIssued: { fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' },
-  badgePending: { fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' },
-  issueBtn: { padding: '6px 14px', background: C.sage, color: 'white', border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
-  issuingBtn: { padding: '6px 14px', background: C.ivoryDark, color: C.muted, border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
-  viewBtn: { padding: '6px 14px', background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  btnGold: { background: C.gold, color: C.forest, border: 'none', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 },
-  btnForest: { background: C.forest, color: 'white', border: 'none', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 },
-  searchBox: { flex: 1, padding: '10px 16px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', background: C.white, color: C.text, outline: 'none' },
-  filterSelect: { padding: '10px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', background: C.white, color: C.text, cursor: 'pointer' },
-  exportSmallBtn: { background: C.forest, color: 'white', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' },
-  backBtn: { background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
-  infoGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 0 },
-  infoItem: { background: C.ivory, borderRadius: 10, padding: 12, border: `1px solid ${C.border}` },
-  infoLabel: { fontSize: 10, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  infoValue: { fontSize: 18, fontWeight: 800, color: C.forest },
-  formLabel: { fontSize: 11, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
-  formInput: { width: '100%', padding: '10px 14px', border: `1.5px solid ${C.border}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.ivory, color: C.text, boxSizing: 'border-box' },
-  donationCard: { padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' },
-  donationCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  donationCardDonor: { display: 'flex', alignItems: 'center', gap: 10 },
-  donationCardName: { fontWeight: 700, color: C.forest, fontSize: 14 },
-  donationCardDate: { fontSize: 11, color: C.muted, marginTop: 1 },
-  donationCardAmount: { fontWeight: 800, color: C.forest, fontSize: 16, textAlign: 'right' },
-  donationCardBadges: { display: 'flex', flexWrap: 'wrap', gap: 6, marginLeft: 42 },
 }
