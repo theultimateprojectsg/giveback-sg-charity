@@ -1,0 +1,3204 @@
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
+import { supabase } from '../supabase'
+import { C } from '../theme'
+import { s } from '../styles'
+import { InfoTip } from '../components/ui/InfoTip'
+import { ActionBanner } from '../components/ui/ActionBanner'
+import { fiscalYearBounds } from '../lib/fiscalYear'
+
+export function AnalyticsPage({
+  ANALYTICS_NAV_OFFSET, acquisitionSourceStats, activeAnalyticsSection, aiWeekSummary, confirmedDonations,
+  grants, massAppeals, pledges, thisMonthTotal,
+  aiWeekSummaryError, aiWeekSummaryLoading, allGivingChangeFlags, analyticsGoalStats, annualGoal,
+  appealConversionStats, appealListHealthStats, appealListStrip, appealSnapshotStats, appealTrendStats, campaignGoalStrip, campaignLeaderboardStats, campaignSnapshotStats, causeRaisedMap,
+  charityIsIpc, charityName, charityUen, clearDonationFilters, concentrationTopN, customObligations, customTasks, dashboardActionItemsData, daysToDeadline, donationSizeBreakdownStats, donations, donorHighlightsStats,
+  donorLTVStats, donorList, donorRetentionSnapshotStats, enabledModules, filterYear,
+  findDonorRecord, fundingConcentrationStats, fundraisingSnapshotStats, fyEndDay, fyEndMonth,
+  fyOf, generateThankYouNote, giroMissedCycles, givingChangeMinGifts, givingChangeMinPct,
+  givingStreaksStats, grantExpenses, grantExpensesByGrant, grantMatchClaims, grantOverviewStats,
+  grantSnapshotStats, grantsWithNextReport, isMobile, isTablet, lapsedDismissals,
+  lapsedDonorsStats, lapsedMinDays, lapsedMinGifts, lapsedReminderHistory, majorDonorThreshold, monthlyChartData, monthlyCountData, monthlyEquivalentAmount,
+  monthlyExpenses, myCauses, newDonorAcquisitionStats, obligationForm, paymentMixStats,
+  pledgeConcentrationStats, pledgeInstalments, pledgeReliabilityStats, pledgeSnapshotStats,
+  pledgeStatsAndTrend, pledgeWatchThreshold, pledgesLoaded, predictableVsOneOffStats, quietDonorsStats,
+  quietlyPayingStats, recurringAuthStats, recurringCompositionStats,
+  recurringGifts, recurringHealthStats, recurringMissedThreshold, recurringMrrStats, recurringRiskStats,
+  recurringSnapshotStats, recurringTrendCycles, revenueByChannelStats,
+  revenueTrendStats, setActiveTab, setAiWeekSummary, setAiWeekSummaryError,
+  setAiWeekSummaryLoading, setCampaignSearchTerm, setCampaignYearFilter, setConcentrationTopN, setConfirmModal,
+  setCustomObligations, setCustomTasks, setDonorFilterLabel, setFilterDonorKeys, setFilterThankYou,
+  setFilterTopDonorNames, setFilterYear, setGivingChangeMinGifts, setGivingChangeMinPct, setGrantAmountFilter,
+  setGrantSearchTerm, setGrantUrgencyFilter, setGrantYearFilter, setLapsedMinDays, setLapsedMinGifts,
+  setObligationForm, setPledgeAmountFilter, setPledgeProgrammeFilter, setPledgeSearchTerm, setPledgeTypeFilter,
+  setPledgeUrgencyFilter, setPledgeWatchThreshold, setPledgeYearFilter, setRecurringAmountFilter,
+  setRecurringAuthFilter, setRecurringMissedThreshold, setRecurringProgrammeFilter, setRecurringSearchTerm,
+  setRecurringTrendCycles, setRecurringTypeFilter, setRecurringUrgencyFilter, setRecurringYearFilter,
+  setSelectedDonor, setShowAddObligation, setShowAddTask, setShowAllBounceReasons,
+  setShowAllConcentrationDonors, setShowAllEndingSoon, setShowAllFatigueList, setShowAllFrequentSkippers,
+  setShowAllGivingChanges, setShowAllLapsedDonors, setShowAllMissedPayments, setShowAllOverGivers,
+  setShowAllOverdueUnits, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllPledgeWatchlist,
+  setShowDismissedLapsedDonors, setShowDoneTasks, setShowSnoozedItems, setSnoozeMenuOpen, setTaskForm,
+  setToast, showAddObligation, showAddTask, showAllBounceReasons, showAllConcentrationDonors,
+  showAllEndingSoon, showAllFatigueList, showAllFrequentSkippers, showAllGivingChanges, showAllLapsedDonors,
+  showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
+  showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
+  showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }) {
+  return (
+          <div style={s.content}>
+            <div style={s.pageHeader}>
+              <div>
+                <div style={{ fontFamily: C.fontVoice, fontWeight: 500, fontSize: 26, color: C.forest }}>Dashboard</div>
+                <div style={{ ...s.pageSub, marginTop: 4 }}>Here's what's happening, plus the detailed analysis behind it.</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Fiscal year:</span>
+                <select style={s.filterSelect} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                  <option>All</option>
+                  {donations.length === 0
+                    ? <option>{fyOf(new Date())}</option>
+                    : [...new Set(donations.map(d => fyOf(d.created_at)))].sort((a, b) => b - a).map(y => <option key={y}>{y}</option>)
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div style={{ position: 'sticky', top: isMobile ? 56 : 0, zIndex: 15, background: C.ivory, paddingTop: 10, paddingBottom: 10, marginBottom: 24, borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8, overflowX: isMobile ? 'auto' : 'visible', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
+              {[
+                { id: 'analytics-section-today', label: 'Today' },
+                { id: 'analytics-section-fundraising', label: 'Fundraising' },
+                ...(enabledModules.campaigns !== false ? [{ id: 'analytics-section-campaigns', label: 'Campaigns' }] : []),
+                ...(enabledModules.massappeal !== false ? [{ id: 'analytics-section-massappeals', label: 'Mass Appeals' }] : []),
+                ...(enabledModules.pledges !== false ? [{ id: 'analytics-section-pledges', label: 'Pledges' }] : []),
+                ...(enabledModules.recurring !== false ? [{ id: 'analytics-section-recurring', label: 'Recurring' }] : []),
+                ...(enabledModules.grants !== false ? [{ id: 'analytics-section-grants', label: 'Grants' }] : []),
+                { id: 'analytics-section-donorbehavior', label: 'Donor Behavior' },
+                { id: 'analytics-section-forecasting', label: 'Forecasting' },
+              ].map(section => (
+                <button
+                  key={section.id}
+                  style={activeAnalyticsSection === section.id
+                    ? { ...s.viewBtn, fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0, background: C.forest, borderColor: C.forest, color: 'white' }
+                    : { ...s.viewBtn, fontSize: 12, padding: '6px 12px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  onClick={() => {
+                    const el = document.getElementById(section.id)
+                    if (!el) return
+                    const top = el.getBoundingClientRect().top + window.scrollY - ((isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET)
+                    window.scrollTo({ top, behavior: 'smooth' })
+                  }}
+                >{section.label}</button>
+              ))}
+            </div>
+            <div id="analytics-section-today" style={{ scrollMarginTop: 20 }}>
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
+              </div>
+
+            {/* ── THIS WEEK, IN WORDS ── */}
+            {(() => {
+              const now = new Date()
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+              const prevWeekAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+
+              const thisWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= weekAgo)
+              const lastWeekDonations = confirmedDonations.filter(d => new Date(d.created_at) >= prevWeekAgo && new Date(d.created_at) < weekAgo)
+              const weekTotal = thisWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const lastWeekTotal = lastWeekDonations.reduce((s, d) => s + d.amount, 0)
+              const weekDonorKeys = new Set(thisWeekDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
+              const weekGrowthPct = lastWeekTotal > 0 ? Math.round(((weekTotal - lastWeekTotal) / lastWeekTotal) * 100) : null
+
+              const donorFirstGiftW = {}
+              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+                const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+                if (!donorFirstGiftW[key]) donorFirstGiftW[key] = d.created_at
+              })
+              const newDonorsThisWeek = [...weekDonorKeys].filter(k => new Date(donorFirstGiftW[k]) >= weekAgo).length
+              const biggestGiftThisWeek = thisWeekDonations.sort((a, b) => b.amount - a.amount)[0]
+
+              const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
+              const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
+              const escalatedGiroW = giroMissedCycles.filter(g => g.missedCycles >= 2).length
+              const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
+
+              const monthlyExpensesSet = monthlyExpenses > 0
+              const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
+
+              const recurringThisWeek = thisWeekDonations.filter(d => d.recurring_gift_id)
+              const recurringGiftsThisWeekCount = recurringThisWeek.length
+              const recurringGiftsThisWeekTotal = recurringThisWeek.reduce((s, d) => s + d.amount, 0)
+
+              const lapsedReturningThisWeek = [...weekDonorKeys].filter(key => {
+                const priorGifts = confirmedDonations.filter(p => {
+                  const pk = p.donor_email?.trim() || p.donor_nric || p.donor_name
+                  return pk === key && new Date(p.created_at) < weekAgo
+                })
+                if (priorGifts.length === 0) return false
+                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                const gapDays = (now - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+                return gapDays >= lapsedMinDays
+              })
+
+              const sentences = []
+              sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
+              if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
+              if (biggestGiftThisWeek) sentences.push(`Your biggest gift this week was $${Number(biggestGiftThisWeek.amount).toLocaleString()} from ${biggestGiftThisWeek.donor_name}.`)
+              sentences.push(attentionCount > 0
+                ? `${attentionCount} item${attentionCount > 1 ? 's need' : ' needs'} your attention — see below.`
+                : `Nothing urgent needs your attention right now.`)
+              if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
+
+              const weekStats = {
+                charity_name: charityName,
+                weekTotal,
+                weekDonorCount: weekDonorKeys.size,
+                weekGrowthPct,
+                newDonorsThisWeek,
+                biggestGiftAmount: biggestGiftThisWeek ? biggestGiftThisWeek.amount : null,
+                attentionCount,
+                monthlyExpensesSet,
+                coverageOk,
+                recurringGiftsThisWeekCount,
+                recurringGiftsThisWeekTotal,
+                lapsedReturningCount: lapsedReturningThisWeek.length,
+              }
+
+              const generateAiSummary = async () => {
+                setAiWeekSummaryLoading(true)
+                setAiWeekSummaryError(null)
+                const { data, error } = await supabase.functions.invoke('generate-week-summary', { body: weekStats })
+                setAiWeekSummaryLoading(false)
+                if (error || data?.error) {
+                  setAiWeekSummaryError(
+                    (data?.error || '').includes('not configured')
+                      ? "AI summary isn't set up yet — ask your admin to add an Anthropic API key."
+                      : 'Could not generate an AI summary right now.'
+                  )
+                  return
+                }
+                setAiWeekSummary(data.summary)
+              }
+
+              return (
+                <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
+                  <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
+                  {aiWeekSummary && (
+                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>✨ AI Summary</div>
+                      <div style={{ fontSize: 15, color: 'white', lineHeight: 1.7, fontStyle: 'italic' }}>{aiWeekSummary}</div>
+                    </div>
+                  )}
+                  {aiWeekSummaryError && (
+                    <div style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>{aiWeekSummaryError}</div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                    <button
+                      style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '7px 14px', fontSize: 12.5, fontWeight: 500, cursor: aiWeekSummaryLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: aiWeekSummaryLoading ? 0.6 : 1 }}
+                      disabled={aiWeekSummaryLoading}
+                      onClick={generateAiSummary}
+                    >
+                      {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
+                    </button>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Sends only aggregate totals (amounts, counts) to Anthropic's Claude API — never donor names, emails, NRICs, or any other personal data.</span>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* ── ACTION ITEMS ── */}
+            {(() => {
+              const { actionItemsVisible, fyiItemsVisible, highItems, snoozedActiveItems, nowMs } = dashboardActionItemsData
+
+              const snoozeControl = (item) => item.key && (
+                snoozeMenuOpen === item.key ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
+                    {[1, 3, 7].map(d => (
+                      <span key={d} style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, cursor: 'pointer', padding: '6px 12px', background: C.ivory, border: `1px solid ${C.borderStrong}`, borderRadius: 6, lineHeight: 1 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = C.forest; e.currentTarget.style.color = 'white' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.color = C.forest }}
+                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d} day{d > 1 ? 's' : ''}</span>
+                    ))}
+                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, cursor: 'pointer', flexShrink: 0, padding: '5px 12px', border: `1px solid ${C.border}`, borderRadius: 6, lineHeight: 1, whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.borderColor = C.borderStrong }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border }}
+                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤 Snooze</span>
+                )
+              )
+
+              const snoozedSection = snoozedActiveItems.length > 0 ? (
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ fontSize: 12, color: C.muted, cursor: 'pointer' }} onClick={() => setShowSnoozedItems(v => !v)}>
+                    {snoozedActiveItems.length} snoozed · {showSnoozedItems ? 'Hide' : 'Show'}
+                  </span>
+                  {showSnoozedItems && (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {snoozedActiveItems.map((item, i) => {
+                        const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
+                            <span style={{ flex: 1, color: C.muted }}>{item.label}</span>
+                            <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{daysLeft}d left</span>
+                            <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }} onClick={() => unsnoozeActionItem(item.key)}>Un-snooze</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null
+
+              if (actionItemsVisible.length === 0 && fyiItemsVisible.length === 0) {
+                return (
+                  <>
+                    <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
+                      <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
+                      <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
+                    </div>
+                    {snoozedSection}
+                  </>
+                )
+              }
+
+              return (
+                <>
+                {actionItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                    <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {actionItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {fyiItemsVisible.length > 0 && (
+                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}` }}>
+                    <div style={{ background: C.gold, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
+                    </div>
+                    <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
+                      {fyiItemsVisible.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                          onMouseLeave={e => e.currentTarget.style.background = C.white}
+                        >
+                          <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                          {snoozeControl(item)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {snoozedSection}
+                </>
+              )
+            })()}
+
+            {(() => {
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const builtIn = [
+                ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
+              ]
+              const custom = (customObligations || []).map(o => {
+                let d = new Date(o.date)
+                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
+                return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
+              }).map(o => {
+                let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
+                if (d < today) d.setFullYear(today.getFullYear() + 1)
+                return { ...o, dateObj: d }
+              })
+              const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
+                .sort((a, b) => a.dateObj - b.dateObj)
+                .filter(o => {
+                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                  return days >= 0 && days <= 180
+                })
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+                  <div id="upcoming-obligations-card" style={{ ...s.card, scrollMarginTop: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Upcoming Obligations <InfoTip text="Fixed-date commitments like AGM meetings, board meetings, or IRAS deadlines. Add your own under the Add button." /></div>
+                      <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddObligation(v => !v)}>+ Add</button>
+                    </div>
+                  {showAddObligation && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Title</div>
+                          <input style={s.formInput} placeholder="e.g. AGM, Board Meeting" value={obligationForm.title} onChange={e => setObligationForm(f => ({ ...f, title: e.target.value }))} />
+                        </label>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Date</div>
+                          <input style={s.formInput} type="date" value={obligationForm.date} onChange={e => setObligationForm(f => ({ ...f, date: e.target.value }))} />
+                        </label>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!obligationForm.title.trim() || !obligationForm.date) return
+                          const newObligation = { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }
+                          const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => [...(current || []), newObligation])
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomObligations(next)
+                          setObligationForm({ title: '', date: '', repeat: 'annual' })
+                          setShowAddObligation(false)
+                          showToast('Obligation added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {all.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No upcoming obligations in the next 6 months.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {all.map((o, i) => {
+                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                        const urgent = days <= 7
+                        const soon = days <= 30
+                        return (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? '#FBF2DE' : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
+                              {o.type !== 'iras' && o.type !== 'coc' && (
+                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={() => setConfirmModal({
+                  title: 'Delete this obligation?',
+                  description: `"${o.title}" will be removed.`,
+                  confirmLabel: 'Delete',
+                  onConfirm: async () => {
+                    const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => (current || []).filter(c => c.title !== o.title || c.date !== o.date))
+                    if (error) { showToast('Error removing obligation', 'error'); return }
+                    setCustomObligations(next)
+                    let cancelled = false
+                    setToast({
+                      msg: 'Obligation removed', type: 'error', undoable: true,
+                      onUndo: async () => {
+                        cancelled = true
+                        const { next: restored } = await updateCharityJsonField(charityUen, 'custom_obligations', current => [...(current || []), o])
+                        setCustomObligations(restored)
+                        setToast(null)
+                      },
+                    })
+                    setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+                  },
+                })}>✕</span>
+              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div style={s.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Tasks and Reminders <InfoTip text="Informal to-dos, like scheduling a call or following up with someone. Nothing here is a fixed deadline." /></div>
+                    <button style={{ border: `1px solid ${C.borderStrong}`, background: C.ivory, borderRadius: 4, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, color: C.forest, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => setShowAddTask(v => !v)}>+ Add</button>
+                  </div>
+                  {showAddTask && (
+                    <div style={{ background: C.ivory, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Task</div>
+                          <input style={s.formInput} placeholder="e.g. Call Mrs Tan back" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
+                        </label>
+                        <label style={{ display: 'block' }}>
+                          <div style={s.formLabel}>Date (optional)</div>
+                          <input style={s.formInput} type="date" value={taskForm.date} onChange={e => setTaskForm(f => ({ ...f, date: e.target.value }))} />
+                        </label>
+                        <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
+                          if (!taskForm.title.trim()) return
+                          const newTask = { title: taskForm.title.trim(), date: taskForm.date || null, done: false }
+                          const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => [...(current || []), newTask])
+                          if (error) { showToast('Error saving', 'error'); return }
+                          setCustomTasks(next)
+                          setTaskForm({ title: '', date: '' })
+                          setShowAddTask(false)
+                          showToast('Task added ✓')
+                        }}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {(customTasks || []).filter(t => !t.done).length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No open tasks right now.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(customTasks || []).filter(t => !t.done).map((t, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <input type="checkbox" checked={false} onChange={async () => {
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x))
+                              if (error) { showToast('Error saving', 'error'); return }
+                              setCustomTasks(next)
+                              let cancelled = false
+                              setToast({
+                                msg: 'Task done ✓', undoable: true,
+                                onUndo: async () => {
+                                  cancelled = true
+                                  const { next: reverted } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
+                                  setCustomTasks(reverted)
+                                  setToast(null)
+                                },
+                              })
+                              setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+                            }} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{t.title}</div>
+                              {t.date && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(t.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={() => setConfirmModal({
+                            title: 'Delete this task?',
+                            description: `"${t.title}" will be removed.`,
+                            confirmLabel: 'Delete',
+                            onConfirm: async () => {
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).filter(x => x.title !== t.title || x.date !== t.date))
+                              if (error) { showToast('Error removing task', 'error'); return }
+                              setCustomTasks(next)
+                              let cancelled = false
+                              setToast({
+                                msg: 'Task removed', type: 'error', undoable: true,
+                                onUndo: async () => {
+                                  cancelled = true
+                                  const { next: restored } = await updateCharityJsonField(charityUen, 'custom_tasks', current => [...(current || []), t])
+                                  setCustomTasks(restored)
+                                  setToast(null)
+                                },
+                              })
+                              setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+                            },
+                          })}>✕</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(customTasks || []).filter(t => t.done).length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowDoneTasks(v => !v)}>
+                        {showDoneTasks ? 'Hide' : 'Show'} {(customTasks || []).filter(t => t.done).length} completed task{(customTasks || []).filter(t => t.done).length !== 1 ? 's' : ''}
+                      </span>
+                      {showDoneTasks && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          {(customTasks || []).filter(t => t.done).map((t, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                              <div style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{t.title}</div>
+                              <span style={{ fontSize: 11, color: C.forest, cursor: 'pointer' }} onClick={async () => {
+                                const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
+                                if (!error) { setCustomTasks(next); showToast('Task reopened') }
+                              }}>↺ Reopen</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                </div>
+              )
+            })()}
+
+            </div>
+
+            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
+              </div>
+
+            {/* ── KEY METRICS ── */}
+            {(() => {
+              const now = new Date()
+              const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
+              const activeRecurring = recurringGifts.filter(g => g.status === 'active')
+              const totalMRR = activeRecurring.filter(g => g.authorization_status !== 'terminated').reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
+              const fixedCostCoveragePct = monthlyExpenses > 0 ? Math.round((totalMRR / monthlyExpenses) * 100) : null
+              const unrestrictedGrantTotal = grants.filter(g => g.status === 'active').reduce((s, g) => s + Number(g.unrestricted_amount || 0), 0)
+              const unrestrictedCoverageMonths = monthlyExpenses > 0 ? (unrestrictedGrantTotal / monthlyExpenses) : null
+
+              const threeMoAgoFH = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+              const recentTotalFH = donations.filter(d => d.payment_status === 'confirmed' && new Date(d.created_at) >= threeMoAgoFH).reduce((s, d) => s + d.amount, 0)
+              const trailingAvgMonthlyFH = recentTotalFH / 3
+              const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                  {/* Coverage ratio */}
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
+                    {coverageRatio === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: coverageRatio >= 1 ? C.forest : coverageRatio >= 0.75 ? C.gold : C.red }}>{coverageRatio.toFixed(1)}×</div>
+                        <div style={{ fontSize: 11.5, color: coverageRatio >= 1 ? C.sage : coverageRatio >= 0.75 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {coverageRatio >= 1 ? '✓ Covering costs' : coverageRatio >= 0.75 ? '⚠ Close to breaking even' : '⚠ Shortfall'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Cash runway */}
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
+                    {runwayMonthsFH === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: runwayMonthsFH >= 3 ? C.forest : runwayMonthsFH >= 1 ? C.gold : C.red }}>{runwayMonthsFH.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: runwayMonthsFH >= 3 ? C.sage : runwayMonthsFH >= 1 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {runwayMonthsFH >= 3 ? '✓ Healthy pace' : runwayMonthsFH >= 1 ? '⚠ Worth a closer look' : '⚠ Critical'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Unrestricted funding coverage */}
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
+                    {unrestrictedCoverageMonths === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: unrestrictedCoverageMonths >= 3 ? C.forest : unrestrictedCoverageMonths >= 1 ? C.gold : C.red }}>{unrestrictedCoverageMonths.toFixed(1)} mo</div>
+                        <div style={{ fontSize: 11.5, color: unrestrictedCoverageMonths >= 3 ? C.sage : unrestrictedCoverageMonths >= 1 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {unrestrictedCoverageMonths >= 3 ? '✓' : '⚠'} ${unrestrictedGrantTotal.toLocaleString()} unrestricted from active grants
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Fixed-cost coverage from recurring income */}
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
+                    {fixedCostCoveragePct === null ? (
+                      <div>
+                        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
+                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 8px' }} onClick={() => { setActiveTab('settings'); setTimeout(() => document.getElementById('monthly-expenses-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}>Set →</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: fixedCostCoveragePct >= 50 ? C.forest : fixedCostCoveragePct >= 25 ? C.gold : C.red }}>{fixedCostCoveragePct}%</div>
+                        <div style={{ fontSize: 11.5, color: fixedCostCoveragePct >= 50 ? C.sage : fixedCostCoveragePct >= 25 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                          {fixedCostCoveragePct >= 50 ? '✓ Solid recurring base' : fixedCostCoveragePct >= 25 ? '⚠ Partial recurring base' : '⚠ Reliant on one-off giving'}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
+                    {(() => {
+                      const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
+                      const totalDaysYE = Math.ceil((yearEndYE - yearStartYE) / (1000 * 60 * 60 * 24))
+                      const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
+                      if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
+                      const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
+                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
+                      const goalPct = annualGoal ? projectedYE / annualGoal : null
+                      return (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: goalPct === null ? C.forest : goalPct >= 1 ? C.forest : goalPct >= 0.9 ? C.gold : C.red }}>${projectedYE.toLocaleString()}</div>
+                          {goalPct !== null && (
+                            <div style={{ fontSize: 11.5, color: goalPct >= 1 ? C.sage : goalPct >= 0.9 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
+                              {goalPct >= 1 ? '✓ On track for goal' : goalPct >= 0.9 ? '⚠ Slightly behind goal pace' : '⚠ Behind goal pace'}
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </div>
+
+                  <div style={{ ...s.card, marginBottom: 0 }}>
+                    <div style={s.statTileLabel}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
+                    {(() => {
+                      const cm = now.getMonth()
+                      const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
+                      const histTotals = priorYears.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === cm }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+                      if (histTotals.length === 0) return <div style={{ fontSize: 12.5, color: C.muted }}>Needs prior year data</div>
+                      const avg = histTotals.reduce((s, t) => s + t, 0) / histTotals.length
+                      return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
+                    })()}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {(() => {
+              const now03 = new Date()
+              const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
+              const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
+              const behindPaceCampaigns = liveCampaignsList.filter(c => {
+                // Matches the Campaigns page's own time-proportional pace calculation exactly --
+                // a flat "under 40% raised" threshold previously flagged brand-new campaigns as
+                // "behind pace" on day one, disagreeing with the Campaigns page's own verdict.
+                if (!(c.target_amount > 0 && c.end_date)) return false
+                const stats = causeRaisedMap[c.id] || { total: 0 }
+                const pct = Math.min(100, (stats.total / c.target_amount) * 100)
+                const periodStart = new Date(c.start_date || c.created_at)
+                const totalDuration = new Date(c.end_date) - periodStart
+                const elapsed = now03 - periodStart
+                const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
+                return pct < elapsedPct - 15
+              })
+
+              const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
+              const grantsReceived = activeGrantsList.reduce((s, g) => {
+                if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0)
+                return s + Number(g.amount)
+              }, 0)
+              const grantsSpent = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+              const grantsRemaining = grantsReceived - grantsSpent
+              const nearestGrantDeadline = activeGrantsList
+                .filter(g => g.report_due_date)
+                .map(g => Math.ceil((new Date(g.report_due_date) - now03) / (1000 * 60 * 60 * 24)))
+                .filter(d => d >= 0)
+                .sort((a, b) => a - b)[0]
+
+              const pendingPledgesList = pledges.filter(p => p.status === 'pending')
+              const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
+              const upcomingPledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) >= now03)
+              // Outstanding value counts only remaining unpaid instalments for multi-year pledges,
+              // matching how the Pledges page itself totals outstanding value -- using the full
+              // multi-year amount here would double-count instalments already paid off.
+              const outstandingAmountForPledge = (p) => p.is_multi_year
+                ? pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s, i) => s + Number(i.amount), 0)
+                : Number(p.amount)
+              const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
+              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
+
+              const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
+              const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+              const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
+
+              const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
+              const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
+                const amt = Number(g.amount) || 0
+                if (g.frequency === 'weekly') return s + amt * 4.33
+                if (g.frequency === 'quarterly') return s + amt / 3
+                if (g.frequency === 'annually') return s + amt / 12
+                return s + amt
+              }, 0)
+              const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
+
+              const pledgesFulfilledRevenue = pledges.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
+              const massAppealRevenue = thisYearAppeals.reduce((s, a) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
+              const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
+              const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
+                    <div style={s.statTileLabel}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{liveCampaignsList.length}</div>
+                    {behindPaceCampaigns.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
+                    ) : liveCampaignsList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ On pace</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${campaignRevenue.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(campaignRevenue)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('grants')}>
+                    <div style={s.statTileLabel}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeGrantsList.length}</div>
+                    {nearestGrantDeadline !== undefined ? (
+                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
+                    ) : activeGrantsList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ No deadlines soon</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${grantsReceived.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(grantsReceived)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('pledges')}>
+                    <div style={s.statTileLabel}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{pendingPledgesList.length}</div>
+                    {overduePledgesList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
+                    ) : pendingPledgesList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ None overdue</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${pledgesFulfilledRevenue.toLocaleString()}</div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(pledgesFulfilledRevenue)}% of total revenue</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
+                    <div style={s.statTileLabel}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{thisYearAppeals.length}</div>
+                    {daysSinceLastAppeal !== null ? (
+                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
+                        <InfoTip text="Estimated, not actual matched donations: (suggested amount × recipients sent) ÷ donors reached, averaged per appeal. See Analytics > Mass Appeals for real matched-donation revenue." />
+                      </div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue (est.)</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('recurring')}>
+                    <div style={s.statTileLabel}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeRecurringList.length}</div>
+                    {escalatedGiroList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
+                    ) : activeRecurringList.length > 0 ? (
+                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ All on schedule</div>
+                    ) : null}
+                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
+                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
+                        <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(recurringMonthlyTotal)}% of total revenue</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            </div>
+            </div>
+
+            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
+              </div>
+
+              {analyticsGoalStats.hasGoal && (() => {
+                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                return (
+                <div style={{ ...s.card, marginBottom: 24 }}>
+                  <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                    {onTrack
+                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                  </div>
+                </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, tiles } = fundraisingSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+              {(() => {
+                if (!revenueTrendStats) return <div />
+                const { trendData, firstYr, lastYr, cagr } = revenueTrendStats
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                    <ResponsiveContainer width="100%" height={130}>
+                      <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                        <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                        <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
+                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    {cagr !== null && (
+                      <div style={{ fontSize: 11.5, color: cagr >= 0 ? C.sage : C.red, fontWeight: 500, marginTop: 10 }}>
+                        {cagr >= 0 ? '✓' : '⚠'} {Math.abs(cagr)}% average annual growth from {firstYr.year} to {lastYr.year}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, channelRows } = revenueByChannelStats
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
+                    {channelRows.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                          {channelRows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: r.color }} />)}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {channelRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 12, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, totalRevenue, predictablePct, predictableAmt, oneOffAmt } = predictableVsOneOffStats
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
+                    {totalRevenue === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                          <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12.5, color: C.text }}>Predictable</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12.5, color: C.text }}>One-off</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+              </div>
+
+              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+              {(() => {
+                const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                    <div style={{ minHeight: 22 }} />
+                    {totalNew === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                          <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
+                          <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value, 'New donors']} />
+                          <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                )
+              })()}
+
+                <div style={s.card}>
+                  <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
+                  <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
+                    {filterYear !== 'All' && (
+                      <>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
+                      </>
+                    )}
+                  </div>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                      <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(filterYear) - 1}` : 'Previous year')]} />
+                      {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />}
+                      <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={s.card}>
+                  <div style={s.analyticsCardTitle}>Number of Donations per Month — {filterYear} <InfoTip text="Count of individual confirmed donations received each month, regardless of amount." /></div>
+                  <div style={{ minHeight: 22 }} />
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} />
+                      <Line type="monotone" dataKey="count" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.campaigns === false ? 'none' : undefined }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
+              </div>
+
+              {(() => {
+                const { yr, tiles } = campaignSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, strip } = campaignGoalStrip
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {strip.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{t.sub}</div>
+                        {t.d !== null ? (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: (t.invert ? t.d <= 0 : t.d >= 0) ? C.sage : C.red }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}{t.unit} vs {yr - 1}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: C.muted }}>no comparable data last year</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg } = campaignLeaderboardStats
+
+                return (
+                  <>
+                    {endingSoon.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                        <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map(r => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
+                      </div>
+                    )}
+
+                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter(r => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
+                        {campaignRows.length === 0 ? (
+                          <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {campaignRows.map((row, i) => {
+                              const bg = row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
+                              const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
+                              const barColor = row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
+                              let statusText = null
+                              if (row.hasGoal) {
+                                if (row.goalReached) statusText = 'goal reached'
+                                else if (row.behind) statusText = 'behind pace'
+                                else if (row.slightlyBehind) statusText = 'slightly behind'
+                                else statusText = 'on pace'
+                              }
+                              return (
+                                <div key={i} style={{ padding: '12px 14px', background: bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: 'pointer' }} onClick={() => { setCampaignSearchTerm(row.title); setCampaignYearFilter('All'); setActiveTab('promotions') }}>
+                                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', gap: isMobile ? 10 : 0, marginBottom: row.hasGoal ? 8 : 2 }}>
+                                    <div style={{ minWidth: 0 }}>
+                                      <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, marginBottom: 2 }}>{i + 1}. {row.title}</div>
+                                      <div style={{ fontSize: 10.5, color: C.muted }}>{row.count === 0 ? 'No donations yet' : `${row.count} donation${row.count > 1 ? 's' : ''} · ${row.donors} donor${row.donors > 1 ? 's' : ''} · avg $${row.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: isMobile ? 0 : 16 }}>
+                                      <div style={isMobile ? {} : { textAlign: 'right' }}>
+                                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Total Raised</div>
+                                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>${row.total.toLocaleString()}</div>
+                                      </div>
+                                      {row.cost > 0 && (
+                                        <div style={isMobile ? {} : { textAlign: 'right' }}>
+                                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>ROI</div>
+                                          <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{(row.total / row.cost).toFixed(1)}×</div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {row.hasGoal && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ flex: 1, background: 'rgba(0,0,0,0.08)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                        <div style={{ width: `${Math.min(100, row.pctToGoal)}%`, height: '100%', background: barColor }} />
+                                      </div>
+                                      <span style={{ fontSize: 10.5, color: accentColor, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                        {row.pctToGoal}% of goal · {row.daysToEnd >= 0 ? `ends in ${row.daysToEnd}d` : 'ended'} · {statusText}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {(() => {
+                          const behindCount = campaignRows.filter(r => r.behind).length
+                          const withGoalCount = campaignRows.filter(r => r.hasGoal).length
+                          if (withGoalCount === 0) return null
+                          return behindCount > 0 ? (
+                            <ActionBanner tone="danger" text={`${behindCount} campaign${behindCount !== 1 ? 's' : ''} behind pace`} sub="Consider a mass appeal or check in with the campaign owner" />
+                          ) : (
+                            <ActionBanner tone="success" text="All campaigns on pace" sub={`${withGoalCount} campaign${withGoalCount !== 1 ? 's' : ''} tracking toward its goal`} />
+                          )
+                        })()}
+                      </div>
+
+                      <div>
+                        {trendData.length >= 2 && (
+                          <div style={{ ...s.card, marginBottom: 16 }}>
+                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
+                            <ResponsiveContainer width="100%" height={140}>
+                              <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                                <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Avg per campaign']} />
+                                <Bar dataKey="avgPerCampaign" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
+                          </div>
+                        )}
+
+                        {donorGrowthAgg && (() => {
+                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
+
+                          return (
+                          <div style={s.card}>
+                            <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
+
+                            <div style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+                              <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
+                              {aggTotal === 0 ? (
+                                <div style={{ fontSize: 12.5, color: C.muted }}>No campaign revenue yet.</div>
+                              ) : (
+                                <>
+                                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                                    {aggOrganicRawPct > 0 && <div style={{ width: `${aggOrganicRawPct}%`, background: C.sage }} />}
+                                    {aggAppealRawPct > 0 && <div style={{ width: `${aggAppealRawPct}%`, background: C.gold }} />}
+                                    {aggReferralRawPct > 0 && <div style={{ width: `${aggReferralRawPct}%`, background: C.muted }} />}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text, flexWrap: 'wrap' }}>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{aggOrganicPct}% organic</span>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />{aggAppealPct}% mass appeal</span>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.muted, borderRadius: 2, marginRight: 5 }} />{aggReferralPct}% referral</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {appealReliant.map((r, i) => (
+                                <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{r.title} is {r.appealPct}% reliant on a mass appeal</div>
+                                  <div style={{ fontSize: 10.5, color: C.warning }}>{r.newPct}% new donors · without that appeal, this campaign would have raised far less on its own</div>
+                                </div>
+                              ))}
+                              {standoutOrganic.map((r, i) => (
+                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: '#EAF3DE', borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: '#27500A' }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
+                                  <div style={{ fontSize: 10.5, color: '#27500A' }}>100% new, fully organic — no appeal or referral involved</div>
+                                </div>
+                              ))}
+                              {stagnant.map((r, i) => (
+                                <div key={`stagnant-${i}`} style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{r.title} hasn't attracted any new donors</div>
+                                  <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
+                                </div>
+                              ))}
+                              {restCount > 0 && (
+                                <div style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{restCount} other campaign{restCount !== 1 ? 's are' : ' is'} mostly organic with a healthy new-donor mix</div>
+                                  <div style={{ fontSize: 10.5, color: C.muted }}>Nothing to flag — steady, unassisted growth</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+
+            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.massappeal === false ? 'none' : undefined }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
+              </div>
+
+              {(() => {
+                const { yr, tiles } = appealSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { yr, strip } = appealListStrip
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {strip.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d !== undefined ? (
+                          t.d === null ? (
+                            <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          ) : (
+                            <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                              {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                            </div>
+                          )
+                        ) : (
+                          t.sub && <div style={{ fontSize: 11, color: C.muted }}>{t.sub}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { trendData, yr, medianResponseDays, respBuckets, respTotal, within24h, within7d } = appealTrendStats
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Appeals Trend — Last {trendData.length} Years <InfoTip text="Total raised from mass appeals per year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
+                        <ResponsiveContainer width="100%" height={130}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Raised']} />
+                            <Bar dataKey="raised" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total raised from appeals, by year.</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 12 }}>
+                          <span style={{ fontSize: 11, color: C.muted }}>Conversion rate trend</span>
+                          <span style={{ fontSize: 11, color: C.text }}>{trendData.map(d => d.conversionRate !== null ? `${d.conversionRate}%` : '—').join(' → ')}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Response Speed — {yr} <InfoTip text="How long after a mass appeal is sent donors typically respond, measured from the appeal recipient's send time to their matched confirmed donation." /></div>
+                      {medianResponseDays === null ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No converted appeal recipients yet {filterYear !== 'All' ? `in ${yr}` : ''}.</div>
+                      ) : (
+                        <>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{medianResponseDays} day{medianResponseDays !== 1 ? 's' : ''}</div>
+                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>median time from appeal sent to donation</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {respBuckets.map((b, i) => {
+                              const pct = respTotal > 0 ? Math.round((b.count / respTotal) * 100) : 0
+                              return (
+                                <div key={i}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginBottom: 4 }}>
+                                    <span>{b.label}</span>
+                                    <span>{pct}%</span>
+                                  </div>
+                                  <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${pct}%`, height: '100%', background: b.color, borderRadius: 3 }} />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {within24h + within7d >= respTotal * 0.7 ? (
+                            <ActionBanner tone="success" text="Results are mostly in within a week" sub="Safe to report final numbers after 7 days" />
+                          ) : (
+                            <ActionBanner tone="warning" text="A meaningful share of responses arrive late" sub="Wait longer than a week before reporting final numbers" />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const { yearNum, scopedAppeals, lastYearAppeals, scopedAnalyzed, totalRaised, overallConversion, appealCountDiff, conversionDiff, lastYearRaised, lastYearConversion, causeSpecificAvg, generalAvg, distinctAmounts } = appealConversionStats
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 6 }}>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Appeals sent</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={s.analyticsStatNumber}>{scopedAppeals.length}</span>
+                            {lastYearAppeals.length > 0 && <span style={{ fontSize: 10.5, fontWeight: 500, color: appealCountDiff >= 0 ? C.sage : C.red }}>{appealCountDiff === 0 ? '—' : appealCountDiff > 0 ? `↑${appealCountDiff}` : `↓${Math.abs(appealCountDiff)}`}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Raised</div>
+                          <div style={s.analyticsStatNumber}>${totalRaised.toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Conversion</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: overallConversion >= 25 ? C.sage : overallConversion >= 15 ? C.gold : C.red }}>{overallConversion}%</span>
+                            {conversionDiff !== null && <span style={{ fontSize: 10.5, fontWeight: 500, color: conversionDiff >= 0 ? C.sage : C.red }}>{conversionDiff === 0 ? '—' : conversionDiff > 0 ? `↑${conversionDiff}pt` : `↓${Math.abs(conversionDiff)}pt`}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      {lastYearAppeals.length > 0 && (
+                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearAppeals.length} appeal{lastYearAppeals.length !== 1 ? 's' : ''} · ${lastYearRaised.toLocaleString()} raised{lastYearConversion !== null ? ` · ${lastYearConversion}% conversion` : ''}</div>
+                      )}
+
+                      {scopedAnalyzed.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>No appeals sent {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
+                      ) : (
+                        <>
+                          <div style={s.analyticsSubTitleDivider}>Appeal-by-appeal conversion</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                            {[...scopedAnalyzed].sort((a, b) => b.conversionRate - a.conversionRate).map((a, i) => {
+                              const isSending = a.appeal.status === 'sending'
+                              const bg = a.conversionRate >= 25 ? '#EAF3DE' : a.conversionRate >= 15 ? '#FDF8EC' : C.ivory
+                              const textColor = a.conversionRate >= 25 ? '#27500A' : a.conversionRate >= 15 ? '#854F0B' : C.text
+                              return (
+                                <div key={i} style={{ padding: '8px 10px', background: bg, borderRadius: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 500, color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>{a.appeal.cause_name || 'General Appeal'}</span>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: textColor }}>{a.conversionRate}% · {a.convertedCount}/{a.sentCount} · ${a.raised.toLocaleString()}{isSending ? ' (sending)' : ''}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <div style={s.analyticsSubTitle}>Cause-specific vs. general</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: causeSpecificAvg !== null || generalAvg !== null ? 18 : 0 }}>
+                            {causeSpecificAvg !== null && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text }}>Cause-specific appeals</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{causeSpecificAvg}% avg conversion</span>
+                              </div>
+                            )}
+                            {generalAvg !== null && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text }}>General appeals</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{generalAvg}% avg conversion</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={s.analyticsSubTitle}>Ask amount vs. conversion</div>
+                          {distinctAmounts.length < 2 ? (
+                            <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter(a => a.sentCount > 0).length} appeal{scopedAnalyzed.filter(a => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {distinctAmounts.sort((a, b) => a - b).map((amt, i) => {
+                                const matching = scopedAnalyzed.filter(a => Number(a.appeal.amount) === amt && a.sentCount > 0)
+                                const avgConv = Math.round(matching.reduce((s, a) => s + a.conversionRate, 0) / matching.length)
+                                return (
+                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                    <span style={{ fontSize: 12, color: C.text }}>${amt} ask</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{avgConv}% avg conversion</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {scopedAppeals.length > 0 && (
+                        overallConversion >= 25 ? (
+                          <ActionBanner tone="success" text="Strong conversion" sub="Appeals are converting well" />
+                        ) : overallConversion >= 15 ? (
+                          <ActionBanner tone="warning" text="Moderate conversion" sub="Room to improve messaging, targeting, or ask amount" />
+                        ) : (
+                          <ActionBanner tone="danger" text="Low conversion" sub="Worth revisiting ask amount, messaging, or list quality" />
+                        )
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const { yr, curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
+                  const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Appeal List Health <InfoTip text="Bounces are bad contact data — the message couldn't be delivered. Opt-outs are donors who actively blocked appeals — a stewardship signal, not a data problem." /></div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Bounced</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: curDelivery.bouncedPct >= 20 ? C.red : curDelivery.bouncedPct >= 10 ? C.gold : C.forest }}>{curDelivery.bouncedPct}%</span>
+                            {ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) !== null && (
+                              <span style={{ fontSize: 10.5, fontWeight: 500, color: ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) <= 0 ? C.sage : C.red }}>
+                                {ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) === 0 ? '—' : ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct) > 0 ? `▲${ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct)}pt` : `▼${Math.abs(ptDelta(curDelivery.bouncedPct, prevDelivery.bouncedPct))}pt`}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>bad contact data</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Opted Out</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            <span style={{ ...s.analyticsStatNumber, color: curDelivery.blockedPct >= 20 ? C.red : curDelivery.blockedPct >= 10 ? C.gold : C.forest }}>{curDelivery.blockedPct}%</span>
+                            {ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) !== null && (
+                              <span style={{ fontSize: 10.5, fontWeight: 500, color: ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) <= 0 ? C.sage : C.red }}>
+                                {ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) === 0 ? '—' : ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct) > 0 ? `▲${ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct)}pt` : `▼${Math.abs(ptDelta(curDelivery.blockedPct, prevDelivery.blockedPct))}pt`}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>donors who blocked appeals</div>
+                        </div>
+                      </div>
+
+                      {bounceReasons.length > 0 && (
+                        <>
+                          <div style={s.analyticsSubTitleDivider}>Top bounce reasons</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                            {(showAllBounceReasons ? bounceReasons : bounceReasons.slice(0, 5)).map((r, i) => (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{r.reason}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.count}</span>
+                              </div>
+                            ))}
+                            {bounceReasons.length > 5 && (
+                              <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllBounceReasons(v => !v)}>
+                                {showAllBounceReasons ? 'Show fewer' : `Show all ${bounceReasons.length}`}
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Repeat recipients</div>
+                          <div style={s.analyticsStatNumber}>{repeatRecipients.length}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>received 2+ appeals</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>List Fatigue</div>
+                          <div style={{ ...s.analyticsStatNumber, color: fatiguedCount > 0 ? C.gold : C.forest }}>{fatiguedCount}</div>
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>gave before, skipped last appeal</div>
+                        </div>
+                      </div>
+
+                      <div style={s.analyticsSubTitleDivider}>Response pattern among repeat recipients</div>
+                      {fatigueList.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
+                                <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {fatigueList.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllFatigueList(v => !v)}>
+                              {showAllFatigueList ? 'Show fewer' : `Show all ${fatigueList.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitle}>Donors who gave more than asked</div>
+                      {overGivers.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(showAllOverGivers ? overGivers : overGivers.slice(0, 5)).map((d, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                              <span style={{ fontSize: 11, color: C.muted }}>asked ${d.asked} · gave ${d.gave}</span>
+                            </div>
+                          ))}
+                          {overGivers.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllOverGivers(v => !v)}>
+                              {showAllOverGivers ? 'Show fewer' : `Show all ${overGivers.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {(() => {
+                        const bounceHigh = curDelivery.bouncedPct >= 20 || curDelivery.blockedPct >= 20
+                        const bounceMed = !bounceHigh && (curDelivery.bouncedPct >= 10 || curDelivery.blockedPct >= 10)
+                        return curDelivery.total === 0 ? null : bounceHigh ? (
+                          <ActionBanner tone="danger" text="List health needs attention" sub="High bounce or opt-out rate — clean up contact data before your next appeal" />
+                        ) : bounceMed ? (
+                          <ActionBanner tone="warning" text="List health worth watching" sub="Bounce or opt-out rate is creeping up" />
+                        ) : (
+                          <ActionBanner tone="success" text="List healthy" sub="Low bounce and opt-out rates" />
+                        )
+                      })()}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.pledges === false ? 'none' : undefined }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
+              </div>
+
+              {(() => {
+                const { yr, tiles } = pledgeSnapshotStats
+                const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
+                const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
+                const genericTile = (t) => (
+                  <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                    <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                    {t.d === null ? (
+                      <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                    ) : (
+                      <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                        {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                      </div>
+                    )}
+                  </div>
+                )
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      {genericTile(pledgesMadeTile)}
+                      {genericTile(amountPledgedTile)}
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        {avgDelta === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: avgDelta > 0 ? C.sage : avgDelta < 0 ? C.red : C.muted }}>
+                            {avgDelta > 0 ? '▲' : avgDelta < 0 ? '▼' : '–'} {Math.abs(avgDelta)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
+                          {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted }}>pending pledges past their due date</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                      {genericTile(fulfilledTile)}
+                      {genericTile(fulfilledOnTimeTile)}
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
+                      </div>
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+
+              {(() => {
+                const { yr, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue } = pledgeStatsAndTrend
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend — Last {trendData.length} Years <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'pledged' ? 'Pledged' : 'Fulfilled']} />
+                            <Bar dataKey="pledged" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            <Bar dataKey="fulfilled" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginTop: 8 }}>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />Fulfilled</span>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />Pledged</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New pledges committed</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
+                      </div>
+                      {netPledgeValue >= 0 ? (
+                        <ActionBanner tone="success" text="Net pledge value growing" sub={`New commitments are outpacing cancellations so far in ${yr}`} />
+                      ) : (
+                        <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+              {(() => {
+                const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
+                const { overdueUnits, overdueTotal } = pledgeStatsAndTrend
+
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
+
+                    {fulfilledWithDates.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges: how late did they run?</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.sage }}>{fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0}% · {onTimeGroup.length} · ${onTimeGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
+                            <span style={{ fontSize: 12, color: C.text }}>1–14 days late</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0}% · {slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                          </div>
+                          {veryLateGroup.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
+                              <span style={{ fontSize: 12, color: C.warning }}>15+ days late</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.warning }}>{Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100)}% · {veryLateGroup.length} · ${veryLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {lastYearPledges.length > 0 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearPledges.length} pledge{lastYearPledges.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} pledged{lastYearOnTimeRate !== null ? ` · ${lastYearOnTimeRate}% fulfilled on time` : ''}</div>
+                    )}
+
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Currently overdue</div>
+                    {overdueUnits.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No overdue pledges right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                        {(showAllOverdueUnits ? overdueUnits : overdueUnits.slice(0, 5)).map((u, i) => (
+                          <div key={i} style={{ padding: '9px 11px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: C.red }}>${u.amount.toLocaleString()}</span>
+                            </div>
+                            <div style={{ fontSize: 10.5, color: C.red }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
+                          </div>
+                        ))}
+                        {overdueUnits.length > 5 && (
+                          <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllOverdueUnits(v => !v)}>
+                            {showAllOverdueUnits ? 'Show fewer' : `Show all ${overdueUnits.length}`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                        <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={async e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); const { error } = await supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen); if (error) { console.error('Failed to save pledge watch threshold:', error); showToast('Could not save this setting — please try again', 'error') } }}>
+                          <option value={1}>1 broken pledge</option>
+                          <option value={2}>2 broken pledges</option>
+                          <option value={3}>3 broken pledges</option>
+                        </select>
+                      </div>
+                    </div>
+                    {watchList.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No donors currently meet this threshold.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(showAllPledgeWatchlist ? watchList : watchList.slice(0, 5)).map((d, i) => (
+                          <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: d.overdueNow.length > 0 ? C.red : C.forest }}>{d.name}{d.overdueNow.length > 0 ? ' — overdue now' : ''}</span>
+                              <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {watchList.length > 5 && (
+                          <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeWatchlist(v => !v)}>
+                            {showAllPledgeWatchlist ? 'Show fewer' : `Show all ${watchList.length}`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {watchList.length > 0 ? (
+                      <ActionBanner tone="danger" text={`${watchList.length} donor${watchList.length !== 1 ? 's' : ''} worth watching`} sub="A pattern of broken or overdue pledges — worth a conversation before the next ask" />
+                    ) : (
+                      <ActionBanner tone="success" text="No donors flagged" sub="No one currently meets your broken-pledge threshold" />
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth } = pledgeConcentrationStats
+
+                return (
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+
+                    {tooFewDonors ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                      </>
+                    )}
+
+                    {donorRanked.length > 0 && (
+                      <>
+                        <div style={s.analyticsSubTitleDivider}>Largest outstanding pledges</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
+                            </div>
+                          ))}
+                          {donorRanked.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeConcentration(v => !v)}>
+                              {showAllPledgeConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    <div style={s.analyticsSubTitle}>Outstanding pledges by expected month</div>
+                    {monthsRanked.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {monthsRanked.map((m, i) => {
+                          const isHeaviest = heaviestMonth && m.label === heaviestMonth.label && monthsRanked.length > 1
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: isHeaviest ? C.warningBg : C.ivory, borderRadius: 4 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: isHeaviest ? C.warning : C.text }}>{m.label}</span>
+                                <span style={{ fontSize: 11, color: isHeaviest ? C.warning : C.muted }}>${m.amount.toLocaleString()} · {m.count} pledge{m.count !== 1 ? 's' : ''}</span>
+                              </div>
+                              {isHeaviest && (
+                                <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>Heaviest single month — worth confirming these are on track</div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {!tooFewDonors && (highRisk ? (
+                      <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
+                    ) : medRisk ? (
+                      <ActionBanner tone="warning" text="Moderate pledge concentration" sub="Worth watching as your pledge portfolio grows" />
+                    ) : (
+                      <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
+                    ))}
+                  </div>
+                )
+              })()}
+              </div>
+
+              </div>
+
+            <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.recurring === false ? 'none' : undefined }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
+              </div>
+
+              {(() => {
+                const { yr, tiles } = recurringSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
+                const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
+
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
+                        {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk` : 'gifts flagged at risk'}</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { trendData } = recurringMrrStats
+                const { byProgrammeRows, byTypeRows } = recurringCompositionStats
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {trendData.length >= 2 && (
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'MRR']} />
+                            <Bar dataKey="mrr" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
+                      </div>
+                    )}
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
+                      <div style={s.analyticsSubTitleDivider}>By programme</div>
+                      {byProgrammeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {byProgrammeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={s.analyticsSubTitleDivider}>By type</div>
+                      {byTypeRows.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {byTypeRows.map((r, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const { yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New MRR added</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newMrr).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.red }}>− Churned MRR lost</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(churnedMrr).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
+                        <span style={{ fontSize: 11.5, color: C.muted }}>Net MRR change</span>
+                        <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netMrr >= 0 ? C.sage : C.red }}>{netMrr >= 0 ? '+' : '−'}${Math.abs(Math.round(netMrr)).toLocaleString()}</span>
+                      </div>
+                      {netMrr >= 0 ? (
+                        <ActionBanner tone="success" text="Net MRR growing" sub={`New recurring gifts are outpacing churn so far in ${yr}`} />
+                      ) : (
+                        <ActionBanner tone="danger" text="Net MRR shrinking" sub="Churn is outpacing new recurring gifts — worth investigating why donors are cancelling" />
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
+
+                  return (
+                    <div id="giving-trend-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
+                      <div style={s.analyticsCardTitle}>Giving Trend <InfoTip text="Donors whose recurring giving has consistently increased or decreased over recent cycles." /></div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 2 }}>
+                        <div style={s.analyticsSubTitle}>Sustained upgrades &amp; downgrades</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringTrendCycles} onChange={async e => { const v = Number(e.target.value); setRecurringTrendCycles(v); const { error } = await supabase.from('charity_contacts').update({ recurring_trend_cycles: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
+                            <option value={2}>2 cycles</option>
+                            <option value={3}>3 cycles</option>
+                          </select>
+                        </div>
+                      </div>
+                      {trendFlagsFiltered.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No sustained upgrade or downgrade patterns right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {[...upgrades, ...downgrades].slice(0, 5).map((f, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? '#EAF3DE' : '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(f.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.donor_name}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F', marginTop: 2 }}>{recurringTrendCycles} consecutive cycles {f.direction === 'upgrade' ? 'increasing' : 'decreasing'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {downgrades.length > 0 ? (
+                        <ActionBanner tone="danger" text={`${downgrades.length} donor${downgrades.length !== 1 ? 's' : ''} trending down`} sub="Worth a check-in before the pattern turns into a cancellation" />
+                      ) : (
+                        <ActionBanner tone="success" text="No sustained downgrades" sub={upgrades.length > 0 ? `${upgrades.length} donor${upgrades.length !== 1 ? 's' : ''} trending up instead` : 'Recurring giving is holding steady'} />
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                {(() => {
+                  const { pendingCount, authorizedCount, terminatedCount, terminatedGifts, terminatedMrr } = recurringAuthStats
+
+                  return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Authorization & Mandate Risk <InfoTip text="GIRO and Standing Order gifts by bank authorization status. A terminated mandate means the bank has cut off the deduction — the donor needs to be contacted to re-authorize, or the gift will keep silently failing." /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Pending</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.gold }}>{pendingCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Authorized</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.sage }}>{authorizedCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Terminated</div>
+                          <div style={{ ...s.analyticsStatNumber, color: C.red }}>{terminatedCount}</div>
+                        </div>
+                      </div>
+                      <div style={s.analyticsSubTitleDivider}>Terminated by bank — needs follow-up</div>
+                      {terminatedGifts.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>None right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {terminatedGifts.slice(0, 5).map((g, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}{g.bank_name ? ` · ${g.bank_name}` : ''}</span>
+                              <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{{ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' }[g.frequency] || 'mo'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {terminatedCount > 0 ? (
+                        <ActionBanner tone="danger" text={`${terminatedCount} mandate${terminatedCount !== 1 ? 's' : ''} terminated`} sub={`~$${Math.round(terminatedMrr).toLocaleString()} MRR at risk — contact donors to re-authorize`} />
+                      ) : (
+                        <ActionBanner tone="success" text="All bank mandates in good standing" sub="No terminated authorizations right now" />
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {(() => {
+                  const { missedFiltered, frequentSkippers, endingSoon, pausedGifts } = recurringRiskStats
+                  const today = new Date()
+
+                  return (
+                    <div id="recurring-gift-risk-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
+                      <div style={s.analyticsCardTitle}>Recurring Gift Risk <InfoTip text="Everything that needs a human decision: missed payments, gifts ending soon, currently paused gifts, donors who frequently skip, and manual gifts that look recurring but aren't tagged as one." /></div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={s.analyticsSubTitle}>Missed payments</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
+                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringMissedThreshold} onChange={async e => { const v = Number(e.target.value); setRecurringMissedThreshold(v); const { error } = await supabase.from('charity_contacts').update({ recurring_missed_threshold: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
+                            <option value={1}>1 cycle</option>
+                            <option value={2}>2 cycles</option>
+                            <option value={3}>3 cycles</option>
+                          </select>
+                        </div>
+                      </div>
+                      {missedFiltered.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No missed recurring payments right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {(showAllMissedPayments ? missedFiltered : missedFiltered.slice(0, 5)).map((g, i) => {
+                            const fullGift = recurringGifts.find(rg => rg.id === g.gift_id)
+                            return (
+                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
+                                    {g.donor_name}
+                                    {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
+                                  </span>
+                                  <span style={{ fontSize: 11.5, color: g.missedCycles >= 2 ? C.red : C.warning }}>{g.missedCycles} cycle{g.missedCycles !== 1 ? 's' : ''} missed{g.missedCycles >= 2 ? ' — possible cancellation' : ''}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: g.missedCycles >= 2 ? C.red : C.warning, marginTop: 2 }}>{fullGift?.donor_phone ? `Call ${fullGift.donor_phone}` : 'No phone on file — email only'}</div>
+                              </div>
+                            )
+                          })}
+                          {missedFiltered.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllMissedPayments(v => !v)}>
+                              {showAllMissedPayments ? 'Show fewer' : `Show all ${missedFiltered.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitleDivider}>Ending within 6 months</div>
+                      {endingSoon.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active gifts with an end date in the next 6 months.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {(showAllEndingSoon ? endingSoon : endingSoon.slice(0, 5)).map((g, i) => {
+                            const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                            return (
+                              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                                <span style={{ fontSize: 11.5, color: C.warning }}>ends in {monthsOut} mo</span>
+                              </div>
+                            )
+                          })}
+                          {endingSoon.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllEndingSoon(v => !v)}>
+                              {showAllEndingSoon ? 'Show fewer' : `Show all ${endingSoon.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitleDivider}>Currently paused ({pausedGifts.length})</div>
+                      {pausedGifts.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No paused gifts right now.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {(showAllPausedGifts ? pausedGifts : pausedGifts.slice(0, 5)).map((g, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
+                              <span style={{ fontSize: 11.5, color: C.muted }}>{g.pause_reason ? ` — ${g.pause_reason}` : ''}{g.pause_resume_date ? ` · resume ${new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}</span>
+                            </div>
+                          ))}
+                          {pausedGifts.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPausedGifts(v => !v)}>
+                              {showAllPausedGifts ? 'Show fewer' : `Show all ${pausedGifts.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={s.analyticsSubTitleDivider}>Frequent skippers</div>
+                      {frequentSkippers.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No donors have skipped 2+ cycles this year.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {(showAllFrequentSkippers ? frequentSkippers : frequentSkippers.slice(0, 5)).map((g, i) => (
+                            <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>
+                                  {g.donor_name}
+                                  {g.type && <span style={{ fontSize: 9.5, fontWeight: 500, background: C.white, color: C.muted, padding: '1px 6px', borderRadius: 3, marginLeft: 6, textTransform: 'uppercase' }}>{g.type === 'giro' ? 'GIRO' : 'PayNow'}</span>}
+                                </span>
+                                <span style={{ fontSize: 11, color: C.muted }}>{g.skipCount} cycles skipped</span>
+                              </div>
+                            </div>
+                          ))}
+                          {frequentSkippers.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllFrequentSkippers(v => !v)}>
+                              {showAllFrequentSkippers ? 'Show fewer' : `Show all ${frequentSkippers.length}`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {(missedFiltered.length > 0 || frequentSkippers.length > 0 || endingSoon.length > 0) ? (
+                        <ActionBanner tone="danger" text={`${missedFiltered.length + frequentSkippers.length + endingSoon.length} donor${(missedFiltered.length + frequentSkippers.length + endingSoon.length) !== 1 ? 's' : ''} need follow-up`} sub="A missed GIRO cycle usually means a bank authorization issue; PayNow is often just forgetfulness" />
+                      ) : (
+                        <ActionBanner tone="success" text="No risk signals right now" sub="No missed payments, expiring gifts, or frequent skippers" />
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+
+            <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.grants === false ? 'none' : undefined }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
+              </div>
+
+              {(() => {
+                const { yr, tiles } = grantSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {tiles.map((t, i) => (
+                      <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
+                        {t.d === undefined ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>currently active</div>
+                        ) : t.d === null ? (
+                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                        ) : (
+                          <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
+                            {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct } = grantOverviewStats
+                return (
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                    {trendData.length >= 2 && (
+                      <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <div style={s.analyticsCardTitle}>Grants Trend — Last {trendData.length} Years <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <ResponsiveContainer width="100%" height={140}>
+                            <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                              <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                              <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
+                              <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
+                      {expenseByCategory.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No expenses logged against active grants yet.</div>
+                      ) : (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <ResponsiveContainer width="100%" height={110}>
+                            <PieChart>
+                              <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={2} isAnimationActive={false}>
+                                {expenseByCategory.map((c, i) => (
+                                  <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
+                                ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                            {expenseByCategory.map((c, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{c.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{c.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${c.amount.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
+                      <div style={s.analyticsSubTitle}>By funder type</div>
+                      {funderTypeBreakdown.length === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                          {funderTypeBreakdown.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{f.label}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{f.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${f.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={s.analyticsSubTitleDivider}>Restricted vs unrestricted</div>
+                      {(restrictedTotal + unrestrictedTotal) === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                            <div style={{ width: `${restrictedPct}%`, background: C.red }} />
+                            <div style={{ width: `${100 - restrictedPct}%`, background: C.sage }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text }}>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.red, borderRadius: 2, marginRight: 5 }} />{restrictedPct}% restricted · ${restrictedTotal.toLocaleString()}</span>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{100 - restrictedPct}% unrestricted · ${unrestrictedTotal.toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { totalActiveAmount, totalUtilized, utilizationRate, activeGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon } = grantOverviewStats
+                const today = new Date()
+
+                return (
+                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
+
+                      {utilizationRate !== null && (
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overall utilization</div>
+                          <div style={{ ...s.analyticsStatNumber, color: utilizationRate >= 80 ? C.sage : utilizationRate >= 50 ? C.gold : C.red, marginBottom: 4 }}>{utilizationRate}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalUtilized.toLocaleString()} of ${totalActiveAmount.toLocaleString()}</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, utilizationRate)}%`, height: '100%', background: utilizationRate >= 80 ? C.sage : utilizationRate >= 50 ? C.gold : C.red, borderRadius: 3 }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {activeGrants.length === 0 ? (
+                        <div style={{ fontSize: 13, color: C.muted }}>No active grants right now.</div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Pace vs report deadline</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {(() => { let behindPaceCount = 0; const rows = activeGrants.map((g, i) => {
+                            const utilized = (grantExpensesByGrant[g.id] || []).reduce((s, e) => s + Number(e.amount), 0)
+                            const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
+                            const start = new Date(g.start_date || g.created_at)
+                            const due = g.report_due_date ? new Date(g.report_due_date) : null
+                            const daysToReport = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null
+                            const overdue = daysToReport !== null && daysToReport < 0
+                            let pctElapsed = null
+                            if (due) {
+                              const totalSpan = due - start
+                              const elapsed = today - start
+                              pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
+                            }
+                            const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
+                            const behind = gap !== null && gap >= 20
+                            const slightlyBehind = gap !== null && gap >= 8 && gap < 20
+                            if (overdue || behind) behindPaceCount++
+                            const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
+                            const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
+                            const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
+                            let verdict = 'Not enough data to assess pace'
+                            if (pctElapsed !== null) {
+                              verdict = `${pctElapsed}% of timeline elapsed, ${pctSpent}% spent — ${overdue || behind ? 'significantly behind on spend' : slightlyBehind ? 'slightly behind pace' : 'on pace'}`
+                            }
+                            return (
+                              <div key={i} style={{ padding: '10px 12px', background: bg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                  <span style={{ fontSize: 11, color: textColor }}>{overdue ? 'report overdue' : daysToReport !== null ? (daysToReport <= 60 ? `report in ${daysToReport}d` : due.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })) : 'no report date'}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <div style={{ flex: 1, background: 'rgba(0,0,0,0.06)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${pctSpent}%`, height: '100%', background: barColor }} />
+                                  </div>
+                                  <span style={{ fontSize: 11, color: textColor, whiteSpace: 'nowrap' }}>${utilized.toLocaleString()} of ${Number(g.amount).toLocaleString()}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: textColor }}>{verdict}</div>
+                              </div>
+                            )
+                          }); return <>{rows}{behindPaceCount > 0 ? <ActionBanner tone="danger" text={`${behindPaceCount} grant${behindPaceCount !== 1 ? 's' : ''} behind pace`} sub="Log expenses or check in with the programme team" /> : <ActionBanner tone="success" text="All grants on pace" sub={`${activeGrants.length} active grant${activeGrants.length !== 1 ? 's' : ''} tracking on schedule`} />}</> })()}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {(() => {
+                      return (
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
+
+                    {tooFewFunders ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
+                    ) : (
+                      <>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topFunderPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of active grant funding from your single largest funder</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 18 }}>
+                          <div style={{ width: `${topFunderPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                      </>
+                    )}
+
+                    {byFunder.length > 0 && (
+                      <>
+                        <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                          {byFunder.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(f.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <div style={s.analyticsSubTitle}>Funding expiring in the next 6 months</div>
+                    {expiringSoon.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {expiringSoon.map((g, i) => {
+                          const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                          return (
+                            <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
+                                <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
+                              </div>
+                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {!tooFewFunders && (highRisk ? (
+                      <ActionBanner tone="danger" text="High funder concentration" sub="Prioritise diversifying your funder base" />
+                    ) : medRisk ? (
+                      <ActionBanner tone="warning" text="Moderate funder concentration" sub="Worth watching as your portfolio grows" />
+                    ) : (
+                      <ActionBanner tone="success" text="Well diversified" sub="No single funder dominates your active grants" />
+                    ))}
+                  </div>
+                      )
+                    })()}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportCompliance } = grantOverviewStats
+                return (
+                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Matching Grant Claims <InfoTip text="How much matched funding has been claimed against the cap across all active matching grants, and which ones are ending within 6 months with unclaimed match still on the table." /></div>
+                      {totalMatchCap === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No active matching grants.</div>
+                      ) : (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: matchClaimedPct >= 80 ? C.sage : matchClaimedPct >= 50 ? C.gold : C.red, marginBottom: 4 }}>{matchClaimedPct}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalMatchClaimed.toLocaleString()} claimed of ${totalMatchCap.toLocaleString()} total cap</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${matchClaimedPct}%`, height: '100%', background: matchClaimedPct >= 80 ? C.sage : matchClaimedPct >= 50 ? C.gold : C.red, borderRadius: 3 }} />
+                          </div>
+                          <div style={s.analyticsSubTitle}>Ending within 6 months, unclaimed match remaining</div>
+                          {matchingAtRisk.length === 0 ? (
+                            <div style={{ fontSize: 12.5, color: C.muted }}>None — all on pace or not ending soon.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {matchingAtRisk.map((m, i) => (
+                                <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(m.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{m.funder_name}</span>
+                                    <span style={{ fontSize: 11, color: C.red }}>{m.pct}% claimed</span>
+                                  </div>
+                                  <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>${m.claimed.toLocaleString()} of ${m.cap.toLocaleString()} · ends {new Date(m.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {matchingAtRisk.length > 0 ? (
+                            <ActionBanner tone="danger" text={`${matchingAtRisk.length} grant${matchingAtRisk.length !== 1 ? 's' : ''} closing with unclaimed match`} sub="File grant claims now, or that money is gone for good" />
+                          ) : (
+                            <ActionBanner tone="success" text="No claims at risk" sub="Grant claims are on pace or not ending soon" />
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
+                      {totalCommitted === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
+                      ) : (() => {
+                        const receivedPct = Math.round((totalReceived / totalCommitted) * 100)
+                        const receivedColor = receivedPct >= 80 ? C.sage : receivedPct >= 50 ? C.gold : C.red
+                        return (
+                        <>
+                          <div style={{ ...s.analyticsStatNumber, color: receivedColor, marginBottom: 4 }}>{receivedPct}%</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>${totalReceived.toLocaleString()} received of ${totalCommitted.toLocaleString()} committed</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ width: `${Math.min(100, receivedPct)}%`, height: '100%', background: receivedColor, borderRadius: 3 }} />
+                          </div>
+                          <div style={s.analyticsSubTitle}>Pending tranches</div>
+                          {pendingTranches.length === 0 ? (
+                            <div style={{ fontSize: 12.5, color: C.muted }}>All committed tranches received.</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {pendingTranches.map((t, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(t.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                  <span style={{ fontSize: 12, color: t.overdue ? C.red : C.text }}>{t.funder_name} <span style={{ color: C.muted }}>· {t.label}</span></span>
+                                  <span style={{ fontSize: 11.5, color: t.overdue ? C.red : C.muted }}>${t.amount.toLocaleString()} · {t.overdue ? 'overdue' : new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {pendingTranches.some(t => t.overdue) ? (
+                            <ActionBanner tone="danger" text={`${pendingTranches.filter(t => t.overdue).length} tranche${pendingTranches.filter(t => t.overdue).length !== 1 ? 's' : ''} overdue`} sub="Follow up with the funder" />
+                          ) : (
+                            <ActionBanner tone="success" text="No overdue tranches" sub="All disbursements are on schedule" />
+                          )}
+                        </>
+                        )
+                      })()}
+                    </div>
+
+                    <div style={s.card}>
+                      <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year." /></div>
+                      {reportCompliance.total === 0 ? (
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No report deadlines due in {reportCompliance.yr} yet.</div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
+                          <div>
+                            <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>On-time rate — {reportCompliance.yr}</div>
+                            <div style={{ ...s.analyticsStatNumber, color: reportCompliance.onTimeRate === null ? C.forest : reportCompliance.onTimeRate >= 80 ? C.sage : reportCompliance.onTimeRate >= 50 ? C.gold : C.red }}>{reportCompliance.onTimeRate !== null ? `${reportCompliance.onTimeRate}%` : '—'}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.submitted} of {reportCompliance.total} submitted{reportCompliance.onTimeRateDelta !== null && (
+                              <span style={{ color: reportCompliance.onTimeRateDelta >= 0 ? C.sage : C.red, fontWeight: 500 }}> · {reportCompliance.onTimeRateDelta >= 0 ? '▲' : '▼'} {Math.abs(reportCompliance.onTimeRateDelta)}pt vs last FY</span>
+                            )}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Overdue now</div>
+                            <div style={{ ...s.analyticsStatNumber, color: reportCompliance.overdueCount > 0 ? C.red : C.forest }}>{reportCompliance.overdueCount}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{reportCompliance.avgDaysLate !== null ? `avg ${reportCompliance.avgDaysLate}d late when late` : 'no late submissions yet'}</div>
+                          </div>
+                        </div>
+                      )}
+                      {reportCompliance.overdueCount > 0 && (
+                        <>
+                          <div style={s.analyticsSubTitle}>Overdue reports</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
+                            {reportCompliance.overdueReportsList.map((r, i) => (
+                              <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(r.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                  <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.funder_name}</span>
+                                  <span style={{ fontSize: 11, color: C.red }}>{r.daysOverdue}d overdue</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>{r.label} · due {new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {reportCompliance.overdueCount > 0 ? (
+                        <ActionBanner tone="danger" text={`${reportCompliance.overdueCount} report${reportCompliance.overdueCount !== 1 ? 's' : ''} overdue`} sub="Check and submit on time" />
+                      ) : reportCompliance.total > 0 ? (
+                        <ActionBanner tone="success" text="No overdue reports" sub="All reports are up to date" />
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            <div id="analytics-section-donorbehavior" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
+              </div>
+
+              {(() => {
+                const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
+                return (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>of {yr - 1}'s donors gave again in {yr}</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatDonorRate}%</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>gave 2+ times, all-time</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgLTV.toLocaleString()}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>per donor, all-time</div>
+                    </div>
+                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeCount} <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>/ {lapsedCount}</span></div>
+                      <div style={{ fontSize: 11, color: C.muted }}>active vs lapsed donors</div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={{ ...s.analyticsSubTitle, color: C.red }}>Needs Attention</div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
+              {(() => {
+                const lapsedToday = new Date()
+                const { activeLapsed, dismissedLapsed } = lapsedDonorsStats
+                const lapsed = showAllLapsedDonors ? activeLapsed : activeLapsed.slice(0, 5)
+
+                return (
+                  <div id="lapsed-donors-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Lapsed Donors <InfoTip text="Donors who have given at least this many times but haven't donated in over this many days. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Gave</span>
+                      <input type="number" min={1} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); supabase.from('charity_contacts').update({ lapsed_min_gifts: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ times but haven't donated in</span>
+                      <input type="number" min={1} style={{ width: 48, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); supabase.from('charity_contacts').update({ lapsed_min_days: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ days</span>
+                    </div>
+                    {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {lapsed.map((d, i) => {
+                        const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                        const donorKey = d.email?.trim() || d.name
+                        const reminderCount = (lapsedReminderHistory[donorKey] || []).length
+                        return (
+                          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} onClick={() => { setSelectedDonor({ ...d, receipts: d.count }); setActiveTab('donors') }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>${d.total.toLocaleString()} lifetime</div>
+                              </div>
+                              <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.gold, flexShrink: 0 }}>{daysSince}d ago</span>
+                            </div>
+                            {reminderCount > 0 && (
+                              <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
+                                ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
+                              </div>
+                            )}
+                            {(() => {
+                              const isDeepRelationship74 = d.count >= 5 || d.total >= (majorDonorThreshold || 1000)
+                              const isRecent74 = daysSince <= 60
+                              const suggestion74 = isDeepRelationship74 && isRecent74
+                                ? { icon: '📞', text: 'Suggested: a personal call — this is a longtime supporter' }
+                                : isDeepRelationship74
+                                ? { icon: '✉️', text: 'Suggested: a personal note — they\'ve been with you a while' }
+                                : { icon: '📢', text: 'Suggested: include in your next mass appeal' }
+                              return (
+                                <div style={{ fontSize: 10.5, color: C.forest, background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 8px' }}>
+                                  {suggestion74.icon} {suggestion74.text}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {activeLapsed.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 8, marginBottom: 8, display: 'block' }} onClick={() => setShowAllLapsedDonors(v => !v)}>
+                        {showAllLapsedDonors ? 'Show fewer' : `Show all ${activeLapsed.length}`}
+                      </button>
+                    )}
+                    {dismissedLapsed.length > 0 && (
+                      <div>
+                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowDismissedLapsedDonors(v => !v)}>
+                          {showDismissedLapsedDonors ? 'Hide' : 'Show'} {dismissedLapsed.length} dismissed donor{dismissedLapsed.length !== 1 ? 's' : ''}
+                        </button>
+                        {showDismissedLapsedDonors && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                            {dismissedLapsed.map((d, i) => {
+                              const donorKey = d.email?.trim() || d.name
+                              return (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 500, color: C.muted }}>{d.name}</div>
+                                    {lapsedDismissals[donorKey]?.reason && <div style={{ fontSize: 10.5, color: C.muted, fontStyle: 'italic' }}>"{lapsedDismissals[donorKey].reason}"</div>}
+                                  </div>
+                                  <button style={{ ...s.viewBtn, fontSize: 10.5, padding: '3px 8px', flexShrink: 0 }} onClick={() => undismissLapsedDonor(donorKey)}>↺ Restore</button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const quiet = quietDonorsStats
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Quiet Donors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
+                    {quiet.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {quiet.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.warningBg, borderRadius: 10, border: `1px solid ${C.warningBorder}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.warning, marginTop: 1 }}>Usually gives every ~{d.avgGapDays}d · it's been {d.daysSinceLast}d</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const quietlyPaying75 = quietlyPayingStats
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Quietly Paying Donors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
+                    {quietlyPaying75.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {quietlyPaying75.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.forest, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>${d.amount}/{d.frequency} · {d.lastContact ? `last contact ${Math.floor((new Date() - new Date(d.lastContact)) / (1000 * 60 * 60 * 24 * 30))}mo ago` : 'no contact ever logged'}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const allFlags = allGivingChangeFlags
+                const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 5)
+                return (
+                  <div id="giving-changes-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
+                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
+                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); supabase.from('charity_contacts').update({ giving_change_min_pct: v }).eq('charity_uen', charityUen) }} />
+                      <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
+                    </div>
+                    {flags.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        {flags.map((f, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(f.email, f.name)); setActiveTab('donors') }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>
+                            </div>
+                            <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: f.changePct < 0 ? C.red : C.sage }}>
+                              {f.changePct > 0 ? '↑' : '↓'} {Math.abs(f.changePct)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {allFlags.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }} onClick={() => setShowAllGivingChanges(v => !v)}>
+                        {showAllGivingChanges ? 'Show top 5 only' : `Show all ${allFlags.length}`}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent)
+                const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
+                if (owedDonations.length === 0) return null
+                return (
+                  <div style={{ ...s.card, marginBottom: 24, background: C.warningBg, border: `1px solid ${C.warningBorder}`, gridColumn: isMobile ? 'auto' : '1 / -1' }}>
+                    <div style={s.analyticsCardTitle}>Silent Thank-You Debt</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: C.warning, marginBottom: 4 }}>${owedTotal.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, color: C.warning }}>in donations from {owedDonations.length} donor{owedDonations.length > 1 ? 's' : ''} have never received a thank-you — that's real generosity sitting unacknowledged.</div>
+                    <button style={{ ...s.viewBtn, marginTop: 10 }} onClick={() => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setActiveTab('donations') }}>Review and thank them →</button>
+                  </div>
+                )
+              })()}
+              </div>
+
+              <div style={{ ...s.analyticsSubTitle, color: C.sage }}>Recognition & Stewardship</div>
+              {(() => {
+                const cards = donorHighlightsStats
+                if (cards.length === 0) return null
+
+                return (
+                  <div id="donor-highlights-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={s.analyticsCardTitle}>Donor Highlights — {filterYear}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
+                      {cards.map((c, i) => (
+                        <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>{c.icon}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</span>
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{c.name}</div>
+                          <div style={{ fontSize: 12, color: C.muted }}>{c.sub}</div>
+                          {c.donor.email?.trim() && (
+                            <button
+                              style={{ ...s.btnGold, justifyContent: 'center', fontSize: 12, padding: '8px 14px', marginTop: 4 }}
+                              onClick={() => generateThankYouNote(c.donor, { unackedBigGift: true })}
+                            >✍️ Draft thank-you</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+              {(() => {
+                const streaks = givingStreaksStats
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Giving Streaks</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors who've given in 3 or more consecutive months — your most dependable supporters, regardless of gift size.</div>
+                    {streaks.length === 0 ? (
+                      <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {streaks.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gold, color: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{d.email || 'No email on file'}</div>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, flexShrink: 0 }}>🔥 {d.streak} mo</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Donor Composition & Analysis</div>
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
+                  <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {donorList.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: [C.gold, C.sage, C.teal, C.forest, C.muted][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'white', flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted }}>{d.count} donation{d.count > 1 ? 's' : ''}</div>
+                      </div>
+                      <div style={{ fontFamily: C.fontVoice, fontSize: 14, fontWeight: 500, color: C.forest }}>${d.total.toLocaleString()}</div>
+                    </div>
+                  ))}
+                  {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
+                </div>
+              </div>
+
+              {donorLTVStats && (() => {
+                const { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 } = donorLTVStats
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
+                      </div>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
+                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
+                      </div>
+                    </div>
+                    <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {sorted.slice(0, 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.ivory, borderRadius: 4 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: [C.forest, C.sage, C.gold, C.borderStrong, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 500, fontFamily: C.fontVoice, flexShrink: 0 }}>{i + 1}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>{d.count} gift{d.count !== 1 ? 's' : ''} since {new Date(d.firstDate).getFullYear()}</div>
+                          </div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest, flexShrink: 0 }}>${d.total.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {paymentMixStats && (() => {
+                const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
+                const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
+                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                      {rows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
+                      {rows.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {allYears61.length > 1 && (
+                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
+                        {allMethods61.map((method, mi) => {
+                          const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                          const firstPct = series[0]
+                          const lastPct = series[series.length - 1]
+                          const delta = lastPct - firstPct
+                          return (
+                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
+                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                                {yearlyMix61.map((y, yi) => (
+                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
+                                ))}
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend } = fundingConcentrationStats
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
+                        <option value={5}>Top 5</option>
+                        <option value={10}>Top 10</option>
+                        <option value={20}>Top 20</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2 }}>{concentrationPct}%</div>
+                      {concentrationTrend !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
+                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
+                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {sorted.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
+                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
+                      </button>
+                    )}
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setFilterDonorKeys(null); setDonorFilterLabel(null); setActiveTab('donors') }}>View Top Donors →</button>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const rows78 = topConnectorsStats
+                if (rows78.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Top Connectors</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
+                  </div>
+                )
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Top Connectors</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows78.slice(0, 8).map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.name}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.referredCount} referred · {r.sustainedCount} became repeat givers</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const rows57 = acquisitionSourceStats
+                if (rows57.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
+                  </div>
+                )
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows57.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={{ ...s.card, marginBottom: 0 }}>
+                <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
+                  {donationSizeBreakdownStats.map((bucket, i) => (
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{bucket.pct}% of donations · ${bucket.total.toLocaleString()}</div>
+                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${bucket.pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
+                        </div>
+                      </div>
+                  ))}
+                </div>
+              </div>
+              </div>
+
+            <div id="analytics-section-forecasting" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Forecasting and composition</span>
+              </div>
+
+              {(() => {
+                const now79 = new Date()
+                const currentMonth79 = now79.getMonth()
+                const years79 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now79.getFullYear() || (y === now79.getFullYear() && false))
+                const historicalMonthTotals79 = years79.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === currentMonth79 }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
+
+                if (historicalMonthTotals79.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Monthly Forecast</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>Needs at least one prior year of data for this month to build a forecast.</div>
+                  </div>
+                )
+
+                const avgHistorical79 = historicalMonthTotals79.reduce((s, t) => s + t, 0) / historicalMonthTotals79.length
+                const lowRange79 = Math.round(avgHistorical79 * 0.85)
+                const highRange79 = Math.round(avgHistorical79 * 1.15)
+
+                const activeRecurring79 = recurringGifts.filter(g => g.status === 'active')
+                const confirmedRecurringThisMonth79 = activeRecurring79.reduce((s, g) => {
+                  const amt = Number(g.amount) || 0
+                  if (g.frequency === 'weekly') return s + amt * 4.33
+                  if (g.frequency === 'quarterly') return s + amt / 3
+                  if (g.frequency === 'annually') return s + amt / 12
+                  return s + amt
+                }, 0)
+
+                const neededLow79 = Math.max(0, Math.round(lowRange79 - confirmedRecurringThisMonth79))
+                const neededHigh79 = Math.max(0, Math.round(highRange79 - confirmedRecurringThisMonth79))
+                const monthName79 = now79.toLocaleDateString('en-SG', { month: 'long' })
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Monthly Forecast</div>
+                    <div style={{ fontSize: 13, color: C.forest, marginBottom: 10, lineHeight: 1.6 }}>
+                      You typically receive <strong>${lowRange79.toLocaleString()}–${highRange79.toLocaleString()}</strong> in {monthName79}.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: C.muted }}>Confirmed recurring covers</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${Math.round(confirmedRecurringThisMonth79).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: C.muted }}>You'd need from one-off gifts</span>
+                        <span style={{ fontWeight: 500, color: C.forest }}>${neededLow79.toLocaleString()}–${neededHigh79.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Based on {historicalMonthTotals79.length} prior year{historicalMonthTotals79.length !== 1 ? 's' : ''} of {monthName79} data.</div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
+                if (years58.length < 2) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
+                  </div>
+                )
+                const byMonth58 = monthNames58.map((name, i) => {
+                  const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
+                  const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
+                  const avg = nonZeroTotals.length > 0 ? totalsAcrossYears.reduce((s, t) => s + t, 0) / years58.length : 0
+                  return { name, avg }
+                })
+                const overallAvg58 = byMonth58.reduce((s, m) => s + m.avg, 0) / 12
+                const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100, marginBottom: 8 }}>
+                      {byMonth58.map((m, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
+                          <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
+                      <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
+                      <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {(() => {
+                const categoryLabels62 = { unknown: 'Unknown', financial_difficulty: 'Financial difficulty', moved_overseas: 'Moved overseas', switched_cause: 'Switched to another cause', deceased: 'Deceased', asked_to_stop: 'Asked to stop', other: 'Other' }
+                const dismissalsList62 = Object.values(lapsedDismissals).filter(d => d.reason_category)
+                if (dismissalsList62.length === 0) return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Why Donors Lapse</div>
+                    <div style={{ fontSize: 13, color: C.muted }}>No lapsed donors marked with a reason yet.</div>
+                  </div>
+                )
+                const counts62 = {}
+                dismissalsList62.forEach(d => { counts62[d.reason_category] = (counts62[d.reason_category] || 0) + 1 })
+                const rows62 = Object.entries(counts62).map(([cat, count]) => ({ label: categoryLabels62[cat] || cat, count })).sort((a, b) => b.count - a.count)
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={s.analyticsCardTitle}>Why Donors Lapse</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Based on {dismissalsList62.length} donor{dismissalsList62.length !== 1 ? 's' : ''} marked not interested.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows62.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 13, color: C.forest }}>{r.label}</span>
+                          <span style={{ fontSize: 12, color: C.muted }}>{r.count} donor{r.count !== 1 ? 's' : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+            </div>
+
+          </div>
+
+  )
+}

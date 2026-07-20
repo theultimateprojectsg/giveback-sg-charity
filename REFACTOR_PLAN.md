@@ -284,7 +284,43 @@ main win (breaking up the file).
   goal), Email Templates showed the real template list with working tab
   navigation — no console errors on any sub-tab. 43/43 tests, build
   (850 modules). `App.jsx` down to 14,849 lines.
-- [ ] Remaining: Analytics/Dashboard (~3159 lines, biggest — do last).
+- [x] **Analytics/Dashboard** → `src/pages/AnalyticsPage.jsx` (2026-07-21). The
+  biggest and last Phase 5 slice — ~3157 lines, 235 props. Covers every
+  Dashboard sub-section (Today/Fundraising/Campaigns/Mass Appeals/Pledges/
+  Recurring/Grants/Donor Behavior/Forecasting), each with charts (recharts),
+  stat tiles, drill-down lists, and inline editable thresholds.
+  Extraction method differed from prior phases given the size: rather than
+  manually reading and transcribing ~3000 lines, used a script-assisted
+  approach — extracted the block programmatically, then used a Python regex
+  pass to find candidate free variables, cross-referenced against `App.jsx`
+  declarations to build the initial prop list, and generated the component
+  signature and call-site JSX mechanically. This produced ~30 false-positive
+  "props" (English words like `day`, `month`, `note` that were actually
+  string-literal contents my regex mis-parsed as identifiers) and, more
+  importantly, missed a few genuine ones. Caught both classes of error the
+  reliable way: ran `npx eslint` with the existing `no-undef` rule directly
+  against the new file, which — unlike regex — does real scope analysis and
+  listed every actual undefined reference in one pass (`grants`,
+  `massAppeals`, `pledges`, `thisMonthTotal`, plus confirming the ~30
+  suspected false positives had zero real usages). Fixed all of it in two
+  rounds instead of trial-and-error one-prop-at-a-time. Also used a runtime
+  trick to see the actual browser error text (Vite HMR + a persisted
+  `window.addEventListener('error', ...)` survives hot-reloads but not full
+  page navigations, so a source-file touch was used to trigger HMR while the
+  listener was attached, surfacing the real `ReferenceError` instead of
+  React's generic "an error occurred" console wrapper). Verified live with
+  the user's real signed-in session: full Dashboard rendered with real data
+  (fundraising totals, donor lists, recurring/pledge/grant stats), scroll-jump
+  section navigation confirmed working (clicking "Mass Appeals"/"Campaigns"
+  correctly jumped to those sections), no console errors beyond a
+  pre-existing unrelated style-shorthand warning. 43/43 tests, build
+  (851 modules). `App.jsx` down to **11,775 lines** (from ~20,665 at the
+  start of this refactor — a 43% reduction).
+
+**Phase 5 is now complete.** Every tab has been extracted into its own page
+component under `src/pages/`. `App.jsx` retains state, data-fetching,
+top-level handlers, layout/sidebar, tab routing, and the globally-rendered
+modals — exactly per the Phase 5 plan.
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
 from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
