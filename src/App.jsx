@@ -7864,10 +7864,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
   }, [filterYear, confirmedDonations, fyOf])
 
-  const allGivingChangeFlags = (() => {
+  // These used to be plain top-level `const`s recomputed on every render of the WHOLE app
+  // (not just when the relevant tab was open) — including two O(n) scans per donor
+  // (repeatDonorsThisMonth, longestSupporter). Memoized like every other analytics stat below.
+  const allGivingChangeFlags = React.useMemo(() => {
     const donorTotals = {}
     confirmedDonations.forEach(d => {
-      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
+      const key = donationDonorKey(d)
       if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
       donorTotals[key].total += d.amount
       donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
@@ -7886,38 +7889,49 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const isHandled = acks.length > 0 && new Date(acks[0].sent_at) > new Date(f.recentDate)
       return { ...f, isHandled }
     }).filter(f => !f.isHandled).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
-  })()
-  const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
-  const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
-  const monthChangePct = lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : null
-  const sixMonthTrend = Array.from({ length: 6 }, (_, i) => {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1)
-    return confirmedDonations.filter(d => new Date(d.created_at) >= monthStart && new Date(d.created_at) < monthEnd).reduce((s, d) => s + d.amount, 0)
-  })
-  const trendMax = Math.max(...sixMonthTrend, 1)
-  const repeatDonorsThisMonth = donorList.filter(d => {
-    const donationsThisMonth = donations.filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === (d.email?.trim() || d.name) && new Date(don.created_at) >= thisMonthStart)
-    return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
-  }).length
-  const longestSupporter = donorList.length > 0
-    ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now - new Date([...donations].filter(don => (don.donor_email?.trim() || don.donor_nric || don.donor_name) === (d.email?.trim() || d.name)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at)) / (1000 * 60 * 60 * 24 * 30))) }))
-        .sort((a, b) => b.monthsSupporting - a.monthsSupporting)[0]
-    : null
-  const issuedCount  = donations.filter(d => d.receipt_issued).length
-  const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
-  const uniqueDonorsThisYear = [...new Set(
-    (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear)))
-      .map(d => d.donor_name)
-  )]
-  const avgDonation  = donations.length ? (totalAllTime / donations.length) : 0
-  const medianDonation = (() => {
-    const yearScoped = filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))
-    const amounts = yearScoped.map(d => d.amount).sort((a, b) => a - b)
-    if (amounts.length === 0) return 0
-    const mid = Math.floor(amounts.length / 2)
-    return amounts.length % 2 === 0 ? (amounts[mid - 1] + amounts[mid]) / 2 : amounts[mid]
-  })()
+  }, [confirmedDonations, givingChangeMinGifts, givingChangeMinPct, givingChangeAckHistory])
+
+  const { thisMonthTotal, lastMonthTotal, monthChangePct, sixMonthTrend, trendMax, repeatDonorsThisMonth, longestSupporter } = React.useMemo(() => {
+    const now = new Date()
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
+    const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
+    const monthChangePct = lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : null
+    const sixMonthTrend = Array.from({ length: 6 }, (_, i) => {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1)
+      return confirmedDonations.filter(d => new Date(d.created_at) >= monthStart && new Date(d.created_at) < monthEnd).reduce((s, d) => s + d.amount, 0)
+    })
+    const trendMax = Math.max(...sixMonthTrend, 1)
+    const repeatDonorsThisMonth = donorList.filter(d => {
+      const donationsThisMonth = donations.filter(don => donationDonorKey(don) === contactDonorKey(d) && new Date(don.created_at) >= thisMonthStart)
+      return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
+    }).length
+    const longestSupporter = donorList.length > 0
+      ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now - new Date([...donations].filter(don => donationDonorKey(don) === contactDonorKey(d)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at)) / (1000 * 60 * 60 * 24 * 30))) }))
+          .sort((a, b) => b.monthsSupporting - a.monthsSupporting)[0]
+      : null
+    return { thisMonthTotal, lastMonthTotal, monthChangePct, sixMonthTrend, trendMax, repeatDonorsThisMonth, longestSupporter }
+  }, [confirmedDonations, donations, donorList])
+
+  const { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation } = React.useMemo(() => {
+    const issuedCount = donations.filter(d => d.receipt_issued).length
+    const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
+    const uniqueDonorsThisYear = [...new Set(
+      (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear)))
+        .map(d => d.donor_name)
+    )]
+    const avgDonation = donations.length ? (totalAllTime / donations.length) : 0
+    const medianDonation = (() => {
+      const yearScoped = filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))
+      const amounts = yearScoped.map(d => d.amount).sort((a, b) => a - b)
+      if (amounts.length === 0) return 0
+      const mid = Math.floor(amounts.length / 2)
+      return amounts.length % 2 === 0 ? (amounts[mid - 1] + amounts[mid]) / 2 : amounts[mid]
+    })()
+    return { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation }
+  }, [donations, filterYear, fyOf, totalAllTime])
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
@@ -7954,7 +7968,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     filterThankYou !== 'All',
   ].filter(Boolean).length
 
-  const filteredDonations = donations.filter(d => {
+  // Was a plain top-level computation re-filtering/re-sorting the FULL donations array on every
+  // render of the whole app (e.g. every keystroke on any other tab), not just when the Donations
+  // tab's own search/filter/sort state changed. Memoized on its actual inputs.
+  const filteredDonations = React.useMemo(() => donations.filter(d => {
     const q = searchTerm.toLowerCase().trim()
     const searchFields = charityIsIpc ? [d.donor_name, d.donor_email, d.donor_nric, d.notes, d.payment_ref, d.receipt_number, causeNameForDonation(d)] : [d.donor_name, d.donor_email, d.notes, d.payment_ref, d.receipt_number, causeNameForDonation(d)]
     const matchSearch = q === '' || searchFields.some(field => field?.toLowerCase().includes(q))
@@ -7964,7 +7981,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       || (filterType === 'Receipt Pending' && d.payment_status === 'confirmed' && !d.receipt_issued)
       || (filterType === 'Issued' && d.receipt_issued)
       || (filterType === 'Refunded' && d.payment_status === 'refunded')
-      
+
     const matchNric = filterNric === 'All' || (filterNric === 'Missing NRIC' && !d.donor_nric && d.payment_status === 'confirmed')
     const matchSource = filterSource === 'All' || (filterSource === 'Manual' && d.source === 'manual') || (filterSource === 'App' && d.source !== 'manual')
     const matchThankYou = filterThankYou === 'All'
@@ -7988,7 +8005,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (donationSortBy === 'receiptNo') cmp = (a.receipt_number || a.payment_ref || '').localeCompare(b.receipt_number || b.payment_ref || '')
     if (donationSortBy === 'thankYou') cmp = (a.thank_you_sent ? 1 : 0) - (b.thank_you_sent ? 1 : 0)
     return donationSortDir === 'asc' ? cmp : -cmp
-  })
+  }), [donations, searchTerm, charityIsIpc, filterYear, fyOf, filterType, filterNric, filterSource, filterThankYou, filterMinAmount, donationSortBy, donationSortDir])
 
   const donationsTotalPages = Math.max(1, Math.ceil(filteredDonations.length / donationsPerPage))
   const paginatedDonations = filteredDonations.slice(donationsPage * donationsPerPage, donationsPage * donationsPerPage + donationsPerPage)
