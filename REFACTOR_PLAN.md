@@ -126,10 +126,17 @@ after every single commit.** No phase is "in progress" across a commit boundary.
   added no new tests since there's no pure logic here to test, only JSX +
   local form state), production build (841 modules, output size unchanged),
   and a live dev-server boot + console-error check + full page-text read.
-  **Caveat:** this environment has no login credentials for the app, so the
-  modals themselves (opening AddGrantModal, saving a pledge edit, etc.)
-  could not be click-tested live — only that the app boots and imports resolve
-  without error. Worth a manual click-through pass when convenient.
+- **Live click-through (2026-07-20), done together with the user — they signed
+  into their own account in the browser pane, I drove the clicks from there:**
+  created, edited, and deleted a test grant (`AddGrantModal`); logged an
+  expense against it (`GrantLedgerPanel`, budget % recalculated live); created
+  a test pledge, edited its amount, and cancelled it, plus inspected the
+  multi-year instalment view on a real 2-year pledge (`EditPledgeModal`);
+  created a GIRO recurring gift, edited its amount, and cancelled it
+  (`RecurringGiftModal`); logged and deleted an expense against the live
+  campaign, ROI recalculated live (`CampaignExpensePanel`). All test data
+  cleaned up afterward — account back to its original state. All 5 confirmed
+  working with real saves against the live database, not just "app boots."
 - **Risk:** low-medium in principle (real behavior, not just presentation),
   but the move was mechanical (function bodies unchanged, only import sources
   changed), so realized risk was low. `App.jsx` down to 19,622 lines (from
