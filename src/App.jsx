@@ -1344,6 +1344,7 @@ export default function App() {
   const [customTasks, setCustomTasks] = useState([])
   const [showAddTask, setShowAddTask] = useState(false)
   const [taskForm, setTaskForm] = useState({ title: '', date: '' })
+  const [showDoneTasks, setShowDoneTasks] = useState(false)
   const [showAddObligation, setShowAddObligation] = useState(false)
   const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -2217,13 +2218,29 @@ export default function App() {
     const periodKey = isoWeekKey(new Date())
     const details = { donor_key: donorKey, insight_key: insightKey, period_key: periodKey }
     setInsightDismissals(prev => [...prev, details])
-    const { error } = await supabase.from('audit_log').insert({
+    const { data, error } = await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'insight_dismissed',
       details,
+    }).select().single()
+    if (error) { console.error('Could not save dismissal:', error); showToast('Could not mark as handled', 'error'); return }
+
+    // These dismissals auto-expire at the end of the ISO week anyway, but there was previously
+    // no way to undo one immediately if clicked by mistake -- only a wait-until-next-week option.
+    let cancelled = false
+    setToast({
+      msg: 'Marked as handled — won\'t show again this week',
+      undoable: true,
+      onUndo: async () => {
+        cancelled = true
+        if (data?.id) await supabase.from('audit_log').delete().eq('id', data.id)
+        setInsightDismissals(prev => prev.filter(d => !(d.donor_key === donorKey && d.insight_key === insightKey && d.period_key === periodKey)))
+        setToast(null)
+        showToast('Undone ✓')
+      },
     })
-    if (error) { console.error('Could not save dismissal:', error); showToast('Could not mark as handled', 'error') }
+    setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
   }
 
   const [pledgesLoaded, setPledgesLoaded] = useState(false)
@@ -5809,22 +5826,51 @@ export default function App() {
     const sourceKey = sourceDonor.email?.trim() || sourceDonor.name
     const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
     if (!targetDonorRow) { showToast('Target donor not found', 'error'); return }
+    const filter = sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`
+
+    // Merging rewrites donor_name/donor_email on every affected donation with no way to identify
+    // the originals afterward -- snapshot them first so a wrong merge can be undone.
+    const { data: beforeRows, error: snapshotError } = await supabase.from('donations')
+      .select('id, donor_name, donor_email')
+      .or(filter)
+    if (snapshotError) { showToast('Error preparing merge', 'error'); return }
 
     const { error } = await supabase.from('donations')
       .update({ donor_name: targetDonorRow.name, donor_email: targetDonorRow.email || null })
-      .or(sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`)
+      .or(filter)
     if (error) { showToast('Error merging donors', 'error'); return }
 
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'donors_merged',
-      details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name },
+      details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name, affected_donation_ids: (beforeRows || []).map(r => r.id) },
     })
 
-    showToast(`Merged ${sourceDonor.name} into ${targetDonorRow.name} ✓`)
     setSelectedDonor(null)
     await loadDonations()
+
+    let cancelled = false
+    setToast({
+      msg: `Merged ${sourceDonor.name} into ${targetDonorRow.name} ✓`,
+      undoable: true,
+      onUndo: async () => {
+        cancelled = true
+        for (const row of (beforeRows || [])) {
+          await supabase.from('donations').update({ donor_name: row.donor_name, donor_email: row.donor_email }).eq('id', row.id)
+        }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'donors_merge_undone',
+          details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name },
+        })
+        await loadDonations()
+        setToast(null)
+        showToast('Merge undone ✓')
+      },
+    })
+    setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
   }
 
   // Match on email, NRIC, or (only when neither is present) exact name. Returns null if no match.
@@ -10581,7 +10627,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         const { data } = await supabase.from('giving_change_acks').insert({ charity_uen: charityUen, donor_key: dk, direction: isUp ? 'upgrade' : 'downgrade', change_pct: gcFlag.changePct, message: null, sent_by: session.user.email }).select().single()
                         if (data) setGivingChangeAckHistory(prev => ({ ...prev, [dk]: [data, ...(prev[dk] || [])] }))
                         await logDonorContact(dk, `Giving ${isUp ? 'increase' : 'decrease'} check-in — logged as done`, 'note')
-                        showToast('Logged as done ✓')
+                        // Unlike the structurally similar lapsed-donor dismissal, this had no delete path
+                        // anywhere -- deleting the note wouldn't have undone it either, since the check
+                        // that suppresses this moment reads giving_change_acks, not the note.
+                        let cancelled = false
+                        setToast({
+                          msg: 'Logged as done ✓', undoable: true,
+                          onUndo: async () => {
+                            cancelled = true
+                            if (data?.id) await supabase.from('giving_change_acks').delete().eq('id', data.id)
+                            setGivingChangeAckHistory(prev => ({ ...prev, [dk]: (prev[dk] || []).filter(a => a.id !== data?.id) }))
+                            setToast(null)
+                            showToast('Undone ✓')
+                          },
+                        })
+                        setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
                       }
                       if (isUp) {
                         moments.push({ icon: '📈', text: `Giving increased ${Math.abs(gcFlag.changePct)}% (avg was $${gcFlag.prevAvg} · last gift $${gcFlag.recent.toLocaleString()}) — thank them`, button: 'Send thank-you for increased gift', onDone: markGivingChangeDone, onAction: () => setThankYouDraft({ donor: { name: selectedDonor.name, email: selectedDonor.email, total: selectedDonor.total, count: selectedDonor.count }, badgeState: null, givingChangeMeta: { direction: 'upgrade', changePct: gcFlag.changePct }, subject: fillTemplate(emailTemplates.milestone_thank_you?.subject || EMAIL_TEMPLATE_DEFAULTS.milestone_thank_you.subject, { donor_name: selectedDonor.name, charity_name: charityName }), text: buildUpgradeThankYouNote(selectedDonor, gcFlag.changePct, gcFlag.recent, gcFlag.prevAvg) }) })
@@ -10837,6 +10897,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   </div>
                 )
               })()}
+
+              {donorProfileTab === 'settings' && (
+              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
+                {(() => {
+                  const donorKeyTags = selectedDonor.email?.trim() || selectedDonor.name
+                  const tags = donorTagsMap[donorKeyTags] || []
+                  return tags.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {tags.map(t => (
+                        <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: C.teal, background: '#E8F0EE', padding: '4px 6px 4px 10px', borderRadius: 20 }}>
+                          {t.tag}
+                          <span
+                            title="Remove tag"
+                            style={{ cursor: 'pointer', color: C.muted, fontSize: 12, lineHeight: 1 }}
+                            onClick={() => setConfirmModal({
+                              title: 'Remove this tag?',
+                              description: `"${t.tag}" will be removed from ${selectedDonor.name}.`,
+                              confirmLabel: 'Remove',
+                              onConfirm: () => deleteDonorTag(selectedDonor, t.id),
+                            })}
+                          >✕</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12.5, color: C.muted, fontStyle: 'italic' }}>No tags yet — add this donor to a segment from the Mass Appeal setup screen to tag them.</div>
+                  )
+                })()}
+              </div>
+              )}
 
               {donorProfileTab === 'settings' && (
               <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
@@ -12600,11 +12691,29 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontFamily: C.fontMono, fontSize: 12, fontWeight: 500, color: urgent ? C.red : soon ? C.gold : C.muted }}>{days}d</span>
                               {o.type !== 'iras' && o.type !== 'coc' && (
-                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                  const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
-                  const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
-                  if (!error) { setCustomObligations(updated); showToast('Removed') }
-                }}>✕</span>
+                <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={() => setConfirmModal({
+                  title: 'Delete this obligation?',
+                  description: `"${o.title}" will be removed.`,
+                  confirmLabel: 'Delete',
+                  onConfirm: async () => {
+                    const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
+                    const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                    if (error) { showToast('Error removing obligation', 'error'); return }
+                    setCustomObligations(updated)
+                    let cancelled = false
+                    setToast({
+                      msg: 'Obligation removed', type: 'error', undoable: true,
+                      onUndo: async () => {
+                        cancelled = true
+                        const restored = [...updated, o]
+                        await supabase.from('charity_contacts').update({ custom_obligations: restored }).eq('charity_uen', charityUen)
+                        setCustomObligations(restored)
+                        setToast(null)
+                      },
+                    })
+                    setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+                  },
+                })}>✕</span>
               )}
                             </div>
                           </div>
@@ -12653,20 +12762,72 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <input type="checkbox" checked={false} onChange={async () => {
                               const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x)
                               const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                              if (!error) { setCustomTasks(updated); showToast('Task done ✓') }
+                              if (error) { showToast('Error saving', 'error'); return }
+                              setCustomTasks(updated)
+                              let cancelled = false
+                              setToast({
+                                msg: 'Task done ✓', undoable: true,
+                                onUndo: async () => {
+                                  cancelled = true
+                                  const reverted = updated.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x)
+                                  await supabase.from('charity_contacts').update({ custom_tasks: reverted }).eq('charity_uen', charityUen)
+                                  setCustomTasks(reverted)
+                                  setToast(null)
+                                },
+                              })
+                              setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
                             }} />
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{t.title}</div>
                               {t.date && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(t.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
                             </div>
                           </div>
-                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={async () => {
-                            const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
-                            const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                            if (!error) { setCustomTasks(updated); showToast('Removed') }
-                          }}>✕</span>
+                          <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer' }} onClick={() => setConfirmModal({
+                            title: 'Delete this task?',
+                            description: `"${t.title}" will be removed.`,
+                            confirmLabel: 'Delete',
+                            onConfirm: async () => {
+                              const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
+                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                              if (error) { showToast('Error removing task', 'error'); return }
+                              setCustomTasks(updated)
+                              let cancelled = false
+                              setToast({
+                                msg: 'Task removed', type: 'error', undoable: true,
+                                onUndo: async () => {
+                                  cancelled = true
+                                  const restored = [...updated, t]
+                                  await supabase.from('charity_contacts').update({ custom_tasks: restored }).eq('charity_uen', charityUen)
+                                  setCustomTasks(restored)
+                                  setToast(null)
+                                },
+                              })
+                              setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
+                            },
+                          })}>✕</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {(customTasks || []).filter(t => t.done).length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowDoneTasks(v => !v)}>
+                        {showDoneTasks ? 'Hide' : 'Show'} {(customTasks || []).filter(t => t.done).length} completed task{(customTasks || []).filter(t => t.done).length !== 1 ? 's' : ''}
+                      </span>
+                      {showDoneTasks && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          {(customTasks || []).filter(t => t.done).map((t, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                              <div style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{t.title}</div>
+                              <span style={{ fontSize: 11, color: C.forest, cursor: 'pointer' }} onClick={async () => {
+                                const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x)
+                                const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                                if (!error) { setCustomTasks(updated); showToast('Task reopened') }
+                              }}>↺ Reopen</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -20134,21 +20295,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center', color: C.red, borderColor: C.red }} onClick={() => {
                   setConfirmModal({
                     title: 'Delete this entry?',
-                    description: `This will permanently remove ${volunteerEditEntry.donor_name}'s $${Number(volunteerEditEntry.amount).toLocaleString()} entry. This cannot be undone.`,
+                    description: `${volunteerEditEntry.donor_name}'s $${Number(volunteerEditEntry.amount).toLocaleString()} entry will be removed. You'll have a few seconds to undo right after.`,
                     confirmLabel: 'Delete',
                     onConfirm: async () => {
-                      const { error } = await supabase.from('donations').delete().eq('id', volunteerEditEntry.id)
+                      const entryToDelete = volunteerEditEntry
+                      const originalStatus = entryToDelete?.status || 'confirmed'
+                      // Soft-delete, matching the charity-side delete flow -- a hard .delete() here
+                      // gave volunteers no way to recover from an accidental click, unlike every
+                      // other donation-delete path in the app.
+                      const { error } = await supabase.from('donations').update({ status: 'deleted_by_charity' }).eq('id', entryToDelete.id)
                       if (error) { showToast('Error deleting entry', 'error'); return }
                       await supabase.from('audit_log').insert({
                         actor_type: 'volunteer',
                         actor_email: session.user.email,
                         action: 'manual_entry_deleted',
-                        donation_id: volunteerEditEntry.id,
-                        details: { donor_name: volunteerEditEntry.donor_name, amount: volunteerEditEntry.amount, charity_uen: charityUen },
+                        donation_id: entryToDelete.id,
+                        details: { donor_name: entryToDelete.donor_name, amount: entryToDelete.amount, charity_uen: charityUen },
                       })
-                      setDonations(prev => prev.filter(d => d.id !== volunteerEditEntry.id))
+                      setDonations(prev => prev.filter(d => d.id !== entryToDelete.id))
                       setVolunteerEditEntry(null)
-                      showToast('Entry deleted')
+
+                      let cancelled = false
+                      setToast({
+                        msg: 'Entry deleted',
+                        type: 'error',
+                        undoable: true,
+                        onUndo: async () => {
+                          cancelled = true
+                          const { error: restoreError } = await supabase.from('donations').update({ status: originalStatus }).eq('id', entryToDelete.id)
+                          if (restoreError) { showToast('Could not restore entry', 'error'); return }
+                          const { data: freshData } = await supabase.from('donations').select('*').eq('id', entryToDelete.id).single()
+                          setDonations(prev => [freshData || entryToDelete, ...prev])
+                          setToast(null)
+                          showToast('Entry restored ✓')
+                        },
+                      })
+                      setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
                     },
                   })
                 }}>🗑️ Delete This Entry</button>
