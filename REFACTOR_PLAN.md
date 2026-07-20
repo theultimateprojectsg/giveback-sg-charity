@@ -113,12 +113,27 @@ after every single commit.** No phase is "in progress" across a commit boundary.
 - **Risk:** low — no logic changed, only file locations. `App.jsx` is down to
   20,426 lines (from ~20,665 at the start of this phase).
 
-### Phase 3 — Extract modals
-- `AddGrantModal`, `EditPledgeModal`, `GrantLedgerPanel`, `CampaignExpensePanel`,
-  `RecurringGiftModal` are already separate top-level functions in `App.jsx` —
-  move each to `src/components/modals/`, importing `C`/`s` from Phase 2.
-- **Risk:** low-medium — each modal has real behavior (save/cancel/delete), but
-  it's already isolated from the rest of the component tree via props.
+### Phase 3 — Extract modals — ✅ done
+- [x] `src/components/modals/AddGrantModal.jsx`, `EditPledgeModal.jsx`,
+  `RecurringGiftModal.jsx` — imported `C`/`s` from Phase 2's `theme.js`/`styles.js`
+  (previously relied on same-file closure).
+- [x] `src/components/panels/GrantLedgerPanel.jsx`, `CampaignExpensePanel.jsx` —
+  these already received `s`/`C` as props from their callers, so no import
+  changes were needed there, only relocation.
+- These five all have real save/cancel/delete/edit behavior (unlike Phase 2's
+  purely presentational pieces), so verification mattered more here: full test
+  suite (43/43, none of these were exercised by existing tests — this phase
+  added no new tests since there's no pure logic here to test, only JSX +
+  local form state), production build (841 modules, output size unchanged),
+  and a live dev-server boot + console-error check + full page-text read.
+  **Caveat:** this environment has no login credentials for the app, so the
+  modals themselves (opening AddGrantModal, saving a pledge edit, etc.)
+  could not be click-tested live — only that the app boots and imports resolve
+  without error. Worth a manual click-through pass when convenient.
+- **Risk:** low-medium in principle (real behavior, not just presentation),
+  but the move was mechanical (function bodies unchanged, only import sources
+  changed), so realized risk was low. `App.jsx` down to 19,622 lines (from
+  20,426 at the start of this phase — removed ~800 lines of modal code).
 
 ### Phase 4 — Data layer: one hook per domain
 Replace the flat `useState`/`useMemo` soup in `App()` with custom hooks that own
