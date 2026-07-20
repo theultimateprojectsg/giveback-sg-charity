@@ -207,8 +207,16 @@ main win (breaking up the file).
   user: clicking "New Appeal" from Campaigns now opens the modal correctly
   (donor count, message, segment picker all populated), closed without
   sending. 43/43 tests, build (845 modules).
+- [x] **Recurring** → `src/pages/RecurringPage.jsx` (2026-07-20). Similar shape
+  to Grants: filters/sort, expandable payment-history per card, ~35 props
+  drilled through (all pre-existing `App()` state/handlers, no new coupling).
+  Verified live with the user: card data matched exactly (reliability %,
+  failed-deduction warnings, days-late badges), expanded a real payment
+  history, opened Edit via the "More" menu and confirmed `RecurringGiftModal`
+  pre-fills correctly, closed without saving to avoid touching live data.
+  43/43 tests, build (846 modules).
 - [ ] Remaining, in ascending measured size:
-  Recurring (518), Pledges (652), Donations (1040), Donors-detail (1104),
+  Pledges (652), Donations (1040), Donors-detail (1104),
   Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
