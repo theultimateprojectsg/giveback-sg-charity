@@ -142,17 +142,32 @@ after every single commit.** No phase is "in progress" across a commit boundary.
   changed), so realized risk was low. `App.jsx` down to 19,622 lines (from
   20,426 at the start of this phase — removed ~800 lines of modal code).
 
-### Phase 4 — Data layer: one hook per domain
-Replace the flat `useState`/`useMemo` soup in `App()` with custom hooks that own
-their own fetch + local state + derived stats:
-- `useDonations()`, `usePledges()`, `useRecurringGifts()`, `useGrants()`,
-  `useDonorContacts()`, `useMassAppeals()`, `useCharitySettings()`
-- Each hook returns `{ data, loading, error, ...derivedStats, mutate... }`.
-- Do this **one domain at a time**, verify the consuming tab still works, commit,
-  move to the next. This is the highest-value phase for future maintainability
-  and the one most worth getting right — take it slow.
-- **Risk:** medium — real behavior change in how state flows, needs careful
-  testing per domain.
+### Phase 4 — Data layer: one hook per domain — ⏸ deferred (2026-07-20)
+Original idea: replace the flat `useState`/`useMemo` soup in `App()` with custom
+hooks that own their own fetch + local state + derived stats per domain
+(`useDonations()`, `usePledges()`, `useRecurringGifts()`, etc.).
+
+**Why deferred:** tried this on the smallest candidate domain, `refunds`, as a
+first slice. `saveRefund()` directly writes into five *other* domains' state
+(`setDonations`, `setPledges`, `setPledgeGivenTotals`, `setRecurringGifts`,
+`setRecurringGivenTotals`) to unwind a refunded donation's pledge/recurring-gift
+links. This cross-wiring is the norm, not the exception, across
+donations/pledges/recurring gifts — there is no domain in this app that's
+actually independent. A true "one hook per domain" split either (a) becomes
+leaky — hooks taking other domains' setters as parameters, which doesn't
+reduce coupling, just relocates it — or (b) requires a real shared data layer
+(Context or a query cache) that mutations go through instead of calling
+siblings' setters directly. Option (b) is a materially bigger, riskier change
+than anything done in Phases 0-3, with no evidence yet that it's needed —
+nothing is currently broken by the coupling, it's just not pretty.
+
+**Decision:** skip this for now. Revisit only if Phase 5 reveals real pain
+from passing shared state down as props (not just inelegance). Cross-domain
+state (`donations`, `pledges`, `recurringGifts`, `refunds`, etc.) keeps living
+at the top level and gets passed down as props to each tab's page component —
+the pattern React apps used for years before hooks-per-domain. Less elegant,
+but honest about what's safe to change today, and doesn't block Phase 5's
+main win (breaking up the file).
 
 ### Phase 5 — Split each tab into its own page component
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
@@ -161,8 +176,12 @@ from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pa
 One tab at a time, in roughly ascending order of size/risk:
 `Settings` → `Grants` → `MassAppeal` → `Recurring` → `Pledges` → `Reports` →
 `Iras` → `Donations` → `Dashboard`(`Analytics`) → `Donors`.
-Each becomes `src/pages/<Tab>Page.jsx`, consuming the Phase 4 hooks and Phase 2/3
-shared components. `App.jsx` shrinks to layout + tab routing only.
+Each becomes `src/pages/<Tab>Page.jsx`. Domain state (donations, pledges, etc.)
+and their mutation functions stay owned by `App()` and get passed down as
+props — see Phase 4's deferral note above. Each page also consumes the
+Phase 2/3 shared components (`theme.js`, `styles.js`, `components/ui/`,
+`components/modals/`, `components/panels/`). `App.jsx` shrinks to state +
+data-fetching + layout + tab routing.
 - **Risk:** medium-high per tab, but isolated — a bad split of `Grants` doesn't
   endanger `Donations`. This is the strangler-fig core of the whole plan.
 
