@@ -125,6 +125,21 @@ function contactDonorKey(c) {
   return c.email?.trim() || c.nric || c.full_name || c.name
 }
 
+// charity_contacts is a single row per charity holding several JSON list/object columns
+// (custom_tasks, custom_obligations, email_templates, enabled_modules, ...). A plain
+// `.update({ field: valueBuiltFromLocalState })` races: if two edits to the same field land
+// close together (two tabs, two staff members), whichever write lands second silently
+// overwrites the first — an added task or a toggled setting just vanishes with no error shown
+// to anyone. Re-fetching the column immediately before merging shrinks that race window from
+// "however long the page has been open" to the time of one round trip.
+async function updateCharityJsonField(charityUen, field, mutate) {
+  const { data, error: fetchError } = await supabase.from('charity_contacts').select(field).eq('charity_uen', charityUen).single()
+  if (fetchError) return { error: fetchError }
+  const next = mutate(data?.[field] ?? null)
+  const { error } = await supabase.from('charity_contacts').update({ [field]: next }).eq('charity_uen', charityUen)
+  return { error, next }
+}
+
 function colorForDonor(nameOrEmail, palette) {
   const str = (nameOrEmail || '').trim().toLowerCase()
   let hash = 0
@@ -3176,13 +3191,15 @@ export default function App() {
   const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
-  function saveEmailTemplate(key, val) {
-    const next = { ...emailTemplates }
-    if (val) next[key] = val
-    else delete next[key]
+  async function saveEmailTemplate(key, val) {
+    const { error, next } = await updateCharityJsonField(charityUen, 'email_templates', current => {
+      const merged = { ...(current || {}) }
+      if (val) merged[key] = val
+      else delete merged[key]
+      return merged
+    })
+    if (error) { showToast('Could not save this template', 'error'); return }
     setEmailTemplates(next)
-    return supabase.from('charity_contacts').update({ email_templates: next }).eq('charity_uen', charityUen)
-      .then(({ error }) => { if (error) showToast('Could not save this template', 'error') })
   }
 
   function defaultMassAppealMessage() {
@@ -8406,10 +8423,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         return
       }
     }
-    const updated = { ...enabledModules, [key]: !turningOff }
+    const { error, next: updated } = await updateCharityJsonField(charityUen, 'enabled_modules', current => ({ ...(current || {}), [key]: !turningOff }))
+    if (error) { showToast('Could not save your preferences', 'error'); return }
     setEnabledModules(updated)
-    const { error } = await supabase.from('charity_contacts').update({ enabled_modules: updated }).eq('charity_uen', charityUen)
-    if (error) { showToast('Could not save your preferences', 'error'); setEnabledModules(enabledModules); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -12724,10 +12740,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </label>
                         <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
                           if (!obligationForm.title.trim() || !obligationForm.date) return
-                          const updated = [...(customObligations || []), { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }]
-                          const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                          const newObligation = { title: obligationForm.title.trim(), date: obligationForm.date, repeat: 'annual' }
+                          const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => [...(current || []), newObligation])
                           if (error) { showToast('Error saving', 'error'); return }
-                          setCustomObligations(updated)
+                          setCustomObligations(next)
                           setObligationForm({ title: '', date: '', repeat: 'annual' })
                           setShowAddObligation(false)
                           showToast('Obligation added ✓')
@@ -12757,17 +12773,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   description: `"${o.title}" will be removed.`,
                   confirmLabel: 'Delete',
                   onConfirm: async () => {
-                    const updated = customObligations.filter(c => c.title !== o.title || c.date !== o.date)
-                    const { error } = await supabase.from('charity_contacts').update({ custom_obligations: updated }).eq('charity_uen', charityUen)
+                    const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => (current || []).filter(c => c.title !== o.title || c.date !== o.date))
                     if (error) { showToast('Error removing obligation', 'error'); return }
-                    setCustomObligations(updated)
+                    setCustomObligations(next)
                     let cancelled = false
                     setToast({
                       msg: 'Obligation removed', type: 'error', undoable: true,
                       onUndo: async () => {
                         cancelled = true
-                        const restored = [...updated, o]
-                        await supabase.from('charity_contacts').update({ custom_obligations: restored }).eq('charity_uen', charityUen)
+                        const { next: restored } = await updateCharityJsonField(charityUen, 'custom_obligations', current => [...(current || []), o])
                         setCustomObligations(restored)
                         setToast(null)
                       },
@@ -12802,10 +12816,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </label>
                         <button style={{ ...s.btnForest, padding: '10px 14px' }} onClick={async () => {
                           if (!taskForm.title.trim()) return
-                          const updated = [...(customTasks || []), { title: taskForm.title.trim(), date: taskForm.date || null, done: false }]
-                          const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                          const newTask = { title: taskForm.title.trim(), date: taskForm.date || null, done: false }
+                          const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => [...(current || []), newTask])
                           if (error) { showToast('Error saving', 'error'); return }
-                          setCustomTasks(updated)
+                          setCustomTasks(next)
                           setTaskForm({ title: '', date: '' })
                           setShowAddTask(false)
                           showToast('Task added ✓')
@@ -12821,17 +12835,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <input type="checkbox" checked={false} onChange={async () => {
-                              const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x)
-                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x))
                               if (error) { showToast('Error saving', 'error'); return }
-                              setCustomTasks(updated)
+                              setCustomTasks(next)
                               let cancelled = false
                               setToast({
                                 msg: 'Task done ✓', undoable: true,
                                 onUndo: async () => {
                                   cancelled = true
-                                  const reverted = updated.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x)
-                                  await supabase.from('charity_contacts').update({ custom_tasks: reverted }).eq('charity_uen', charityUen)
+                                  const { next: reverted } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
                                   setCustomTasks(reverted)
                                   setToast(null)
                                 },
@@ -12848,17 +12860,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             description: `"${t.title}" will be removed.`,
                             confirmLabel: 'Delete',
                             onConfirm: async () => {
-                              const updated = customTasks.filter(x => x.title !== t.title || x.date !== t.date)
-                              const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).filter(x => x.title !== t.title || x.date !== t.date))
                               if (error) { showToast('Error removing task', 'error'); return }
-                              setCustomTasks(updated)
+                              setCustomTasks(next)
                               let cancelled = false
                               setToast({
                                 msg: 'Task removed', type: 'error', undoable: true,
                                 onUndo: async () => {
                                   cancelled = true
-                                  const restored = [...updated, t]
-                                  await supabase.from('charity_contacts').update({ custom_tasks: restored }).eq('charity_uen', charityUen)
+                                  const { next: restored } = await updateCharityJsonField(charityUen, 'custom_tasks', current => [...(current || []), t])
                                   setCustomTasks(restored)
                                   setToast(null)
                                 },
@@ -12881,9 +12891,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                               <div style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{t.title}</div>
                               <span style={{ fontSize: 11, color: C.forest, cursor: 'pointer' }} onClick={async () => {
-                                const updated = customTasks.map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x)
-                                const { error } = await supabase.from('charity_contacts').update({ custom_tasks: updated }).eq('charity_uen', charityUen)
-                                if (!error) { setCustomTasks(updated); showToast('Task reopened') }
+                                const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
+                                if (!error) { setCustomTasks(next); showToast('Task reopened') }
                               }}>↺ Reopen</span>
                             </div>
                           ))}
