@@ -225,9 +225,31 @@ main win (breaking up the file).
   contact-log link), opened the reminder modal (`SenderIdentityLine` showing
   correct From/To/Replies-To), clicked through to the email preview step,
   closed without sending. 43/43 tests, build (847 modules).
+- [x] **Donations** → `src/pages/DonationsPage.jsx` (2026-07-21). Largest and
+  most complex slice yet — ~90 props drilled through. Manual-entry modal
+  (with duplicate-donor detection, acquisition-source/referral search, NRIC,
+  PayNow Direct branching), PayNow QR modal, quick-filter badges, search/filter
+  bar, bulk-issue-receipts progress bar, volunteer-simplified list view vs.
+  full staff table (mobile card view + desktop sortable/draggable-column
+  table), pagination, and a large donation-detail side panel (inline
+  Supabase quick-edit for missing email/NRIC, editable Notes/Impact Note,
+  tax-deduction summary, actions: Issue Receipt, Confirm Payment, Send Thank
+  You, Edit Entry, More actions group for Link to Pledge/Refund/Void &
+  Reissue/Undo Confirmation/Delete Entry). Three modals referenced by buttons
+  inside this block (`showManualPledgeLinkModal`, `showVoidModal`,
+  `thankYouPreviewModal`) plus `volunteerEditEntry` were already correctly
+  rendered unconditionally elsewhere in `App.jsx` — same pattern as the Mass
+  Appeal fix — so only their setter functions needed to be passed down, no
+  modal code moved. Caught and fixed a missing `fyOf` prop (year dropdown
+  crashed the page on first load) via live browser testing before committing.
+  Verified live with the user's real signed-in session: donation list
+  rendered exact real data (88 total, 63 in 2026), clicked into a $5,000
+  donation and confirmed the full detail panel — donor info, tax-deduction
+  summary, notes, existing pledge link, receipt/thank-you status badges, and
+  action buttons all rendered correctly with no console errors. 43/43 tests,
+  build (848 modules). `App.jsx` down to 16,677 lines.
 - [ ] Remaining, in ascending measured size:
-  Donations (1040), Donors-detail (1104),
-  Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
+  Donors-detail (1104), Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
 from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
