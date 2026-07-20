@@ -64,15 +64,26 @@ after every single commit.** No phase is "in progress" across a commit boundary.
 - **Risk:** none — purely additive/exports, touches no runtime behavior.
   Build and full test suite verified green after this phase.
 
-### Phase 1 — Extract pure logic (no JSX) into `src/lib/`
-- `src/lib/donorKeys.js` — `donationDonorKey`, `contactDonorKey`
-- `src/lib/fiscalYear.js` — `fiscalYearOf`, `fiscalYearBounds`, `isoWeekKey`
-- `src/lib/format.js` — `fillTemplate`, currency/date formatters currently
-  inlined ad hoc throughout JSX
-- `src/lib/donationStats.js` — total/average/median/badge-info calculations
-- Each extraction: move the function, `import` it back into `App.jsx`, run the
-  Phase 0 tests against the new location, confirm `npm run build` still passes.
-- **Risk:** low — pure functions, already covered by Phase 0 tests.
+### Phase 1 — Extract pure logic (no JSX) into `src/lib/` — ✅ mostly done
+- [x] `src/lib/donorKeys.js` — `donationDonorKey`, `contactDonorKey`
+- [x] `src/lib/fiscalYear.js` — `fiscalYearOf`, `fiscalYearBounds`, `isoWeekKey`
+- [x] `src/lib/format.js` — `fillTemplate`
+- [x] `src/lib/color.js` — `colorForDonor`
+- [x] `src/lib/donationStats.js` — `computeDonationBadges` (first-gift/biggest-yet/
+  loyal/major-donor badges, previously a `useMemo` closure) and
+  `computeDonationSummaryStats` (receipts issued, unique donors, avg/median gift,
+  previously another `useMemo` closure) — both now pure functions taking
+  `donations` + options, tested in `donationStats.test.js` (12 tests: badge
+  chronology, per-donor isolation, threshold edges, year-scoping).
+- [ ] Not yet extracted: currency/date formatters still inlined ad hoc
+  throughout JSX (e.g. `.toLocaleDateString('en-SG', {...})` repeated with
+  slightly different options at each call site) — worth consolidating into
+  `src/lib/format.js` but lower priority than the stats logic above, since
+  formatting bugs are visible immediately rather than silently wrong.
+- Each extraction: move the function, `import` it back into `App.jsx`, add/keep
+  tests against the new location, confirm `npm run build` still passes.
+  All 31 tests pass (19 from Phase 0 + 12 new), build output unchanged in size.
+- **Risk:** low — pure functions, all covered by tests before/after the move.
 
 ### Phase 2 — Extract the design system
 - `src/theme.js` — the `C` color palette object

@@ -13,6 +13,7 @@ import { donationDonorKey, contactDonorKey } from './lib/donorKeys'
 import { fiscalYearOf, fiscalYearBounds, isoWeekKey } from './lib/fiscalYear'
 import { fillTemplate } from './lib/format'
 import { colorForDonor } from './lib/color'
+import { computeDonationBadges, computeDonationSummaryStats } from './lib/donationStats'
 
 if (typeof document !== 'undefined' && !document.getElementById('gt-font-import')) {
   const link = document.createElement('link')
@@ -6262,42 +6263,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
   ].filter(Boolean)
   const loyalDonorThreshold = 3
-  const { donationBadgeInfo, donorBadgeMap } = React.useMemo(() => {
-    const confirmedOnly = donations.filter(d => d.payment_status === 'confirmed')
-    const donorFirstDonationId = {}
-    const donationBadgeInfo = {}
-    const donorRunningTotals = {}
-    ;[...confirmedOnly].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
-      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-      if (!donorFirstDonationId[key]) donorFirstDonationId[key] = d.id
-      if (!donorRunningTotals[key]) donorRunningTotals[key] = { count: 0, maxAmount: 0, total: 0 }
-      donorRunningTotals[key].count += 1
-      donorRunningTotals[key].total += d.amount
-      const isBiggestYet = d.amount > donorRunningTotals[key].maxAmount
-      if (d.amount > donorRunningTotals[key].maxAmount) donorRunningTotals[key].maxAmount = d.amount
-      donationBadgeInfo[d.id] = {
-        isFirstTime: donorFirstDonationId[key] === d.id,
-        isBigGift: d.amount >= thankYouThreshold,
-        isLoyal: donorRunningTotals[key].count >= loyalDonorThreshold,
-        isBiggestYet: isBiggestYet && donorRunningTotals[key].count > 1,
-      }
-    })
-    const donorBadgeMap = {}
-    confirmedOnly.forEach(d => {
-      const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
-      const b = donationBadgeInfo[d.id]
-      if (!donorBadgeMap[key]) donorBadgeMap[key] = { isFirstTime: false, isBigGift: false, isLoyal: false, isBiggestYet: false, isMajorDonor: false, mostRecent: d.created_at }
-      if (b.isFirstTime) donorBadgeMap[key].isFirstTime = true
-      if (b.isBigGift) donorBadgeMap[key].isBigGift = true
-      if (b.isLoyal) donorBadgeMap[key].isLoyal = true
-      if (b.isBiggestYet) donorBadgeMap[key].isBiggestYet = true
-      if (new Date(d.created_at) > new Date(donorBadgeMap[key].mostRecent)) donorBadgeMap[key].mostRecent = d.created_at
-    })
-    Object.keys(donorBadgeMap).forEach(key => {
-      donorBadgeMap[key].isMajorDonor = donorRunningTotals[key].total >= (majorDonorThreshold || 1000)
-    })
-    return { donationBadgeInfo, donorBadgeMap }
-  }, [donations, thankYouThreshold, majorDonorThreshold])
+  const { donationBadgeInfo, donorBadgeMap } = React.useMemo(
+    () => computeDonationBadges(donations, { thankYouThreshold, majorDonorThreshold, loyalDonorThreshold }),
+    [donations, thankYouThreshold, majorDonorThreshold]
+  )
   const donorList = React.useMemo(() => {
     const donorMap = {}
     donations.filter(d => !d.is_anonymous && d.payment_status === 'confirmed').forEach(d => {
@@ -7882,23 +7851,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { thisMonthTotal, lastMonthTotal, monthChangePct, sixMonthTrend, trendMax, repeatDonorsThisMonth, longestSupporter }
   }, [confirmedDonations, donations, donorList])
 
-  const { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation } = React.useMemo(() => {
-    const issuedCount = donations.filter(d => d.receipt_issued).length
-    const uniqueDonors = [...new Set(donations.map(d => d.donor_name))]
-    const uniqueDonorsThisYear = [...new Set(
-      (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear)))
-        .map(d => d.donor_name)
-    )]
-    const avgDonation = donations.length ? (totalAllTime / donations.length) : 0
-    const medianDonation = (() => {
-      const yearScoped = filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))
-      const amounts = yearScoped.map(d => d.amount).sort((a, b) => a - b)
-      if (amounts.length === 0) return 0
-      const mid = Math.floor(amounts.length / 2)
-      return amounts.length % 2 === 0 ? (amounts[mid - 1] + amounts[mid]) / 2 : amounts[mid]
-    })()
-    return { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation }
-  }, [donations, filterYear, fyOf, totalAllTime])
+  const { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation } = React.useMemo(
+    () => computeDonationSummaryStats(donations, { filterYear, fyEndMonth, fyEndDay, totalAllTime }),
+    [donations, filterYear, fyEndMonth, fyEndDay, totalAllTime]
+  )
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
