@@ -182,7 +182,16 @@ main win (breaking up the file).
   with the user — navigated to the tab, confirmed all data renders correctly
   (FY breakdowns, totals matching pre-refactor), clicked an export button,
   confirmed no console errors.
-- [ ] Remaining, in ascending measured size: Grants (356), Mass Appeal (364),
+- [x] **Grants** → `src/pages/GrantsPage.jsx` (2026-07-20). Larger than Reports —
+  filters, sorting, an expandable grant-card renderer, and the `GrantLedgerPanel`
+  integration — so more props to drill (~40), but still no local domain state of
+  its own beyond UI toggles (search/filter/sort values, expanded-card id), all
+  of which already lived in `App()` as `useState` and got passed straight
+  through. Verified: 43/43 tests, build (843 modules), and a live click-through
+  with the user — grant list rendered correctly, opened the ledger panel,
+  logged a test expense (budget % updated live), deleted it (confirm dialog
+  worked), cleaned up back to original state.
+- [ ] Remaining, in ascending measured size: Mass Appeal (364),
   Recurring (518), Pledges (652), Donations (1040), Donors-detail (1104),
   Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
