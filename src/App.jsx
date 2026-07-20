@@ -118,11 +118,22 @@ function ActionBanner({ text, sub, tone = 'danger' }) {
 // Canonical donor identity for a donation record: prefer email, then NRIC, then name — so donors
 // who share a name aren't merged together. Contact records (charity_contacts / donorList) use
 // different field names, hence the separate helper below.
-function donationDonorKey(d) {
+export function donationDonorKey(d) {
   return d.donor_email?.trim() || d.donor_nric || d.donor_name
 }
-function contactDonorKey(c) {
+export function contactDonorKey(c) {
   return c.email?.trim() || c.nric || c.full_name || c.name
+}
+
+// ISO 8601 week key ("2026-W03") for a given date — used to key weekly-recurring
+// donor-insight dismissals so the same insight can resurface next week.
+export function isoWeekKey(d) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+  const week1 = new Date(date.getFullYear(), 0, 4)
+  const weekNo = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+  return `${date.getFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
 // charity_contacts is a single row per charity holding several JSON list/object columns
@@ -140,7 +151,7 @@ async function updateCharityJsonField(charityUen, field, mutate) {
   return { error, next }
 }
 
-function colorForDonor(nameOrEmail, palette) {
+export function colorForDonor(nameOrEmail, palette) {
   const str = (nameOrEmail || '').trim().toLowerCase()
   let hash = 0
   for (let i = 0; i < str.length; i++) {
@@ -154,14 +165,14 @@ function colorForDonor(nameOrEmail, palette) {
 // A charity's fiscal year is labeled by the calendar year it ENDS in (e.g. FY ending 31 Mar 2026 = "FY2026",
 // covering 1 Apr 2025 – 31 Mar 2026). For a fyEndMonth/fyEndDay of 12/31 this collapses to the calendar year,
 // so it's a safe drop-in replacement for `.getFullYear()` everywhere stats bucket dates by "year".
-function fiscalYearOf(dateInput, fyEndMonth, fyEndDay) {
+export function fiscalYearOf(dateInput, fyEndMonth, fyEndDay) {
   const d = new Date(dateInput)
   const y = d.getFullYear()
   const fyEndThisCalYear = new Date(y, fyEndMonth - 1, fyEndDay, 23, 59, 59, 999)
   return d <= fyEndThisCalYear ? y : y + 1
 }
 
-function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
+export function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
   const end = new Date(yearLabel, fyEndMonth - 1, fyEndDay, 23, 59, 59, 999)
   const start = new Date(end)
   start.setFullYear(start.getFullYear() - 1)
@@ -170,7 +181,7 @@ function fiscalYearBounds(yearLabel, fyEndMonth, fyEndDay) {
   return { start, end }
 }
 
-function fillTemplate(str, vars) {
+export function fillTemplate(str, vars) {
   if (!str) return str
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars?.[k] ?? ''))
 }
@@ -2228,15 +2239,6 @@ export default function App() {
       .eq('action', 'insight_dismissed')
     if (error) { console.error('Could not load insight dismissals:', error); return }
     setInsightDismissals((data || []).map(r => r.details).filter(Boolean))
-  }
-
-  function isoWeekKey(d) {
-    const date = new Date(d)
-    date.setHours(0, 0, 0, 0)
-    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
-    const week1 = new Date(date.getFullYear(), 0, 4)
-    const weekNo = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
-    return `${date.getFullYear()}-W${String(weekNo).padStart(2, '0')}`
   }
 
   async function dismissInsight(donorKey, insightKey) {
