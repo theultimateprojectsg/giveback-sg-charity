@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Not blocking yet: ~50 pre-existing lint errors predate this workflow
+      # (see REFACTOR_PLAN.md). Fix those, then flip this to a hard failure.
+      - name: Lint (report only, non-blocking)
+        run: npm run lint || true
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
