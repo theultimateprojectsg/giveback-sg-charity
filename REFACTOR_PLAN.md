@@ -191,7 +191,23 @@ main win (breaking up the file).
   with the user — grant list rendered correctly, opened the ledger panel,
   logged a test expense (budget % updated live), deleted it (confirm dialog
   worked), cleaned up back to original state.
-- [ ] Remaining, in ascending measured size: Mass Appeal (364),
+- [x] **Mass Appeal** → `src/pages/MassAppealPage.jsx` (2026-07-20). While
+  extracting, discovered — by checking reachability before assuming it — that
+  the "New Appeal" send modal was a **pre-existing, live bug**: nested inside
+  `activeTab === 'massappeal'`, but the buttons that open it (`+ New Appeal`,
+  per-campaign `📣 Appeal`) live on the Campaigns tab (`activeTab === 'promotions'`),
+  and nothing anywhere in the codebase ever sets `activeTab` to `'massappeal'`.
+  Clicking either button silently did nothing — confirmed live in the running
+  app before touching code, and confirmed the original (pre-refactor) source
+  had the identical nesting, so this predates Phase 5 entirely. **Fixed**:
+  split the block into `MassAppealPage.jsx` (the appeal-history list, still
+  tab-gated) and `src/components/modals/MassAppealModal.jsx` (the send flow),
+  with the modal now rendered unconditionally in `App.jsx` — controlled purely
+  by `showMassAppealModal`, not by which tab is active. Verified live with the
+  user: clicking "New Appeal" from Campaigns now opens the modal correctly
+  (donor count, message, segment picker all populated), closed without
+  sending. 43/43 tests, build (845 modules).
+- [ ] Remaining, in ascending measured size:
   Recurring (518), Pledges (652), Donations (1040), Donors-detail (1104),
   Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
