@@ -64,7 +64,7 @@ after every single commit.** No phase is "in progress" across a commit boundary.
 - **Risk:** none — purely additive/exports, touches no runtime behavior.
   Build and full test suite verified green after this phase.
 
-### Phase 1 — Extract pure logic (no JSX) into `src/lib/` — ✅ mostly done
+### Phase 1 — Extract pure logic (no JSX) into `src/lib/` — ✅ done
 - [x] `src/lib/donorKeys.js` — `donationDonorKey`, `contactDonorKey`
 - [x] `src/lib/fiscalYear.js` — `fiscalYearOf`, `fiscalYearBounds`, `isoWeekKey`
 - [x] `src/lib/format.js` — `fillTemplate`
@@ -75,14 +75,28 @@ after every single commit.** No phase is "in progress" across a commit boundary.
   previously another `useMemo` closure) — both now pure functions taking
   `donations` + options, tested in `donationStats.test.js` (12 tests: badge
   chronology, per-donor isolation, threshold edges, year-scoping).
-- [ ] Not yet extracted: currency/date formatters still inlined ad hoc
-  throughout JSX (e.g. `.toLocaleDateString('en-SG', {...})` repeated with
-  slightly different options at each call site) — worth consolidating into
-  `src/lib/format.js` but lower priority than the stats logic above, since
-  formatting bugs are visible immediately rather than silently wrong.
+- [x] `formatDate`/`formatNumber`/`formatCurrency` added to `src/lib/format.js`,
+  covering all ~10 distinct `.toLocaleDateString('en-SG', {...})` option
+  combinations found in `App.jsx` (126 call sites) plus the two shapes
+  `.toLocaleString()` was used for — plain counts (`formatNumber`) vs dollar
+  amounts (`formatCurrency`, 247 call sites total across both uses). 12 tests,
+  including one asserting an unknown preset name throws rather than silently
+  rendering "Invalid Date".
+- **Deliberately not done:** migrating the 373 existing call sites in `App.jsx`
+  to use these new helpers. There's no reliable mechanical way to do that
+  safely at this scale — the expression before `.toLocaleDateString(...)`
+  varies too much (nested calls, ternaries) for a safe regex rewrite without
+  real AST tooling, and hand-editing 373 sites in one sitting is exactly the
+  kind of large, hard-to-review diff this plan's guiding principles warn
+  against, especially with no way to click-test the live app in this
+  environment. **Decision (confirmed with the user): migrate call sites
+  opportunistically as each tab is rebuilt in Phase 5, not as a separate sweep.**
+  The helpers exist and are tested now; adoption happens naturally as code is
+  already being touched for structural reasons.
 - Each extraction: move the function, `import` it back into `App.jsx`, add/keep
   tests against the new location, confirm `npm run build` still passes.
-  All 31 tests pass (19 from Phase 0 + 12 new), build output unchanged in size.
+  All 43 tests pass (19 Phase 0 + 12 badges/stats + 12 formatters), build
+  output unchanged in size (no existing call sites were touched).
 - **Risk:** low — pure functions, all covered by tests before/after the move.
 
 ### Phase 2 — Extract the design system
@@ -112,7 +126,10 @@ their own fetch + local state + derived stats:
   testing per domain.
 
 ### Phase 5 — Split each tab into its own page component
-One at a time, in roughly ascending order of size/risk:
+As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
+/ `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
+from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
+One tab at a time, in roughly ascending order of size/risk:
 `Settings` → `Grants` → `MassAppeal` → `Recurring` → `Pledges` → `Reports` →
 `Iras` → `Donations` → `Dashboard`(`Analytics`) → `Donors`.
 Each becomes `src/pages/<Tab>Page.jsx`, consuming the Phase 4 hooks and Phase 2/3
