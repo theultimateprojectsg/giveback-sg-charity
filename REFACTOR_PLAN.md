@@ -248,8 +248,27 @@ main win (breaking up the file).
   summary, notes, existing pledge link, receipt/thank-you status badges, and
   action buttons all rendered correctly with no console errors. 43/43 tests,
   build (848 modules). `App.jsx` down to 16,677 lines.
+- [x] **Donors** (list + detail) → `src/pages/DonorsPage.jsx` (2026-07-21). Combined
+  both the donor-list view and the donor-detail view (previously two separate
+  `activeTab === 'donors'` JSX blocks gated on `selectedDonor`) into one page
+  component since they're the same tab — ~90 props drilled through. List view:
+  filters/search/export, sortable/draggable-column table, deactivated-donors
+  section. Detail view: profile card with warmth indicator and milestones,
+  tabbed sub-sections (Donations/Logs/Recurring/Pledges/Preferences/Settings)
+  each with their own inline forms and direct Supabase calls (communication
+  prefs, household linking, receipt name override, visit scheduling, birthday,
+  tax residency, mailing address, personal PayNow QR), a "Right now" donor-
+  moment prompts card, donation history, communication log with inline
+  add/edit/delete, duplicate-donor detection, tags, and account actions
+  (deactivate/DNC/deceased/delete prospect). Verified live with the user's
+  real signed-in session: donor list rendered exact real data (32 donors),
+  opened Robert Lee's detail view (profile card, $3,500/3 donations, 4
+  milestone badges, donation history), clicked into the Settings sub-tab and
+  confirmed duplicate-detection/tags/account-actions all rendered correctly
+  with no console errors. 43/43 tests, build (849 modules). `App.jsx` down to
+  15,362 lines.
 - [ ] Remaining, in ascending measured size:
-  Donors-detail (1104), Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
+  Settings (~2000), Analytics/Dashboard (3159, biggest — do last).
 As each tab's JSX is touched here, convert its `.toLocaleDateString('en-SG', {...})`
 / `.toLocaleString()` call sites to `formatDate`/`formatNumber`/`formatCurrency`
 from `src/lib/format.js` (see Phase 1 note) — opportunistic, not a separate pass.
