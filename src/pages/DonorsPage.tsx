@@ -1,9 +1,151 @@
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { supabase } from '../supabase'
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QRCodeSVG } from 'qrcode.react'
 import { fillTemplate } from '../lib/format'
+import type { Donation, DonorContact, DonorSummary, Pledge, RecurringGift, DonorBadgeMap, DonationBadgeInfo } from '../types'
+
+interface DonorsPageProps {
+  isMobile: boolean
+  isTablet: boolean
+  selectedDonor: DonorSummary | null
+  setSelectedDonor: Dispatch<SetStateAction<DonorSummary | null>>
+  combinedDonorList: DonorSummary[]
+  filterTopDonorNames: string[] | null
+  setFilterTopDonorNames: Dispatch<SetStateAction<string[] | null>>
+  filterDonorKeys: string[] | null
+  setFilterDonorKeys: Dispatch<SetStateAction<string[] | null>>
+  donorFilterLabel: string | null
+  setDonorFilterLabel: Dispatch<SetStateAction<string | null>>
+  activeInsightKey: string | null
+  setActiveInsightKey: Dispatch<SetStateAction<string | null>>
+  dismissInsight: (key: string, insightKey: string) => void
+  searchTerm: string
+  setSearchTerm: Dispatch<SetStateAction<string>>
+  showDonorFilters: boolean
+  setShowDonorFilters: Dispatch<SetStateAction<boolean>>
+  donorStatusFilter: string
+  setDonorStatusFilter: Dispatch<SetStateAction<string>>
+  majorDonorThreshold: number
+  donorYearFilter: string
+  setDonorYearFilter: Dispatch<SetStateAction<string>>
+  donations: Donation[]
+  fyOf: (date: string | Date) => number
+  exportDonorsExcel: (filtered: DonorSummary[]) => Promise<void>
+  charityIsIpc: boolean
+  exportIRASExcel: () => void
+  filterYear: string | number
+  filteredDonorList: DonorSummary[]
+  donorsPerPage: number
+  setDonorsPerPage: Dispatch<SetStateAction<number>>
+  paginatedDonorList: DonorSummary[]
+  loading: boolean
+  activeDonorList: DonorSummary[]
+  setActiveTab: (tab: string) => void
+  setShowManualForm: Dispatch<SetStateAction<boolean>>
+  getDonorWarmth: (d: DonorSummary) => { level: 'green' | 'amber' | 'red' | string, label: string }
+  orderedDonorColumns: { key: string, label: string }[]
+  draggedDonorColumn: string | null
+  setDraggedDonorColumn: Dispatch<SetStateAction<string | null>>
+  reorderDonorColumn: (from: string | null, to: string) => void
+  donorSortBy: string | null
+  setDonorSortBy: Dispatch<SetStateAction<string | null>>
+  donorSortDir: 'asc' | 'desc'
+  setDonorSortDir: Dispatch<SetStateAction<'asc' | 'desc'>>
+  pledges: Pledge[]
+  recurringGifts: RecurringGift[]
+  donorsPage: number
+  setDonorsPage: Dispatch<SetStateAction<number>>
+  donorsTotalPages: number
+  deactivatedDonorList: DonorSummary[]
+  setAddDonorForm: Dispatch<SetStateAction<any>>
+  setAddDonorError: Dispatch<SetStateAction<string>>
+  setShowAddDonorModal: Dispatch<SetStateAction<boolean>>
+  charityName?: string
+  thankYouThreshold: number
+  donorBadgeMap: DonorBadgeMap & Record<string, any>
+  generateThankYouNote: (donor: DonorSummary, badge: any) => void
+  donorProfileTab: string
+  setDonorProfileTab: Dispatch<SetStateAction<string>>
+  donorContacts: DonorContact[]
+  savingCommPrefs: boolean
+  setSavingCommPrefs: Dispatch<SetStateAction<boolean>>
+  charityUen?: string
+  session: { user: { email: string } } | null
+  loadDonorContacts: () => Promise<void>
+  showToast: (msg: string, type?: string) => void
+  savingHousehold: boolean
+  setSavingHousehold: Dispatch<SetStateAction<boolean>>
+  householdLinkSearch: string
+  setHouseholdLinkSearch: Dispatch<SetStateAction<string>>
+  linkDonorToHousehold: (a: DonorSummary, b: DonorSummary) => Promise<void>
+  unlinkFromHousehold: (m: { name: string, email?: string | null }) => void
+  donorReceiptNameOverrides: Record<string, string>
+  setDonorReceiptNameOverrides: Dispatch<SetStateAction<Record<string, string>>>
+  savingReceiptOverride: boolean
+  setSavingReceiptOverride: Dispatch<SetStateAction<boolean>>
+  savingFamilyContact: boolean
+  setSavingFamilyContact: Dispatch<SetStateAction<boolean>>
+  savingVisitSchedule: boolean
+  setSavingVisitSchedule: Dispatch<SetStateAction<boolean>>
+  savingBirthday: boolean
+  setSavingBirthday: Dispatch<SetStateAction<boolean>>
+  savingTaxResidency: boolean
+  setSavingTaxResidency: Dispatch<SetStateAction<boolean>>
+  savingMailingAddress: boolean
+  setSavingMailingAddress: Dispatch<SetStateAction<boolean>>
+  donorNotes: { id: string, note: string, note_type: string, created_at: string, created_by?: string, email_body?: string }[]
+  donorNotesLoading: boolean
+  donationBadgeInfo: DonationBadgeInfo & Record<string, any>
+  cumulativeThresholds: number[]
+  lapsedMinDays: number
+  lapsedMinGifts: number
+  allGivingChangeFlags: { email?: string | null, name: string, changePct: number, prevAvg: number, recent: number }[]
+  givingChangeAckHistory: Record<string, any[]>
+  setGivingChangeAckHistory: Dispatch<SetStateAction<Record<string, any[]>>>
+  logDonorContact: (key: string, note: string, type: string) => Promise<void>
+  logDonorContactWithUndo: (key: string, note: string, type: string) => void
+  setThankYouDraft: Dispatch<SetStateAction<any>>
+  emailTemplates: Record<string, { subject?: string, body?: string } | undefined>
+  EMAIL_TEMPLATE_DEFAULTS: Record<string, { subject: string, body: string }>
+  buildUpgradeThankYouNote: (donor: DonorSummary, changePct: number, recent: number, prevAvg: number) => string
+  setLapsedReminderCandidate: Dispatch<SetStateAction<any>>
+  setShowLapsedReminderModal: Dispatch<SetStateAction<boolean>>
+  donorLastContactMap: Record<string, string | undefined>
+  lapsedDismissals: Record<string, boolean>
+  setRnOutreach: Dispatch<SetStateAction<any>>
+  donorHistoryPage: number
+  setDonorHistoryPage: Dispatch<SetStateAction<number>>
+  causeNameForDonation: (d: Donation) => string
+  setSelectedDonation: Dispatch<SetStateAction<Donation | null>>
+  setQuickEmailInput: Dispatch<SetStateAction<string>>
+  setQuickNricInput: Dispatch<SetStateAction<string>>
+  newNoteType: string
+  setNewNoteType: Dispatch<SetStateAction<string>>
+  newNoteText: string
+  setNewNoteText: Dispatch<SetStateAction<string>>
+  saveNewDonorNote: () => void
+  savingNote: boolean
+  editingDonorNoteId: string | null
+  setEditingDonorNoteId: Dispatch<SetStateAction<string | null>>
+  editingDonorNoteText: string
+  setEditingDonorNoteText: Dispatch<SetStateAction<string>>
+  savingDonorNoteEdit: boolean
+  saveDonorNoteEdit: (id: string) => void
+  deleteDonorNote: (id: string) => void
+  setViewEmailNote: Dispatch<SetStateAction<any>>
+  setRecurringSearchTerm: Dispatch<SetStateAction<string>>
+  setPledgeSearchTerm: Dispatch<SetStateAction<string>>
+  donorTagsMap: Record<string, { id: string, tag: string }[]>
+  deleteDonorTag: (donor: DonorSummary, tagId: string) => void
+  setDonorContacts: Dispatch<SetStateAction<DonorContact[]>>
+  mergeDonorInto: (from: DonorSummary, toKey: string) => void
+  setConfirmModal: Dispatch<SetStateAction<any>>
+  setDonations: Dispatch<SetStateAction<Donation[]>>
+  setToast: Dispatch<SetStateAction<any>>
+}
 
 export function DonorsPage({
   isMobile, isTablet, selectedDonor, setSelectedDonor, combinedDonorList,
@@ -41,7 +183,7 @@ export function DonorsPage({
   savingDonorNoteEdit, saveDonorNoteEdit, deleteDonorNote, setViewEmailNote,
   setRecurringSearchTerm, setPledgeSearchTerm, donorTagsMap, deleteDonorTag,
   setDonorContacts, mergeDonorInto, setConfirmModal, setDonations, setToast,
-}) {
+}: DonorsPageProps) {
   return (
     <>
     {/* ── DONORS ── */}
@@ -242,7 +384,7 @@ export function DonorsPage({
                             </td>
                           ),
                         }
-                        return orderedDonorColumns.map(o => cellRenderers[o.key])
+                        return orderedDonorColumns.map(o => (cellRenderers as Record<string, ReactNode>)[o.key])
                       })()}
                     </tr>
                   )
@@ -437,9 +579,9 @@ export function DonorsPage({
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
               {(() => {
-                const norm39 = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+                const norm39 = (s?: string | null) => (s || '').trim().toLowerCase().replace(/\s+/g, ' ')
                 // Levenshtein edit distance — catches genuine typo variants of the same name.
-                const lev39 = (a, b) => {
+                const lev39 = (a: string, b: string): number => {
                   const m = a.length, n = b.length
                   if (!m) return n; if (!n) return m
                   let prev = Array.from({ length: n + 1 }, (_, i) => i)
@@ -450,8 +592,8 @@ export function DonorsPage({
                   }
                   return prev[n]
                 }
-                const nric39 = s => (s || '').trim().toUpperCase()
-                const phone39 = (emailOrName) => { const rec = [...pledges, ...recurringGifts].find(r => (r.donor_email?.trim() || r.donor_name) === emailOrName); const p = (rec?.donor_phone || '').replace(/\D/g, ''); return p.length >= 8 ? p.slice(-8) : '' }
+                const nric39 = (s?: string | null) => (s || '').trim().toUpperCase()
+                const phone39 = (emailOrName: string) => { const rec = [...pledges, ...recurringGifts].find(r => (r.donor_email?.trim() || r.donor_name) === emailOrName); const p = (rec?.donor_phone || '').replace(/\D/g, ''); return p.length >= 8 ? p.slice(-8) : '' }
                 const enteredName39 = norm39(selectedDonor.name)
                 const selKey39 = selectedDonor.email?.trim() || selectedDonor.name
                 const selEmail39 = selectedDonor.email?.trim().toLowerCase() || ''
@@ -460,14 +602,14 @@ export function DonorsPage({
                 // Match order: strong identity signals (email / NRIC / phone) first, then a name
                 // look-alike (exact, full-name-contained, or 1–2 char typo). A shared surname alone
                 // ("Quentin Low" vs "Natalie Low") must NOT match. Each result shows why it matched.
-                const rank39 = { 'same email': 0, 'same NRIC': 1, 'same phone': 2, 'same name': 3, 'similar name': 4 }
+                const rank39: Record<string, number> = { 'same email': 0, 'same NRIC': 1, 'same phone': 2, 'same name': 3, 'similar name': 4 }
                 const similarDonors39 = combinedDonorList.map(d => {
                   const dKey = d.email?.trim() || d.name
                   if (dKey === selKey39) return null
                   const dEmail = d.email?.trim().toLowerCase() || ''
                   const dNric = nric39(d.nric)
                   const dPhone = phone39(dKey)
-                  let reason = null
+                  let reason: string | null = null
                   if (selEmail39 && dEmail && selEmail39 === dEmail) reason = 'same email'
                   else if (selNric39 && dNric && selNric39 === dNric) reason = 'same NRIC'
                   else if (selPhone39 && dPhone && selPhone39 === dPhone) reason = 'same phone'
@@ -484,7 +626,7 @@ export function DonorsPage({
                     }
                   }
                   return reason ? { ...d, matchReason: reason } : null
-                }).filter(Boolean).sort((a, b) => rank39[a.matchReason] - rank39[b.matchReason])
+                }).filter((d): d is DonorSummary & { matchReason: string } => Boolean(d)).sort((a, b) => rank39[a.matchReason] - rank39[b.matchReason])
                 if (similarDonors39.length === 0) return <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No likely duplicates found.</div>
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -539,9 +681,9 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} disabled={savingCommPrefs} onClick={async () => {
                       if (savingCommPrefs) return
                       setSavingCommPrefs(true)
-                      const channel = document.getElementById(`pref-channel-${donorKey44}`).value
-                      const timing = document.getElementById(`pref-timing-${donorKey44}`).value.trim()
-                      const restrictions = document.getElementById(`pref-restrictions-${donorKey44}`).value.trim()
+                      const channel = (document.getElementById(`pref-channel-${donorKey44}`) as HTMLInputElement).value
+                      const timing = (document.getElementById(`pref-timing-${donorKey44}`) as HTMLInputElement).value.trim()
+                      const restrictions = (document.getElementById(`pref-restrictions-${donorKey44}`) as HTMLInputElement).value.trim()
                       if (contact44) {
                         await supabase.from('charity_donor_contacts').update({ preferred_channel: channel || null, preferred_timing: timing || null, communication_restrictions: restrictions || null }).eq('id', contact44.id)
                       } else {
@@ -631,7 +773,7 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, flexShrink: 0 }} disabled={savingReceiptOverride} onClick={async () => {
                       if (savingReceiptOverride) return
                       setSavingReceiptOverride(true)
-                      const inputEl = document.getElementById(`receipt-override-${donorKey31}`)
+                      const inputEl = (document.getElementById(`receipt-override-${donorKey31}`) as HTMLInputElement)
                       const value = inputEl.value.trim()
                       if (existingContact) {
                         const { error } = await supabase.from('charity_donor_contacts').update({ receipt_name_override: value || null }).eq('id', existingContact.id)
@@ -677,7 +819,7 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingFamilyContact} onClick={async () => {
                       if (savingFamilyContact) return
                       setSavingFamilyContact(true)
-                      const value = document.getElementById(`family-contact-${donorKey41b}`).value.trim()
+                      const value = (document.getElementById(`family-contact-${donorKey41b}`) as HTMLInputElement).value.trim()
                       if (existingContact41b) {
                         await supabase.from('charity_donor_contacts').update({ linked_family_contact: value || null }).eq('id', existingContact41b.id)
                       } else {
@@ -714,8 +856,8 @@ export function DonorsPage({
                     </div>
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} disabled={savingVisitSchedule} onClick={async () => {
                       if (savingVisitSchedule) return
-                      const lastVisited = document.getElementById(`last-visited-${donorKey80}`).value
-                      const nextVisit = document.getElementById(`next-visit-${donorKey80}`).value
+                      const lastVisited = (document.getElementById(`last-visited-${donorKey80}`) as HTMLInputElement).value
+                      const nextVisit = (document.getElementById(`next-visit-${donorKey80}`) as HTMLInputElement).value
                       if (lastVisited && nextVisit && nextVisit < lastVisited) { showToast('Next visit date cannot be before last visited date', 'error'); return }
                       setSavingVisitSchedule(true)
                       if (existingContact80) {
@@ -751,7 +893,7 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingBirthday} onClick={async () => {
                       if (savingBirthday) return
                       setSavingBirthday(true)
-                      const value = document.getElementById(`birth-date-${donorKey70}`).value
+                      const value = (document.getElementById(`birth-date-${donorKey70}`) as HTMLInputElement).value
                       if (existingContact70) {
                         await supabase.from('charity_donor_contacts').update({ birth_date: value || null }).eq('id', existingContact70.id)
                       } else {
@@ -786,7 +928,7 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingTaxResidency} onClick={async () => {
                       if (savingTaxResidency) return
                       setSavingTaxResidency(true)
-                      const value = document.getElementById(`tax-residency-${donorKey48}`).value.trim()
+                      const value = (document.getElementById(`tax-residency-${donorKey48}`) as HTMLInputElement).value.trim()
                       if (existingContact48) {
                         await supabase.from('charity_donor_contacts').update({ tax_residency_country: value || null }).eq('id', existingContact48.id)
                       } else {
@@ -821,7 +963,7 @@ export function DonorsPage({
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', marginTop: 6 }} disabled={savingMailingAddress} onClick={async () => {
                       if (savingMailingAddress) return
                       setSavingMailingAddress(true)
-                      const value = document.getElementById(`mailing-address-${donorKey31b}`).value.trim()
+                      const value = (document.getElementById(`mailing-address-${donorKey31b}`) as HTMLInputElement).value.trim()
                       if (existingContact31b) {
                         await supabase.from('charity_donor_contacts').update({ mailing_address: value || null }).eq('id', existingContact31b.id)
                       } else {
@@ -876,18 +1018,29 @@ export function DonorsPage({
               const rnMonthAgo = new Date(rnToday.getTime() - 30 * 24 * 60 * 60 * 1000)
               const myConfirmed = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === dk && d.payment_status === 'confirmed')
               const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === dk)
-              const moments = []
+              interface Moment {
+                icon: string
+                text: string
+                button: string
+                subject?: string
+                body?: string
+                logNote?: string
+                doneLabel?: string
+                onDone?: () => void
+                onAction?: () => void
+              }
+              const moments: Moment[] = []
               const first = (selectedDonor.name || '').split(' ')[0] || selectedDonor.name || 'friend'
               const sign = `\n\nWith gratitude,\n${charityName}`
               const rnWeekMs = rnWeekAgo.getTime(), rnMonthMs = rnMonthAgo.getTime()
               // A moment is "handled" once a communication logged for this donor within its window
               // mentions its marker — so acting on one moment clears only that one, not the others.
-              const rnHandled = (marker, sinceMs) => donorNotes.some(n => new Date(n.created_at).getTime() >= sinceMs && (n.note || '').includes(marker))
+              const rnHandled = (marker: string, sinceMs: number) => donorNotes.some(n => new Date(n.created_at).getTime() >= sinceMs && (n.note || '').includes(marker))
               // icon, one-line prompt, button label, email subject, email body, and the short line logged when actioned
-              const mk = (icon, text, button, subject, bodyIntro, logNote, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: () => logDonorContactWithUndo(dk, `${logNote} — logged as done`, 'note') }) }
+              const mk = (icon: string, text: string, button: string, subject: string, bodyIntro: string, logNote: string, sinceMs = rnWeekMs) => { if (rnHandled(logNote, sinceMs)) return; moments.push({ icon, text, button, subject, body: `Dear ${first},\n\n${bodyIntro}${sign}`, logNote, onDone: () => logDonorContactWithUndo(dk, `${logNote} — logged as done`, 'note') }) }
 
               {
-                const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                const sorted = [...myConfirmed].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                 const firstGift = sorted[0]
                 if (firstGift && new Date(firstGift.created_at) >= rnWeekAgo && !firstGift.thank_you_sent) mk('🆕', 'New donor — welcome them to your community', 'Send welcome', `Welcome to ${charityName}`, `Welcome to the ${charityName} family, and thank you for your very first gift. It truly means the world to us to have you with us, and we can't wait to show you the difference your support makes.`, 'Welcome note')
                 const biggest = myConfirmed.find(d => new Date(d.created_at) >= rnWeekAgo && donationBadgeInfo[d.id]?.isBiggestYet)
@@ -895,7 +1048,7 @@ export function DonorsPage({
                 if (firstGift) {
                   const fd = new Date(firstGift.created_at)
                   const anniv = new Date(rnToday.getFullYear(), fd.getMonth(), fd.getDate())
-                  const daysDiff = Math.floor((anniv - rnToday) / (1000 * 60 * 60 * 24))
+                  const daysDiff = Math.floor((anniv.getTime() - rnToday.getTime()) / (1000 * 60 * 60 * 24))
                   if (fd.getFullYear() < rnToday.getFullYear() && daysDiff >= -7 && daysDiff <= 0) { const yrs = rnToday.getFullYear() - fd.getFullYear(); mk('🎉', `Giving anniversary this week (${yrs} year${yrs > 1 ? 's' : ''}) — send a note`, 'Send anniversary note', 'Happy giving anniversary', `This week marks ${yrs} year${yrs > 1 ? 's' : ''} since your very first gift to ${charityName}. Thank you for standing with us all this time — your loyalty means everything.`, `${yrs}-year anniversary note`) }
                 }
                 const lifetime = myConfirmed.reduce((s, d) => s + d.amount, 0)
@@ -910,16 +1063,16 @@ export function DonorsPage({
                 if (contact?.birth_date) {
                   const bd = new Date(contact.birth_date)
                   const bday = new Date(rnToday.getFullYear(), bd.getMonth(), bd.getDate())
-                  const daysUntil = Math.ceil((bday - rnToday) / (1000 * 60 * 60 * 24))
+                  const daysUntil = Math.ceil((bday.getTime() - rnToday.getTime()) / (1000 * 60 * 60 * 24))
                   if (daysUntil >= 0 && daysUntil <= 7) mk('🎂', 'Birthday this week — send a greeting', 'Send birthday greeting', `Happy birthday from ${charityName}`, `Wishing you a very happy birthday from all of us at ${charityName}! We are so grateful to have you as part of our community, and we hope your day is wonderful.`, 'Birthday greeting')
                 }
                 const thisWeekGifts = myConfirmed.filter(d => new Date(d.created_at) >= rnWeekAgo)
                 if (thisWeekGifts.length > 0) {
-                  const mostRecentThisWeek = [...thisWeekGifts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+                  const mostRecentThisWeek = [...thisWeekGifts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                   const priorGifts = myConfirmed.filter(d => new Date(d.created_at) < new Date(mostRecentThisWeek.created_at))
                   if (priorGifts.length > 0) {
-                    const mostRecentPrior = [...priorGifts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-                    const gapDays = Math.floor((new Date(mostRecentThisWeek.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24))
+                    const mostRecentPrior = [...priorGifts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                    const gapDays = Math.floor((new Date(mostRecentThisWeek.created_at).getTime() - new Date(mostRecentPrior.created_at).getTime()) / (1000 * 60 * 60 * 24))
                     if (gapDays >= lapsedMinDays) mk('🎉', `Came back this week after ${gapDays}+ days away — thank them`, 'Send thank-you', 'Welcome back!', `It's wonderful to see your support again after some time away. Thank you for coming back to ${charityName} — it means a great deal to us and to those we serve.`, 'Welcome-back thank-you')
                   }
                 }
@@ -929,7 +1082,7 @@ export function DonorsPage({
                 const lifetimeTotal = myConfirmed.reduce((s, d) => s + d.amount, 0)
                 if (lifetimeTotal >= (majorDonorThreshold || 1000) && !selectedDonor.deactivated) {
                   const lastVisit = contact?.last_visited_date
-                  const monthsSince = lastVisit ? (rnToday - new Date(lastVisit)) / (1000 * 60 * 60 * 24 * 30) : null
+                  const monthsSince = lastVisit ? (rnToday.getTime() - new Date(lastVisit).getTime()) / (1000 * 60 * 60 * 24 * 30) : null
                   if (monthsSince === null || monthsSince >= 6) mk('🤝', 'Major donor due a catch-up — not visited in 6+ months', 'Send a note to reconnect', "Let's catch up", `It has been a while since we last connected, and we would love to catch up. Your support has made a real and lasting difference, and we would be glad to share where things stand and hear how you are.`, 'Reconnect note', rnMonthMs)
                 }
                 // Reactive: only flags once this month is mostly over and they haven't given
@@ -983,8 +1136,8 @@ export function DonorsPage({
               // other moment here (a silent log, no reason needed) — it'll simply resurface if
               // they're still lapsed next time this renders, same as any other moment would.
               {
-                const lastGiftDate = myConfirmed.length ? new Date([...myConfirmed].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].created_at) : null
-                const daysSinceLastGift = lastGiftDate ? Math.floor((rnToday - lastGiftDate) / (1000 * 60 * 60 * 24)) : null
+                const lastGiftDate = myConfirmed.length ? new Date([...myConfirmed].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at) : null
+                const daysSinceLastGift = lastGiftDate ? Math.floor((rnToday.getTime() - lastGiftDate.getTime()) / (1000 * 60 * 60 * 24)) : null
                 const isLapsedRn = daysSinceLastGift !== null && daysSinceLastGift >= lapsedMinDays && myConfirmed.length >= lapsedMinGifts
                 // Checks contact recency rather than a specific logged marker — the actual "Reach
                 // Out" send logs different text ("Re-engagement email sent") than "Mark done" does,
@@ -1040,7 +1193,7 @@ export function DonorsPage({
               const donorHistoryPageSize = 8
               const donorDonations = donations
                 .filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name))
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
               const totalPages = Math.max(1, Math.ceil(donorDonations.length / donorHistoryPageSize))
               const page = Math.min(donorHistoryPage, totalPages)
               const pageDonations = donorDonations.slice((page - 1) * donorHistoryPageSize, page * donorHistoryPageSize)
@@ -1122,7 +1275,7 @@ export function DonorsPage({
                       whatsapp:  { icon: '💬', label: 'WhatsApp',  color: C.sage },
                       note:      { icon: '📝', label: 'Note',      color: C.muted },
                     }
-                    const tc = typeConfig[n.note_type] || typeConfig.note
+                    const tc = (typeConfig as Record<string, { icon: string, label: string, color: string }>)[n.note_type] || typeConfig.note
                     return (
                       <div key={n.id} style={{ background: C.ivory, borderRadius: 4, padding: '8px 12px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                         <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{tc.icon}</span>
