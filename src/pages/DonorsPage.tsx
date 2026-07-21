@@ -105,7 +105,7 @@ interface DonorsPageProps {
   allGivingChangeFlags: { email?: string | null, name: string, changePct: number, prevAvg: number, recent: number }[]
   givingChangeAckHistory: Record<string, any[]>
   setGivingChangeAckHistory: Dispatch<SetStateAction<Record<string, any[]>>>
-  logDonorContact: (key: string, note: string, type: string) => Promise<void>
+  logDonorContact: (key: string, note: string, type: string) => Promise<any>
   logDonorContactWithUndo: (key: string, note: string, type: string) => void
   setThankYouDraft: Dispatch<SetStateAction<any>>
   emailTemplates: Record<string, { subject?: string, body?: string } | undefined>

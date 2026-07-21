@@ -46,7 +46,7 @@ function useScreenSize() {
     if (w <= 1024) return 'tablet'
     return 'desktop'
   }
-  const [screenSize, setScreenSize] = useState(getSize())
+  const [screenSize, setScreenSize] = useState<any>(getSize())
   useEffect(() => {
     function handleResize() { setScreenSize(getSize()) }
     window.addEventListener('resize', handleResize)
@@ -62,7 +62,7 @@ function useScreenSize() {
 // overwrites the first — an added task or a toggled setting just vanishes with no error shown
 // to anyone. Re-fetching the column immediately before merging shrinks that race window from
 // "however long the page has been open" to the time of one round trip.
-async function updateCharityJsonField(charityUen, field, mutate) {
+async function updateCharityJsonField(charityUen: any, field: any, mutate: any) {
   const { data, error: fetchError } = await supabase.from('charity_contacts').select(field).eq('charity_uen', charityUen).single()
   if (fetchError) return { error: fetchError }
   const next = mutate(data?.[field] ?? null)
@@ -162,7 +162,7 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
 const VALID_TABS = ['donors', 'donations', 'analytics', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'massappeal', 'grants', 'reports', 'settings']
-const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
+const MODULE_TAB_IDS: Record<string, string> = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
 const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
 const BOARD_ALLOWED_TABS = ['analytics', 'settings']
 const DONOR_COLUMN_OPTIONS = [
@@ -191,29 +191,29 @@ export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
   const isTablet = screenSize === 'tablet'
-  const [donations, setDonations] = useState([])
-  const [emailTemplates, setEmailTemplates] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [, setIssuing] = useState(null)
-  const [session, setSession] = useState(null)
+  const [donations, setDonations] = useState<any[]>([])
+  const [emailTemplates, setEmailTemplates] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState<any>(true)
+  const [, setIssuing] = useState<any>(null)
+  const [session, setSession] = useState<any>(null)
   const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
-  const [authLoading, setAuthLoading] = useState(true)
+  const [authLoading, setAuthLoading] = useState<any>(true)
   const { tab: tabParam } = useParams()
   const navigate = useNavigate()
   const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'analytics'
-  const setActiveTab = React.useCallback((nextTab) => navigate(`/${nextTab}`), [navigate])
+  const setActiveTab = React.useCallback((nextTab: any) => navigate(`/${nextTab}`), [navigate])
   useEffect(() => {
     if (!VALID_TABS.includes(tabParam)) navigate('/analytics', { replace: true })
   }, [tabParam, navigate])
-  const [settingsSection, setSettingsSection] = useState('general')
-  const [selectedDonor, setSelectedDonor] = useState(null)
-  const [donorProfileTab, setDonorProfileTab] = useState('donations')
-  const [donorHistoryPage, setDonorHistoryPage] = useState(1)
-  const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState(null)
+  const [settingsSection, setSettingsSection] = useState<any>('general')
+  const [selectedDonor, setSelectedDonor] = useState<any>(null)
+  const [donorProfileTab, setDonorProfileTab] = useState<any>('donations')
+  const [donorHistoryPage, setDonorHistoryPage] = useState<any>(1)
+  const [pendingSelectedDonorKey, setPendingSelectedDonorKey] = useState<any>(null)
   // Callers that need to open the profile on a specific tab (e.g. jumping to Logs) set this
   // ref right before calling setSelectedDonor — this effect consumes it instead of always
   // resetting to 'donations'.
-  const pendingDonorProfileTabRef = React.useRef(null)
+  const pendingDonorProfileTabRef = React.useRef<any>(null)
   useEffect(() => {
     setDonorProfileTab(pendingDonorProfileTabRef.current || 'donations')
     pendingDonorProfileTabRef.current = null
@@ -222,8 +222,8 @@ export default function App() {
 
   // Remember scroll position per tab so switching tabs and coming back (e.g. clicking a grant
   // from Analytics, then returning) restores where you were instead of dumping you at the top.
-  const tabScrollPositions = useRef({})
-  const intentionalSignOutRef = useRef(false)
+  const tabScrollPositions = useRef<Record<string, any>>({})
+  const intentionalSignOutRef = useRef<boolean>(false)
   // Warns before the browser navigates away entirely (Back button, closing the tab, typing a new
   // URL) — this is a single-page app with no per-tab history entries, so Back doesn't switch tabs,
   // it exits the app outright.
@@ -235,7 +235,7 @@ export default function App() {
     // The Back/Forward buttons no longer need a guard here (Phase 6): each tab is a real URL now,
     // so Back/Forward between tabs is legitimate in-app navigation, not "leaving the app" — a
     // popstate hijack here would fight React Router's own history entries.
-    function onBeforeUnload(e) {
+    function onBeforeUnload(e: any) {
       e.preventDefault()
       e.returnValue = ''
     }
@@ -256,7 +256,7 @@ export default function App() {
   }, [activeTab])
 
   const ANALYTICS_NAV_OFFSET = 64 // approx height of the sticky section-jump bar, so scrolled-to titles land just below it instead of hidden behind it
-  const [activeAnalyticsSection, setActiveAnalyticsSection] = useState('analytics-section-today')
+  const [activeAnalyticsSection, setActiveAnalyticsSection] = useState<any>('analytics-section-today')
 
   // Shared keyboard handling for every modal: Escape triggers the topmost overlay's own
   // backdrop-click handler (so each modal's existing close/guard logic — e.g. blocking
@@ -267,7 +267,7 @@ export default function App() {
       const overlays = document.querySelectorAll('[data-modal-overlay="true"]')
       return overlays.length ? overlays[overlays.length - 1] : null
     }
-    function onKeyDown(e) {
+    function onKeyDown(e: any) {
       const overlay = getTopOverlay()
       if (!overlay) return
       if (e.key === 'Escape') {
@@ -275,7 +275,7 @@ export default function App() {
         return
       }
       if (e.key === 'Tab') {
-        const focusable = overlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        const focusable = overlay.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
         if (focusable.length === 0) return
         const first = focusable[0]
         const last = focusable[focusable.length - 1]
@@ -302,26 +302,26 @@ export default function App() {
     // intentionally fires only on donor selection change; session is a guard, not a trigger
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDonor])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('All')
-  const [filterNric, setFilterNric] = useState('All')
-  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
-  const [filterSource, setFilterSource] = useState('All')
-  const [filterThankYou, setFilterThankYou] = useState('All')
-  const [filterMinAmount, setFilterMinAmount] = useState(null)
-  const [donationFilterLabel, setDonationFilterLabel] = useState(null)
-  const [donationsPage, setDonationsPage] = useState(0)
-  const [donationsPerPage, setDonationsPerPage] = useState(25)
-  const [donorsPage, setDonorsPage] = useState(0)
-  const [donorsPerPage, setDonorsPerPage] = useState(25)
-  const [donationSortBy, setDonationSortBy] = useState(null)
-  const [donationSortDir, setDonationSortDir] = useState('desc')
+  const [searchTerm, setSearchTerm] = useState<any>('')
+  const [filterType, setFilterType] = useState<any>('All')
+  const [filterNric, setFilterNric] = useState<any>('All')
+  const [filterYear, setFilterYear] = useState<any>(new Date().getFullYear().toString())
+  const [filterSource, setFilterSource] = useState<any>('All')
+  const [filterThankYou, setFilterThankYou] = useState<any>('All')
+  const [filterMinAmount, setFilterMinAmount] = useState<any>(null)
+  const [donationFilterLabel, setDonationFilterLabel] = useState<any>(null)
+  const [donationsPage, setDonationsPage] = useState<any>(0)
+  const [donationsPerPage, setDonationsPerPage] = useState<any>(25)
+  const [donorsPage, setDonorsPage] = useState<any>(0)
+  const [donorsPerPage, setDonorsPerPage] = useState<any>(25)
+  const [donationSortBy, setDonationSortBy] = useState<any>(null)
+  const [donationSortDir, setDonationSortDir] = useState<any>('desc')
 
-  const [showManualForm, setShowManualForm] = useState(false)
+  const [showManualForm, setShowManualForm] = useState<any>(false)
   const EMPTY_MANUAL_FORM = { donor_name: '', donor_nric: '', amount: '', payment_method: 'Cash', notes: '', donor_email: '', date: new Date().toISOString().split('T')[0], cause_id: '', receipt_name: '', is_anonymous: false, acquisition_source: '', referred_by_donor_key: '', acquisition_source_detail: '', payment_ref: '', already_verified: false }
-  const [manualForm, setManualForm] = useState(EMPTY_MANUAL_FORM)
-  const [manualReferralSearch, setManualReferralSearch] = useState('')
-  const [editingDonationId, setEditingDonationId] = useState(null)
+  const [manualForm, setManualForm] = useState<any>(EMPTY_MANUAL_FORM)
+  const [manualReferralSearch, setManualReferralSearch] = useState<any>('')
+  const [editingDonationId, setEditingDonationId] = useState<any>(null)
   function resetManualForm() {
     setManualForm({ ...EMPTY_MANUAL_FORM, date: new Date().toISOString().split('T')[0] })
     setManualReferralSearch('')
@@ -341,244 +341,244 @@ export default function App() {
     setManualError('')
     resetManualForm()
   }
-  const [manualError, setManualError] = useState('')
-  const [savingManual, setSavingManual] = useState(false)
-  const [manualDuplicateWarning, setManualDuplicateWarning] = useState(null)
-  const [showVoidModal, setShowVoidModal] = useState(false)
-  const [voidReason, setVoidReason] = useState('')
-  const [voidingReceipt, setVoidingReceipt] = useState(false)
-  const [donorNotes, setDonorNotes] = useState([])
-  const [donorNotesLoading, setDonorNotesLoading] = useState(false)
-  const [newNoteText, setNewNoteText] = useState('')
-  const [newNoteType, setNewNoteType] = useState('note')
-  const [savingNote, setSavingNote] = useState(false)
-  const [editingDonorNoteId, setEditingDonorNoteId] = useState(null)
-  const [editingDonorNoteText, setEditingDonorNoteText] = useState('')
-  const [savingDonorNoteEdit, setSavingDonorNoteEdit] = useState(false)
-  const [donorTagsMap, setDonorTagsMap] = useState({})
-  const [donorLastContactMap, setDonorLastContactMap] = useState({})
-  const [donorReceiptNameOverrides, setDonorReceiptNameOverrides] = useState({})
-  const [householdLinkSearch, setHouseholdLinkSearch] = useState('')
-  const [newTagInput, setNewTagInput] = useState('')
-  const [, setSavingTag] = useState(false)
-  const [savingCommPrefs, setSavingCommPrefs] = useState(false)
-  const [savingHousehold, setSavingHousehold] = useState(false)
-  const [savingReceiptOverride, setSavingReceiptOverride] = useState(false)
-  const [savingFamilyContact, setSavingFamilyContact] = useState(false)
-  const [savingVisitSchedule, setSavingVisitSchedule] = useState(false)
-  const [savingBirthday, setSavingBirthday] = useState(false)
-  const [savingTaxResidency, setSavingTaxResidency] = useState(false)
-  const [savingMailingAddress, setSavingMailingAddress] = useState(false)
-  const [donorSortBy, setDonorSortBy] = useState(null)
-  const [donorSortDir, setDonorSortDir] = useState('asc')
-  const [donorColumnOrder, setDonorColumnOrder] = useState(DONOR_COLUMN_OPTIONS.map(o => o.key))
-  const [draggedDonorColumn, setDraggedDonorColumn] = useState(null)
-  const orderedDonorColumns = donorColumnOrder.map(k => DONOR_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
-  const reorderDonorColumn = (fromKey, toKey) => {
+  const [manualError, setManualError] = useState<any>('')
+  const [savingManual, setSavingManual] = useState<any>(false)
+  const [manualDuplicateWarning, setManualDuplicateWarning] = useState<any>(null)
+  const [showVoidModal, setShowVoidModal] = useState<any>(false)
+  const [voidReason, setVoidReason] = useState<any>('')
+  const [voidingReceipt, setVoidingReceipt] = useState<any>(false)
+  const [donorNotes, setDonorNotes] = useState<any[]>([])
+  const [donorNotesLoading, setDonorNotesLoading] = useState<any>(false)
+  const [newNoteText, setNewNoteText] = useState<any>('')
+  const [newNoteType, setNewNoteType] = useState<any>('note')
+  const [savingNote, setSavingNote] = useState<any>(false)
+  const [editingDonorNoteId, setEditingDonorNoteId] = useState<any>(null)
+  const [editingDonorNoteText, setEditingDonorNoteText] = useState<any>('')
+  const [savingDonorNoteEdit, setSavingDonorNoteEdit] = useState<any>(false)
+  const [donorTagsMap, setDonorTagsMap] = useState<Record<string, any>>({})
+  const [donorLastContactMap, setDonorLastContactMap] = useState<Record<string, any>>({})
+  const [donorReceiptNameOverrides, setDonorReceiptNameOverrides] = useState<Record<string, any>>({})
+  const [householdLinkSearch, setHouseholdLinkSearch] = useState<any>('')
+  const [newTagInput, setNewTagInput] = useState<any>('')
+  const [, setSavingTag] = useState<any>(false)
+  const [savingCommPrefs, setSavingCommPrefs] = useState<any>(false)
+  const [savingHousehold, setSavingHousehold] = useState<any>(false)
+  const [savingReceiptOverride, setSavingReceiptOverride] = useState<any>(false)
+  const [savingFamilyContact, setSavingFamilyContact] = useState<any>(false)
+  const [savingVisitSchedule, setSavingVisitSchedule] = useState<any>(false)
+  const [savingBirthday, setSavingBirthday] = useState<any>(false)
+  const [savingTaxResidency, setSavingTaxResidency] = useState<any>(false)
+  const [savingMailingAddress, setSavingMailingAddress] = useState<any>(false)
+  const [donorSortBy, setDonorSortBy] = useState<any>(null)
+  const [donorSortDir, setDonorSortDir] = useState<any>('asc')
+  const [donorColumnOrder, setDonorColumnOrder] = useState<any>(DONOR_COLUMN_OPTIONS.map(o => o.key))
+  const [draggedDonorColumn, setDraggedDonorColumn] = useState<any>(null)
+  const orderedDonorColumns = donorColumnOrder.map((k: any) => DONOR_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
+  const reorderDonorColumn = (fromKey: any, toKey: any) => {
     if (!fromKey || fromKey === toKey) return
-    setDonorColumnOrder(prev => {
-      const next = prev.filter(k => k !== fromKey)
+    setDonorColumnOrder((prev: any) => {
+      const next = prev.filter((k: any) => k !== fromKey)
       const toIndex = next.indexOf(toKey)
       next.splice(toIndex, 0, fromKey)
       supabase.auth.updateUser({ data: { donor_column_order: next } })
       return next
     })
   }
-  const [donationColumnOrder, setDonationColumnOrder] = useState(DONATION_COLUMN_OPTIONS.map(o => o.key))
-  const [draggedDonationColumn, setDraggedDonationColumn] = useState(null)
-  const orderedDonationColumns = donationColumnOrder.map(k => DONATION_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
-  const reorderDonationColumn = (fromKey, toKey) => {
+  const [donationColumnOrder, setDonationColumnOrder] = useState<any>(DONATION_COLUMN_OPTIONS.map(o => o.key))
+  const [draggedDonationColumn, setDraggedDonationColumn] = useState<any>(null)
+  const orderedDonationColumns = donationColumnOrder.map((k: any) => DONATION_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
+  const reorderDonationColumn = (fromKey: any, toKey: any) => {
     if (!fromKey || fromKey === toKey) return
-    setDonationColumnOrder(prev => {
-      const next = prev.filter(k => k !== fromKey)
+    setDonationColumnOrder((prev: any) => {
+      const next = prev.filter((k: any) => k !== fromKey)
       const toIndex = next.indexOf(toKey)
       next.splice(toIndex, 0, fromKey)
       supabase.auth.updateUser({ data: { donation_column_order: next } })
       return next
     })
   }
-  const [userRole, setUserRole] = useState('volunteer')
-  const [roleLoaded, setRoleLoaded] = useState(false)
-  const [volunteerInput, setVolunteerInput] = useState('')
-  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false)
-  const [newTeamMemberRole, setNewTeamMemberRole] = useState('ed')
-  const [volunteerEditEntry, setVolunteerEditEntry] = useState(null)
-  const [volunteerEditForm, setVolunteerEditForm] = useState({ donor_name: '', amount: '', date: '', notes: '', donor_email: '', donor_nric: '', payment_method: 'Cash', cause_id: '' })
-  const [volunteerFlagMessage, setVolunteerFlagMessage] = useState('')
-  const [volunteerEditError, setVolunteerEditError] = useState('')
-  const [savingVolunteer, setSavingVolunteer] = useState(false)
-  const [localVolunteers, setLocalVolunteers] = useState([])
-  const [localEds, setLocalEds] = useState([])
-  const [localBoardMembers, setLocalBoardMembers] = useState([])
-  const [localStaff, setLocalStaff] = useState([])
-  const [customObligations, setCustomObligations] = useState([])
-  const [customTasks, setCustomTasks] = useState([])
-  const [showAddTask, setShowAddTask] = useState(false)
-  const [taskForm, setTaskForm] = useState({ title: '', date: '' })
-  const [showDoneTasks, setShowDoneTasks] = useState(false)
-  const [showAddObligation, setShowAddObligation] = useState(false)
-  const [obligationForm, setObligationForm] = useState({ title: '', date: '', repeat: 'annual' })  
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+  const [userRole, setUserRole] = useState<any>('volunteer')
+  const [roleLoaded, setRoleLoaded] = useState<any>(false)
+  const [volunteerInput, setVolunteerInput] = useState<any>('')
+  const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState<any>(false)
+  const [newTeamMemberRole, setNewTeamMemberRole] = useState<any>('ed')
+  const [volunteerEditEntry, setVolunteerEditEntry] = useState<any>(null)
+  const [volunteerEditForm, setVolunteerEditForm] = useState<any>({ donor_name: '', amount: '', date: '', notes: '', donor_email: '', donor_nric: '', payment_method: 'Cash', cause_id: '' })
+  const [volunteerFlagMessage, setVolunteerFlagMessage] = useState<any>('')
+  const [volunteerEditError, setVolunteerEditError] = useState<any>('')
+  const [savingVolunteer, setSavingVolunteer] = useState<any>(false)
+  const [localVolunteers, setLocalVolunteers] = useState<any[]>([])
+  const [localEds, setLocalEds] = useState<any[]>([])
+  const [localBoardMembers, setLocalBoardMembers] = useState<any[]>([])
+  const [localStaff, setLocalStaff] = useState<any[]>([])
+  const [customObligations, setCustomObligations] = useState<any[]>([])
+  const [customTasks, setCustomTasks] = useState<any[]>([])
+  const [showAddTask, setShowAddTask] = useState<any>(false)
+  const [taskForm, setTaskForm] = useState<any>({ title: '', date: '' })
+  const [showDoneTasks, setShowDoneTasks] = useState<any>(false)
+  const [showAddObligation, setShowAddObligation] = useState<any>(false)
+  const [obligationForm, setObligationForm] = useState<any>({ title: '', date: '', repeat: 'annual' })  
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<any>(() => {
     const w = typeof window !== 'undefined' ? window.innerWidth : 0
     return w > 640 && w <= 1024
   })
-  const [pledges, setPledges] = useState([])
-  const [showPledgeForm, setShowPledgeForm] = useState(false)
-  const [editingPledge, setEditingPledge] = useState(null)
-  const [pledgeForm, setPledgeForm] = useState({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
-  const [pledgeInstalments, setPledgeInstalments] = useState([])
-  const [grants, setGrants] = useState([])
-  const [showGrantForm, setShowGrantForm] = useState(false)
-  const [editingGrant, setEditingGrant] = useState(null)
-  const [recurringExpenses, setRecurringExpenses] = useState([])
+  const [pledges, setPledges] = useState<any[]>([])
+  const [showPledgeForm, setShowPledgeForm] = useState<any>(false)
+  const [editingPledge, setEditingPledge] = useState<any>(null)
+  const [pledgeForm, setPledgeForm] = useState<any>({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
+  const [pledgeInstalments, setPledgeInstalments] = useState<any[]>([])
+  const [grants, setGrants] = useState<any[]>([])
+  const [showGrantForm, setShowGrantForm] = useState<any>(false)
+  const [editingGrant, setEditingGrant] = useState<any>(null)
+  const [recurringExpenses, setRecurringExpenses] = useState<any[]>([])
   const monthlyExpenses = recurringExpenses.reduce((s, e) => s + Number(e.amount), 0)
-  const [newExpenseForm, setNewExpenseForm] = useState({ name: '', amount: '' })
-  const [refunds, setRefunds] = useState([])
-  const [showRefundForm, setShowRefundForm] = useState(false)
-  const [showDonationMoreActions, setShowDonationMoreActions] = useState(false)
-  const [refundForm, setRefundForm] = useState({ reason: '' })
-  const [savingRefund, setSavingRefund] = useState(false)
-  const [grantExpenses, setGrantExpenses] = useState([])
-  const [grantReports, setGrantReports] = useState({})
-  const [grantTranches, setGrantTranches] = useState({})
-  const [grantMatchClaims, setGrantMatchClaims] = useState({})
-  const [grantNotes, setGrantNotes] = useState({})
-  const [expandedGrantId, setExpandedGrantId] = useState(null)
-  const [expandedRecurringId, setExpandedRecurringId] = useState(null)
-  const [recurringMoreMenuId, setRecurringMoreMenuId] = useState(null)
-  const [editingRecurringDonationId, setEditingRecurringDonationId] = useState(null)
-  const [editingRecurringAmount, setEditingRecurringAmount] = useState('')
-  const [editingRecurringNote, setEditingRecurringNote] = useState('')
-  const [savingRecurringAmount, setSavingRecurringAmount] = useState(false)
-  const [editingPledgeDonationId, setEditingPledgeDonationId] = useState(null)
-  const [editingPledgeAmount, setEditingPledgeAmount] = useState('')
-  const [editingPledgeNotes, setEditingPledgeNotes] = useState('')
-  const [savingPledgeAmount, setSavingPledgeAmount] = useState(false)
-  const [grantSearchTerm, setGrantSearchTerm] = useState('')
-  const [grantYearFilter, setGrantYearFilter] = useState('All')
-  const [grantAmountFilter, setGrantAmountFilter] = useState('All')
-  const [highlightedGrantId, setHighlightedGrantId] = useState(null)
-  const [grantUrgencyFilter, setGrantUrgencyFilter] = useState('All')
-  const [grantFunderTypeFilter, setGrantFunderTypeFilter] = useState('All')
-  const [grantFundingTypeFilter, setGrantFundingTypeFilter] = useState('All')
-  const [grantSortBy, setGrantSortBy] = useState('start_desc')
+  const [newExpenseForm, setNewExpenseForm] = useState<any>({ name: '', amount: '' })
+  const [refunds, setRefunds] = useState<any[]>([])
+  const [showRefundForm, setShowRefundForm] = useState<any>(false)
+  const [showDonationMoreActions, setShowDonationMoreActions] = useState<any>(false)
+  const [refundForm, setRefundForm] = useState<any>({ reason: '' })
+  const [savingRefund, setSavingRefund] = useState<any>(false)
+  const [grantExpenses, setGrantExpenses] = useState<any[]>([])
+  const [grantReports, setGrantReports] = useState<Record<string, any>>({})
+  const [grantTranches, setGrantTranches] = useState<Record<string, any>>({})
+  const [grantMatchClaims, setGrantMatchClaims] = useState<Record<string, any>>({})
+  const [grantNotes, setGrantNotes] = useState<Record<string, any>>({})
+  const [expandedGrantId, setExpandedGrantId] = useState<any>(null)
+  const [expandedRecurringId, setExpandedRecurringId] = useState<any>(null)
+  const [recurringMoreMenuId, setRecurringMoreMenuId] = useState<any>(null)
+  const [editingRecurringDonationId, setEditingRecurringDonationId] = useState<any>(null)
+  const [editingRecurringAmount, setEditingRecurringAmount] = useState<any>('')
+  const [editingRecurringNote, setEditingRecurringNote] = useState<any>('')
+  const [savingRecurringAmount, setSavingRecurringAmount] = useState<any>(false)
+  const [editingPledgeDonationId, setEditingPledgeDonationId] = useState<any>(null)
+  const [editingPledgeAmount, setEditingPledgeAmount] = useState<any>('')
+  const [editingPledgeNotes, setEditingPledgeNotes] = useState<any>('')
+  const [savingPledgeAmount, setSavingPledgeAmount] = useState<any>(false)
+  const [grantSearchTerm, setGrantSearchTerm] = useState<any>('')
+  const [grantYearFilter, setGrantYearFilter] = useState<any>('All')
+  const [grantAmountFilter, setGrantAmountFilter] = useState<any>('All')
+  const [highlightedGrantId, setHighlightedGrantId] = useState<any>(null)
+  const [grantUrgencyFilter, setGrantUrgencyFilter] = useState<any>('All')
+  const [grantFunderTypeFilter, setGrantFunderTypeFilter] = useState<any>('All')
+  const [grantFundingTypeFilter, setGrantFundingTypeFilter] = useState<any>('All')
+  const [grantSortBy, setGrantSortBy] = useState<any>('start_desc')
   const grantExpenseCategories = ['Programme Costs', 'Staff Costs', 'Administrative Overhead', 'Fundraising Costs', 'Other']
   const campaignExpenseCategories = ['Printing & Materials', 'Venue & Logistics', 'Marketing & Promotion', 'Volunteer/Staff Costs', 'Other']
-  const [campaignExpenses, setCampaignExpenses] = useState([])
-  const [expandedCampaignId, setExpandedCampaignId] = useState(null)
-  const [pledgeError, setPledgeError] = useState('')
-  const [savingPledge, setSavingPledge] = useState(false)
+  const [campaignExpenses, setCampaignExpenses] = useState<any[]>([])
+  const [expandedCampaignId, setExpandedCampaignId] = useState<any>(null)
+  const [pledgeError, setPledgeError] = useState<any>('')
+  const [savingPledge, setSavingPledge] = useState<any>(false)
   
-  const [pledgeCompletionCandidate, setPledgeCompletionCandidate] = useState(null)
-  const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState(false)
-  const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState('')
-  const [pledgeThankYouBody, setPledgeThankYouBody] = useState('')
-  const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState(false)
-  const [pledgeThankYouPreviewing, setPledgeThankYouPreviewing] = useState(false)
-  const [pledgeGivenTotals, setPledgeGivenTotals] = useState({})
-  const [pledgeDonationLinks, setPledgeDonationLinks] = useState({})
-  const [expandedPledgeId, setExpandedPledgeId] = useState(null)
-  const [pledgeMoreMenuId, setPledgeMoreMenuId] = useState(null)
-  const [pledgeRescheduleHistory, setPledgeRescheduleHistory] = useState({})
-  const [rescheduleModal, setRescheduleModal] = useState(null)
-  const [rescheduleNewDate, setRescheduleNewDate] = useState('')
-  const [rescheduleReason, setRescheduleReason] = useState('')
-  const [reschedulingPledge, setReschedulingPledge] = useState(false)
-  const [senderDomainStatus, setSenderDomainStatus] = useState('none')
-  const [senderDomain, setSenderDomain] = useState('')
-  const [senderEmailLocalPart, setSenderEmailLocalPart] = useState('hello')
-  const [senderDomainInput, setSenderDomainInput] = useState('')
-  const [showDomainSetup, setShowDomainSetup] = useState(false)
-  const [savingDomain, setSavingDomain] = useState(false)
-  const [dnsRecords, setDnsRecords] = useState(null)
-  const [checkingVerification, setCheckingVerification] = useState(false)
-  const [pledgeReminderHistory, setPledgeReminderHistory] = useState({})
-  const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState(false)
-  const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState('')
-  const [linkingPledgeManually, setLinkingPledgeManually] = useState(false)
-  const [showPledgeFilters, setShowPledgeFilters] = useState(false)
-  const [showGrantFilters, setShowGrantFilters] = useState(false)
-  const [showDonorFilters, setShowDonorFilters] = useState(false)
-  const [showDonationFilters, setShowDonationFilters] = useState(false)
-  const [showCampaignFilters, setShowCampaignFilters] = useState(false)
-  const [showAuditFilters, setShowAuditFilters] = useState(false)
-  const [showRecurringFilters, setShowRecurringFilters] = useState(false)
-  const [pledgeSearchTerm, setPledgeSearchTerm] = useState('')
-  const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState('All')
-  const [pledgeAmountFilter, setPledgeAmountFilter] = useState('All')
-  const [pledgeYearFilter, setPledgeYearFilter] = useState('All')
-  const [pledgeTypeFilter, setPledgeTypeFilter] = useState('All')
-  const [pledgeProgrammeFilter, setPledgeProgrammeFilter] = useState('All')
-  const [pledgeSortBy, setPledgeSortBy] = useState('expected_asc')
-  const [massAppealSearchTerm, setMassAppealSearchTerm] = useState('')
-  const [recurringYearFilter, setRecurringYearFilter] = useState('All')
-  const [showCampaignModal, setShowCampaignModal] = useState(false)
-  const [campaignSearchTerm, setCampaignSearchTerm] = useState('')
-  const [showPastCampaigns, setShowPastCampaigns] = useState(false)
-  const [showPastGrants, setShowPastGrants] = useState(false)
-  const [campaignYearFilter, setCampaignYearFilter] = useState('All')
-  const [campaignAmountFilter, setCampaignAmountFilter] = useState('All')
-  const [campaignStatusFilter, setCampaignStatusFilter] = useState('All')
-  const [campaignSortBy, setCampaignSortBy] = useState('created_desc')
-  const [expandedAppealYears, setExpandedAppealYears] = useState(() => new Set([new Date().getFullYear()]))
-  const [showFulfilledPledges, setShowFulfilledPledges] = useState(false)
-  const [showCancelledPledges, setShowCancelledPledges] = useState(false)
-  const [showPausedRecurring, setShowPausedRecurring] = useState(false)
-  const [showCancelledRecurring, setShowCancelledRecurring] = useState(false)
-  const [recurringSearchTerm, setRecurringSearchTerm] = useState('')
-  const [recurringUrgencyFilter, setRecurringUrgencyFilter] = useState('All')
-  const [recurringAmountFilter, setRecurringAmountFilter] = useState('All')
-  const [recurringTypeFilter, setRecurringTypeFilter] = useState('All')
-  const [recurringProgrammeFilter, setRecurringProgrammeFilter] = useState('All')
-  const [recurringAuthFilter, setRecurringAuthFilter] = useState('All')
-  const [recurringSortBy, setRecurringSortBy] = useState('next_asc')
-  const [markReceivedModal, setMarkReceivedModal] = useState(null)
-  const [markReceivedAmount, setMarkReceivedAmount] = useState('')
-  const [markReceivedNote, setMarkReceivedNote] = useState('')
-  const [markingReceived, setMarkingReceived] = useState(false)
-  const [recurringGivenTotals, setRecurringGivenTotals] = useState({})
-  const [lapsedReminderCandidate, setLapsedReminderCandidate] = useState(null)
-  const [showLapsedReminderModal, setShowLapsedReminderModal] = useState(false)
-  const [lapsedReminderSubject, setLapsedReminderSubject] = useState('')
-  const [lapsedReminderBody, setLapsedReminderBody] = useState('')
-  const [sendingLapsedReminder, setSendingLapsedReminder] = useState(false)
-  const [lapsedReminderPreviewing, setLapsedReminderPreviewing] = useState(false)
-  const [lapsedReminderHistory, setLapsedReminderHistory] = useState({})
-  const [lapsedDismissals, setLapsedDismissals] = useState({})
-  const [showLapsedDismissModal, setShowLapsedDismissModal] = useState(null)
-  const [lapsedDismissReason, setLapsedDismissReason] = useState('')
-  const [lapsedDismissCategory, setLapsedDismissCategory] = useState('unknown')
-  const [dismissingLapsed, setDismissingLapsed] = useState(false)
-  const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState(false)
-  const [showAllLapsedDonors, setShowAllLapsedDonors] = useState(false)
-  const [showAllOverdueUnits, setShowAllOverdueUnits] = useState(false)
-  const [showAllPledgeWatchlist, setShowAllPledgeWatchlist] = useState(false)
-  const [showAllPledgeConcentration, setShowAllPledgeConcentration] = useState(false)
-  const [showAllMissedPayments, setShowAllMissedPayments] = useState(false)
-  const [showAllEndingSoon, setShowAllEndingSoon] = useState(false)
-  const [showAllPausedGifts, setShowAllPausedGifts] = useState(false)
-  const [showAllFrequentSkippers, setShowAllFrequentSkippers] = useState(false)
-  const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState(false)
-  const [showAppealPreview, setShowAppealPreview] = useState(false)
-  const [sendingTestAppeal, setSendingTestAppeal] = useState(false)
-  const [selectedAppealDetail, setSelectedAppealDetail] = useState(null)
-  const [appealRecipients, setAppealRecipients] = useState([])
-  const [loadingAppealDetail, setLoadingAppealDetail] = useState(false)
-  const [retryingAppealRecipients, setRetryingAppealRecipients] = useState(false)
-  const [retryPreviewList, setRetryPreviewList] = useState(null)
-  const [appealRecipientSearchTerm, setAppealRecipientSearchTerm] = useState('')
-  const [appealRecipientStatusFilter, setAppealRecipientStatusFilter] = useState('All')
-  const [showMassAppealModal, setShowMassAppealModal] = useState(false)
-  const [generalAppealsExpanded, setGeneralAppealsExpanded] = useState(false)
-  const [generalAppealsShowAll, setGeneralAppealsShowAll] = useState(false)
-  const [expandedCampaignAppeals, setExpandedCampaignAppeals] = useState(new Set())
-  const [donorContacts, setDonorContacts] = useState([])
-  const [showAddDonorModal, setShowAddDonorModal] = useState(false)
-  const [addDonorForm, setAddDonorForm] = useState({ full_name: '', email: '', notes: '' })
-  const [donorStatusFilter, setDonorStatusFilter] = useState('All')
-  const [donorYearFilter, setDonorYearFilter] = useState('All')
-  const [addDonorError, setAddDonorError] = useState('')
-  const [savingDonorContact, setSavingDonorContact] = useState(false)
+  const [pledgeCompletionCandidate, setPledgeCompletionCandidate] = useState<any>(null)
+  const [showPledgeThankYouModal, setShowPledgeThankYouModal] = useState<any>(false)
+  const [pledgeThankYouSubject, setPledgeThankYouSubject] = useState<any>('')
+  const [pledgeThankYouBody, setPledgeThankYouBody] = useState<any>('')
+  const [sendingPledgeThankYou, setSendingPledgeThankYou] = useState<any>(false)
+  const [pledgeThankYouPreviewing, setPledgeThankYouPreviewing] = useState<any>(false)
+  const [pledgeGivenTotals, setPledgeGivenTotals] = useState<Record<string, any>>({})
+  const [pledgeDonationLinks, setPledgeDonationLinks] = useState<Record<string, any>>({})
+  const [expandedPledgeId, setExpandedPledgeId] = useState<any>(null)
+  const [pledgeMoreMenuId, setPledgeMoreMenuId] = useState<any>(null)
+  const [pledgeRescheduleHistory, setPledgeRescheduleHistory] = useState<Record<string, any>>({})
+  const [rescheduleModal, setRescheduleModal] = useState<any>(null)
+  const [rescheduleNewDate, setRescheduleNewDate] = useState<any>('')
+  const [rescheduleReason, setRescheduleReason] = useState<any>('')
+  const [reschedulingPledge, setReschedulingPledge] = useState<any>(false)
+  const [senderDomainStatus, setSenderDomainStatus] = useState<any>('none')
+  const [senderDomain, setSenderDomain] = useState<any>('')
+  const [senderEmailLocalPart, setSenderEmailLocalPart] = useState<any>('hello')
+  const [senderDomainInput, setSenderDomainInput] = useState<any>('')
+  const [showDomainSetup, setShowDomainSetup] = useState<any>(false)
+  const [savingDomain, setSavingDomain] = useState<any>(false)
+  const [dnsRecords, setDnsRecords] = useState<any>(null)
+  const [checkingVerification, setCheckingVerification] = useState<any>(false)
+  const [pledgeReminderHistory, setPledgeReminderHistory] = useState<Record<string, any>>({})
+  const [showManualPledgeLinkModal, setShowManualPledgeLinkModal] = useState<any>(false)
+  const [manualPledgeLinkSelection, setManualPledgeLinkSelection] = useState<any>('')
+  const [linkingPledgeManually, setLinkingPledgeManually] = useState<any>(false)
+  const [showPledgeFilters, setShowPledgeFilters] = useState<any>(false)
+  const [showGrantFilters, setShowGrantFilters] = useState<any>(false)
+  const [showDonorFilters, setShowDonorFilters] = useState<any>(false)
+  const [showDonationFilters, setShowDonationFilters] = useState<any>(false)
+  const [showCampaignFilters, setShowCampaignFilters] = useState<any>(false)
+  const [showAuditFilters, setShowAuditFilters] = useState<any>(false)
+  const [showRecurringFilters, setShowRecurringFilters] = useState<any>(false)
+  const [pledgeSearchTerm, setPledgeSearchTerm] = useState<any>('')
+  const [pledgeUrgencyFilter, setPledgeUrgencyFilter] = useState<any>('All')
+  const [pledgeAmountFilter, setPledgeAmountFilter] = useState<any>('All')
+  const [pledgeYearFilter, setPledgeYearFilter] = useState<any>('All')
+  const [pledgeTypeFilter, setPledgeTypeFilter] = useState<any>('All')
+  const [pledgeProgrammeFilter, setPledgeProgrammeFilter] = useState<any>('All')
+  const [pledgeSortBy, setPledgeSortBy] = useState<any>('expected_asc')
+  const [massAppealSearchTerm, setMassAppealSearchTerm] = useState<any>('')
+  const [recurringYearFilter, setRecurringYearFilter] = useState<any>('All')
+  const [showCampaignModal, setShowCampaignModal] = useState<any>(false)
+  const [campaignSearchTerm, setCampaignSearchTerm] = useState<any>('')
+  const [showPastCampaigns, setShowPastCampaigns] = useState<any>(false)
+  const [showPastGrants, setShowPastGrants] = useState<any>(false)
+  const [campaignYearFilter, setCampaignYearFilter] = useState<any>('All')
+  const [campaignAmountFilter, setCampaignAmountFilter] = useState<any>('All')
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<any>('All')
+  const [campaignSortBy, setCampaignSortBy] = useState<any>('created_desc')
+  const [expandedAppealYears, setExpandedAppealYears] = useState<any>(() => new Set([new Date().getFullYear()]))
+  const [showFulfilledPledges, setShowFulfilledPledges] = useState<any>(false)
+  const [showCancelledPledges, setShowCancelledPledges] = useState<any>(false)
+  const [showPausedRecurring, setShowPausedRecurring] = useState<any>(false)
+  const [showCancelledRecurring, setShowCancelledRecurring] = useState<any>(false)
+  const [recurringSearchTerm, setRecurringSearchTerm] = useState<any>('')
+  const [recurringUrgencyFilter, setRecurringUrgencyFilter] = useState<any>('All')
+  const [recurringAmountFilter, setRecurringAmountFilter] = useState<any>('All')
+  const [recurringTypeFilter, setRecurringTypeFilter] = useState<any>('All')
+  const [recurringProgrammeFilter, setRecurringProgrammeFilter] = useState<any>('All')
+  const [recurringAuthFilter, setRecurringAuthFilter] = useState<any>('All')
+  const [recurringSortBy, setRecurringSortBy] = useState<any>('next_asc')
+  const [markReceivedModal, setMarkReceivedModal] = useState<any>(null)
+  const [markReceivedAmount, setMarkReceivedAmount] = useState<any>('')
+  const [markReceivedNote, setMarkReceivedNote] = useState<any>('')
+  const [markingReceived, setMarkingReceived] = useState<any>(false)
+  const [recurringGivenTotals, setRecurringGivenTotals] = useState<Record<string, any>>({})
+  const [lapsedReminderCandidate, setLapsedReminderCandidate] = useState<any>(null)
+  const [showLapsedReminderModal, setShowLapsedReminderModal] = useState<any>(false)
+  const [lapsedReminderSubject, setLapsedReminderSubject] = useState<any>('')
+  const [lapsedReminderBody, setLapsedReminderBody] = useState<any>('')
+  const [sendingLapsedReminder, setSendingLapsedReminder] = useState<any>(false)
+  const [lapsedReminderPreviewing, setLapsedReminderPreviewing] = useState<any>(false)
+  const [lapsedReminderHistory, setLapsedReminderHistory] = useState<Record<string, any>>({})
+  const [lapsedDismissals, setLapsedDismissals] = useState<Record<string, any>>({})
+  const [showLapsedDismissModal, setShowLapsedDismissModal] = useState<any>(null)
+  const [lapsedDismissReason, setLapsedDismissReason] = useState<any>('')
+  const [lapsedDismissCategory, setLapsedDismissCategory] = useState<any>('unknown')
+  const [dismissingLapsed, setDismissingLapsed] = useState<any>(false)
+  const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState<any>(false)
+  const [showAllLapsedDonors, setShowAllLapsedDonors] = useState<any>(false)
+  const [showAllOverdueUnits, setShowAllOverdueUnits] = useState<any>(false)
+  const [showAllPledgeWatchlist, setShowAllPledgeWatchlist] = useState<any>(false)
+  const [showAllPledgeConcentration, setShowAllPledgeConcentration] = useState<any>(false)
+  const [showAllMissedPayments, setShowAllMissedPayments] = useState<any>(false)
+  const [showAllEndingSoon, setShowAllEndingSoon] = useState<any>(false)
+  const [showAllPausedGifts, setShowAllPausedGifts] = useState<any>(false)
+  const [showAllFrequentSkippers, setShowAllFrequentSkippers] = useState<any>(false)
+  const [showAllConcentrationDonors, setShowAllConcentrationDonors] = useState<any>(false)
+  const [showAppealPreview, setShowAppealPreview] = useState<any>(false)
+  const [sendingTestAppeal, setSendingTestAppeal] = useState<any>(false)
+  const [selectedAppealDetail, setSelectedAppealDetail] = useState<any>(null)
+  const [appealRecipients, setAppealRecipients] = useState<any[]>([])
+  const [loadingAppealDetail, setLoadingAppealDetail] = useState<any>(false)
+  const [retryingAppealRecipients, setRetryingAppealRecipients] = useState<any>(false)
+  const [retryPreviewList, setRetryPreviewList] = useState<any>(null)
+  const [appealRecipientSearchTerm, setAppealRecipientSearchTerm] = useState<any>('')
+  const [appealRecipientStatusFilter, setAppealRecipientStatusFilter] = useState<any>('All')
+  const [showMassAppealModal, setShowMassAppealModal] = useState<any>(false)
+  const [generalAppealsExpanded, setGeneralAppealsExpanded] = useState<any>(false)
+  const [generalAppealsShowAll, setGeneralAppealsShowAll] = useState<any>(false)
+  const [expandedCampaignAppeals, setExpandedCampaignAppeals] = useState<any>(new Set())
+  const [donorContacts, setDonorContacts] = useState<any[]>([])
+  const [showAddDonorModal, setShowAddDonorModal] = useState<any>(false)
+  const [addDonorForm, setAddDonorForm] = useState<any>({ full_name: '', email: '', notes: '' })
+  const [donorStatusFilter, setDonorStatusFilter] = useState<any>('All')
+  const [donorYearFilter, setDonorYearFilter] = useState<any>('All')
+  const [addDonorError, setAddDonorError] = useState<any>('')
+  const [savingDonorContact, setSavingDonorContact] = useState<any>(false)
 
   async function loadDonorContacts(activeSession = session) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
@@ -590,7 +590,7 @@ export default function App() {
       .order('created_at', { ascending: false })
     if (error) { console.error('Could not load donor contacts:', error); return }
     setDonorContacts(data || [])
-    const overrideMap = {}
+    const overrideMap: Record<string, any> = {}
     ;(data || []).forEach(c => {
       if (c.receipt_name_override?.trim()) {
         const key = c.email?.trim() || c.full_name
@@ -599,17 +599,17 @@ export default function App() {
     })
     setDonorReceiptNameOverrides(overrideMap)
   }
-  const [massAppealYearFilter, setMassAppealYearFilter] = useState('All')
-  const [massAppealAmountFilter, setMassAppealAmountFilter] = useState('All')
-  const [massAppealProgrammeFilter, setMassAppealProgrammeFilter] = useState('All')
-  const [massAppealStatusFilter, setMassAppealStatusFilter] = useState('All')
-  const [massAppealSortBy, setMassAppealSortBy] = useState('created_desc')
-  const [showAllBounceReasons, setShowAllBounceReasons] = useState(false)
-  const [showAllFatigueList, setShowAllFatigueList] = useState(false)
-  const [showAllOverGivers, setShowAllOverGivers] = useState(false)
-  const [allAppealRecipients, setAllAppealRecipients] = useState([])
+  const [massAppealYearFilter, setMassAppealYearFilter] = useState<any>('All')
+  const [massAppealAmountFilter, setMassAppealAmountFilter] = useState<any>('All')
+  const [massAppealProgrammeFilter, setMassAppealProgrammeFilter] = useState<any>('All')
+  const [massAppealStatusFilter, setMassAppealStatusFilter] = useState<any>('All')
+  const [massAppealSortBy, setMassAppealSortBy] = useState<any>('created_desc')
+  const [showAllBounceReasons, setShowAllBounceReasons] = useState<any>(false)
+  const [showAllFatigueList, setShowAllFatigueList] = useState<any>(false)
+  const [showAllOverGivers, setShowAllOverGivers] = useState<any>(false)
+  const [allAppealRecipients, setAllAppealRecipients] = useState<any[]>([])
 
-  async function openAppealDetail(appeal) {
+  async function openAppealDetail(appeal: any) {
     setSelectedAppealDetail(appeal)
     setLoadingAppealDetail(true)
     setAppealRecipientSearchTerm('')
@@ -623,12 +623,12 @@ export default function App() {
     setAppealRecipients(data || [])
     setLoadingAppealDetail(false)
   }
-  const [givingChangeMinGifts, setGivingChangeMinGifts] = useState(3)
-  const [givingChangeMinPct, setGivingChangeMinPct] = useState(30)
-  const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
-  const [givingChangeAckHistory, setGivingChangeAckHistory] = useState({})
+  const [givingChangeMinGifts, setGivingChangeMinGifts] = useState<any>(3)
+  const [givingChangeMinPct, setGivingChangeMinPct] = useState<any>(30)
+  const [showAllGivingChanges, setShowAllGivingChanges] = useState<any>(false)
+  const [givingChangeAckHistory, setGivingChangeAckHistory] = useState<Record<string, any>>({})
 
-  function buildUpgradeThankYouNote(donor, changePct, recent) {
+  function buildUpgradeThankYouNote(donor: any, changePct: any, recent: any) {
     const lines = []
     lines.push(`Dear ${donor.name},`)
     lines.push('')
@@ -662,49 +662,49 @@ export default function App() {
       setLapsedReminderPreviewing(false)
     }
   }, [showLapsedReminderModal, lapsedReminderCandidate, emailTemplates, charityName])
-  const [skipCycleModal, setSkipCycleModal] = useState(null)
-  const [skipCycleReason, setSkipCycleReason] = useState('')
-  const [skippingCycle, setSkippingCycle] = useState(false)
-  const [recurringSkipHistory, setRecurringSkipHistory] = useState({})
-  const [recurringReminderCandidate, setRecurringReminderCandidate] = useState(null)
-  const [showRecurringReminderModal, setShowRecurringReminderModal] = useState(false)
-  const [recurringReminderSubject, setRecurringReminderSubject] = useState('')
-  const [recurringReminderBody, setRecurringReminderBody] = useState('')
-  const [sendingRecurringReminder, setSendingRecurringReminder] = useState(false)
-  const [recurringReminderPreviewing, setRecurringReminderPreviewing] = useState(false)
-  const [recurringReminderHistory, setRecurringReminderHistory] = useState({})
-  const [editingRecurringGift, setEditingRecurringGift] = useState(null)
-  const [pauseGiftModal, setPauseGiftModal] = useState(null)
-  const [pauseReasonInput, setPauseReasonInput] = useState('')
-  const [pauseResumeDateInput, setPauseResumeDateInput] = useState('')
-  const [pausingGift, setPausingGift] = useState(false)
-  const [failedDeductionModal, setFailedDeductionModal] = useState(null)
-  const [failedDeductionReason, setFailedDeductionReason] = useState('Insufficient funds')
-  const [recordingFailedDeduction, setRecordingFailedDeduction] = useState(false)
-  const [recurringFailedDeductionHistory, setRecurringFailedDeductionHistory] = useState({})
-  const [filterTopDonorNames, setFilterTopDonorNames] = useState(null)
+  const [skipCycleModal, setSkipCycleModal] = useState<any>(null)
+  const [skipCycleReason, setSkipCycleReason] = useState<any>('')
+  const [skippingCycle, setSkippingCycle] = useState<any>(false)
+  const [recurringSkipHistory, setRecurringSkipHistory] = useState<Record<string, any>>({})
+  const [recurringReminderCandidate, setRecurringReminderCandidate] = useState<any>(null)
+  const [showRecurringReminderModal, setShowRecurringReminderModal] = useState<any>(false)
+  const [recurringReminderSubject, setRecurringReminderSubject] = useState<any>('')
+  const [recurringReminderBody, setRecurringReminderBody] = useState<any>('')
+  const [sendingRecurringReminder, setSendingRecurringReminder] = useState<any>(false)
+  const [recurringReminderPreviewing, setRecurringReminderPreviewing] = useState<any>(false)
+  const [recurringReminderHistory, setRecurringReminderHistory] = useState<Record<string, any>>({})
+  const [editingRecurringGift, setEditingRecurringGift] = useState<any>(null)
+  const [pauseGiftModal, setPauseGiftModal] = useState<any>(null)
+  const [pauseReasonInput, setPauseReasonInput] = useState<any>('')
+  const [pauseResumeDateInput, setPauseResumeDateInput] = useState<any>('')
+  const [pausingGift, setPausingGift] = useState<any>(false)
+  const [failedDeductionModal, setFailedDeductionModal] = useState<any>(null)
+  const [failedDeductionReason, setFailedDeductionReason] = useState<any>('Insufficient funds')
+  const [recordingFailedDeduction, setRecordingFailedDeduction] = useState<any>(false)
+  const [recurringFailedDeductionHistory, setRecurringFailedDeductionHistory] = useState<Record<string, any>>({})
+  const [filterTopDonorNames, setFilterTopDonorNames] = useState<any>(null)
   // Key-based donor filter — used by dashboard "Worth knowing" jumps, which identify specific donor
   // records by key. Filtering by name would over-select when several donors share a name.
-  const [filterDonorKeys, setFilterDonorKeys] = useState(null)
-  const [donorFilterLabel, setDonorFilterLabel] = useState(null)
-  const [activeInsightKey, setActiveInsightKey] = useState(null)
-  const [insightDismissals, setInsightDismissals] = useState([])
-  const [concentrationTopN, setConcentrationTopN] = useState(10)
-  const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState(2)
-  const [pledgeDueSoonDays, setPledgeDueSoonDays] = useState(7)
-  const [recurringTrendCycles, setRecurringTrendCycles] = useState(2)
-  const [recurringMissedThreshold, setRecurringMissedThreshold] = useState(2)
+  const [filterDonorKeys, setFilterDonorKeys] = useState<any>(null)
+  const [donorFilterLabel, setDonorFilterLabel] = useState<any>(null)
+  const [activeInsightKey, setActiveInsightKey] = useState<any>(null)
+  const [insightDismissals, setInsightDismissals] = useState<any[]>([])
+  const [concentrationTopN, setConcentrationTopN] = useState<any>(10)
+  const [pledgeWatchThreshold, setPledgeWatchThreshold] = useState<any>(2)
+  const [pledgeDueSoonDays, setPledgeDueSoonDays] = useState<any>(7)
+  const [recurringTrendCycles, setRecurringTrendCycles] = useState<any>(2)
+  const [recurringMissedThreshold, setRecurringMissedThreshold] = useState<any>(2)
 
-  const [lapsedMinGifts, setLapsedMinGifts] = useState(2)
-  const [lapsedMinDays, setLapsedMinDays] = useState(60)
-  const [thankYouThreshold, setThankYouThreshold] = useState(200)
-  const [majorDonorThreshold, setMajorDonorThreshold] = useState(1000)
-  const [editingDonorThresholds, setEditingDonorThresholds] = useState(false)
-  const [thankYouThresholdInput, setThankYouThresholdInput] = useState('200')
-  const [majorDonorThresholdInput, setMajorDonorThresholdInput] = useState('1000')
-  const [cumulativeThresholds, setCumulativeThresholds] = useState([1000, 5000, 10000])
-  const [editingCumulativeThresholds, setEditingCumulativeThresholds] = useState(false)
-  const [cumulativeThresholdsInput, setCumulativeThresholdsInput] = useState(['1000', '5000', '10000'])
+  const [lapsedMinGifts, setLapsedMinGifts] = useState<any>(2)
+  const [lapsedMinDays, setLapsedMinDays] = useState<any>(60)
+  const [thankYouThreshold, setThankYouThreshold] = useState<any>(200)
+  const [majorDonorThreshold, setMajorDonorThreshold] = useState<any>(1000)
+  const [editingDonorThresholds, setEditingDonorThresholds] = useState<any>(false)
+  const [thankYouThresholdInput, setThankYouThresholdInput] = useState<any>('200')
+  const [majorDonorThresholdInput, setMajorDonorThresholdInput] = useState<any>('1000')
+  const [cumulativeThresholds, setCumulativeThresholds] = useState<any>([1000, 5000, 10000])
+  const [editingCumulativeThresholds, setEditingCumulativeThresholds] = useState<any>(false)
+  const [cumulativeThresholdsInput, setCumulativeThresholdsInput] = useState<any>(['1000', '5000', '10000'])
 
   useEffect(() => {
     if (showRecurringReminderModal && recurringReminderCandidate) {
@@ -717,26 +717,26 @@ export default function App() {
       setRecurringReminderPreviewing(false)
     }
   }, [showRecurringReminderModal, recurringReminderCandidate, emailTemplates, charityName])
-  const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
-  const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
-  const [fulfillAmount, setFulfillAmount] = useState('')
-  const [fulfillPaymentMethod, setFulfillPaymentMethod] = useState('Cash')
+  const [pledgeResolutionModal, setPledgeResolutionModal] = useState<any>(null)
+  const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState<any>('')
+  const [fulfillAmount, setFulfillAmount] = useState<any>('')
+  const [fulfillPaymentMethod, setFulfillPaymentMethod] = useState<any>('Cash')
 
-  const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState(null)
-  const [showPledgeReminderModal, setShowPledgeReminderModal] = useState(false)
-  const [pledgeReminderSubject, setPledgeReminderSubject] = useState('')
-  const [pledgeReminderBody, setPledgeReminderBody] = useState('')
-  const [sendingPledgeReminder, setSendingPledgeReminder] = useState(false)
-  const [pledgeReminderPreviewing, setPledgeReminderPreviewing] = useState(false)
-  const [logContactModal, setLogContactModal] = useState(null)
-  const [logContactMethod, setLogContactMethod] = useState('phone')
-  const [logContactNote, setLogContactNote] = useState('')
-  const [loggingContact, setLoggingContact] = useState(false)
+  const [pledgeReminderCandidate, setPledgeReminderCandidate] = useState<any>(null)
+  const [showPledgeReminderModal, setShowPledgeReminderModal] = useState<any>(false)
+  const [pledgeReminderSubject, setPledgeReminderSubject] = useState<any>('')
+  const [pledgeReminderBody, setPledgeReminderBody] = useState<any>('')
+  const [sendingPledgeReminder, setSendingPledgeReminder] = useState<any>(false)
+  const [pledgeReminderPreviewing, setPledgeReminderPreviewing] = useState<any>(false)
+  const [logContactModal, setLogContactModal] = useState<any>(null)
+  const [logContactMethod, setLogContactMethod] = useState<any>('phone')
+  const [logContactNote, setLogContactNote] = useState<any>('')
+  const [loggingContact, setLoggingContact] = useState<any>(false)
 
   useEffect(() => {
     if (showPledgeReminderModal && pledgeReminderCandidate) {
       const p = pledgeReminderCandidate
-      const daysUntil = Math.ceil((new Date(p.expected_date) - new Date()) / (1000 * 60 * 60 * 24))
+      const daysUntil = Math.ceil((new Date(p.expected_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       const isOverdue = daysUntil < 0
       const key = isOverdue ? 'pledge_reminder_overdue' : 'pledge_reminder_upcoming'
       const saved = emailTemplates[key]
@@ -746,54 +746,54 @@ export default function App() {
       setPledgeReminderPreviewing(false)
     }
   }, [showPledgeReminderModal, pledgeReminderCandidate, emailTemplates, charityName])
-  const [recurringGifts, setRecurringGifts] = useState([])
-  const [showRecurringForm, setShowRecurringForm] = useState(false)
-  const [savingRecurring, setSavingRecurring] = useState(false)
-  const [massAppealForm, setMassAppealForm] = useState({ cause_id: '', amount: '', message: '', customLabel: '' })
-  const [showTagSegmentManager, setShowTagSegmentManager] = useState(false)
-  const [tagSegmentName, setTagSegmentName] = useState('')
-  const [tagSegmentSelectedKeys, setTagSegmentSelectedKeys] = useState(new Set())
-  const [tagSegmentSearch, setTagSegmentSearch] = useState('')
-  const [savingTagSegment, setSavingTagSegment] = useState(false)
-  const [massAppealRefs, setMassAppealRefs] = useState([])
-  const [massAppealStep, setMassAppealStep] = useState('setup')
-  const [massAppealProgress, setMassAppealProgress] = useState(null)
-  const massAppealCancelRef = useRef(false)
-  const massAppealSendingRef = useRef(false)
-  const [massAppeals, setMassAppeals] = useState([])
-  const [showMigrationTool, setShowMigrationTool] = useState(false)
-  const [, setMigrationFile] = useState(null)
-  const [migrationPreview, setMigrationPreview] = useState(null)
-  const [migrationErrors, setMigrationErrors] = useState([])
-  const [migrationProgress, setMigrationProgress] = useState(null)
-  const [migrationComplete, setMigrationComplete] = useState(null)
-  const migrationCancelRef = useRef(false)
-  const [payNowQrDonation, setPayNowQrDonation] = useState(null)
-  const [confirmingPayNow, setConfirmingPayNow] = useState(false)
-  const [deletingId, setDeletingId] = useState(null)
-  const [selectedDonation, setSelectedDonation] = useState(null)
-  const [donationPledgeLink, setDonationPledgeLink] = useState(null)
+  const [recurringGifts, setRecurringGifts] = useState<any[]>([])
+  const [showRecurringForm, setShowRecurringForm] = useState<any>(false)
+  const [savingRecurring, setSavingRecurring] = useState<any>(false)
+  const [massAppealForm, setMassAppealForm] = useState<any>({ cause_id: '', amount: '', message: '', customLabel: '' })
+  const [showTagSegmentManager, setShowTagSegmentManager] = useState<any>(false)
+  const [tagSegmentName, setTagSegmentName] = useState<any>('')
+  const [tagSegmentSelectedKeys, setTagSegmentSelectedKeys] = useState<any>(new Set())
+  const [tagSegmentSearch, setTagSegmentSearch] = useState<any>('')
+  const [savingTagSegment, setSavingTagSegment] = useState<any>(false)
+  const [massAppealRefs, setMassAppealRefs] = useState<any[]>([])
+  const [massAppealStep, setMassAppealStep] = useState<any>('setup')
+  const [massAppealProgress, setMassAppealProgress] = useState<any>(null)
+  const massAppealCancelRef = useRef<boolean>(false)
+  const massAppealSendingRef = useRef<boolean>(false)
+  const [massAppeals, setMassAppeals] = useState<any[]>([])
+  const [showMigrationTool, setShowMigrationTool] = useState<any>(false)
+  const [, setMigrationFile] = useState<any>(null)
+  const [migrationPreview, setMigrationPreview] = useState<any>(null)
+  const [migrationErrors, setMigrationErrors] = useState<any[]>([])
+  const [migrationProgress, setMigrationProgress] = useState<any>(null)
+  const [migrationComplete, setMigrationComplete] = useState<any>(null)
+  const migrationCancelRef = useRef<boolean>(false)
+  const [payNowQrDonation, setPayNowQrDonation] = useState<any>(null)
+  const [confirmingPayNow, setConfirmingPayNow] = useState<any>(false)
+  const [deletingId, setDeletingId] = useState<any>(null)
+  const [selectedDonation, setSelectedDonation] = useState<any>(null)
+  const [donationPledgeLink, setDonationPledgeLink] = useState<any>(null)
   // Snoozed action items: { [itemKey]: untilTimestampMs }. An item stays hidden from the dashboard
   // Action Items list until its snooze expires. Expired entries are pruned on load.
-  const [snoozedItems, setSnoozedItems] = useState(() => {
+  const [snoozedItems, setSnoozedItems] = useState<any>(() => {
     const saved = localStorage.getItem('gt_snoozed_action_items')
     if (!saved) return {}
     try {
       const parsed = JSON.parse(saved)
       const now = Date.now()
-      const active = {}
+      const active: Record<string, any> = {}
       Object.entries(parsed).forEach(([k, until]) => { if (typeof until === 'number' && until > now) active[k] = until })
       return active
     } catch {
       return {}
     }
   })
-  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(null)
+  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState<any>(null)
 
-  const [showSnoozedItems, setShowSnoozedItems] = useState(false)
+  const [showSnoozedItems, setShowSnoozedItems] = useState<any>(false)
 
-  function snoozeActionItem(itemKey, days) {
-    setSnoozedItems(prev => {
+  function snoozeActionItem(itemKey: any, days: any) {
+    setSnoozedItems((prev: any) => {
       const next = { ...prev, [itemKey]: Date.now() + days * 24 * 60 * 60 * 1000 }
       localStorage.setItem('gt_snoozed_action_items', JSON.stringify(next))
       return next
@@ -801,8 +801,8 @@ export default function App() {
     setSnoozeMenuOpen(null)
   }
 
-  function unsnoozeActionItem(itemKey) {
-    setSnoozedItems(prev => {
+  function unsnoozeActionItem(itemKey: any) {
+    setSnoozedItems((prev: any) => {
       const next = { ...prev }
       delete next[itemKey]
       localStorage.setItem('gt_snoozed_action_items', JSON.stringify(next))
@@ -833,56 +833,56 @@ export default function App() {
     // unrelated field edit (notes, impact note, etc.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDonation?.id])
-  const [editingNoteId, setEditingNoteId] = useState(null)
-  const [editingImpactNoteId, setEditingImpactNoteId] = useState(null)
-  const [impactNoteText, setImpactNoteText] = useState('')
-  const [noteText, setNoteText] = useState('')
-  const [nricRequestSent, setNricRequestSent] = useState({})
-  const [toast, setToast] = useState(null)
-  const toastTimerRef = useRef(null)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [auditLog, setAuditLog] = useState([])
-  const [auditLoading, setAuditLoading] = useState(false)
-  const [auditActionFilter, setAuditActionFilter] = useState('All')
-  const [auditDateFilter, setAuditDateFilter] = useState('30')
-  const [auditSearchTerm, setAuditSearchTerm] = useState('')
-  const [myCauses, setMyCauses] = useState([])
-  const [causeForm, setCauseForm] = useState(EMPTY_CAUSE_FORM)
-  const [causeError, setCauseError] = useState('')
-  const [savingCause, setSavingCause] = useState(false)
-  const [bulkActionInProgress, setBulkActionInProgress] = useState(false)
-  const [bulkProgress, setBulkProgress] = useState(null) // { done, total }
-  const bulkCancelRef = useRef(false)
-  const [showResetPassword, setShowResetPassword] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [resetMsg, setResetMsg] = useState('')
-  const [resetLoading, setResetLoading] = useState(false)
-  const [quickEmailInput, setQuickEmailInput] = useState('')
-  const [quickNricInput, setQuickNricInput] = useState('')
-  const [sendingThankYouId, setSendingThankYouId] = useState(null)
-  const [thankYouPreviewModal, setThankYouPreviewModal] = useState(null)
-  const [thankYouCustomMessage, setThankYouCustomMessage] = useState('')
-  const [thankYouSubjectInput, setThankYouSubjectInput] = useState('')
-  const [aiWeekSummary, setAiWeekSummary] = useState(null)
-  const [aiWeekSummaryLoading, setAiWeekSummaryLoading] = useState(false)
-  const [aiWeekSummaryError, setAiWeekSummaryError] = useState(null)
-  const [thankYouPreviewing, setThankYouPreviewing] = useState(false)
-  const [charityIsIpc, setCharityIsIpc] = useState(true)
-  const [charityIpcLoaded, setCharityIpcLoaded] = useState(false)
-  const [editingEmailTemplate, setEditingEmailTemplate] = useState(null)
-  const [emailTemplateSubjectInput, setEmailTemplateSubjectInput] = useState('')
-  const [emailTemplateBodyInput, setEmailTemplateBodyInput] = useState('')
-  const [charityLogoUrl, setCharityLogoUrl] = useState(null)
-  const [charityLogoDataUrl, setCharityLogoDataUrl] = useState(null)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [annualGoal, setAnnualGoal] = useState(null)
-  const [editingGoal, setEditingGoal] = useState(false)
-  const [goalInput, setGoalInput] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState<any>(null)
+  const [editingImpactNoteId, setEditingImpactNoteId] = useState<any>(null)
+  const [impactNoteText, setImpactNoteText] = useState<any>('')
+  const [noteText, setNoteText] = useState<any>('')
+  const [nricRequestSent, setNricRequestSent] = useState<Record<string, any>>({})
+  const [toast, setToast] = useState<any>(null)
+  const toastTimerRef = useRef<any>(null)
+  const [showMobileMenu, setShowMobileMenu] = useState<any>(false)
+  const [auditLog, setAuditLog] = useState<any[]>([])
+  const [auditLoading, setAuditLoading] = useState<any>(false)
+  const [auditActionFilter, setAuditActionFilter] = useState<any>('All')
+  const [auditDateFilter, setAuditDateFilter] = useState<any>('30')
+  const [auditSearchTerm, setAuditSearchTerm] = useState<any>('')
+  const [myCauses, setMyCauses] = useState<any[]>([])
+  const [causeForm, setCauseForm] = useState<any>(EMPTY_CAUSE_FORM)
+  const [causeError, setCauseError] = useState<any>('')
+  const [savingCause, setSavingCause] = useState<any>(false)
+  const [bulkActionInProgress, setBulkActionInProgress] = useState<any>(false)
+  const [bulkProgress, setBulkProgress] = useState<any>(null) // { done, total }
+  const bulkCancelRef = useRef<boolean>(false)
+  const [showResetPassword, setShowResetPassword] = useState<any>(false)
+  const [newPassword, setNewPassword] = useState<any>('')
+  const [confirmPassword, setConfirmPassword] = useState<any>('')
+  const [resetMsg, setResetMsg] = useState<any>('')
+  const [resetLoading, setResetLoading] = useState<any>(false)
+  const [quickEmailInput, setQuickEmailInput] = useState<any>('')
+  const [quickNricInput, setQuickNricInput] = useState<any>('')
+  const [sendingThankYouId, setSendingThankYouId] = useState<any>(null)
+  const [thankYouPreviewModal, setThankYouPreviewModal] = useState<any>(null)
+  const [thankYouCustomMessage, setThankYouCustomMessage] = useState<any>('')
+  const [thankYouSubjectInput, setThankYouSubjectInput] = useState<any>('')
+  const [aiWeekSummary, setAiWeekSummary] = useState<any>(null)
+  const [aiWeekSummaryLoading, setAiWeekSummaryLoading] = useState<any>(false)
+  const [aiWeekSummaryError, setAiWeekSummaryError] = useState<any>(null)
+  const [thankYouPreviewing, setThankYouPreviewing] = useState<any>(false)
+  const [charityIsIpc, setCharityIsIpc] = useState<any>(true)
+  const [charityIpcLoaded, setCharityIpcLoaded] = useState<any>(false)
+  const [editingEmailTemplate, setEditingEmailTemplate] = useState<any>(null)
+  const [emailTemplateSubjectInput, setEmailTemplateSubjectInput] = useState<any>('')
+  const [emailTemplateBodyInput, setEmailTemplateBodyInput] = useState<any>('')
+  const [charityLogoUrl, setCharityLogoUrl] = useState<any>(null)
+  const [charityLogoDataUrl, setCharityLogoDataUrl] = useState<any>(null)
+  const [uploadingLogo, setUploadingLogo] = useState<any>(false)
+  const [annualGoal, setAnnualGoal] = useState<any>(null)
+  const [editingGoal, setEditingGoal] = useState<any>(false)
+  const [goalInput, setGoalInput] = useState<any>('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
-  const [, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
+  const [, setVisibleMetrics] = useState<any>(DEFAULT_VISIBLE_METRICS)
   const DEFAULT_ENABLED_MODULES = { campaigns: false, massappeal: false, pledges: false, recurring: false, grants: false }
-  const [enabledModules, setEnabledModules] = useState(DEFAULT_ENABLED_MODULES)
+  const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('analytics')
@@ -919,14 +919,14 @@ export default function App() {
   useEffect(() => {
     if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('analytics')
   }, [roleLoaded, userRole, activeTab, setActiveTab])
-  const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
-  const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
-  const [fyEndMonth, setFyEndMonth] = useState(12)
-  const [fyEndDay, setFyEndDay] = useState(31)
-  const [editingFyEnd, setEditingFyEnd] = useState(false)
-  const [fyEndMonthInput, setFyEndMonthInput] = useState('12')
-  const [fyEndDayInput, setFyEndDayInput] = useState('31')
-  const fyOf = React.useCallback((dateInput) => fiscalYearOf(dateInput, fyEndMonth, fyEndDay), [fyEndMonth, fyEndDay])
+  const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState<any>(false)
+  const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState<any>(DEFAULT_VISIBLE_METRICS)
+  const [fyEndMonth, setFyEndMonth] = useState<any>(12)
+  const [fyEndDay, setFyEndDay] = useState<any>(31)
+  const [editingFyEnd, setEditingFyEnd] = useState<any>(false)
+  const [fyEndMonthInput, setFyEndMonthInput] = useState<any>('12')
+  const [fyEndDayInput, setFyEndDayInput] = useState<any>('31')
+  const fyOf = React.useCallback((dateInput: any) => fiscalYearOf(dateInput, fyEndMonth, fyEndDay), [fyEndMonth, fyEndDay])
   useEffect(() => {
     if (!charityIpcLoaded) return
     const calendarYear = new Date().getFullYear().toString()
@@ -942,7 +942,7 @@ export default function App() {
   // but if this year genuinely has no donations yet (early in the year, or historical/demo data),
   // that default silently produces an empty list with no explanation. Fall back to "All" once,
   // the first time data loads, instead of leaving the user staring at a blank filtered view.
-  const yearDefaultCheckedRef = useRef(false)
+  const yearDefaultCheckedRef = useRef<boolean>(false)
   useEffect(() => {
     if (loading || yearDefaultCheckedRef.current) return
     yearDefaultCheckedRef.current = true
@@ -955,15 +955,15 @@ export default function App() {
     // check once after the first load completes, regardless of later donations/filterYear changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading])
-  const selectedRowRef = useRef(null)
+  const selectedRowRef = useRef<any>(null)
   
-  const [confirmModal, setConfirmModal] = useState(null)
-  const [, setDonorBadgeAcks] = useState([])
-  const [thankYouDraft, setThankYouDraft] = useState(null)
-  const [thankYouDraftPreviewing, setThankYouDraftPreviewing] = useState(false)
-  const [rnOutreach, setRnOutreach] = useState(null)
-  const [rnSending, setRnSending] = useState(false)
-  const [viewEmailNote, setViewEmailNote] = useState(null)
+  const [confirmModal, setConfirmModal] = useState<any>(null)
+  const [, setDonorBadgeAcks] = useState<any[]>([])
+  const [thankYouDraft, setThankYouDraft] = useState<any>(null)
+  const [thankYouDraftPreviewing, setThankYouDraftPreviewing] = useState<any>(false)
+  const [rnOutreach, setRnOutreach] = useState<any>(null)
+  const [rnSending, setRnSending] = useState<any>(false)
+  const [viewEmailNote, setViewEmailNote] = useState<any>(null)
 
 
   useEffect(() => {
@@ -1009,13 +1009,13 @@ export default function App() {
       const validKeys = DONOR_COLUMN_OPTIONS.map(o => o.key)
       // Merge saved order with any columns added since it was saved, so a stale preference never
       // hides a newer column — anything not in the saved list is appended at the end.
-      const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
+      const merged = [...saved.filter((k: any) => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
       setDonorColumnOrder(merged)
     }
     if (session?.user?.user_metadata?.donation_column_order) {
       const saved = session.user.user_metadata.donation_column_order
       const validKeys = DONATION_COLUMN_OPTIONS.map(o => o.key)
-      const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
+      const merged = [...saved.filter((k: any) => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
       setDonationColumnOrder(merged)
     }
     // intentionally keyed on the user id only -- this hydrates local UI state from saved
@@ -1064,7 +1064,7 @@ export default function App() {
       .eq('charity_uen', uen)
       .order('sent_at', { ascending: false })
     if (error) { console.error('Could not load giving change acks:', error); return }
-    const history = {}
+    const history: Record<string, any> = {}
     ;(data || []).forEach(r => {
       if (!history[r.donor_key]) history[r.donor_key] = []
       history[r.donor_key].push(r)
@@ -1082,7 +1082,7 @@ export default function App() {
       .eq('event_type', 'reminder')
       .order('sent_at', { ascending: false })
     if (error) { console.error('Could not load lapsed reminders:', error); return }
-    const history = {}
+    const history: Record<string, any> = {}
     ;(data || []).forEach(r => {
       if (!history[r.donor_key]) history[r.donor_key] = []
       history[r.donor_key].push(r)
@@ -1095,12 +1095,12 @@ export default function App() {
       .eq('charity_uen', uen)
       .eq('event_type', 'dismissal')
     if (dismissError) { console.error('Could not load lapsed dismissals:', dismissError); return }
-    const dismissals = {}
+    const dismissals: Record<string, any> = {}
     ;(dismissData || []).forEach(d => { dismissals[d.donor_key] = d })
     setLapsedDismissals(dismissals)
   }
 
-  async function loadCharityIpcStatus(activeSession) {
+  async function loadCharityIpcStatus(activeSession: any) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
@@ -1146,9 +1146,9 @@ export default function App() {
     // monthlyExpenses is now derived from recurringExpenses — no separate load needed
     setCustomObligations(data?.custom_obligations || [])
     setCustomTasks(data?.custom_tasks || [])
-    setSenderDomainStatus(data?.sender_domain_status || 'none')
-    setSenderDomain(data?.sender_domain || '')
-    setSenderEmailLocalPart(data?.sender_email_local_part || 'hello')
+    setSenderDomainStatus((data as any)?.sender_domain_status || 'none')
+    setSenderDomain((data as any)?.sender_domain || '')
+    setSenderEmailLocalPart((data as any)?.sender_email_local_part || 'hello')
     setGivingChangeMinGifts(data?.giving_change_min_gifts ?? 3)
     setGivingChangeMinPct(data?.giving_change_min_pct ?? 30)
     setConcentrationTopN(data?.concentration_top_n ?? 10)
@@ -1184,18 +1184,18 @@ export default function App() {
     return () => { cancelled = true }
   }, [charityLogoUrl])
 
-  async function resizeLogoForUpload(file, maxDim = 500) {
+  async function resizeLogoForUpload(file: any, maxDim = 500) {
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(reader.result)
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
-    const img = await new Promise((resolve, reject) => {
+    const img: HTMLImageElement = await new Promise((resolve, reject) => {
       const el = new Image()
       el.onload = () => resolve(el)
       el.onerror = reject
-      el.src = dataUrl
+      el.src = dataUrl as string
     })
     if (img.width <= maxDim && img.height <= maxDim) return file
     const ratio = Math.min(maxDim / img.width, maxDim / img.height)
@@ -1204,11 +1204,11 @@ export default function App() {
     canvas.height = Math.round(img.height * ratio)
     const ctx = canvas.getContext('2d')
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
     return blob ? new File([blob], file.name, { type: 'image/png' }) : file
   }
 
-  async function uploadCharityLogo(file) {
+  async function uploadCharityLogo(file: any) {
     if (!file) return
     if (!file.type.startsWith('image/')) { showToast('Please choose an image file', 'error'); return }
     if (file.size > 2 * 1024 * 1024) { showToast('Logo must be under 2MB', 'error'); return }
@@ -1255,7 +1255,7 @@ export default function App() {
       .select('*')
       .eq('charity_uen', uen)
     if (error) { console.error('Could not load donor tags:', error); return }
-    const map = {}
+    const map: Record<string, any> = {}
     ;(data || []).forEach(t => {
       if (!map[t.donor_key]) map[t.donor_key] = []
       map[t.donor_key].push(t)
@@ -1271,7 +1271,7 @@ export default function App() {
       .select('donor_key, created_at')
       .eq('charity_uen', uen)
     if (error) { console.error('Could not load donor last contact:', error); return }
-    const map = {}
+    const map: Record<string, any> = {}
     ;(data || []).forEach(n => {
       if (!map[n.donor_key] || new Date(n.created_at) > new Date(map[n.donor_key])) {
         map[n.donor_key] = n.created_at
@@ -1289,7 +1289,7 @@ export default function App() {
     setInsightDismissals((data || []).map(r => r.details).filter(Boolean))
   }
 
-  async function dismissInsight(donorKey, insightKey) {
+  async function dismissInsight(donorKey: any, insightKey: any) {
     const periodKey = isoWeekKey(new Date())
     const details = { donor_key: donorKey, insight_key: insightKey, period_key: periodKey }
     setInsightDismissals(prev => [...prev, details])
@@ -1318,7 +1318,7 @@ export default function App() {
     setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
   }
 
-  const [pledgesLoaded, setPledgesLoaded] = useState(false)
+  const [pledgesLoaded, setPledgesLoaded] = useState<any>(false)
 
   async function loadPledges(activeSession = session) {
     const uen = activeSession?.user?.user_metadata?.charity_uen
@@ -1336,8 +1336,8 @@ export default function App() {
         .from('pledge_donations')
         .select('pledge_id, donation_id, amount_applied, created_at')
         .in('pledge_id', data.map(p => p.id))
-      const totals = {}
-      const links = {}
+      const totals: Record<string, any> = {}
+      const links: Record<string, any> = {}
       ;(linkData || []).forEach(l => {
         totals[l.pledge_id] = (totals[l.pledge_id] || 0) + Number(l.amount_applied)
         ;(links[l.pledge_id] = links[l.pledge_id] || []).push(l)
@@ -1350,7 +1350,7 @@ export default function App() {
         .select('pledge_id, sent_at, sent_by, subject, channel')
         .in('pledge_id', data.map(p => p.id))
         .order('sent_at', { ascending: false })
-      const history = {}
+      const history: Record<string, any> = {}
       ;(reminderData || []).forEach(r => {
         if (!history[r.pledge_id]) history[r.pledge_id] = []
         history[r.pledge_id].push(r)
@@ -1362,7 +1362,7 @@ export default function App() {
         .select('pledge_id, old_expected_date, new_expected_date, reason, created_at, created_by')
         .in('pledge_id', data.map(p => p.id))
         .order('created_at', { ascending: false })
-      const rescheduleHistory = {}
+      const rescheduleHistory: Record<string, any> = {}
       ;(rescheduleData || []).forEach(r => {
         if (!rescheduleHistory[r.pledge_id]) rescheduleHistory[r.pledge_id] = []
         rescheduleHistory[r.pledge_id].push(r)
@@ -1416,7 +1416,7 @@ export default function App() {
       if (instalmentError) { console.error('Error creating instalments:', instalmentError); instalmentsFailed = true }
     }
 
-    setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
+    setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()))
     setPledgeForm({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
     setShowPledgeForm(false)
     // A failed instalment insert would otherwise leave a multi-year pledge with no instalment
@@ -1430,7 +1430,7 @@ export default function App() {
     loadPledgeInstalments()
   }
 
-  async function updatePledge(pledgeId, form) {
+  async function updatePledge(pledgeId: any, form: any) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     const donorKey = form.donor_email?.trim() || form.donor_name.trim()
 
@@ -1449,12 +1449,12 @@ export default function App() {
         }).eq('id', inst.id)
         if (instError) { showToast(`Error saving Year ${inst.year_number} instalment`, 'error'); return }
       }
-      amount = form.instalmentEdits.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0)
-      const unreceived = form.instalmentEdits.filter(i => !i.received).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date))
+      amount = form.instalmentEdits.reduce((s: any, i: any) => s + (parseFloat(i.amount) || 0), 0)
+      const unreceived = form.instalmentEdits.filter((i: any) => !i.received).sort((a: any, b: any) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime())
       expectedDate = unreceived[0]?.expected_date || form.instalmentEdits[0]?.expected_date || expectedDate
       setPledgeInstalments(prev => prev.map(i => {
         if (i.pledge_id !== pledgeId) return i
-        const edited = form.instalmentEdits.find(e => e.id === i.id)
+        const edited = form.instalmentEdits.find((e: any) => e.id === i.id)
         return edited && !edited.received ? { ...i, amount: parseFloat(edited.amount), expected_date: edited.expected_date } : i
       }))
     } else {
@@ -1475,7 +1475,7 @@ export default function App() {
       source: form.source || null,
     }).eq('id', pledgeId).select().single()
     if (error) { showToast('Error updating pledge', 'error'); return }
-    setPledges(prev => prev.map(p => p.id === pledgeId ? data : p).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)))
+    setPledges(prev => prev.map(p => p.id === pledgeId ? data : p).sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()))
     setEditingPledge(null)
     showToast('Pledge updated ✓')
   }
@@ -1496,7 +1496,7 @@ export default function App() {
     setCampaignExpenses(data || [])
   }
 
-  async function saveCampaignExpense(causeId, form) {
+  async function saveCampaignExpense(causeId: any, form: any) {
     if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
     const expenseAmount = parseFloat(form.amount)
@@ -1526,7 +1526,7 @@ export default function App() {
     }
   }
 
-  async function editCampaignExpense(expense, updates) {
+  async function editCampaignExpense(expense: any, updates: any) {
     const { data, error } = await supabase.from('campaign_expenses').update(updates).eq('id', expense.id).select().single()
     if (error) { console.error('Could not update campaign expense:', error); showToast('Error saving expense', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1539,7 +1539,7 @@ export default function App() {
     showToast('Expense updated ✓')
   }
 
-  async function deleteCampaignExpense(id) {
+  async function deleteCampaignExpense(id: any) {
     const expense = campaignExpenses.find(e => e.id === id)
     await supabase.from('campaign_expenses').delete().eq('id', id)
     await supabase.from('audit_log').insert({
@@ -1556,12 +1556,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase.from('grant_notes').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('created_at', { ascending: false })
     if (error) { console.error('Could not load grant notes:', error); return }
-    const byGrant = {}
+    const byGrant: Record<string, any> = {}
     ;(data || []).forEach(n => { if (!byGrant[n.grant_id]) byGrant[n.grant_id] = []; byGrant[n.grant_id].push(n) })
     setGrantNotes(byGrant)
   }
 
-  async function saveGrantNote(grantId, noteText) {
+  async function saveGrantNote(grantId: any, noteText: any) {
     if (!noteText.trim()) return
     const { data, error } = await supabase.from('grant_notes').insert({
       charity_uen: charityUen,
@@ -1585,12 +1585,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase.from('grant_reports').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('due_date', { ascending: true })
     if (error) { console.error('Could not load grant reports:', error); return }
-    const byGrant = {}
+    const byGrant: Record<string, any> = {}
     ;(data || []).forEach(r => { if (!byGrant[r.grant_id]) byGrant[r.grant_id] = []; byGrant[r.grant_id].push(r) })
     setGrantReports(byGrant)
   }
 
-  async function saveGrantReport(grantId, form) {
+  async function saveGrantReport(grantId: any, form: any) {
     if (!form.label.trim() || !form.due_date) { showToast('Label and due date are required', 'error'); return }
     const { data, error } = await supabase.from('grant_reports').insert({
       charity_uen: charityUen,
@@ -1605,11 +1605,11 @@ export default function App() {
       action: 'grant_report_added',
       details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), due_date: form.due_date, charity_uen: charityUen },
     })
-    setGrantReports(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) }))
+    setGrantReports(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()) }))
     showToast('Report deadline added ✓')
   }
 
-  async function toggleGrantReportSubmitted(report) {
+  async function toggleGrantReportSubmitted(report: any) {
     const { data, error } = await supabase.from('grant_reports').update({
       submitted: !report.submitted,
       submitted_at: !report.submitted ? new Date().toISOString() : null,
@@ -1621,10 +1621,10 @@ export default function App() {
       action: data.submitted ? 'grant_report_submitted' : 'grant_report_unsubmitted',
       details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, label: report.label, due_date: report.due_date, charity_uen: charityUen },
     })
-    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map(r => r.id === report.id ? data : r) }))
+    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map((r: any) => r.id === report.id ? data : r) }))
   }
 
-  async function editGrantReport(report, updates) {
+  async function editGrantReport(report: any, updates: any) {
     const { data, error } = await supabase.from('grant_reports').update(updates).eq('id', report.id).select().single()
     if (error) { showToast('Error updating report', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1633,11 +1633,11 @@ export default function App() {
       action: 'grant_report_edited',
       details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, before: { label: report.label, due_date: report.due_date }, after: updates, charity_uen: charityUen },
     })
-    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map(r => r.id === report.id ? data : r).sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) }))
+    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).map((r: any) => r.id === report.id ? data : r).sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()) }))
     showToast('Report updated ✓')
   }
 
-  async function deleteGrantReport(report) {
+  async function deleteGrantReport(report: any) {
     const { error } = await supabase.from('grant_reports').delete().eq('id', report.id)
     if (error) { showToast('Error deleting report', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1646,7 +1646,7 @@ export default function App() {
       action: 'grant_report_deleted',
       details: { funder_name: grants.find(g => g.id === report.grant_id)?.funder_name, label: report.label, due_date: report.due_date, charity_uen: charityUen },
     })
-    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).filter(r => r.id !== report.id) }))
+    setGrantReports(prev => ({ ...prev, [report.grant_id]: (prev[report.grant_id] || []).filter((r: any) => r.id !== report.id) }))
   }
 
   async function loadGrantTranches() {
@@ -1654,12 +1654,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase.from('grant_tranches').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('expected_date', { ascending: true })
     if (error) { console.error('Could not load grant tranches:', error); return }
-    const byGrant = {}
+    const byGrant: Record<string, any> = {}
     ;(data || []).forEach(t => { if (!byGrant[t.grant_id]) byGrant[t.grant_id] = []; byGrant[t.grant_id].push(t) })
     setGrantTranches(byGrant)
   }
 
-  async function saveGrantTranche(grantId, form) {
+  async function saveGrantTranche(grantId: any, form: any) {
     if (!form.label.trim() || !form.amount || !form.expected_date) { showToast('Label, amount, and expected date are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
     const trancheAmount = parseFloat(form.amount)
@@ -1677,10 +1677,10 @@ export default function App() {
       action: 'grant_tranche_added',
       details: { funder_name: grants.find(g => g.id === grantId)?.funder_name, label: form.label.trim(), amount: trancheAmount, expected_date: form.expected_date, charity_uen: charityUen },
     })
-    setGrantTranches(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
+    setGrantTranches(prev => ({ ...prev, [grantId]: [...(prev[grantId] || []), data].sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()) }))
     const grantForTranche = grants.find(g => g.id === grantId)
     const grantTotal = Number(grantForTranche?.amount) || 0
-    const trancheTotalSoFar = (grantTranches[grantId] || []).reduce((s, t) => s + Number(t.amount), 0) + trancheAmount
+    const trancheTotalSoFar = (grantTranches[grantId] || []).reduce((s: any, t: any) => s + Number(t.amount), 0) + trancheAmount
     if (grantTotal > 0 && trancheTotalSoFar > grantTotal) {
       showToast(`Tranche added, but scheduled tranches ($${trancheTotalSoFar.toLocaleString()}) now exceed the grant total ($${grantTotal.toLocaleString()}) ⚠`, 'error')
     } else {
@@ -1688,7 +1688,7 @@ export default function App() {
     }
   }
 
-  async function toggleGrantTrancheReceived(tranche) {
+  async function toggleGrantTrancheReceived(tranche: any) {
     const { data, error } = await supabase.from('grant_tranches').update({
       received: !tranche.received,
       received_at: !tranche.received ? new Date().toISOString() : null,
@@ -1700,10 +1700,10 @@ export default function App() {
       action: data.received ? 'grant_tranche_received' : 'grant_tranche_unreceived',
       details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, label: tranche.label, amount: tranche.amount, charity_uen: charityUen },
     })
-    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map(t => t.id === tranche.id ? data : t) }))
+    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map((t: any) => t.id === tranche.id ? data : t) }))
   }
 
-  async function editGrantTranche(tranche, updates) {
+  async function editGrantTranche(tranche: any, updates: any) {
     const { data, error } = await supabase.from('grant_tranches').update(updates).eq('id', tranche.id).select().single()
     if (error) { showToast('Error updating tranche', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1712,11 +1712,11 @@ export default function App() {
       action: 'grant_tranche_edited',
       details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, before: { label: tranche.label, amount: tranche.amount, expected_date: tranche.expected_date }, after: updates, charity_uen: charityUen },
     })
-    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map(t => t.id === tranche.id ? data : t).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date)) }))
+    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).map((t: any) => t.id === tranche.id ? data : t).sort((a: any, b: any) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()) }))
     showToast('Tranche updated ✓')
   }
 
-  async function deleteGrantTranche(tranche) {
+  async function deleteGrantTranche(tranche: any) {
     const { error } = await supabase.from('grant_tranches').delete().eq('id', tranche.id)
     if (error) { showToast('Error deleting tranche', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1725,7 +1725,7 @@ export default function App() {
       action: 'grant_tranche_deleted',
       details: { funder_name: grants.find(g => g.id === tranche.grant_id)?.funder_name, label: tranche.label, amount: tranche.amount, charity_uen: charityUen },
     })
-    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).filter(t => t.id !== tranche.id) }))
+    setGrantTranches(prev => ({ ...prev, [tranche.grant_id]: (prev[tranche.grant_id] || []).filter((t: any) => t.id !== tranche.id) }))
   }
 
   async function loadGrantMatchClaims() {
@@ -1733,12 +1733,12 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase.from('grant_match_claims').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('claim_date', { ascending: false })
     if (error) { console.error('Could not load grant match claims:', error); return }
-    const byGrant = {}
+    const byGrant: Record<string, any> = {}
     ;(data || []).forEach(c => { if (!byGrant[c.grant_id]) byGrant[c.grant_id] = []; byGrant[c.grant_id].push(c) })
     setGrantMatchClaims(byGrant)
   }
 
-  async function saveGrantMatchClaim(grantId, form) {
+  async function saveGrantMatchClaim(grantId: any, form: any) {
     if (!form.amount || !form.claim_date) { showToast('Amount and claim date are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
     const claimAmount = parseFloat(form.amount)
@@ -1759,7 +1759,7 @@ export default function App() {
     setGrantMatchClaims(prev => ({ ...prev, [grantId]: [data, ...(prev[grantId] || [])] }))
     const grantForCap = grants.find(g => g.id === grantId)
     const capNum = Number(grantForCap?.match_cap) || 0
-    const claimedSoFar = (grantMatchClaims[grantId] || []).reduce((s, c) => s + Number(c.amount), 0) + claimAmount
+    const claimedSoFar = (grantMatchClaims[grantId] || []).reduce((s: any, c: any) => s + Number(c.amount), 0) + claimAmount
     if (capNum > 0 && claimedSoFar > capNum) {
       showToast(`Claim logged, but total claimed ($${claimedSoFar.toLocaleString()}) now exceeds the $${capNum.toLocaleString()} match cap ⚠`, 'error')
     } else {
@@ -1767,7 +1767,7 @@ export default function App() {
     }
   }
 
-  async function editGrantMatchClaim(claim, updates) {
+  async function editGrantMatchClaim(claim: any, updates: any) {
     const { data, error } = await supabase.from('grant_match_claims').update(updates).eq('id', claim.id).select().single()
     if (error) { showToast('Error updating claim', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1776,11 +1776,11 @@ export default function App() {
       action: 'grant_match_claim_edited',
       details: { funder_name: grants.find(g => g.id === claim.grant_id)?.funder_name, before: { amount: claim.amount, claim_date: claim.claim_date }, after: updates, charity_uen: charityUen },
     })
-    setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).map(c => c.id === claim.id ? data : c) }))
+    setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).map((c: any) => c.id === claim.id ? data : c) }))
     showToast('Claim updated ✓')
   }
 
-  async function deleteGrantMatchClaim(claim) {
+  async function deleteGrantMatchClaim(claim: any) {
     const { error } = await supabase.from('grant_match_claims').delete().eq('id', claim.id)
     if (error) { showToast('Error deleting claim', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1789,10 +1789,10 @@ export default function App() {
       action: 'grant_match_claim_deleted',
       details: { funder_name: grants.find(g => g.id === claim.grant_id)?.funder_name, amount: claim.amount, claim_date: claim.claim_date, charity_uen: charityUen },
     })
-    setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).filter(c => c.id !== claim.id) }))
+    setGrantMatchClaims(prev => ({ ...prev, [claim.grant_id]: (prev[claim.grant_id] || []).filter((c: any) => c.id !== claim.id) }))
   }
 
-  async function saveGrantExpense(grantId, form) {
+  async function saveGrantExpense(grantId: any, form: any) {
     if (!form.description.trim() || !form.amount) { showToast('Description and amount are required', 'error'); return }
     if (isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { showToast('Amount must be a positive number', 'error'); return }
     const expenseAmount = parseFloat(form.amount)
@@ -1822,7 +1822,7 @@ export default function App() {
     }
   }
 
-  async function editGrantExpense(expense, updates) {
+  async function editGrantExpense(expense: any, updates: any) {
     const { data, error } = await supabase.from('grant_expenses').update(updates).eq('id', expense.id).select().single()
     if (error) { showToast('Error updating expense', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -1835,7 +1835,7 @@ export default function App() {
     showToast('Expense updated ✓')
   }
 
-  async function deleteGrantExpense(id) {
+  async function deleteGrantExpense(id: any) {
     const expense = grantExpenses.find(e => e.id === id)
     await supabase.from('grant_expenses').delete().eq('id', id)
     await supabase.from('audit_log').insert({
@@ -1856,7 +1856,7 @@ export default function App() {
     setRefunds(data || [])
   }
 
-  async function saveRefund(donation) {
+  async function saveRefund(donation: any) {
     if (savingRefund) return
     if (!refundForm.reason.trim()) { showToast('A reason is required', 'error'); return }
     const alreadyRefunded = refunds.filter(r => r.donation_id === donation.id).reduce((s, r) => s + Number(r.refund_amount), 0)
@@ -1901,7 +1901,7 @@ export default function App() {
     const { error: statusError } = await supabase.from('donations').update({ payment_status: 'refunded' }).eq('id', donation.id)
     if (statusError) { console.error('Could not mark donation as refunded:', statusError) }
     setDonations(prev => prev.map(d => d.id === donation.id ? { ...d, payment_status: 'refunded' } : d))
-    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'refunded' } : prev))
+    setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, payment_status: 'refunded' } : prev))
 
     // A refund reverses the gift, so unwind the same side-effects deleting the donation would —
     // otherwise a linked pledge keeps counting refunded money as "given" (and stays fulfilled if
@@ -1922,7 +1922,7 @@ export default function App() {
     if (donation.recurring_gift_id) {
       const giftId = donation.recurring_gift_id
       const remaining = donations.filter(d => d.recurring_gift_id === giftId && d.id !== donation.id && d.status !== 'deleted_by_charity')
-      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       const newLastReceived = remainingConfirmed[0]?.created_at ? remainingConfirmed[0].created_at.split('T')[0] : null
       const newNextExpected = recurringGift ? computeNextExpectedDate(recurringGift.start_date, recurringGift.frequency, newLastReceived) : null
       if (recurringGift) {
@@ -1952,7 +1952,7 @@ export default function App() {
     showToast('Refund recorded ✓')
   }
 
-  async function deleteRefund(refund) {
+  async function deleteRefund(refund: any) {
     const { error } = await supabase.from('refunds').delete().eq('id', refund.id)
     if (error) { console.error('Refund delete error:', error); showToast(`Error deleting refund: ${error.message}`, 'error'); return }
     setRefunds(prev => prev.filter(r => r.id !== refund.id))
@@ -1962,7 +1962,7 @@ export default function App() {
     const { error: statusError } = await supabase.from('donations').update({ payment_status: 'confirmed' }).eq('id', refund.donation_id)
     if (statusError) { console.error('Could not restore donation to confirmed:', statusError) }
     setDonations(prev => prev.map(d => d.id === refund.donation_id ? { ...d, payment_status: 'confirmed' } : d))
-    setSelectedDonation(prev => (prev && prev.id === refund.donation_id ? { ...prev, payment_status: 'confirmed' } : prev))
+    setSelectedDonation((prev: any) => (prev && prev.id === refund.donation_id ? { ...prev, payment_status: 'confirmed' } : prev))
 
     // Restore whatever the refund unwound, using the snapshot saveRefund took at refund time —
     // re-link the pledge (and re-fulfill it if this gift was what completed it), and roll the
@@ -2030,7 +2030,7 @@ export default function App() {
     showToast('Expense added ✓')
   }
 
-  async function deleteRecurringExpense(id) {
+  async function deleteRecurringExpense(id: any) {
     const expense = recurringExpenses.find(e => e.id === id)
     await supabase.from('recurring_expenses').delete().eq('id', id)
     await supabase.from('audit_log').insert({
@@ -2051,7 +2051,7 @@ export default function App() {
     setGrants(data || [])
   }
 
-  async function saveGrant(grantForm) {
+  async function saveGrant(grantForm: any) {
     const unrestricted = parseFloat(grantForm.unrestricted_amount) || 0
     const restricted = parseFloat(grantForm.restricted_amount) || 0
     const matchCap = parseFloat(grantForm.match_cap) || 0
@@ -2094,12 +2094,12 @@ export default function App() {
       action: 'grant_created',
       details: { funder_name: data.funder_name, amount, unrestricted_amount: unrestricted, restricted_amount: restricted, is_matching: data.is_matching, charity_uen: charityUen },
     })
-    setGrants(prev => [...prev, data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+    setGrants(prev => [...prev, data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
     setShowGrantForm(false)
     showToast('Grant recorded ✓')
   }
 
-  async function updateGrant(grantId, grantForm) {
+  async function updateGrant(grantId: any, grantForm: any) {
     const unrestricted = parseFloat(grantForm.unrestricted_amount) || 0
     const restricted = parseFloat(grantForm.restricted_amount) || 0
     const matchCap = parseFloat(grantForm.match_cap) || 0
@@ -2140,12 +2140,12 @@ export default function App() {
       action: 'grant_edited',
       details: { funder_name: data.funder_name, amount, unrestricted_amount: unrestricted, restricted_amount: restricted, status: data.status, charity_uen: charityUen },
     })
-    setGrants(prev => prev.map(g => g.id === grantId ? data : g).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+    setGrants(prev => prev.map(g => g.id === grantId ? data : g).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
     setEditingGrant(null)
     showToast('Grant updated ✓')
   }
 
-  async function setGrantStatus(grant, newStatus) {
+  async function setGrantStatus(grant: any, newStatus: any) {
     const { data, error } = await supabase.from('grants').update({ status: newStatus }).eq('id', grant.id).select().single()
     if (error) { showToast('Error updating grant status', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -2158,15 +2158,15 @@ export default function App() {
     showToast(newStatus === 'active' ? `"${grant.funder_name}" restored to active ✓` : `Grant marked ${newStatus} ✓`)
   }
 
-  function changeGrantStatus(grant, newStatus) {
-    const copy = {
+  function changeGrantStatus(grant: any, newStatus: any) {
+    const copy = ({
       completed: { title: 'End this grant?', description: `"${grant.funder_name}" will move out of your active grants. Its expenses, tranches, reports, and matching claims stay exactly as they are — nothing is closed out automatically. You can restore it to active later if needed.`, confirmLabel: 'End Grant' },
       active: { title: 'Restore this grant to active?', description: `"${grant.funder_name}" will move back into your active grants.`, confirmLabel: 'Restore' },
-    }[newStatus]
+    } as Record<string, any>)[newStatus]
     setConfirmModal({ ...copy, onConfirm: () => setGrantStatus(grant, newStatus) })
   }
 
-  function deleteGrant(grant) {
+  function deleteGrant(grant: any) {
     setConfirmModal({
       title: 'Delete this grant?',
       description: `"${grant.funder_name}" (${'$' + Number(grant.amount).toLocaleString()}) will be permanently deleted, along with everything logged against it — expenses, disbursement tranches, report deadlines, matching claims, and notes. This cannot be undone.`,
@@ -2240,8 +2240,8 @@ export default function App() {
 
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
-  async function saveEmailTemplate(key, val) {
-    const { error, next } = await updateCharityJsonField(charityUen, 'email_templates', current => {
+  async function saveEmailTemplate(key: any, val: any) {
+    const { error, next } = await updateCharityJsonField(charityUen, 'email_templates', (current: any) => {
       const merged = { ...(current || {}) }
       if (val) merged[key] = val
       else delete merged[key]
@@ -2256,12 +2256,12 @@ export default function App() {
     return fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS.mass_appeal.body, { charity_name: charityName })
   }
 
-  function massAppealSubject(causeTitle) {
+  function massAppealSubject(causeTitle: any) {
     const saved = emailTemplates.mass_appeal
     return fillTemplate(saved?.subject || EMAIL_TEMPLATE_DEFAULTS.mass_appeal.subject, { charity_name: charityName, cause_title: causeTitle || '' })
   }
 
-  async function sendCharityEmail(body) {
+  async function sendCharityEmail(body: any) {
     const targetEmail = body.donor_email?.trim()
     if (targetEmail) {
       const donorKey = targetEmail
@@ -2270,7 +2270,7 @@ export default function App() {
       )
       if (isBlocked) {
         console.warn(`Email blocked: ${body.donor_name || targetEmail} is marked Do Not Contact`)
-        return { data: null, error: { message: 'This donor is marked as Do Not Contact — email was not sent.' } }
+        return { data: null as any, error: { message: 'This donor is marked as Do Not Contact — email was not sent.' } }
       }
       const isDeceased = donations.some(d =>
         (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey && d.donor_deceased
@@ -2363,7 +2363,7 @@ export default function App() {
     setCheckingVerification(false)
   }
 
-  function fulfillPledge(pledge) {
+  function fulfillPledge(pledge: any) {
     setPledgeResolutionNotes('')
     setFulfillPaymentMethod('Cash')
     const alreadyGiven = pledgeGivenTotals[pledge.id] || 0
@@ -2523,8 +2523,8 @@ export default function App() {
     // Also lands in the donor's own Communication Log — this used to only exist on the pledge
     // reminder history, invisible from the donor's profile.
     const pledgeContactDonorKey = p.donor_email?.trim() || p.donor_name
-    const channelLabel = { phone: 'Called', email: 'Emailed', in_person: 'Met in person', whatsapp: 'WhatsApped', other: 'Followed up' }[logContactMethod] || 'Contacted'
-    const noteType = { phone: 'call', email: 'email', in_person: 'meeting', whatsapp: 'whatsapp', other: 'note' }[logContactMethod] || 'note'
+    const channelLabel = ({ phone: 'Called', email: 'Emailed', in_person: 'Met in person', whatsapp: 'WhatsApped', other: 'Followed up' } as Record<string, string>)[logContactMethod] || 'Contacted'
+    const noteType = ({ phone: 'call', email: 'email', in_person: 'meeting', whatsapp: 'whatsapp', other: 'note' } as Record<string, string>)[logContactMethod] || 'note'
     await logDonorContact(pledgeContactDonorKey, `${channelLabel} about pledge ($${Number(p.amount).toLocaleString()})${logContactNote?.trim() ? ` — ${logContactNote.trim()}` : ''}`, noteType)
 
     showToast(`Contact logged — won't be flagged again for 7 days`)
@@ -2532,7 +2532,7 @@ export default function App() {
     setLogContactNote('')
   }
 
-  async function revertPledgeToPending(pledge) {
+  async function revertPledgeToPending(pledge: any) {
     setConfirmModal({
       title: 'Revert this pledge to pending?',
       description: `The pledge of $${Number(pledge.amount).toLocaleString()} from ${pledge.donor_name} will be moved back to Outstanding Pledges.`,
@@ -2552,22 +2552,22 @@ export default function App() {
     })
   }
 
-  function openThankYouForFulfilledPledge(pledge) {
+  function openThankYouForFulfilledPledge(pledge: any) {
     // Lets staff trigger the completion thank-you at any time after the fact, not just in the
     // one-shot popup shown the moment a pledge is fulfilled -- closing/skipping that popup
     // previously meant there was no way to ever send it later.
     let donation = pledge.fulfilled_donation_id ? donations.find(d => d.id === pledge.fulfilled_donation_id) : null
     if (!donation) {
       const links = pledgeDonationLinks[pledge.id] || []
-      const linkedDonations = links.map(l => donations.find(d => d.id === l.donation_id)).filter(Boolean)
-      donation = linkedDonations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+      const linkedDonations = links.map((l: any) => donations.find(d => d.id === l.donation_id)).filter(Boolean)
+      donation = linkedDonations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
     }
     if (!donation) { showToast('No linked payment found for this pledge to thank the donor for', 'error'); return }
     setPledgeCompletionCandidate({ pledge, donation })
     setShowPledgeThankYouModal(true)
   }
 
-  function cancelPledge(pledge) {
+  function cancelPledge(pledge: any) {
     setPledgeResolutionNotes('')
     setPledgeResolutionModal({ type: 'cancelled', pledge })
   }
@@ -2589,7 +2589,7 @@ export default function App() {
         .select('recurring_gift_id, amount')
         .in('recurring_gift_id', data.map(g => g.id))
         .eq('payment_status', 'confirmed')
-      const totals = {}
+      const totals: Record<string, any> = {}
       ;(linkedDonations || []).forEach(d => {
         if (!totals[d.recurring_gift_id]) totals[d.recurring_gift_id] = { total: 0, count: 0 }
         totals[d.recurring_gift_id].total += Number(d.amount)
@@ -2603,7 +2603,7 @@ export default function App() {
         .eq('event_type', 'skip')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('created_at', { ascending: false })
-      const skips = {}
+      const skips: Record<string, any> = {}
       ;(skipData || []).forEach(s => {
         if (!skips[s.recurring_gift_id]) skips[s.recurring_gift_id] = []
         skips[s.recurring_gift_id].push(s)
@@ -2616,7 +2616,7 @@ export default function App() {
         .eq('event_type', 'failed_deduction')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('created_at', { ascending: false })
-      const failed = {}
+      const failed: Record<string, any> = {}
       ;(failedData || []).forEach(f => {
         if (!failed[f.recurring_gift_id]) failed[f.recurring_gift_id] = []
         failed[f.recurring_gift_id].push(f)
@@ -2629,7 +2629,7 @@ export default function App() {
         .eq('event_type', 'reminder')
         .in('recurring_gift_id', data.map(g => g.id))
         .order('sent_at', { ascending: false })
-      const reminders = {}
+      const reminders: Record<string, any> = {}
       ;(reminderData || []).forEach(r => {
         if (!reminders[r.recurring_gift_id]) reminders[r.recurring_gift_id] = []
         reminders[r.recurring_gift_id].push(r)
@@ -2638,7 +2638,7 @@ export default function App() {
     }
   }
 
-  function addMonthsClamped(date, monthsToAdd) {
+  function addMonthsClamped(date: any, monthsToAdd: any) {
     // Plain Date.setMonth overflows for day-of-month values the target month doesn't have
     // (e.g. Jan 31 + 1 month naively becomes Mar 3, not Feb 28) -- clamp to the target month's
     // actual last day instead, so month-end and leap-day donors don't silently drift late.
@@ -2649,7 +2649,7 @@ export default function App() {
     return next
   }
 
-  function monthlyEquivalentAmount(g) {
+  function monthlyEquivalentAmount(g: any) {
     // Normalizes any recurring gift's cadence to a monthly-equivalent amount, so MRR-style
     // totals are comparable across weekly/monthly/quarterly/annual gifts of any type instead
     // of just summing raw per-cycle amounts (which understates weekly gifts ~13x and
@@ -2661,7 +2661,7 @@ export default function App() {
     return amt
   }
 
-  function computeNextExpectedDate(startDate, frequency, lastReceivedDate) {
+  function computeNextExpectedDate(startDate: any, frequency: any, lastReceivedDate: any) {
     const base = lastReceivedDate ? new Date(lastReceivedDate) : new Date(startDate)
     let next
     if (frequency === 'weekly') { next = new Date(base); next.setDate(next.getDate() + 7) }
@@ -2672,7 +2672,7 @@ export default function App() {
     return next.toISOString().split('T')[0]
   }
 
-  async function saveRecurringGift(form) {
+  async function saveRecurringGift(form: any) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
@@ -2705,7 +2705,7 @@ export default function App() {
     }]).select()
     setSavingRecurring(false)
     if (error) { showToast(`Error: ${error.message}`, 'error'); return }
-    setRecurringGifts(prev => [...prev, data[0]].sort((a, b) => new Date(a.next_expected_date) - new Date(b.next_expected_date)))
+    setRecurringGifts(prev => [...prev, data[0]].sort((a, b) => new Date(a.next_expected_date).getTime() - new Date(b.next_expected_date).getTime()))
     setShowRecurringForm(false)
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
@@ -2716,7 +2716,7 @@ export default function App() {
     showToast('Recurring gift recorded ✓')
   }
 
-  async function updateRecurringGift(giftId, form) {
+  async function updateRecurringGift(giftId: any, form: any) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
@@ -2725,7 +2725,7 @@ export default function App() {
     setSavingRecurring(true)
     const originalGift = recurringGifts.find(g => g.id === giftId)
     const cadenceChanged = originalGift && (originalGift.frequency !== form.frequency || originalGift.start_date !== form.start_date)
-    const updatePayload = {
+    const updatePayload: Record<string, any> = {
       donor_name: form.donor_name.trim(),
       donor_email: form.donor_email?.trim() || null,
       donor_phone: form.donor_phone?.trim() || null,
@@ -2759,19 +2759,19 @@ export default function App() {
     showToast('Recurring gift updated ✓')
   }
 
-  function markRecurringReceived(gift) {
+  function markRecurringReceived(gift: any) {
     setMarkReceivedAmount(String(gift.amount))
     setMarkReceivedNote('')
     setMarkReceivedModal(gift)
   }
 
-  function startEditingRecurringAmount(donation) {
+  function startEditingRecurringAmount(donation: any) {
     setEditingRecurringDonationId(donation.id)
     setEditingRecurringAmount(String(donation.amount))
     setEditingRecurringNote(donation.notes || '')
   }
 
-  async function saveRecurringDonationAmount(donation) {
+  async function saveRecurringDonationAmount(donation: any) {
     if (savingRecurringAmount) return
     const newAmount = parseFloat(editingRecurringAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
@@ -2801,13 +2801,13 @@ export default function App() {
     showToast('Amount updated ✓')
   }
 
-  function startEditingPledgeAmount(link) {
+  function startEditingPledgeAmount(link: any) {
     setEditingPledgeDonationId(link.donation_id)
     setEditingPledgeAmount(String(link.amount_applied))
     setEditingPledgeNotes(link.notes || '')
   }
 
-  async function savePledgeDonationAmount(link) {
+  async function savePledgeDonationAmount(link: any) {
     if (savingPledgeAmount) return
     const newAmount = parseFloat(editingPledgeAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
@@ -2832,7 +2832,7 @@ export default function App() {
     setDonations(prev => prev.map(d => d.id === link.donation_id ? { ...d, amount: newAmount, notes: newNotes } : d))
     setPledgeDonationLinks(prev => ({
       ...prev,
-      [link.pledge_id]: (prev[link.pledge_id] || []).map(l => l.donation_id === link.donation_id ? { ...l, amount_applied: newAmount } : l),
+      [link.pledge_id]: (prev[link.pledge_id] || []).map((l: any) => l.donation_id === link.donation_id ? { ...l, amount_applied: newAmount } : l),
     }))
     const newTotal = (pledgeGivenTotals[link.pledge_id] || 0) + (newAmount - oldAmount)
     setPledgeGivenTotals(prev => ({ ...prev, [link.pledge_id]: newTotal }))
@@ -2932,7 +2932,7 @@ export default function App() {
     setMarkReceivedNote('')
   }
 
-  function skipRecurringCycle(gift) {
+  function skipRecurringCycle(gift: any) {
     setSkipCycleReason('')
     setSkipCycleModal(gift)
   }
@@ -2977,7 +2977,7 @@ export default function App() {
     setSkipCycleReason('')
   }
 
-  async function undoSkipCycle(gift) {
+  async function undoSkipCycle(gift: any) {
     const history = recurringSkipHistory[gift.id] || []
     const lastSkip = history[0]
     if (!lastSkip) return
@@ -2998,7 +2998,7 @@ export default function App() {
     showToast('Skip undone ✓')
   }
 
-  async function undoFailedDeduction(gift, event) {
+  async function undoFailedDeduction(gift: any, event: any) {
     const { error } = await supabase.from('recurring_gift_events').delete().eq('id', event.id)
     if (error) { showToast('Error undoing failed deduction', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -3009,7 +3009,7 @@ export default function App() {
     })
     setRecurringFailedDeductionHistory(prev => ({
       ...prev,
-      [gift.id]: (prev[gift.id] || []).filter(e => e.id !== event.id),
+      [gift.id]: (prev[gift.id] || []).filter((e: any) => e.id !== event.id),
     }))
     showToast('Failed deduction entry removed ✓')
   }
@@ -3095,7 +3095,7 @@ export default function App() {
     setLapsedDismissReason('')
   }
 
-  async function undismissLapsedDonor(donorKey) {
+  async function undismissLapsedDonor(donorKey: any) {
     const { error } = await supabase.from('lapsed_donor_events').delete().eq('charity_uen', charityUen).eq('donor_key', donorKey).eq('event_type', 'dismissal')
     if (error) { showToast('Error undoing dismissal', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -3177,7 +3177,7 @@ export default function App() {
     setLapsedReminderCandidate(null)
   }
 
-  function pauseRecurringGift(gift) {
+  function pauseRecurringGift(gift: any) {
     setPauseReasonInput('')
     setPauseResumeDateInput('')
     setPauseGiftModal(gift)
@@ -3205,7 +3205,7 @@ export default function App() {
     setPauseGiftModal(null)
   }
 
-  function nextExpectedFromToday(startDate, frequency, lastReceivedDate) {
+  function nextExpectedFromToday(startDate: any, frequency: any, lastReceivedDate: any) {
     // Reactivating/restoring a gift that's been paused or cancelled for a while shouldn't
     // immediately show it as overdue -- roll the projected date forward past today first.
     let candidate = computeNextExpectedDate(startDate, frequency, lastReceivedDate)
@@ -3218,7 +3218,7 @@ export default function App() {
     return candidate
   }
 
-  function reactivateRecurringGift(gift) {
+  function reactivateRecurringGift(gift: any) {
     setConfirmModal({
       title: 'Reactivate this recurring gift?',
       description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will resume. The next expected date will be set to the next upcoming cycle, not the paused period.`,
@@ -3239,7 +3239,7 @@ export default function App() {
     })
   }
 
-  async function cancelRecurringGift(gift) {
+  async function cancelRecurringGift(gift: any) {
     setConfirmModal({
       title: 'Cancel this recurring gift?',
       description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked as cancelled. The record is kept for reference.`,
@@ -3253,7 +3253,7 @@ export default function App() {
     })
   }
 
-  function restoreCancelledRecurringGift(gift) {
+  function restoreCancelledRecurringGift(gift: any) {
     setConfirmModal({
       title: 'Restore this recurring gift?',
       description: `${gift.donor_name}'s ${gift.frequency} giving arrangement will be marked active again.`,
@@ -3274,7 +3274,7 @@ export default function App() {
     })
   }
 
-  function recordFailedDeduction(gift) {
+  function recordFailedDeduction(gift: any) {
     setFailedDeductionReason('Insufficient funds')
     setFailedDeductionModal(gift)
   }
@@ -3340,7 +3340,7 @@ export default function App() {
     return session?.user?.user_metadata?.charity_uen || ''
   }
 
-  function deleteCause(id) {
+  function deleteCause(id: any) {
     if (bulkActionInProgress) { showToast('Please wait for the current action to finish', 'error'); return }
     setConfirmModal({
       title: 'Delete this campaign?',
@@ -3350,7 +3350,7 @@ export default function App() {
     })
   }
 
-  function completeCause(c, raisedAmount) {
+  function completeCause(c: any, raisedAmount: any) {
     const metGoal = c.target_amount > 0 && raisedAmount >= c.target_amount
     setConfirmModal({
       title: 'Mark this campaign as complete?',
@@ -3362,7 +3362,7 @@ export default function App() {
     })
   }
 
-  async function completeCauseConfirmed(id) {
+  async function completeCauseConfirmed(id: any) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'completed', active: false }).eq('id', id)
     setBulkActionInProgress(false)
@@ -3377,7 +3377,7 @@ export default function App() {
     showToast('Campaign marked complete ✓')
   }
 
-  function restoreCause(c) {
+  function restoreCause(c: any) {
     const isPastEndDate = c.end_date && new Date(c.end_date) < new Date()
     setConfirmModal({
       title: 'Restore this campaign?',
@@ -3402,7 +3402,7 @@ export default function App() {
     })
   }
 
-  async function permanentlyDeleteCause(c) {
+  async function permanentlyDeleteCause(c: any) {
     const linkedDonations = donations.filter(d => d.cause_id === c.id).length
     if (linkedDonations > 0) {
       setConfirmModal({
@@ -3421,7 +3421,7 @@ export default function App() {
     })
   }
 
-  async function permanentlyDeleteCauseConfirmed(c) {
+  async function permanentlyDeleteCauseConfirmed(c: any) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').delete().eq('id', c.id)
     setBulkActionInProgress(false)
@@ -3439,7 +3439,7 @@ export default function App() {
     showToast('Campaign permanently deleted')
   }
 
-  async function deleteCauseConfirmed(id) {
+  async function deleteCauseConfirmed(id: any) {
     setBulkActionInProgress(true)
     const { error } = await supabase.from('causes').update({ status: 'deleted', active: false }).eq('id', id)
     setBulkActionInProgress(false)
@@ -3448,7 +3448,7 @@ export default function App() {
     showToast('Submission deleted')
   }
 
-  function startEditCause(c) {
+  function startEditCause(c: any) {
     setCauseForm({
       title: c.title,
       description: c.description,
@@ -3468,7 +3468,7 @@ export default function App() {
     setShowCampaignModal(true)
   }
 
-  function requestRevision(c) {
+  function requestRevision(c: any) {
     startEditCause(c)
   }
 
@@ -3599,7 +3599,7 @@ export default function App() {
 
   // Records a communication-log entry for a donor and updates the in-memory maps so anything keyed
   // off "last contacted" (donor warmth, the profile "Right now" moments) reflects it immediately.
-  async function logDonorContact(donorKey, note, noteType, bumpWarmth = true, emailContent = null) {
+  async function logDonorContact(donorKey: any, note: any, noteType: any, bumpWarmth = true, emailContent: any = null) {
     const base = { charity_uen: charityUen, donor_key: donorKey, note, note_type: noteType, created_by: session.user.email }
     const row = emailContent ? { ...base, email_subject: emailContent.subject || null, email_body: emailContent.body || null } : base
     let { data, error } = await supabase.from('donor_notes').insert([row]).select()
@@ -3620,7 +3620,7 @@ export default function App() {
   // Logs a contact/dismissal note and immediately offers an undo, rather than leaving the only
   // way back a trip to the donor's own Notes & Activity tab (which the person dismissing a "Right
   // now" card while looking at a donor LIST, not this donor's profile, wouldn't even know to visit).
-  async function logDonorContactWithUndo(donorKey, note, noteType, doneMsg = 'Logged as done ✓') {
+  async function logDonorContactWithUndo(donorKey: any, note: any, noteType: any, doneMsg = 'Logged as done ✓') {
     const { data, error } = await logDonorContact(donorKey, note, noteType)
     if (error) { showToast('Could not log this', 'error'); return }
     let cancelled = false
@@ -3636,7 +3636,7 @@ export default function App() {
     setTimeout(() => { if (!cancelled) setToast(null) }, 10000)
   }
 
-  async function loadDonorNotes(donor, isCancelled) {
+  async function loadDonorNotes(donor: any, isCancelled: any) {
     setDonorNotesLoading(true)
     const donorKey = donor.email?.trim() || donor.name
     const { data, error } = await supabase
@@ -3678,7 +3678,7 @@ export default function App() {
     showToast('Note saved ✓')
   }
 
-  async function saveDonorNoteEdit(noteId) {
+  async function saveDonorNoteEdit(noteId: any) {
     const text = editingDonorNoteText.trim()
     if (!text) return
     setSavingDonorNoteEdit(true)
@@ -3689,7 +3689,7 @@ export default function App() {
     showToast('Updated ✓')
   }
 
-  async function deleteDonorNote(noteId) {
+  async function deleteDonorNote(noteId: any) {
     const note = donorNotes.find(n => n.id === noteId)
     const { error } = await supabase.from('donor_notes').delete().eq('id', noteId)
     if (error) { showToast('Error deleting note', 'error'); return }
@@ -3716,7 +3716,7 @@ export default function App() {
     showToast('Note deleted')
   }
 
-  async function saveDonorTag(donor, tagOverride) {
+  async function saveDonorTag(donor: any, tagOverride: any) {
     const tag = (tagOverride ?? newTagInput).trim()
     if (!tag) return
     setSavingTag(true)
@@ -3756,7 +3756,7 @@ export default function App() {
     for (const key of tagSegmentSelectedKeys) {
       const donor = donorList.find(d => (d.email?.trim() || d.name) === key)
       if (!donor) continue
-      const alreadyTagged = (donorTagsMap[key] || []).some(t => t.tag === tag)
+      const alreadyTagged = (donorTagsMap[key] || []).some((t: any) => t.tag === tag)
       if (!alreadyTagged) await saveDonorTag(donor, tag)
     }
     setSavingTagSegment(false)
@@ -3764,13 +3764,13 @@ export default function App() {
     setTagSegmentName('')
     setTagSegmentSelectedKeys(new Set())
     setTagSegmentSearch('')
-    setMassAppealForm(f => ({ ...f, targetTag: tag }))
+    setMassAppealForm((f: any) => ({ ...f, targetTag: tag }))
     showToast(`Segment "${tag}" saved ✓`)
   }
 
-  async function deleteDonorTag(donor, tagId) {
+  async function deleteDonorTag(donor: any, tagId: any) {
     const donorKey = donor.email?.trim() || donor.name
-    const removedTag = (donorTagsMap[donorKey] || []).find(t => t.id === tagId)
+    const removedTag = (donorTagsMap[donorKey] || []).find((t: any) => t.id === tagId)
     const { error } = await supabase.from('donor_tags').delete().eq('id', tagId)
     if (error) { showToast('Error removing tag', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -3781,18 +3781,18 @@ export default function App() {
     })
     setDonorTagsMap(prev => ({
       ...prev,
-      [donorKey]: (prev[donorKey] || []).filter(t => t.id !== tagId),
+      [donorKey]: (prev[donorKey] || []).filter((t: any) => t.id !== tagId),
     }))
     showToast('Tag removed')
   }
 
-  function parseMigrationCSV(text) {
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  function parseMigrationCSV(text: any) {
+    const lines = text.split('\n').map((l: any) => l.trim()).filter(Boolean)
     if (lines.length < 2) return { headers: [], rows: [] }
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
-    const rows = lines.slice(1).map(line => {
+    const headers = lines[0].split(',').map((h: any) => h.trim().replace(/^"|"$/g, '').toLowerCase())
+    const rows = lines.slice(1).map((line: any) => {
       // Handle quoted fields with commas inside
-      const fields = []
+      const fields: any[] = []
       let current = ''
       let inQuotes = false
       for (let i = 0; i < line.length; i++) {
@@ -3801,22 +3801,22 @@ export default function App() {
         current += line[i]
       }
       fields.push(current.trim())
-      const obj = {}
-      headers.forEach((h, i) => { obj[h] = fields[i] || '' })
+      const obj: Record<string, any> = {}
+      headers.forEach((h: any, i: any) => { obj[h] = fields[i] || '' })
       return obj
     })
     return { headers, rows }
   }
 
-  function detectMigrationColumn(headers, candidates) {
+  function detectMigrationColumn(headers: any, candidates: any) {
     for (const candidate of candidates) {
-      const match = headers.find(h => h.includes(candidate.toLowerCase()))
+      const match = headers.find((h: any) => h.includes(candidate.toLowerCase()))
       if (match) return match
     }
     return null
   }
 
-  function previewMigrationFile(file) {
+  function previewMigrationFile(file: any) {
     if (!file) return
     setMigrationFile(file)
     setMigrationErrors([])
@@ -3843,9 +3843,9 @@ export default function App() {
       if (!colDate) errors.push('Could not find a date column — expected a column named "Date" or "Donation Date"')
 
       // Validate rows
-      const validRows = []
-      const rowErrors = []
-      rows.forEach((row, i) => {
+      const validRows: any[] = []
+      const rowErrors: any[] = []
+      rows.forEach((row: any, i: any) => {
         const rowNum = i + 2 // 1-indexed + header
         const name = colDonorName ? row[colDonorName]?.trim() : ''
         const amountRaw = colAmount ? row[colAmount]?.replace(/[$,\s]/g, '') : ''
@@ -3907,7 +3907,7 @@ export default function App() {
     for (let i = 0; i < rows.length; i += batchSize) {
       if (migrationCancelRef.current) break
       const batch = rows.slice(i, i + batchSize)
-      const inserts = batch.map(row => ({
+      const inserts = batch.map((row: any) => ({
         donor_name: row.donor_name,
         donor_email: row.donor_email || null,
         donor_nric: row.donor_nric || null,
@@ -3946,7 +3946,7 @@ export default function App() {
     showToast(`Migration complete — ${imported} records imported ✓`)
   }
 
-  function generateAppealRef(donorName) {
+  function generateAppealRef(donorName: any) {
     const clean = donorName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()
     // 7 base36 chars (~78 billion combinations) instead of 4 (~1.7 million) -- refs aren't
     // namespaced by appeal, so low entropy risked two different appeals minting the same ref
@@ -3994,7 +3994,7 @@ export default function App() {
       if (massAppealForm.targetTag && massAppealForm.targetTag !== 'All') {
         const donorKey45 = d.email?.trim() || d.name
         const tags45 = donorTagsMap[donorKey45] || []
-        return tags45.some(t => t.tag === massAppealForm.targetTag)
+        return tags45.some((t: any) => t.tag === massAppealForm.targetTag)
       }
       return true
     })
@@ -4129,7 +4129,7 @@ export default function App() {
       : `Appeal sent to ${sent} donor${sent !== 1 ? 's' : ''}${failed > 0 ? ` · ${failed} failed` : ''} ✓`)
   }
 
-  async function retryAppealRecipients(appeal, recipientsToRetry) {
+  async function retryAppealRecipients(appeal: any, recipientsToRetry: any) {
     if (recipientsToRetry.length === 0) return
     setRetryingAppealRecipients(true)
     let retriedSent = 0
@@ -4192,7 +4192,7 @@ export default function App() {
     const ReactDOMClient = await import('react-dom/client')
     const root = ReactDOMClient.createRoot(offscreen)
 
-    const svgToPngDataUrl = (svgString, size = 300) => new Promise((resolve) => {
+    const svgToPngDataUrl = (svgString: any, size = 300): Promise<string> => new Promise((resolve) => {
       const img = new Image()
       const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
       const url = URL.createObjectURL(svgBlob)
@@ -4265,7 +4265,7 @@ export default function App() {
     setLoading(false)
   }
 
-  async function checkPledgeCompletion(donation) {
+  async function checkPledgeCompletion(donation: any) {
     const donorKey = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
     const matchingPledge = pledges.find(p => {
       if (p.status !== 'pending') return false
@@ -4306,7 +4306,7 @@ export default function App() {
     return null
   }
 
-  async function manuallyLinkDonationToPledge(donation, pledgeId) {
+  async function manuallyLinkDonationToPledge(donation: any, pledgeId: any) {
     setLinkingPledgeManually(true)
     const pledge = pledges.find(p => p.id === pledgeId)
     if (!pledge) { showToast('Pledge not found', 'error'); setLinkingPledgeManually(false); return }
@@ -4318,7 +4318,7 @@ export default function App() {
       .maybeSingle()
 
     if (existingLink) {
-      const alreadyLinkedTo = existingLink.pledge_id === pledge.id ? 'this same pledge' : `${existingLink.pledges?.donor_name || 'a different'} pledge`
+      const alreadyLinkedTo = existingLink.pledge_id === pledge.id ? 'this same pledge' : `${(existingLink.pledges as any)?.donor_name || 'a different'} pledge`
       showToast(`This donation is already linked to ${alreadyLinkedTo} — not linking again`, 'error')
       setLinkingPledgeManually(false)
       setShowManualPledgeLinkModal(false)
@@ -4408,9 +4408,9 @@ export default function App() {
     setPledgeCompletionCandidate(null)
   }
 
-  const [duplicateDonationWarning, setDuplicateDonationWarning] = useState(null)
+  const [duplicateDonationWarning, setDuplicateDonationWarning] = useState<any>(null)
 
-  async function confirmPaymentFlow(donation) {
+  async function confirmPaymentFlow(donation: any) {
     const { data: freshData, error: freshError } = await supabase
       .from('donations')
       .select('payment_status, receipt_issued')
@@ -4425,7 +4425,7 @@ export default function App() {
     if (freshData.payment_status === 'confirmed') {
       showToast('This donation was already confirmed by someone else', 'error')
       setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true } : x))
-      setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
+      setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
       return
     }
 
@@ -4436,7 +4436,7 @@ export default function App() {
         d.id !== donation.id &&
         (d.donor_email?.trim() || d.donor_nric || d.donor_name) === donorKey22 &&
         Number(d.amount) === Number(donation.amount) &&
-        Math.abs(new Date(d.created_at) - new Date(donation.created_at)) <= fiveMinWindow
+        Math.abs(new Date(d.created_at).getTime() - new Date(donation.created_at).getTime()) <= fiveMinWindow
       )
       if (possibleDupe) {
         setDuplicateDonationWarning({ donation, possibleDupe })
@@ -4464,7 +4464,7 @@ export default function App() {
       }
     }
 
-    const updatePayload = { payment_status: 'confirmed', receipt_issued: true }
+    const updatePayload: Record<string, any> = { payment_status: 'confirmed', receipt_issued: true }
     if (autoTaggedCauseId) updatePayload.cause_id = autoTaggedCauseId
 
     const { error } = await supabase.from('donations').update(updatePayload).eq('id', donation.id)
@@ -4477,7 +4477,7 @@ export default function App() {
       details: { donor_name: donation.donor_name, amount: donation.amount, payment_ref: donation.payment_ref, auto_tagged_cause_id: autoTaggedCauseId },
     })
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'confirmed', receipt_issued: true, ...(autoTaggedCauseId ? { cause_id: autoTaggedCauseId } : {}) } : x))
-    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
+    setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, payment_status: 'confirmed', receipt_issued: true } : prev))
 
     const completedPledge = await checkPledgeCompletion(donation)
     if (completedPledge) {
@@ -4494,7 +4494,7 @@ export default function App() {
     showToast('Payment confirmed ✓ — receipt issued. Send the thank-you when ready.')
   }
 
-  async function unconfirmPayment(donation) {
+  async function unconfirmPayment(donation: any) {
     const { error } = await supabase.from('donations').update({ payment_status: 'pending', receipt_issued: false }).eq('id', donation.id)
     if (error) { showToast('Error undoing confirmation', 'error'); return }
     await supabase.from('audit_log').insert({
@@ -4505,11 +4505,11 @@ export default function App() {
       details: { donor_name: donation.donor_name, amount: donation.amount },
     })
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, payment_status: 'pending', receipt_issued: false } : x))
-    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, payment_status: 'pending', receipt_issued: false } : prev))
+    setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, payment_status: 'pending', receipt_issued: false } : prev))
     showToast('Payment confirmation undone — back to awaiting confirmation')
   }
 
-  function buildThankYouPreviewHtml(donation, customMessage) {
+  function buildThankYouPreviewHtml(donation: any, customMessage: any) {
     const badgeInfo = donationBadgeInfo[donation.id]
     const isRecurring = !!donation.recurring_gift_id
     const templateType = donation.amount > thankYouThreshold ? 'major_gift'
@@ -4578,7 +4578,7 @@ export default function App() {
       </div>`
   }
 
-  function thankYouTemplateTypeFor(donation) {
+  function thankYouTemplateTypeFor(donation: any) {
     const badgeInfoSend = donationBadgeInfo[donation.id]
     const isRecurringSend = !!donation.recurring_gift_id
     return donation.amount > thankYouThreshold ? 'major_gift'
@@ -4587,7 +4587,7 @@ export default function App() {
       : 'standard'
   }
 
-  function thankYouDefaultsFor(donation) {
+  function thankYouDefaultsFor(donation: any) {
     const type = thankYouTemplateTypeFor(donation)
     const saved = emailTemplates[type]
     const vars = { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }
@@ -4598,7 +4598,7 @@ export default function App() {
     }
   }
 
-  async function sendThankYouEmail(donation) {
+  async function sendThankYouEmail(donation: any) {
     if (sendingThankYouId === donation.id) return
     setSendingThankYouId(donation.id)
     let receiptAttachmentB64b = null
@@ -4627,12 +4627,12 @@ export default function App() {
     setThankYouSubjectInput('')
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
-    setSelectedDonation(prev => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
+    setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
     setSendingThankYouId(null)
     showToast(`Email sent to ${donation.donor_email}`)
   }
 
-  async function issueReceipt(donation, skipLog = false, sendEmail = false) {
+  async function issueReceipt(donation: any, skipLog = false, sendEmail = false) {
     setIssuing(donation.id)
     const { error } = await supabase
       .from('donations')
@@ -4673,7 +4673,7 @@ export default function App() {
     setIssuing(null)
   }
 
-  async function voidAndReissueReceipt(donation) {
+  async function voidAndReissueReceipt(donation: any) {
     if (!voidReason.trim()) { showToast('Please enter a reason for voiding', 'error'); return }
     setVoidingReceipt(true)
 
@@ -4722,7 +4722,7 @@ export default function App() {
       reissued_from: donation.receipt_number || donation.payment_ref,
       thank_you_sent: false,
     } : x))
-    setSelectedDonation(prev => prev && prev.id === donation.id ? {
+    setSelectedDonation((prev: any) => prev && prev.id === donation.id ? {
       ...prev,
       receipt_voided: true,
       receipt_issued: true,
@@ -4791,7 +4791,7 @@ export default function App() {
       return
     }
 
-    const byDonor = {}
+    const byDonor: Record<string, any> = {}
     missing.forEach(d => {
       if (!byDonor[d.donor_email]) byDonor[d.donor_email] = { donor_name: d.donor_name, donor_email: d.donor_email, total: 0, count: 0 }
       byDonor[d.donor_email].total += d.amount
@@ -4807,7 +4807,7 @@ export default function App() {
     })
   }
 
-  async function sendBulkNricRequest(donorList, missingNoEmail) {
+  async function sendBulkNricRequest(donorList: any, missingNoEmail: any) {
     setBulkActionInProgress(true)
     bulkCancelRef.current = false
     setBulkProgress({ done: 0, total: donorList.length })
@@ -4848,7 +4848,7 @@ export default function App() {
     }
   }
 
-  function clearDonationFilters(opts = {}) {
+  function clearDonationFilters(opts: { keepYear?: boolean } = {}) {
     setSearchTerm('')
     setFilterType('All')  
     setFilterNric('All')
@@ -4862,7 +4862,7 @@ export default function App() {
   }
 
 
-  async function ensureDonorContact(donor) {
+  async function ensureDonorContact(donor: any) {
     const key = donor.email?.trim() || donor.name
     let contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === key)
     if (!contact) {
@@ -4879,7 +4879,7 @@ export default function App() {
     return contact
   }
 
-  async function linkDonorToHousehold(donorA, donorB) {
+  async function linkDonorToHousehold(donorA: any, donorB: any) {
     const contactA = await ensureDonorContact(donorA)
     const contactB = await ensureDonorContact(donorB)
     if (!contactA || !contactB) { showToast('Error linking donors', 'error'); return }
@@ -4898,7 +4898,7 @@ export default function App() {
     await loadDonorContacts()
   }
 
-  async function unlinkFromHousehold(donor) {
+  async function unlinkFromHousehold(donor: any) {
     const key = donor.email?.trim() || donor.name
     const contact = donorContacts.find(c => (c.email?.trim() || c.full_name) === key)
     if (!contact) return
@@ -4913,17 +4913,17 @@ export default function App() {
     await loadDonorContacts()
   }
 
-  function getDonorWarmth(donor) {
+  function getDonorWarmth(donor: any) {
     const donorKey76 = donor.email?.trim() || donor.name
     const lastContact76 = donorLastContactMap[donorKey76] || null
     if (!lastContact76) return { level: 'red', label: 'No contact logged', daysSince: null }
-    const daysSince76 = Math.floor((new Date() - new Date(lastContact76)) / (1000 * 60 * 60 * 24))
+    const daysSince76 = Math.floor((new Date().getTime() - new Date(lastContact76).getTime()) / (1000 * 60 * 60 * 24))
     if (daysSince76 <= 90) return { level: 'green', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
     if (daysSince76 <= 180) return { level: 'amber', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
     return { level: 'red', label: `Contacted ${daysSince76}d ago`, daysSince: daysSince76 }
   }
 
-  async function mergeDonorInto(sourceDonor, targetDonorKey) {
+  async function mergeDonorInto(sourceDonor: any, targetDonorKey: any) {
     const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
     if (!targetDonorRow) { showToast('Target donor not found', 'error'); return }
     const filter = sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`
@@ -4974,7 +4974,7 @@ export default function App() {
   }
 
   // Match on email, NRIC, or (only when neither is present) exact name. Returns null if no match.
-  function findDuplicateDonor(form) {
+  function findDuplicateDonor(form: any) {
     const enteredEmail = form.donor_email?.trim().toLowerCase()
     const enteredNric = form.donor_nric?.trim().toUpperCase()
     const enteredName = form.donor_name.trim().toLowerCase()
@@ -5044,7 +5044,7 @@ export default function App() {
       console.error('Audit log insert failed (non-blocking):', auditErr)
     }
     setDonations(prev => prev.map(d => d.id === editingDonationId ? { ...d, ...data[0] } : d))
-    setSelectedDonation(prev => prev && prev.id === editingDonationId ? { ...prev, ...data[0] } : prev)
+    setSelectedDonation((prev: any) => prev && prev.id === editingDonationId ? { ...prev, ...data[0] } : prev)
     resetManualForm()
     setShowManualForm(false)
     setSavingManual(false)
@@ -5185,7 +5185,7 @@ export default function App() {
     resetManualForm()
   }
 
-  async function deleteDonation(id) {
+  async function deleteDonation(id: any) {
     const donationToDelete = donations.find(d => d.id === id)
 
     const { data: linkRow, error: linkErr } = await supabase
@@ -5227,7 +5227,7 @@ export default function App() {
     })
   }
 
-  async function deleteDonationConfirmed(id, pledgeLink = null) {
+  async function deleteDonationConfirmed(id: any, pledgeLink: any = null) {
     const donationToDelete = donations.find(d => d.id === id)
     const originalStatus = donationToDelete?.status || 'confirmed'
     const originalGiftSnapshot = donationToDelete?.recurring_gift_id
@@ -5245,7 +5245,7 @@ export default function App() {
       }))
       setPledgeDonationLinks(prev => ({
         ...prev,
-        [pledgeLink.pledge_id]: (prev[pledgeLink.pledge_id] || []).filter(l => l.donation_id !== id)
+        [pledgeLink.pledge_id]: (prev[pledgeLink.pledge_id] || []).filter((l: any) => l.donation_id !== id)
       }))
       if (pledgeLink.pledgeStatus === 'fulfilled') {
         // fulfilled_donation_id must be cleared alongside status/resolution_notes -- otherwise it's
@@ -5259,7 +5259,7 @@ export default function App() {
       const giftId = donationToDelete.recurring_gift_id
       const gift = recurringGifts.find(g => g.id === giftId)
       const remaining = donations.filter(d => d.recurring_gift_id === giftId && d.id !== id && d.status !== 'deleted_by_charity')
-      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const remainingConfirmed = remaining.filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       const newLastReceived = remainingConfirmed[0]?.created_at ? remainingConfirmed[0].created_at.split('T')[0] : null
       const newNextExpected = gift ? computeNextExpectedDate(gift.start_date, gift.frequency, newLastReceived) : null
       if (gift) {
@@ -5334,7 +5334,7 @@ export default function App() {
     }, 10000)
   }
 
-  function causeNameForDonation(donation) {
+  function causeNameForDonation(donation: any) {
     if (!donation?.cause_id) return null
     const c = myCauses.find(c => c.id === donation.cause_id)
     return c ? c.title : null
@@ -5358,7 +5358,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     [donations, thankYouThreshold, majorDonorThreshold]
   )
   const donorList = React.useMemo(() => {
-    const donorMap = {}
+    const donorMap: Record<string, any> = {}
     donations.filter(d => !d.is_anonymous && d.payment_status === 'confirmed').forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorMap[key]) {
@@ -5379,7 +5379,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return Object.values(donorMap).sort((a, b) => b.total - a.total)
   }, [donations])
   const activeDonorList = React.useMemo(() => donorList.filter(d => !d.deactivated), [donorList])
-  const findDonorRecord = React.useCallback((email, name) => {
+  const findDonorRecord = React.useCallback((email: any, name: any) => {
     const key = email?.trim() || name
     return donorList.find(d => (d.email?.trim() || d.name) === key) || { name, email, total: 0, count: 0, receipts: 0 }
   }, [donorList])
@@ -5417,7 +5417,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [pendingSelectedDonorKey, activeDonorList, selectedDonor])
   const deactivatedDonorList = donorList.filter(d => d.deactivated)
   const causeRaisedMap = React.useMemo(() => {
-    const map = {}
+    const map: Record<string, any> = {}
     donations.forEach(d => {
       if (!d.cause_id || d.payment_status !== 'confirmed') return
       map[d.cause_id] = (map[d.cause_id] || { total: 0, donors: new Set() })
@@ -5428,7 +5428,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [donations])
   const causePerformanceThisYear = React.useMemo(() => {
     const yearScoped = filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))
-    const map = {}
+    const map: Record<string, any> = {}
     let generalTotal = 0
     let generalCount = 0
     yearScoped.forEach(d => {
@@ -5438,7 +5438,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       map[d.cause_id].count += 1
       map[d.cause_id].donors.add(d.donor_email?.trim() || d.donor_nric || d.donor_name)
     })
-    const rows = Object.entries(map).map(([causeId, stats]) => {
+    const rows: any[] = Object.entries(map).map(([causeId, stats]) => {
       const cause = myCauses.find(c => c.id === causeId)
       return {
         id: causeId,
@@ -5462,8 +5462,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const confirmedDonations = React.useMemo(() => donations.filter(d => d.payment_status === 'confirmed'), [donations])
   const campaignCauseIds = React.useMemo(() => new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id)), [myCauses])
   const donorFirstGiftDate = React.useMemo(() => {
-    const map = {}
-    ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+    const map: Record<string, any> = {}
+    ;[...donations].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!map[key]) map[key] = d.created_at
     })
@@ -5477,7 +5477,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // authorized the arrangement.
     return recurringGifts.filter(g => g.status === 'active' && g.authorization_status !== 'pending').map(g => {
       const gapDays = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
-      const daysLate = Math.floor((now26 - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24))
+      const daysLate = Math.floor((now26.getTime() - new Date(g.next_expected_date).getTime()) / (1000 * 60 * 60 * 24))
       if (daysLate <= 7) return null
       const missedCycles = Math.floor(daysLate / gapDays) + 1
       return { donor_name: g.donor_name, donor_email: g.donor_email, missedCycles, gift_id: g.id, type: g.type }
@@ -5487,7 +5487,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const cycles = donations
         .filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed')
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       if (cycles.length < recurringTrendCycles) return null
       const lastN = cycles.slice(-recurringTrendCycles).map(d => d.amount)
       const steps = lastN.slice(1).map((amt, i) => amt - lastN[i])
@@ -5502,13 +5502,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const fundraisingSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const median = (arr) => {
+    const median = (arr: any) => {
       if (arr.length === 0) return 0
       const sorted = [...arr].sort((a, b) => a - b)
       const mid = Math.floor(sorted.length / 2)
       return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
     }
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const ds = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === y)
       const total = ds.reduce((s, d) => s + d.amount, 0)
       const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
@@ -5516,7 +5516,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const tiles = [
       { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations across all sources — campaigns, mass appeals, and general giving — in ${yr}, compared to ${yr - 1}.` },
       { label: 'Total Donations', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of confirmed donations received across all sources in ${yr}, compared to ${yr - 1}.` },
@@ -5542,7 +5542,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const revenueByChannelStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
+    const grantYearOf = (g: any) => fyOf(g.start_date || g.created_at)
     const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === yr)
 
     let campaignsAmt = 0, massAppealAmt = 0, recurringAmt = 0, generalAmt = 0
@@ -5568,7 +5568,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const predictableVsOneOffStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
+    const grantYearOf = (g: any) => fyOf(g.start_date || g.created_at)
     const yearDonations = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === yr)
 
     let recurringAmt = 0, campaignsAmt = 0, massAppealAmt = 0, generalAmt = 0
@@ -5597,8 +5597,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
       return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-SG', { month: 'short' }), count: 0 }
     })
-    const donorFirstDate = {}
-    ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+    const donorFirstDate: Record<string, any> = {}
+    ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorFirstDate[key]) donorFirstDate[key] = d.created_at
     })
@@ -5619,8 +5619,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const pct = Math.round((totalThisGoalYear / annualGoal) * 100)
     const { start: yearStart, end: yearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
     const now5 = new Date()
-    const daysElapsed = Math.max(1, Math.ceil((now5 - yearStart) / (1000 * 60 * 60 * 24)))
-    const totalDaysInYear = Math.ceil((yearEnd - yearStart) / (1000 * 60 * 60 * 24))
+    const daysElapsed = Math.max(1, Math.ceil((now5.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)))
+    const totalDaysInYear = Math.ceil((yearEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24))
     const dailyRate = totalThisGoalYear / daysElapsed
     const projectedTotal = Math.round(dailyRate * totalDaysInYear)
     const onTrack = projectedTotal >= annualGoal
@@ -5630,7 +5630,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const campaignSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const ds = donations.filter(d => d.cause_id && campaignCauseIds.has(d.cause_id) && d.payment_status === 'confirmed' && fyOf(d.created_at) === y)
       const total = ds.reduce((s, d) => s + d.amount, 0)
       const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
@@ -5644,7 +5644,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === yr)
     const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
     const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
@@ -5660,14 +5660,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const campaignGoalStrip = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
 
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const campaignsForYear = myCauses.filter(c => c.type === 'campaign' && fyOf(c.created_at) === y)
       const withGoal = campaignsForYear.filter(c => c.target_amount && c.end_date)
       const reachedGoalCampaigns = withGoal.filter(c => (causeRaisedMap[c.id]?.total || 0) >= Number(c.target_amount))
       const successRatePct = withGoal.length > 0 ? Math.round((reachedGoalCampaigns.length / withGoal.length) * 100) : null
 
       const yearScopedCampaignDonations = donations.filter(d => d.payment_status === 'confirmed' && d.cause_id && campaignCauseIds.has(d.cause_id) && fyOf(d.created_at) === y)
-      const donorCampaignSets = {}
+      const donorCampaignSets: Record<string, any> = {}
       yearScopedCampaignDonations.forEach(d => {
         const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
         if (!donorCampaignSets[key]) donorCampaignSets[key] = new Set()
@@ -5678,13 +5678,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
 
       const timesToGoal = reachedGoalCampaigns.map(c => {
-        const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         let running = 0, crossDate = null
         for (const d of campDonationsSorted) {
           running += d.amount
           if (running >= Number(c.target_amount)) { crossDate = d.created_at; break }
         }
-        return crossDate ? Math.round((new Date(crossDate) - new Date(c.created_at)) / (1000 * 60 * 60 * 24)) : null
+        return crossDate ? Math.round((new Date(crossDate).getTime() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null
       }).filter(d => d !== null)
       const avgTimeToGoal = timesToGoal.length > 0 ? Math.round(timesToGoal.reduce((s, d) => s + d, 0) / timesToGoal.length) : null
 
@@ -5693,8 +5693,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const ptDelta = (c, p) => (c === null || p === null) ? null : c - p
-    const dayDelta = (c, p) => (c === null || p === null) ? null : c - p
+    const ptDelta = (c: any, p: any) => (c === null || p === null) ? null : c - p
+    const dayDelta = (c: any, p: any) => (c === null || p === null) ? null : c - p
 
     const strip = [
       { label: 'Goal Success Rate', val: cur.withGoalCount > 0 ? `${cur.reachedCount} of ${cur.withGoalCount}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.', d: ptDelta(cur.successRatePct, prev.successRatePct), unit: 'pt' },
@@ -5721,19 +5721,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         const start = new Date(row.created_at)
         const end = new Date(row.end_date)
         pctToGoal = Math.round((row.total / Number(row.target_amount)) * 100)
-        const totalSpan = end - start
-        pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today - start) / totalSpan) * 100))) : null
-        daysToEnd = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
+        const totalSpan = end.getTime() - start.getTime()
+        pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round(((today.getTime() - start.getTime()) / totalSpan) * 100))) : null
+        daysToEnd = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         goalReached = row.total >= Number(row.target_amount)
         const gap = pctElapsed !== null ? pctElapsed - pctToGoal : null
         behind = !goalReached && gap !== null && gap >= 20
         slightlyBehind = !goalReached && gap !== null && gap >= 8 && gap < 20
       }
       const isEnded = row.end_date ? new Date(row.end_date) < today : false
-      const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const campDonations = donations.filter(d => d.cause_id === row.id && d.payment_status === 'confirmed').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       const daysSinceLastGift = campDonations.length > 0
-        ? Math.floor((today - new Date(campDonations[0].created_at)) / (1000 * 60 * 60 * 24))
-        : (row.created_at ? Math.floor((today - new Date(row.created_at)) / (1000 * 60 * 60 * 24)) : null)
+        ? Math.floor((today.getTime() - new Date(campDonations[0].created_at).getTime()) / (1000 * 60 * 60 * 24))
+        : (row.created_at ? Math.floor((today.getTime() - new Date(row.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null)
       const isStalled = !isEnded && daysSinceLastGift !== null && daysSinceLastGift >= 14
       return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
     }).sort((a, b) => b.total - a.total)
@@ -5747,7 +5747,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const donorKeys = new Set(campDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
       let brandNewCount = 0
       donorKeys.forEach(key => {
-        const firstGiftToCampaign = campDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]
+        const firstGiftToCampaign = campDonations.filter(d => (d.donor_email?.trim() || d.donor_nric || d.donor_name) === key).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]
         if (donorFirstGiftDate[key] === firstGiftToCampaign.created_at) brandNewCount++
       })
       const total = campDonations.reduce((s, d) => s + d.amount, 0)
@@ -5801,7 +5801,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const appealSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const appealsY = massAppeals.filter(a => fyOf(a.created_at) === y)
       const appealIds = new Set(appealsY.map(a => a.id))
       const recipients = allAppealRecipients.filter(r => appealIds.has(r.appeal_id) && r.status === 'sent')
@@ -5819,7 +5819,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const tiles = [
       { label: 'Total Raised from Appeals', val: `$${cur.raised.toLocaleString()}`, d: delta(cur.raised, prev.raised), tip: `Total confirmed donations traced back to a mass appeal by PayNow reference, in ${yr} compared to ${yr - 1}.` },
       { label: 'Appeals Sent', val: cur.appealsSent, d: delta(cur.appealsSent, prev.appealsSent), tip: `Number of mass appeals sent out in ${yr}, compared to ${yr - 1}.` },
@@ -5831,8 +5831,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const appealListStrip = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
-    const donorKey = (r) => r.donor_email?.trim() || r.donor_name
+    const appealIdsInYear = (y: any) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
+    const donorKey = (r: any) => r.donor_email?.trim() || r.donor_name
 
     const curIds = appealIdsInYear(yr)
     const prevIds = appealIdsInYear(yr - 1)
@@ -5842,8 +5842,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const prevUnique = new Set(prevRecipients.map(donorKey)).size
     const uniqueDelta = prevUnique === 0 ? (curUnique > 0 ? null : 0) : Math.round(((curUnique - prevUnique) / prevUnique) * 100)
 
-    const donorFirstAppealYear = {}
-    ;[...allAppealRecipients].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(r => {
+    const donorFirstAppealYear: Record<string, any> = {}
+    ;[...allAppealRecipients].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(r => {
       const key = donorKey(r)
       if (!donorFirstAppealYear[key]) donorFirstAppealYear[key] = fyOf(r.created_at)
     })
@@ -5871,8 +5871,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, massAppeals, allAppealRecipients, donations, fyOf])
 
   const appealTrendStats = React.useMemo(() => {
-    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
-    const statsForYear = (y) => {
+    const appealIdsInYear = (y: any) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
+    const statsForYear = (y: any) => {
       const ids = appealIdsInYear(y)
       const sent = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'sent')
       const converted = sent.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
@@ -5892,7 +5892,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const responseTimes = sentThisYear.map(r => {
       const donation = donations.find(d => d.payment_ref === r.payment_ref && d.payment_status === 'confirmed')
       if (!donation) return null
-      return Math.floor((new Date(donation.created_at) - new Date(r.created_at)) / (1000 * 60 * 60 * 24))
+      return Math.floor((new Date(donation.created_at).getTime() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24))
     }).filter(d => d !== null && d >= 0)
     const medianResponseDays = (() => {
       if (responseTimes.length === 0) return null
@@ -5918,9 +5918,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const scopedAppeals = massAppeals.filter(a => fyOf(a.created_at) === yearNum)
     const lastYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === yearNum - 1)
 
-    const recipientsForAppeal = (appealId) => allAppealRecipients.filter(r => r.appeal_id === appealId)
+    const recipientsForAppeal = (appealId: any) => allAppealRecipients.filter(r => r.appeal_id === appealId)
 
-    const analyzeAppeal = (appeal) => {
+    const analyzeAppeal = (appeal: any) => {
       const recipients = recipientsForAppeal(appeal.id)
       const sentRecipients = recipients.filter(r => r.status === 'sent')
       const converted = sentRecipients.filter(r => donations.some(d => d.payment_ref && d.payment_ref === r.payment_ref && d.payment_status === 'confirmed'))
@@ -5948,10 +5948,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const causeSpecific = scopedAnalyzed.filter(a => a.appeal.cause_id)
     const generalOnes = scopedAnalyzed.filter(a => !a.appeal.cause_id)
-    const avgConversion = (list) => {
-      const withSends = list.filter(a => a.sentCount > 0)
+    const avgConversion = (list: any) => {
+      const withSends = list.filter((a: any) => a.sentCount > 0)
       if (withSends.length === 0) return null
-      return Math.round(withSends.reduce((s, a) => s + a.conversionRate, 0) / withSends.length)
+      return Math.round(withSends.reduce((s: any, a: any) => s + a.conversionRate, 0) / withSends.length)
     }
     const causeSpecificAvg = avgConversion(causeSpecific)
     const generalAvg = avgConversion(generalOnes)
@@ -5963,8 +5963,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const appealListHealthStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const appealIdsInYear = (y) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
-    const deliveryStatsForYear = (y) => {
+    const appealIdsInYear = (y: any) => new Set(massAppeals.filter(a => fyOf(a.created_at) === y).map(a => a.id))
+    const deliveryStatsForYear = (y: any) => {
       const ids = appealIdsInYear(y)
       const attempted = allAppealRecipients.filter(r => ids.has(r.appeal_id) && (r.status === 'sent' || r.status === 'failed' || r.status === 'blocked'))
       const bounced = attempted.filter(r => r.status === 'failed')
@@ -5983,7 +5983,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const bounceReasons = (() => {
       const ids = appealIdsInYear(yr)
       const bounced = allAppealRecipients.filter(r => ids.has(r.appeal_id) && r.status === 'failed')
-      const counts = {}
+      const counts: Record<string, any> = {}
       bounced.forEach(r => {
         const reason = r.error_message?.trim() || 'Unknown error'
         counts[reason] = (counts[reason] || 0) + 1
@@ -5991,7 +5991,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count)
     })()
 
-    const byDonor = {}
+    const byDonor: Record<string, any> = {}
     allAppealRecipients.forEach(r => {
       const key = r.donor_email?.trim() || r.donor_name
       if (!byDonor[key]) byDonor[key] = { name: r.donor_name, email: r.donor_email, recipientRows: [] }
@@ -6000,7 +6000,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const repeatRecipients = Object.values(byDonor).filter(d => d.recipientRows.length >= 2)
 
     const fatigueList = repeatRecipients.map(d => {
-      const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      const sorted = [...d.recipientRows].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       const gaveFlags = sorted.map(r => donations.some(don => don.payment_ref === r.payment_ref && don.payment_status === 'confirmed'))
       const gaveCount = gaveFlags.filter(Boolean).length
       const lastGave = gaveFlags[gaveFlags.length - 1]
@@ -6025,7 +6025,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const pledgeSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const ps = pledges.filter(p => fyOf(p.expected_date) === y)
       const total = ps.reduce((s, p) => s + Number(p.amount), 0)
       const fulfilled = ps.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
@@ -6042,7 +6042,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const tiles = [
       { label: 'Pledges Made', val: cur.count, d: delta(cur.count, prev.count), tip: `Number of pledges with an expected date in ${yr}, compared to ${yr - 1}.` },
       { label: 'Amount Pledged', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total value of pledges expected in ${yr}, compared to ${yr - 1}. Includes fulfilled, pending, and cancelled pledges.` },
@@ -6056,7 +6056,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const today = new Date()
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
     const buildOutstandingUnits = () => {
-      const units = []
+      const units: any[] = []
       pledges.filter(p => p.status === 'pending').forEach(p => {
         if (p.is_multi_year) {
           pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).forEach(inst => {
@@ -6071,7 +6071,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const outstandingUnits = buildOutstandingUnits()
     const overdueUnits = outstandingUnits.filter(u => new Date(u.expected_date) < today).map(u => ({
       ...u,
-      daysOverdue: Math.floor((today - new Date(u.expected_date)) / (1000 * 60 * 60 * 24)),
+      daysOverdue: Math.floor((today.getTime() - new Date(u.expected_date).getTime()) / (1000 * 60 * 60 * 24)),
     })).sort((a, b) => b.daysOverdue - a.daysOverdue)
     const overdueTotal = overdueUnits.reduce((s, u) => s + u.amount, 0)
 
@@ -6092,8 +6092,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cancelledPledgeValue = scopedPledgesForYr.filter(p => p.status === 'cancelled').reduce((s, p) => s + Number(p.amount), 0)
     const netPledgeValue = newPledgeValue - cancelledPledgeValue
 
-    const pledgeDonorKey = (p) => p.donor_email?.trim() || p.donor_name
-    const pledgeCountByDonor = {}
+    const pledgeDonorKey = (p: any) => p.donor_email?.trim() || p.donor_name
+    const pledgeCountByDonor: Record<string, any> = {}
     pledges.forEach(p => {
       const key = pledgeDonorKey(p)
       pledgeCountByDonor[key] = (pledgeCountByDonor[key] || 0) + 1
@@ -6124,7 +6124,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const fulfilledWithDates = fulfilled.map(p => {
       const donation = donations.find(d => d.id === p.fulfilled_donation_id)
       if (!donation) return null
-      const daysLate = Math.ceil((new Date(donation.created_at) - new Date(p.expected_date)) / (1000 * 60 * 60 * 24))
+      const daysLate = Math.ceil((new Date(donation.created_at).getTime() - new Date(p.expected_date).getTime()) / (1000 * 60 * 60 * 24))
       return { pledge: p, daysLate }
     }).filter(Boolean)
 
@@ -6141,8 +6141,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTime / lastYearPledges.length) * 100) : null
 
     const today = new Date()
-    const donorKey = (p) => p.donor_email?.trim() || p.donor_name
-    const byDonor = {}
+    const donorKey = (p: any) => p.donor_email?.trim() || p.donor_name
+    const byDonor: Record<string, any> = {}
     pledges.forEach(p => {
       const key = donorKey(p)
       if (!byDonor[key]) byDonor[key] = { name: p.donor_name, pledges: [] }
@@ -6151,17 +6151,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // A pledge that was rescheduled while already overdue broke its original promise even if the
     // new date hasn't arrived yet -- counting only "currently overdue" here would let a donor
     // erase their broken-pledge history just by pushing the date forward.
-    const wasRescheduledWhileOverdue = (p) => (pledgeRescheduleHistory[p.id] || []).some(r => new Date(r.old_expected_date) < new Date(r.created_at))
+    const wasRescheduledWhileOverdue = (p: any) => (pledgeRescheduleHistory[p.id] || []).some((r: any) => new Date(r.old_expected_date) < new Date(r.created_at))
     const watchList = Object.values(byDonor).map(d => {
-      const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today) || (p.status === 'pending' && wasRescheduledWhileOverdue(p)))
-      return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
+      const broken = d.pledges.filter((p: any) => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today) || (p.status === 'pending' && wasRescheduledWhileOverdue(p)))
+      return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter((p: any) => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
     return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList }
   }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf, pledgeRescheduleHistory])
 
   const pledgeConcentrationStats = React.useMemo(() => {
-    const outstandingUnits = []
+    const outstandingUnits: any[] = []
     pledges.filter(p => p.status === 'pending').forEach(p => {
       const donorKey = p.donor_email?.trim() || p.donor_name
       if (p.is_multi_year) {
@@ -6176,7 +6176,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const totalOutstanding = outstandingUnits.reduce((s, u) => s + u.amount, 0)
 
-    const byDonorOutstanding = {}
+    const byDonorOutstanding: Record<string, any> = {}
     outstandingUnits.forEach(u => {
       if (!byDonorOutstanding[u.donorKey]) byDonorOutstanding[u.donorKey] = { name: u.donor_name, amount: 0 }
       byDonorOutstanding[u.donorKey].amount += u.amount
@@ -6190,7 +6190,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
     const tooFewDonors = donorRanked.length < 2
 
-    const byMonth = {}
+    const byMonth: Record<string, any> = {}
     outstandingUnits.forEach(u => {
       const d = new Date(u.expected_date)
       const key = `${d.getFullYear()}-${d.getMonth()}`
@@ -6206,7 +6206,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const recurringSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const statsForYear = (y) => {
+    const statsForYear = (y: any) => {
       const ds = donations.filter(d => d.recurring_gift_id && d.payment_status === 'confirmed' && fyOf(d.created_at) === y)
       const total = ds.reduce((s, d) => s + d.amount, 0)
       const donorKeys = new Set(ds.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
@@ -6215,7 +6215,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const activeGiftsCount = recurringGifts.filter(g => g.status === 'active').length
     const tiles = [
       { label: 'Active Recurring Gifts', val: activeGiftsCount, tip: 'Recurring gifts currently marked active, as of today. Not scoped to a year — this reflects your live portfolio right now.' },
@@ -6227,8 +6227,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, donations, recurringGifts, fyOf])
 
   const recurringMrrStats = React.useMemo(() => {
-    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
-    const mrrAsOfEndOfYear = (y) => {
+    const monthlyEquivalent = (g: any) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
+    const mrrAsOfEndOfYear = (y: any) => {
       const yearEnd = fiscalYearBounds(y, fyEndMonth, fyEndDay).end
       const activeAtYearEnd = recurringGifts.filter(g => new Date(g.created_at) <= yearEnd && (g.status === 'active' || (g.cancelled_at && new Date(g.cancelled_at) > yearEnd)))
       return activeAtYearEnd.reduce((s, g) => s + monthlyEquivalent(g), 0)
@@ -6257,14 +6257,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     // Terminated bank mandates are excluded from revenue-counting MRR -- the bank has cut off
     // the deduction, so this money will not actually arrive until the donor re-authorizes.
-    const isRevenueGenerating = (g) => g.authorization_status !== 'terminated'
+    const isRevenueGenerating = (g: any) => g.authorization_status !== 'terminated'
     const mrr = activeGifts.filter(isRevenueGenerating).reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
     const mrrAgo = activeGiftsAgo.filter(isRevenueGenerating).reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
     const mrrDiffPct = mrrAgo > 0 ? Math.round(((mrr - mrrAgo) / mrrAgo) * 100) : null
 
     const cancelledGifts = recurringGifts.filter(g => g.status === 'cancelled' && g.cancelled_at)
     const avgLifespanMonths = cancelledGifts.length > 0
-      ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at) - new Date(g.created_at)) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
+      ? Math.round(cancelledGifts.reduce((s, g) => s + (new Date(g.cancelled_at).getTime() - new Date(g.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30.44), 0) / cancelledGifts.length)
       : null
 
     const atRiskGifts = giroMissedCycles.filter(g => g.missedCycles >= recurringMissedThreshold)
@@ -6290,8 +6290,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // happened, for every gift that was live at some point during the fiscal year — same
     // received/expected math as the per-gift reliability shown on the Recurring Giving tab
     // cards, just rolled up and scoped to a fiscal year instead of since-inception.
-    const gapDaysFor = (g) => ({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30)
-    const reliabilityForYear = (yr) => {
+    const gapDaysFor = (g: any) => (({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 } as Record<string, number>)[g.frequency] || 30)
+    const reliabilityForYear = (yr: any) => {
       const { start, end } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
       const windowEnd = end < today ? end : today
       let totalExpected = 0, totalReceived = 0
@@ -6303,7 +6303,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         const windowStart = gStart > start ? gStart : start
         if (windowStart > windowEnd) return
         const gapMs = gapDaysFor(g) * 24 * 60 * 60 * 1000
-        const expected = Math.max(1, Math.floor((windowEnd - windowStart) / gapMs) + 1)
+        const expected = Math.max(1, Math.floor((windowEnd.getTime() - windowStart.getTime()) / gapMs) + 1)
         const received = donations.filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed' && new Date(d.created_at) >= windowStart && new Date(d.created_at) <= windowEnd).length
         totalExpected += expected
         totalReceived += Math.min(received, expected)
@@ -6335,7 +6335,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [giroMissedCycles, recurringSkipHistory, recurringGifts])
 
   const recurringAuthStats = React.useMemo(() => {
-    const monthlyEquivalent = (g) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
+    const monthlyEquivalent = (g: any) => g.frequency === 'weekly' ? Number(g.amount) * 4.33 : g.frequency === 'quarterly' ? Number(g.amount) / 3 : g.frequency === 'annually' ? Number(g.amount) / 12 : Number(g.amount)
     const bankGifts = recurringGifts.filter(g => g.status === 'active' && (g.type === 'giro' || g.type === 'standing_order'))
     const pendingCount = bankGifts.filter(g => g.authorization_status === 'pending').length
     const authorizedCount = bankGifts.filter(g => !g.authorization_status || g.authorization_status === 'active').length
@@ -6347,7 +6347,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeGifts = recurringGifts.filter(g => g.status === 'active')
     const totalActive = activeGifts.reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
 
-    const byProgramme = {}
+    const byProgramme: Record<string, any> = {}
     activeGifts.forEach(g => {
       const key = g.cause_id || 'none'
       if (!byProgramme[key]) byProgramme[key] = 0
@@ -6358,8 +6358,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
     })).sort((a, b) => b.amount - a.amount)
 
-    const typeLabels = { giro: 'GIRO', habitual_paynow: 'Habitual PayNow', standing_order: 'Standing Order', other: 'Other' }
-    const byType = {}
+    const typeLabels: Record<string, string> = { giro: 'GIRO', habitual_paynow: 'Habitual PayNow', standing_order: 'Standing Order', other: 'Other' }
+    const byType: Record<string, any> = {}
     activeGifts.forEach(g => {
       const key = g.type || 'other'
       if (!byType[key]) byType[key] = 0
@@ -6374,52 +6374,52 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const grantsWithNextReport = React.useMemo(() => {
     return grants.map(g => {
-      const upcoming = (grantReports[g.id] || []).filter(r => !r.submitted).sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+      const upcoming = (grantReports[g.id] || []).filter((r: any) => !r.submitted).sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
       return { ...g, report_due_date: upcoming[0]?.due_date || null }
     })
   }, [grants, grantReports])
 
   const grantExpensesByGrant = React.useMemo(() => {
-    const m = {}
+    const m: Record<string, any> = {}
     grantExpenses.forEach(e => { (m[e.grant_id] = m[e.grant_id] || []).push(e) })
     return m
   }, [grantExpenses])
 
   const campaignExpensesByCause = React.useMemo(() => {
-    const m = {}
+    const m: Record<string, any> = {}
     campaignExpenses.forEach(e => { (m[e.cause_id] = m[e.cause_id] || []).push(e) })
     return m
   }, [campaignExpenses])
 
   const donationsByRecurringGift = React.useMemo(() => {
-    const m = {}
+    const m: Record<string, any> = {}
     donations.forEach(d => { if (d.recurring_gift_id) (m[d.recurring_gift_id] = m[d.recurring_gift_id] || []).push(d) })
-    Object.values(m).forEach(list => list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+    Object.values(m).forEach(list => list.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
     return m
   }, [donations])
 
   const donationsByPledge = React.useMemo(() => {
-    const m = {}
+    const m: Record<string, any> = {}
     Object.entries(pledgeDonationLinks).forEach(([pledgeId, links]) => {
-      m[pledgeId] = links.map(l => {
+      m[pledgeId] = links.map((l: any) => {
         const donation = donations.find(d => d.id === l.donation_id)
         return { ...l, payment_status: donation?.payment_status, notes: donation?.notes, source: donation?.source }
-      }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      }).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     })
     return m
   }, [pledgeDonationLinks, donations])
 
   const grantSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
-    const statsForYear = (y) => {
+    const grantYearOf = (g: any) => fyOf(g.start_date || g.created_at)
+    const statsForYear = (y: any) => {
       const gs = grantsWithNextReport.filter(g => grantYearOf(g) === y)
       const total = gs.reduce((s, g) => s + Number(g.amount), 0)
       return { total, count: gs.length, avg: gs.length > 0 ? total / gs.length : 0 }
     }
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
-    const delta = (c, p) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
+    const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
     const activeGrantsCount = grantsWithNextReport.filter(g => g.status === 'active').length
     const tiles = [
       { label: 'Active Grants', val: activeGrantsCount, tip: `Grants currently marked active, as of today. Not scoped to ${yr} — this reflects your live grant portfolio right now.` },
@@ -6431,7 +6431,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, grantsWithNextReport, fyOf])
 
   const grantOverviewStats = React.useMemo(() => {
-    const grantYearOf = (g) => fyOf(g.start_date || g.created_at)
+    const grantYearOf = (g: any) => fyOf(g.start_date || g.created_at)
     const allYearsWithGrants = [...new Set(grantsWithNextReport.map(grantYearOf))].sort((a, b) => a - b)
     const trendYears = allYearsWithGrants.slice(-5)
     const trendData = trendYears.map(y => ({
@@ -6454,7 +6454,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       })
     })()
     const totalActiveAmount = yearScopedActiveGrants.reduce((s, g) => s + Number(g.amount), 0)
-    const totalUtilized = yearScopedActiveGrants.reduce((s, g) => s + (grantExpensesByGrant[g.id] || []).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
+    const totalUtilized = yearScopedActiveGrants.reduce((s, g) => s + (grantExpensesByGrant[g.id] || []).reduce((s2: any, e: any) => s2 + Number(e.amount), 0), 0)
     const utilizationRate = totalActiveAmount > 0 ? Math.round((totalUtilized / totalActiveAmount) * 100) : null
 
     const totalActive = activeGrants.reduce((s, g) => s + Number(g.amount), 0)
@@ -6474,8 +6474,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // fully caught up on reports and still be ending soon with no successor funding lined up.
     const expiringSoon = activeGrants.filter(g => g.end_date && new Date(g.end_date) >= today && new Date(g.end_date) <= sixMonthsOut)
 
-    const funderTypeLabelsMap = { government: 'Government / statutory board', corporate: 'Corporate foundation', trust: 'Private trust / individual', other: 'Other' }
-    const byFunderType = {}
+    const funderTypeLabelsMap: Record<string, string> = { government: 'Government / statutory board', corporate: 'Corporate foundation', trust: 'Private trust / individual', other: 'Other' }
+    const byFunderType: Record<string, any> = {}
     activeGrants.forEach(g => {
       const key = g.funder_type || 'unspecified'
       if (!byFunderType[key]) byFunderType[key] = 0
@@ -6487,7 +6487,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })).sort((a, b) => b.amount - a.amount)
 
     const activeGrantIds = new Set(activeGrants.map(g => g.id))
-    const byCategory = {}
+    const byCategory: Record<string, any> = {}
     grantExpenses.filter(e => activeGrantIds.has(e.grant_id)).forEach(e => {
       const key = e.category || 'Uncategorized'
       if (!byCategory[key]) byCategory[key] = 0
@@ -6504,14 +6504,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const restrictedPct = restrictedRollupTotal > 0 ? Math.round((restrictedTotal / restrictedRollupTotal) * 100) : 0
 
     const allReports = Object.values(grantReports).flat()
-    const reportYearOf = (r) => fyOf(r.due_date)
+    const reportYearOf = (r: any) => fyOf(r.due_date)
     const complianceYr = filterYear === 'All' ? fyOf(today) : parseInt(filterYear)
-    const complianceStatsForYear = (y) => {
+    const complianceStatsForYear = (y: any) => {
       const yReports = allReports.filter(r => reportYearOf(r) === y)
       const ySubmitted = yReports.filter(r => r.submitted)
       const yOnTime = ySubmitted.filter(r => new Date(r.submitted_at) <= new Date(r.due_date))
       const yLate = ySubmitted.filter(r => new Date(r.submitted_at) > new Date(r.due_date))
-      const yAvgDaysLate = yLate.length > 0 ? Math.round(yLate.reduce((s, r) => s + Math.ceil((new Date(r.submitted_at) - new Date(r.due_date)) / (1000 * 60 * 60 * 24)), 0) / yLate.length) : null
+      const yAvgDaysLate = yLate.length > 0 ? Math.round(yLate.reduce((s, r) => s + Math.ceil((new Date(r.submitted_at).getTime() - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24)), 0) / yLate.length) : null
       return {
         total: yReports.length,
         submitted: ySubmitted.length,
@@ -6522,14 +6522,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const curCompliance = complianceStatsForYear(complianceYr)
     const prevCompliance = complianceStatsForYear(complianceYr - 1)
     const overdueReports = allReports.filter(r => !r.submitted && new Date(r.due_date) < today)
-    const grantNameByIdForReports = {}
+    const grantNameByIdForReports: Record<string, any> = {}
     grantsWithNextReport.forEach(g => { grantNameByIdForReports[g.id] = g.funder_name })
     const overdueReportsList = overdueReports.map(r => ({
       grant_id: r.grant_id,
       funder_name: grantNameByIdForReports[r.grant_id] || 'Unknown grant',
       label: r.label,
       due_date: r.due_date,
-      daysOverdue: Math.floor((today - new Date(r.due_date)) / (1000 * 60 * 60 * 24)),
+      daysOverdue: Math.floor((today.getTime() - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24)),
     })).sort((a, b) => b.daysOverdue - a.daysOverdue)
     const reportCompliance = {
       yr: complianceYr,
@@ -6551,10 +6551,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // and which matching grants are approaching their end date with claims still behind the cap.
     const matchingGrants = activeGrants.filter(g => g.is_matching && Number(g.match_cap) > 0)
     const totalMatchCap = matchingGrants.reduce((s, g) => s + Number(g.match_cap), 0)
-    const totalMatchClaimed = matchingGrants.reduce((s, g) => s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0), 0)
+    const totalMatchClaimed = matchingGrants.reduce((s, g) => s + (grantMatchClaims[g.id] || []).reduce((s2: any, c: any) => s2 + Number(c.amount), 0), 0)
     const matchClaimedPct = totalMatchCap > 0 ? Math.round((totalMatchClaimed / totalMatchCap) * 100) : null
     const matchingAtRisk = matchingGrants.map(g => {
-      const claimed = (grantMatchClaims[g.id] || []).reduce((s, c) => s + Number(c.amount), 0)
+      const claimed = (grantMatchClaims[g.id] || []).reduce((s: any, c: any) => s + Number(c.amount), 0)
       const cap = Number(g.match_cap)
       const pct = cap > 0 ? Math.round((claimed / cap) * 100) : 0
       const endingSoon = g.end_date && new Date(g.end_date) >= today && new Date(g.end_date) <= sixMonthsOut
@@ -6562,7 +6562,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).filter(m => m.endingSoon && m.pct < 100).sort((a, b) => a.pct - b.pct)
 
     // Disbursement tranche rollup: committed vs actually received cash across active grants.
-    const grantNameById = {}
+    const grantNameById: Record<string, any> = {}
     activeGrants.forEach(g => { grantNameById[g.id] = g.funder_name })
     const activeTranches = activeGrants.flatMap(g => grantTranches[g.id] || [])
     const totalCommitted = activeTranches.reduce((s, t) => s + Number(t.amount), 0)
@@ -6570,7 +6570,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const pendingTranches = activeTranches.filter(t => !t.received).map(t => ({
       funder_name: grantNameById[t.grant_id] || 'Unknown', label: t.label, amount: Number(t.amount), expected_date: t.expected_date,
       overdue: new Date(t.expected_date) < today,
-    })).sort((a, b) => new Date(a.expected_date) - new Date(b.expected_date))
+    })).sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime())
 
     return {
       trendData, totalActiveAmount, totalUtilized, utilizationRate, activeGrants: yearScopedActiveGrants, byFunder, topFunderPct, highRisk, medRisk, tooFewFunders, expiringSoon,
@@ -6582,7 +6582,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const donorRetentionSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const donorMap = {}
+    const donorMap: Record<string, any> = {}
     donations.filter(d => d.payment_status === 'confirmed').forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorMap[key]) donorMap[key] = { total: 0, count: 0, years: new Set() }
@@ -6593,7 +6593,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const allDonors = Object.values(donorMap)
     const repeatCount = allDonors.filter(d => d.count >= 2).length
     const repeatDonorRate = allDonors.length > 0 ? Math.round((repeatCount / allDonors.length) * 100) : 0
-    const avgLTV = allDonors.length > 0 ? Math.round(allDonors.reduce((s, d) => s + d.total, 0) / allDonors.length) : 0
+    const avgLTV = allDonors.length > 0 ? Math.round(allDonors.reduce((s: any, d: any) => s + d.total, 0) / allDonors.length) : 0
 
     const priorYearDonors = allDonors.filter(d => d.years.has(yr - 1))
     const retainedDonors = priorYearDonors.filter(d => d.years.has(yr))
@@ -6607,7 +6607,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const lapsedDonorsStats = React.useMemo(() => {
     const lapsedToday = new Date()
-    const map = {}
+    const map: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!map[key] || new Date(d.created_at) > new Date(map[key].lastDate)) {
@@ -6617,14 +6617,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       map[key].total += d.amount
     })
     const allLapsed = Object.values(map).filter(d => {
-      const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+      const daysSince = Math.floor((lapsedToday.getTime() - new Date(d.lastDate).getTime()) / (1000 * 60 * 60 * 24))
       return daysSince >= lapsedMinDays && d.count >= lapsedMinGifts
     }).map(d => ({ ...d, key: d.email?.trim() || d.name })).sort((a, b) => b.total - a.total)
 
-    const isInReachOutCooldown = (donorKey) => {
+    const isInReachOutCooldown = (donorKey: any) => {
       const history = lapsedReminderHistory[donorKey]
       if (!history || history.length === 0) return false
-      const daysSinceReminder = Math.floor((lapsedToday - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+      const daysSinceReminder = Math.floor((lapsedToday.getTime() - new Date(history[0].sent_at).getTime()) / (1000 * 60 * 60 * 24))
       return daysSinceReminder < 30
     }
 
@@ -6635,7 +6635,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [confirmedDonations, lapsedMinDays, lapsedMinGifts, lapsedDismissals, lapsedReminderHistory])
 
   const quietDonorsStats = React.useMemo(() => {
-    const byDonor = {}
+    const byDonor: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!byDonor[key]) byDonor[key] = { name: d.donor_name, email: d.donor_email, dates: [] }
@@ -6643,14 +6643,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     const now4 = new Date()
     const quiet = Object.values(byDonor).map(donor => {
-      const sorted = donor.dates.sort((a, b) => a - b)
+      const sorted = donor.dates.sort((a: any, b: any) => a - b)
       if (sorted.length < 3) return null
       const gaps = []
       for (let i = 1; i < sorted.length; i++) {
         gaps.push((sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24))
       }
       const avgGapDays = gaps.reduce((s, g) => s + g, 0) / gaps.length
-      const daysSinceLast = (now4 - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
+      const daysSinceLast = (now4.getTime() - sorted[sorted.length - 1]) / (1000 * 60 * 60 * 24)
       if (avgGapDays > 0 && avgGapDays < 60 && daysSinceLast > avgGapDays * 2 && daysSinceLast < 365) {
         return { name: donor.name, email: donor.email, avgGapDays: Math.round(avgGapDays), daysSinceLast: Math.round(daysSinceLast), lastGift: sorted[sorted.length - 1] }
       }
@@ -6665,7 +6665,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeRecurringDonors75 = recurringGifts.filter(g => g.status === 'active')
     return activeRecurringDonors75.map(g => {
       const donorKey75 = g.donor_email?.trim() || g.donor_name
-      const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      const myNotes75 = donorNotes.filter(n => n.donor_key === donorKey75).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       const lastContact75 = myNotes75[0]?.created_at || null
       const isQuiet75 = !lastContact75 || new Date(lastContact75) < yearAgo75
       if (!isQuiet75) return null
@@ -6683,7 +6683,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const yearScopedConfirmed = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
     if (yearScopedConfirmed.length === 0) return []
 
-    const byDonorTotal = {}
+    const byDonorTotal: Record<string, any> = {}
     yearScopedConfirmed.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!byDonorTotal[key]) byDonorTotal[key] = { name: d.donor_name, email: d.donor_email, total: 0, count: 0, firstYear: null }
@@ -6694,8 +6694,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const mostFrequent = Object.values(byDonorTotal).sort((a, b) => b.count - a.count)[0]
     const largestGift = [...yearScopedConfirmed].sort((a, b) => b.amount - a.amount)[0]
 
-    const donorFirstEverYear = {}
-    ;[...donations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+    const donorFirstEverYear: Record<string, any> = {}
+    ;[...donations].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorFirstEverYear[key]) donorFirstEverYear[key] = fyOf(d.created_at)
     })
@@ -6714,7 +6714,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, donations, fyOf])
 
   const givingStreaksStats = React.useMemo(() => {
-    const byDonorMonths = {}
+    const byDonorMonths: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       const dt = new Date(d.created_at)
@@ -6738,7 +6738,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const donorLTVStats = React.useMemo(() => {
     if (confirmedDonations.length === 0) return null
-    const map = {}
+    const map: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!map[key]) map[key] = { name: d.donor_name, total: 0, count: 0, firstDate: d.created_at }
@@ -6747,14 +6747,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (new Date(d.created_at) < new Date(map[key].firstDate)) map[key].firstDate = d.created_at
     })
     const sorted = Object.values(map).sort((a, b) => b.total - a.total)
-    const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s, d) => s + d.total, 0) / sorted.length) : 0
-    const avgGifts = sorted.length > 0 ? (sorted.reduce((s, d) => s + d.count, 0) / sorted.length).toFixed(1) : 0
+    const avgLTV = sorted.length > 0 ? Math.round(sorted.reduce((s: any, d: any) => s + d.total, 0) / sorted.length) : 0
+    const avgGifts = sorted.length > 0 ? (sorted.reduce((s: any, d: any) => s + d.count, 0) / sorted.length).toFixed(1) : 0
     const now59 = new Date()
-    const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59 - new Date(d.firstDate)) / (1000 * 60 * 60 * 24 * 365) }))
+    const withTenure59 = sorted.map(d => ({ ...d, tenureYears: (now59.getTime() - new Date(d.firstDate).getTime()) / (1000 * 60 * 60 * 24 * 365) }))
     const under1yr59 = withTenure59.filter(d => d.tenureYears < 1)
     const oneToTwo59 = withTenure59.filter(d => d.tenureYears >= 1 && d.tenureYears < 2)
     const twoPlus59 = withTenure59.filter(d => d.tenureYears >= 2)
-    const avgOf59 = (arr) => arr.length > 0 ? Math.round(arr.reduce((s, d) => s + d.total, 0) / arr.length) : null
+    const avgOf59 = (arr: any) => arr.length > 0 ? Math.round(arr.reduce((s: any, d: any) => s + d.total, 0) / arr.length) : null
     return { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 }
   }, [confirmedDonations])
 
@@ -6762,7 +6762,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const scoped = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))).filter(d => d.payment_status === 'confirmed')
     if (scoped.length === 0) return null
     const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
-    const byMethod = {}
+    const byMethod: Record<string, any> = {}
     scoped.forEach(d => {
       const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
       if (!byMethod[label]) byMethod[label] = 0
@@ -6775,7 +6775,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const yearlyMix61 = allYears61.map(y => {
       const yearDons = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === y)
       const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
-      const mix = {}
+      const mix: Record<string, any> = {}
       allMethods61.forEach(m => { mix[m] = 0 })
       yearDons.forEach(d => {
         const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
@@ -6788,7 +6788,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [filterYear, donations, fyOf])
 
   const fundingConcentrationStats = React.useMemo(() => {
-    const donorTotals = {}
+    const donorTotals: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
@@ -6806,13 +6806,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const quarterAgo = new Date()
     quarterAgo.setDate(quarterAgo.getDate() - 90)
-    const priorDonorTotals = {}
+    const priorDonorTotals: Record<string, any> = {}
     confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
       priorDonorTotals[key] += d.amount
     })
-    const priorSorted = Object.values(priorDonorTotals).sort((a, b) => b - a)
+    const priorSorted: number[] = Object.values(priorDonorTotals).sort((a: any, b: any) => b - a)
     const priorGrandTotal = priorSorted.reduce((s, t) => s + t, 0)
     const priorTopNTotal = priorSorted.slice(0, concentrationTopN).reduce((s, t) => s + t, 0)
     const priorConcentrationPct = priorGrandTotal > 0 ? Math.round((priorTopNTotal / priorGrandTotal) * 100) : null
@@ -6824,7 +6824,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const topConnectorsStats = React.useMemo(() => {
     const referrals78 = donations.filter(d => d.referred_by_donor_key)
     if (referrals78.length === 0) return []
-    const byReferrer78 = {}
+    const byReferrer78: Record<string, any> = {}
     referrals78.forEach(d => {
       const referrerKey = d.referred_by_donor_key
       const referredKey = d.donor_email?.trim() || d.donor_nric || d.donor_name
@@ -6835,20 +6835,20 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return Object.entries(byReferrer78).map(([referrerKey, info]) => {
       const referrer = donorList.find(d => (d.email?.trim() || d.name) === referrerKey)
       const referredCount = Object.keys(info.referredDonors).length
-      const sustainedCount = Object.values(info.referredDonors).filter(c => c > 1).length
+      const sustainedCount = Object.values(info.referredDonors).filter((c: any) => c > 1).length
       return { name: referrer?.name || referrerKey, referredCount, sustainedCount }
     }).sort((a, b) => b.sustainedCount - a.sustainedCount || b.referredCount - a.referredCount)
   }, [donations, donorList])
 
   const acquisitionSourceStats = React.useMemo(() => {
-    const bySource57 = {}
+    const bySource57: Record<string, any> = {}
     donations.filter(d => d.acquisition_source).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!bySource57[d.acquisition_source]) bySource57[d.acquisition_source] = {}
       if (!bySource57[d.acquisition_source][key]) bySource57[d.acquisition_source][key] = 0
       bySource57[d.acquisition_source][key]++
     })
-    const sourceLabels57 = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
+    const sourceLabels57: Record<string, string> = { referral: 'Referral', event: 'Event', social_media: 'Social Media', walk_in: 'Walk-in', corporate_partner: 'Corporate Partner', other: 'Other' }
     return Object.entries(bySource57).map(([source, donorCounts]) => {
       const donorKeys = Object.keys(donorCounts)
       const repeat = donorKeys.filter(k => donorCounts[k] > 1).length
@@ -6875,7 +6875,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   // (not just when the relevant tab was open) — including two O(n) scans per donor
   // (repeatDonorsThisMonth, longestSupporter). Memoized like every other analytics stat below.
   const allGivingChangeFlags = React.useMemo(() => {
-    const donorTotals = {}
+    const donorTotals: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = donationDonorKey(d)
       if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
@@ -6883,7 +6883,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       donorTotals[key].gifts.push({ amount: d.amount, date: d.created_at })
     })
     return Object.values(donorTotals).filter(d => d.gifts.length >= givingChangeMinGifts).map(d => {
-      const byDate = [...d.gifts].sort((a, b) => new Date(a.date) - new Date(b.date))
+      const byDate = [...d.gifts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       const recent = byDate[byDate.length - 1].amount
       const recentDate = byDate[byDate.length - 1].date
       const prevAvg = byDate.slice(0, -1).reduce((s, g) => s + g.amount, 0) / (byDate.length - 1)
@@ -6907,7 +6907,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
     }).length
     const longestSupporter = donorList.length > 0
-      ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now - new Date([...donations].filter(don => donationDonorKey(don) === contactDonorKey(d)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at)) / (1000 * 60 * 60 * 24 * 30))) }))
+      ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now.getTime() - new Date([...donations].filter(don => donationDonorKey(don) === contactDonorKey(d)).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]?.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))) }))
           .sort((a, b) => b.monthsSupporting - a.monthsSupporting)[0]
       : null
     return { thisMonthTotal, repeatDonorsThisMonth, longestSupporter }
@@ -6919,7 +6919,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   )
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
-  const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
+  const daysToDeadline = Math.ceil((irasDeadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 
   const activeDonationFilterCount = [
     searchTerm !== '',
@@ -6953,10 +6953,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const matchMinAmount = !filterMinAmount || d.amount >= filterMinAmount
     return matchSearch && matchYear && matchType && matchNric && matchSource && matchThankYou && matchMinAmount
   }).sort((a, b) => {
-    if (!donationSortBy) return new Date(b.created_at) - new Date(a.created_at)
+    if (!donationSortBy) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     let cmp = 0
     if (donationSortBy === 'amount') cmp = a.amount - b.amount
-    if (donationSortBy === 'date') cmp = new Date(a.created_at) - new Date(b.created_at)
+    if (donationSortBy === 'date') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     if (donationSortBy === 'donor') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
     if (donationSortBy === 'cause') cmp = (causeNameForDonation(a) || '').localeCompare(causeNameForDonation(b) || '')
     if (donationSortBy === 'source') cmp = (a.source === 'manual' ? 1 : 0) - (b.source === 'manual' ? 1 : 0)
@@ -7000,7 +7000,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const sortedDonorList = React.useMemo(() => {
     if (!donorSortBy) return filteredDonorList
     const dir = donorSortDir === 'asc' ? 1 : -1
-    const valueFor = (d) => {
+    const valueFor = (d: any) => {
       const donorKey = d.email?.trim() || d.name
       if (donorSortBy === 'name') return d.name?.toLowerCase() || ''
       if (donorSortBy === 'total') return d.total || 0
@@ -7031,8 +7031,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }, [searchTerm, filterTopDonorNames, filterDonorKeys, donorStatusFilter, donorYearFilter])
 
 
-  function exportPledgesExcel(searchedPledges) {
-    const rows = searchedPledges.map(p => ({
+  function exportPledgesExcel(searchedPledges: any) {
+    const rows = searchedPledges.map((p: any) => ({
       'Donor Name': p.is_anonymous ? `${p.donor_name} (Anonymous)` : p.donor_name,
       'Email': p.donor_email || '',
       'Phone': p.donor_phone || '',
@@ -7056,8 +7056,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-Pledges-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  function exportGrantsExcel(filteredGrants) {
-    const rows = filteredGrants.map(g => {
+  function exportGrantsExcel(filteredGrants: any) {
+    const rows = filteredGrants.map((g: any) => {
       const spent = grantExpenses.filter(e => e.grant_id === g.id).reduce((s, e) => s + Number(e.amount), 0)
       return {
         'Funder Name': g.funder_name,
@@ -7082,8 +7082,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-Grants-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  function exportRecurringExcel(filteredGifts) {
-    const rows = filteredGifts.map(g => ({
+  function exportRecurringExcel(filteredGifts: any) {
+    const rows = filteredGifts.map((g: any) => ({
       'Donor Name': g.donor_name,
       'Email': g.donor_email || '',
       'Phone': g.donor_phone || '',
@@ -7146,17 +7146,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast(`${data[0].full_name} added ✓`)
   }
 
-  async function exportDonorsExcel(filteredDonors) {
+  async function exportDonorsExcel(filteredDonors: any) {
     const { data: allNotes } = await supabase
       .from('donor_notes')
       .select('donor_key')
       .eq('charity_uen', charityUen)
-    const noteCountByDonor = {}
+    const noteCountByDonor: Record<string, any> = {}
     ;(allNotes || []).forEach(n => {
       noteCountByDonor[n.donor_key] = (noteCountByDonor[n.donor_key] || 0) + 1
     })
 
-    const rows = filteredDonors.map(d => {
+    const rows = filteredDonors.map((d: any) => {
       const donorKey = d.email?.trim() || d.name
       const b = donorBadgeMap[donorKey]
       const milestones = []
@@ -7184,7 +7184,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         'Last Donation': d.lastDate ? new Date(d.lastDate).toLocaleDateString('en-SG') : '',
         'Receipts Issued': d.count > 0 ? `${d.receipts}/${d.count}` : '',
         'Milestones': milestones.join(', '),
-        'Tags': (donorTagsMap[donorKey] || []).map(t => t.tag).join(', '),
+        'Tags': (donorTagsMap[donorKey] || []).map((t: any) => t.tag).join(', '),
         'Do Not Contact': d.doNotContact ? 'Yes' : 'No',
         'Open Pledge (SGD)': openPledge ? openPledge.amount : '',
         'Fulfilled Pledges': fulfilledPledgeCount || '',
@@ -7200,8 +7200,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-Donors-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  function exportCampaignsExcel(filteredCampaigns) {
-    const rows = filteredCampaigns.map(c => {
+  function exportCampaignsExcel(filteredCampaigns: any) {
+    const rows = filteredCampaigns.map((c: any) => {
       const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
       return {
         'Title': c.title,
@@ -7228,8 +7228,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-Campaigns-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  function exportMassAppealsExcel(filteredAppeals) {
-    const rows = filteredAppeals.map(a => ({
+  function exportMassAppealsExcel(filteredAppeals: any) {
+    const rows = filteredAppeals.map((a: any) => ({
       'Date': new Date(a.created_at).toLocaleDateString('en-SG'),
       'Campaign': a.cause_name || 'General Appeal',
       'Default Amount (SGD)': a.amount,
@@ -7248,8 +7248,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-MassAppeals-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  function exportAuditLogExcel(filteredEntries) {
-    const rows = filteredEntries.map(e => ({
+  function exportAuditLogExcel(filteredEntries: any) {
+    const rows = filteredEntries.map((e: any) => ({
       'Date': new Date(e.created_at).toLocaleString('en-SG'),
       'Actor': e.actor_email || e.actor_type || '',
       'Action': e.action,
@@ -7289,7 +7289,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   // Year-filtered donor map for IRAS tab
-  const irasYearDonorMap = {}
+  const irasYearDonorMap: Record<string, any> = {}
   donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!irasYearDonorMap[key]) irasYearDonorMap[key] = { name: d.donor_name, total: 0, count: 0, donations: [] }
@@ -7351,7 +7351,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
   }
 
-  async function saveVisibleMetrics(metrics) {
+  async function saveVisibleMetrics(metrics: any) {
     const { error } = await supabase.from('charity_contacts').update({ visible_metrics: metrics }).eq('charity_uen', charityUen)
     if (error) { showToast('Could not save your preferences', 'error'); return }
     setVisibleMetrics(metrics)
@@ -7359,10 +7359,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast('Analytics view updated ✓')
   }
 
-  async function toggleEnabledModule(key) {
+  async function toggleEnabledModule(key: any) {
     const turningOff = enabledModules[key] !== false
     if (turningOff) {
-      const recordCounts = {
+      const recordCounts: Record<string, number> = {
         campaigns: myCauses.filter(c => c.type === 'campaign').length,
         massappeal: massAppeals.length,
         pledges: pledges.length,
@@ -7375,7 +7375,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         return
       }
     }
-    const { error, next: updated } = await updateCharityJsonField(charityUen, 'enabled_modules', current => ({ ...(current || {}), [key]: !turningOff }))
+    const { error, next: updated } = await updateCharityJsonField(charityUen, 'enabled_modules', (current: any) => ({ ...(current || {}), [key]: !turningOff }))
     if (error) { showToast('Could not save your preferences', 'error'); return }
     setEnabledModules(updated)
     await supabase.from('audit_log').insert({
@@ -7388,12 +7388,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} ${updated[key] ? 'enabled' : 'hidden'} ✓`)
   }
 
-  function removeTeamMember(role, email) {
+  function removeTeamMember(role: any, email: any) {
     const proceed = async () => {
-      const columnMap = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
-      const currentMap = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
-      const setterMap = { ed: setLocalEds, staff: setLocalStaff, board: setLocalBoardMembers, volunteer: setLocalVolunteers }
-      const updated = currentMap[role].filter(e => e !== email)
+      const columnMap: Record<string, string> = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+      const currentMap: Record<string, any> = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
+      const setterMap: Record<string, any> = { ed: setLocalEds, staff: setLocalStaff, board: setLocalBoardMembers, volunteer: setLocalVolunteers }
+      const updated = currentMap[role].filter((e: any) => e !== email)
       const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
       if (error) { showToast('Error removing', 'error'); return }
       await supabase.from('audit_log').insert({
@@ -7424,8 +7424,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   async function saveCumulativeThresholds() {
-    const vals = cumulativeThresholdsInput.map(v => parseFloat(v))
-    if (vals.some(v => !v || isNaN(v) || v <= 0)) { showToast('Enter three valid amounts', 'error'); return }
+    const vals = cumulativeThresholdsInput.map((v: any) => parseFloat(v))
+    if (vals.some((v: any) => !v || isNaN(v) || v <= 0)) { showToast('Enter three valid amounts', 'error'); return }
     const sorted = [...vals].sort((a, b) => a - b)
     if (sorted.some((v, i) => v !== vals[i])) { showToast('Amounts must be in ascending order', 'error'); return }
     const { error } = await supabase.from('charity_contacts').update({ cumulative_milestone_thresholds: vals }).eq('charity_uen', charityUen)
@@ -7496,13 +7496,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast('Financial year end updated ✓')
   }
 
-  function showToast(msg, type = 'success') {
+  function showToast(msg: any, type = 'success') {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast({ msg, type })
     toastTimerRef.current = setTimeout(() => setToast(null), 4000)
   }
 
-  function generateThankYouNote(donor, badgeState) {
+  function generateThankYouNote(donor: any, badgeState: any) {
     setThankYouDraft({
       donor,
       badgeState,
@@ -7511,7 +7511,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
   }
 
-  function buildThankYouNote(donor, badgeState) {
+  function buildThankYouNote(donor: any, badgeState: any) {
     const lines = []
     lines.push(`Dear ${donor.name},`)
     lines.push('')
@@ -7538,7 +7538,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return lines.join('\n')
   }
 
-  async function ackDonorBadges(donor, badgeState) {
+  async function ackDonorBadges(donor: any, badgeState: any) {
     const donorKey = donor.email?.trim() || donor.name
     const badgesToAck = []
     if (badgeState.unackedFirstTime) badgesToAck.push('first_time')
@@ -7604,7 +7604,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         body: allGivingChangeFlags.slice(0, 10).map(f => [f.name, `${f.changePct > 0 ? '+' : ''}${f.changePct}%`]),
         margin: { left: 14 },
       })
-      y13 = doc.lastAutoTable.finalY + 10
+      y13 = (doc as any).lastAutoTable.finalY + 10
     }
 
     doc.setFontSize(13); doc.setFont('helvetica', 'bold')
@@ -7622,7 +7622,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         body: overduePledges13.slice(0, 10).map(p => [p.donor_name, `$${Number(p.amount).toLocaleString()}`, new Date(p.expected_date).toLocaleDateString('en-SG')]),
         margin: { left: 14 },
       })
-      y13 = doc.lastAutoTable.finalY + 10
+      y13 = (doc as any).lastAutoTable.finalY + 10
     }
 
     doc.setFontSize(13); doc.setFont('helvetica', 'bold')
@@ -7690,7 +7690,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
         footStyles: { fontStyle: 'italic', textColor: [122, 110, 98] },
       })
-      y = doc.lastAutoTable.finalY + 14
+      y = (doc as any).lastAutoTable.finalY + 14
     }
 
     doc.setFontSize(13); doc.setFont('helvetica', 'bold')
@@ -7704,7 +7704,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
     })
 
-    const finalY = doc.lastAutoTable.finalY + 14
+    const finalY = (doc as any).lastAutoTable.finalY + 14
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
 
@@ -7762,7 +7762,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const recurringQTotal = recurringMonthly54 * 3
     const oneOffQTotal = qTotal - qDonations.filter(d => d.recurring_gift_id).reduce((s, d) => s + d.amount, 0)
 
-    const byMethod54 = {}
+    const byMethod54: Record<string, any> = {}
     qDonations.forEach(d => {
       const method = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow'
       byMethod54[method] = (byMethod54[method] || 0) + d.amount
@@ -7815,9 +7815,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.save(`GivingTree-QuarterlyBoardSummary-${charityName}-${quarterLabel54.replace(' ', '-')}.pdf`)
   }
 
-  function exportGrantReportPDF(grant) {
+  function exportGrantReportPDF(grant: any) {
     const doc = new jsPDF()
-    const myExpenses = grantExpenses.filter(e => e.grant_id === grant.id).sort((a, b) => new Date(a.expense_date) - new Date(b.expense_date))
+    const myExpenses = grantExpenses.filter(e => e.grant_id === grant.id).sort((a, b) => new Date(a.expense_date).getTime() - new Date(b.expense_date).getTime())
     const totalSpent = myExpenses.reduce((s, e) => s + Number(e.amount), 0)
     const remaining = Number(grant.amount) - totalSpent
 
@@ -7871,32 +7871,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       footStyles: { fillColor: [250, 247, 242], textColor: [27, 67, 50], fontStyle: 'bold' },
     })
 
-    const finalY = doc.lastAutoTable.finalY + 14
+    const finalY = (doc as any).lastAutoTable.finalY + 14
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text(`Prepared by ${charityName}. Generated by Giving Tree — a free donation platform for Singapore charities.`, 14, finalY, { maxWidth: 180 })
 
     doc.save(`${grant.funder_name.replace(/[^a-zA-Z0-9]/g, '_')}-Grant-Report-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
-  function generateReceiptPDFDoc(donation) {
+  function generateReceiptPDFDoc(donation: any) {
     const doc = new jsPDF()
     const isIpc = charityIsIpc
     const pageWidth = 210
     const pageHeight = 297
     const margin = 22
     const contentWidth = pageWidth - margin * 2
-    const forest = [27, 67, 50]
-    const sage = [61, 122, 92]
-    const gold = [180, 135, 14]
-    const mutedText = [130, 122, 112]
-    const faintText = [178, 172, 162]
-    const darkText = [35, 35, 35]
-    const hairline = [232, 226, 216]
+    const forest = [27, 67, 50] as [number, number, number]
+    const sage = [61, 122, 92] as [number, number, number]
+    const gold = [180, 135, 14] as [number, number, number]
+    const mutedText = [130, 122, 112] as [number, number, number]
+    const faintText = [178, 172, 162] as [number, number, number]
+    const darkText = [35, 35, 35] as [number, number, number]
+    const hairline = [232, 226, 216] as [number, number, number]
     // Small uppercase labels (ISSUED TO, AMOUNT DONATED, etc.) get slight letter-spacing for a
     // more considered print feel — but only when left-aligned. jsPDF's width calc for
     // center/right-aligned text doesn't account for charSpace, so applying it there silently
     // throws off the centering/right-edge alignment.
-    const microLabel = (text, x, ty, opts = {}) => {
+    const microLabel = (text: any, x: any, ty: any, opts: any = {}) => {
       if (opts.align === 'center' || opts.align === 'right') { doc.text(text, x, ty, opts); return }
       doc.setCharSpace(0.6)
       doc.text(text, x, ty, opts)
@@ -7907,7 +7907,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // so the page still reads as distinctly *this* charity's document even with the header covered.
     try {
       doc.saveGraphicsState()
-      doc.setGState(new doc.GState({ opacity: 0.045 }))
+      doc.setGState(new (doc as any).GState({ opacity: 0.045 }))
       if (charityLogoDataUrl) {
         const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
         const size = 130
@@ -8117,19 +8117,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return doc
   }
 
-  function exportSingleReceiptPDF(donation) {
+  function exportSingleReceiptPDF(donation: any) {
     const doc = generateReceiptPDFDoc(donation)
     doc.save(`Receipt-${donation.receipt_number || donation.payment_ref || donation.id}.pdf`)
   }
 
-  function getReceiptPDFBase64(donation) {
+  function getReceiptPDFBase64(donation: any) {
     const doc = generateReceiptPDFDoc(donation)
     return doc.output('datauristring').split(',')[1]
   }
 
-  function generateDonorYearEndStatementDoc(donorName, donorDonations, year) {
+  function generateDonorYearEndStatementDoc(donorName: any, donorDonations: any, year: any) {
     const doc = new jsPDF()
-    const sorted = [...donorDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    const sorted = [...donorDonations].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     const total = sorted.reduce((s, d) => s + d.amount, 0)
 
     doc.setFillColor(27, 67, 50)
@@ -8162,7 +8162,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       headStyles: { fillColor: [27, 67, 50], textColor: [255, 255, 255] },
     })
 
-    let finalY = doc.lastAutoTable.finalY + 14
+    let finalY = (doc as any).lastAutoTable.finalY + 14
     const impactNotes81 = sorted.filter(d => d.impact_note?.trim())
     if (impactNotes81.length > 0) {
       doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(28, 28, 28)
@@ -8190,7 +8190,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === year && d.payment_status === 'confirmed' && !d.is_anonymous)
     if (yearDons.length === 0) { showToast('No donations found for this year', 'error'); return }
 
-    const byDonor = {}
+    const byDonor: Record<string, any> = {}
     yearDons.forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!byDonor[key]) byDonor[key] = { name: d.donor_name, donations: [] }
@@ -8220,11 +8220,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
     const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
     const yearDonors = new Set(yearDons.map(d => d.donor_name)).size
-    const yearTop = Object.values(yearDons.reduce((acc, d) => {
+    const yearTop: any[] = Object.values(yearDons.reduce((acc: Record<string, any>, d) => {
       acc[d.donor_name] = acc[d.donor_name] || { name: d.donor_name, total: 0 }
       acc[d.donor_name].total += d.amount
       return acc
-    }, {})).sort((a, b) => b.total - a.total).slice(0, 5)
+    }, {})).sort((a: any, b: any) => b.total - a.total).slice(0, 5)
     const monthly = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => ({
       month: m,
       total: yearDons.filter(d => new Date(d.created_at).getMonth() === i).reduce((s, d) => s + d.amount, 0),
@@ -8271,7 +8271,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
     })
 
-    const finalY = doc.lastAutoTable.finalY + 14
+    const finalY = (doc as any).lastAutoTable.finalY + 14
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
 
@@ -8283,9 +8283,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeGrants92 = grants.filter(g => g.status === 'active')
     const today92 = new Date()
 
-    const allReportRows = []
+    const allReportRows: any[] = []
     activeGrants92.forEach(g => {
-      (grantReports[g.id] || []).forEach(r => {
+      (grantReports[g.id] || []).forEach((r: any) => {
         const isOverdue = !r.submitted && new Date(r.due_date) < today92
         allReportRows.push([
           g.funder_name,
@@ -8297,9 +8297,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     allReportRows.sort((a, b) => (a[3] === 'OVERDUE' ? -1 : 1) - (b[3] === 'OVERDUE' ? -1 : 1))
 
-    const allTrancheRows = []
+    const allTrancheRows: any[] = []
     activeGrants92.forEach(g => {
-      (grantTranches[g.id] || []).forEach(t => {
+      (grantTranches[g.id] || []).forEach((t: any) => {
         const isOverdue = !t.received && new Date(t.expected_date) < today92
         allTrancheRows.push([
           g.funder_name,
@@ -8358,7 +8358,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         }
       },
     })
-    y92 = doc.lastAutoTable.finalY + 14
+    y92 = (doc as any).lastAutoTable.finalY + 14
 
     doc.setFontSize(13); doc.setFont('helvetica', 'bold')
     doc.text('Disbursement Tranches', 14, y92)
@@ -8376,7 +8376,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         }
       },
     })
-    y92 = doc.lastAutoTable.finalY + 14
+    y92 = (doc as any).lastAutoTable.finalY + 14
 
     if (matchingGrants92.length > 0) {
       doc.setFontSize(13); doc.setFont('helvetica', 'bold')
@@ -8386,14 +8386,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         startY: y92,
         head: [['Funder', 'Ratio', 'Claimed', 'Cap', '% Claimed']],
         body: matchingGrants92.map(g => {
-          const claimed = (grantMatchClaims[g.id] || []).reduce((s, c) => s + Number(c.amount), 0)
+          const claimed = (grantMatchClaims[g.id] || []).reduce((s: any, c: any) => s + Number(c.amount), 0)
           const cap = Number(g.match_cap) || 0
           return [g.funder_name, g.match_ratio || '—', `$${claimed.toLocaleString()}`, `$${cap.toLocaleString()}`, cap > 0 ? `${Math.round((claimed / cap) * 100)}%` : '—']
         }),
         styles: { fontSize: 9 },
         headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
       })
-      y92 = doc.lastAutoTable.finalY + 14
+      y92 = (doc as any).lastAutoTable.finalY + 14
     }
 
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
@@ -8404,7 +8404,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   function exportPermitRegister() {
     const doc = new jsPDF()
     const campaigns92 = myCauses.filter(c => c.type === 'campaign')
-    const permitLabel = (status) => status === 'obtained' ? 'Permit Obtained' : status === 'pending' ? 'Permit Pending' : 'Not Required'
+    const permitLabel = (status: any) => status === 'obtained' ? 'Permit Obtained' : status === 'pending' ? 'Permit Pending' : 'Not Required'
     const rows92 = campaigns92.map(c => {
       const expired = c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date()
       return [
@@ -8444,7 +8444,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       },
     })
 
-    const finalY92 = doc.lastAutoTable.finalY + 14
+    const finalY92 = (doc as any).lastAutoTable.finalY + 14
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY92)
     doc.save(`GivingTree-PermitRegister-${charityName}-${new Date().toISOString().split('T')[0]}.pdf`)
@@ -8460,8 +8460,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const restrictedAmt = Number(g.restricted_amount)
       const grantStart = new Date(g.start_date || g.created_at)
       const expenses = grantExpensesByGrant[g.id] || []
-      const expensesBefore = expenses.filter(e => new Date(e.expense_date) < fyStart).reduce((s, e) => s + Number(e.amount), 0)
-      const expensesDuring = expenses.filter(e => new Date(e.expense_date) >= fyStart && new Date(e.expense_date) <= fyEnd).reduce((s, e) => s + Number(e.amount), 0)
+      const expensesBefore = expenses.filter((e: any) => new Date(e.expense_date) < fyStart).reduce((s: any, e: any) => s + Number(e.amount), 0)
+      const expensesDuring = expenses.filter((e: any) => new Date(e.expense_date) >= fyStart && new Date(e.expense_date) <= fyEnd).reduce((s: any, e: any) => s + Number(e.amount), 0)
 
       const opening = grantStart < fyStart ? Math.max(0, restrictedAmt - Math.min(expensesBefore, restrictedAmt)) : 0
       const receipts = (grantStart >= fyStart && grantStart <= fyEnd) ? restrictedAmt : 0
@@ -8514,7 +8514,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       styles: { fontSize: 8.5 },
       headStyles: { fillColor: [212, 160, 23], textColor: [27, 67, 50] },
     })
-    const finalY93 = doc.lastAutoTable.finalY + 12
+    const finalY93 = (doc as any).lastAutoTable.finalY + 12
 
     doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Methodology: for each restricted grant, expenditure is drawn from its restricted balance first (up to the restricted amount). This statement does not distinguish restricted vs. unrestricted spend within a single expense entry — review with your treasurer/auditor before use in audited financial statements.', 14, finalY93, { maxWidth: 182 })
@@ -8579,19 +8579,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // prompts (birthdays, anniversaries, thank-yous, check-ins, etc.).
     const suppressedKeys = new Set()
     donations.forEach(d => { if (d.donor_deceased || d.donor_do_not_contact) suppressedKeys.add(donationDonorKey(d)) })
-    const notSuppressed = (key) => !suppressedKeys.has(key)
+    const notSuppressed = (key: any) => !suppressedKeys.has(key)
 
     const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
     if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
-    const wasRecentlyReminded = (p) => {
+    const wasRecentlyReminded = (p: any) => {
       const history = pledgeReminderHistory[p.id]
       if (!history || history.length === 0) return false
-      const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
+      const daysSinceLastReminder = Math.floor((today.getTime() - new Date(history[0].sent_at).getTime()) / (1000 * 60 * 60 * 24))
       return daysSinceLastReminder < 7
     }
     const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
-    const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= pledgeDueSoonDays }) : []
+    const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= pledgeDueSoonDays }) : []
     if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
     if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within ${pledgeDueSoonDays} days and may need a gentle reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
@@ -8611,17 +8611,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
     // items also count a sent thank-you. The item's count shows only who's left, and it
     // clears itself once everyone's been actioned.
-    const contactedSince = (key, sinceMs) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
+    const contactedSince = (key: any, sinceMs: any) => { const last = key ? donorLastContactMap[key] : null; return !!(last && new Date(last).getTime() >= sinceMs) }
     const donationKey = donationDonorKey
-    const jumpToDonors69 = (keys, label, insightKey = null) => () => { setFilterDonorKeys(keys); setFilterTopDonorNames(null); setDonorFilterLabel(label); setActiveInsightKey(insightKey); setActiveTab('donors') }
+    const jumpToDonors69 = (keys: any, label: any, insightKey: any = null) => () => { setFilterDonorKeys(keys); setFilterTopDonorNames(null); setDonorFilterLabel(label); setActiveInsightKey(insightKey); setActiveTab('donors') }
     const periodKey69 = isoWeekKey(today)
-    const notDismissed69 = (key, insightKey) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
+    const notDismissed69 = (key: any, insightKey: any) => !insightDismissals.some(d => d.donor_key === key && d.insight_key === insightKey && d.period_key === periodKey69)
 
     const monthAgo69 = today.getTime() - 30 * 24 * 60 * 60 * 1000
-    const lapsedFiltered69 = Object.values((() => { const map = {}; confirmedDonations.forEach(d => { const key = donationDonorKey(d); if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
+    const lapsedFiltered69 = Object.values((() => { const map: Record<string, any> = {}; confirmedDonations.forEach(d => { const key = donationDonorKey(d); if (!map[key]) map[key] = { count: 0, lastDate: d.created_at, key }; map[key].count++; if (new Date(d.created_at) > new Date(map[key].lastDate)) map[key].lastDate = d.created_at }); return map })()).filter(d => {
       if (!notSuppressed(d.key) || !notDismissed69(d.key, 'lapsed_donors')) return false
       if (d.count < lapsedMinGifts) return false
-      const daysSince = Math.floor((today - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+      const daysSince = Math.floor((today.getTime() - new Date(d.lastDate).getTime()) / (1000 * 60 * 60 * 24))
       if (daysSince < lapsedMinDays) return false
       if (lapsedDismissals[d.key]) return false
       // Matches the per-donor "Right now" card's clearing check — any logged contact
@@ -8645,9 +8645,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', jump: jumpToDonors69(biggestYetToThank.map(d => donationKey(d)), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`, 'milestones_biggest_yet') })
 
     // Anniversary + cumulative threshold + streak milestones
-    const donorFirstGiftDate69 = {}
-    const donorCumulative69 = {}
-    const keyToName69 = {}
+    const donorFirstGiftDate69: Record<string, any> = {}
+    const donorCumulative69: Record<string, any> = {}
+    const keyToName69: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = donationDonorKey(d)
       if (!donorFirstGiftDate69[key] || new Date(d.created_at) < new Date(donorFirstGiftDate69[key])) donorFirstGiftDate69[key] = d.created_at
@@ -8659,7 +8659,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const anniversariesThisWeek = Object.entries(donorFirstGiftDate69).filter(([key, firstDate]) => {
       const fd = new Date(firstDate)
       const thisYearAnniversary = new Date(today.getFullYear(), fd.getMonth(), fd.getDate())
-      const daysDiff = Math.floor((thisYearAnniversary - today) / (1000 * 60 * 60 * 24))
+      const daysDiff = Math.floor((thisYearAnniversary.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       return fd.getFullYear() < today.getFullYear() && daysDiff >= -7 && daysDiff <= 0 && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'donor_anniversaries')
     })
     if (anniversariesThisWeek.length > 0) {
@@ -8671,7 +8671,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const crossedThresholdKeys = Object.entries(donorCumulative69).filter(([key, total]) => {
       if (!notSuppressed(key) || contactedSince(key, weekAgo.getTime()) || !notDismissed69(key, 'cumulative_thresholds')) return false
       const priorTotal = total - confirmedDonations.filter(d => donationDonorKey(d) === key && new Date(d.created_at) >= weekAgo).reduce((s, d) => s + d.amount, 0)
-      return cumulativeThresholds69.some(t => priorTotal < t && total >= t)
+      return cumulativeThresholds69.some((t: any) => priorTotal < t && total >= t)
     }).map(([key]) => key)
     if (crossedThresholdKeys.length > 0) {
       const names = crossedThresholdKeys.map(key => keyToName69[key])
@@ -8679,7 +8679,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
 
     const streakMilestones69 = [12, 24, 36, 60]
-    const streakDonorMonths69 = {}
+    const streakDonorMonths69: Record<string, any> = {}
     confirmedDonations.forEach(d => {
       const key = donationDonorKey(d)
       const dt = new Date(d.created_at)
@@ -8704,11 +8704,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const grantReportsDue83 = grantsWithNextReport.filter(g => {
       if (!g.report_due_date || g.status !== 'active') return false
-      const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+      const days = Math.ceil((new Date(g.report_due_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       return days >= 0 && days <= 60
     })
     grantReportsDue83.forEach(g => {
-      const days = Math.ceil((new Date(g.report_due_date) - today) / (1000 * 60 * 60 * 24))
+      const days = Math.ceil((new Date(g.report_due_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
     })
 
@@ -8716,7 +8716,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const donorKey80b = contactDonorKey(d)
       const contact80b = donorContacts.find(c => contactDonorKey(c) === donorKey80b)
       const lastVisited80b = contact80b?.last_visited_date
-      const monthsSinceVisit80b = lastVisited80b ? (today - new Date(lastVisited80b)) / (1000 * 60 * 60 * 24 * 30) : null
+      const monthsSinceVisit80b = lastVisited80b ? (today.getTime() - new Date(lastVisited80b).getTime()) / (1000 * 60 * 60 * 24 * 30) : null
       return { ...d, lastVisited: lastVisited80b, needsVisit: monthsSinceVisit80b === null || monthsSinceVisit80b >= 6 }
     }).filter(d => d.needsVisit && notSuppressed(contactDonorKey(d)) && !contactedSince(contactDonorKey(d), monthAgo.getTime()) && notDismissed69(contactDonorKey(d), 'major_donor_visits'))
     if (majorDonorsNeedingVisit80.length > 0) {
@@ -8728,7 +8728,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // mostly over and they haven't given yet this year — a "haven't heard from you"
     // check-in, not a reminder timed to land right before they'd normally give.
     const seasonalPatternDonors71 = (() => {
-      const byDonorMonth71 = {}
+      const byDonorMonth71: Record<string, any> = {}
       confirmedDonations.forEach(d => {
         const key = donationDonorKey(d)
         const dt = new Date(d.created_at)
@@ -8754,7 +8754,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (!c.birth_date) return false
       const bd = new Date(c.birth_date)
       const thisYearBday = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
-      const daysUntil = Math.ceil((thisYearBday - today) / (1000 * 60 * 60 * 24))
+      const daysUntil = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
       return daysUntil >= 0 && daysUntil <= 7 && notSuppressed(contactDonorKey(c)) && !contactedSince(contactDonorKey(c), weekAgo.getTime()) && notDismissed69(contactDonorKey(c), 'donor_birthdays')
     })
     if (birthdaysThisWeek70.length > 0) {
@@ -8762,14 +8762,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => contactDonorKey(c)), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
     }
 
-    const lapsedReturningKeys = new Set()
+    const lapsedReturningKeys = new Set<string>()
     confirmedDonations.forEach(d => {
       const key = donationDonorKey(d)
       if (new Date(d.created_at) < weekAgo) return
       const priorGifts = confirmedDonations.filter(p => donationDonorKey(p) === key && new Date(p.created_at) < new Date(d.created_at))
       if (priorGifts.length === 0) return
-      const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-      const gapDays = (new Date(d.created_at) - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+      const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+      const gapDays = (new Date(d.created_at).getTime() - new Date(mostRecentPrior.created_at).getTime()) / (1000 * 60 * 60 * 24)
       if (gapDays >= lapsedMinDays && notSuppressed(key) && !contactedSince(key, weekAgo.getTime()) && notDismissed69(key, 'lapsed_returning')) lapsedReturningKeys.add(key)
     })
     if (lapsedReturningKeys.size > 0) {
@@ -8785,7 +8785,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const custom = (customObligations || []).map(o => {
         let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
         if (d < today) d.setFullYear(today.getFullYear() + 1)
-        const days = Math.ceil((d - today) / (1000 * 60 * 60 * 24))
+        const days = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         return days >= 0 && days <= 30 ? { title: o.title, days } : null
       }).filter(Boolean)
       return [...builtIn, ...custom]
@@ -8796,8 +8796,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     // Obligations with a real "done" state stay in Needs Action; everything else (donor
     // moments, trends, soft opportunities) is informational → Worth Knowing.
     const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
-    const isActionItem = (i) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
-    const notSnoozed = (i) => !i.key || !(snoozedItems[i.key] > nowMs)
+    const isActionItem = (i: any) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
+    const notSnoozed = (i: any) => !i.key || !(snoozedItems[i.key] > nowMs)
 
     const actionItemsVisible = items.filter(i => isActionItem(i) && notSnoozed(i))
       .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
@@ -8946,7 +8946,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <img src={logo} style={{ width: 26, height: 26, objectFit: 'contain' }} />
           <div style={s.mobileTopBarTitle}>Giving Tree</div>
         </div>
-        <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu(v => !v)}>⋯</div>
+        <div style={s.mobileOverflowBtn} onClick={() => setShowMobileMenu((v: any) => !v)}>⋯</div>
         {showMobileMenu && (
           <div style={s.mobileOverflowMenu}>
             <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Main</div>
@@ -9280,7 +9280,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {(isMobile || isTablet) ? (
                 <div>
                   {irasYearDonorList.map((d, i) => {
-                    const nric = d.donations.find(x => x.donor_nric)?.donor_nric
+                    const nric = d.donations.find((x: any) => x.donor_nric)?.donor_nric
                     return (
                       <div key={i} style={{ padding: '14px 16px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -9330,7 +9330,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   const tags = donorTagsMap[donorKey] || []
                                   return tags.length > 0 ? (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
-                                      {tags.slice(0, 3).map(t => (
+                                      {tags.slice(0, 3).map((t: any) => (
                                         <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: '#E8F0EE', padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
                                       ))}
                                       {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
@@ -9347,7 +9347,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         {charityIsIpc && (
                           <td style={s.td}>
                             {(() => {
-                              const nric = d.donations.find(x => x.donor_nric)?.donor_nric
+                              const nric = d.donations.find((x: any) => x.donor_nric)?.donor_nric
                               return nric ? <span style={s.badgeIssued}>✓ {nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>
                             })()}
                           </td>
@@ -9375,7 +9375,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
               <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 240 }} placeholder="🔍 Search by actor or details..." value={auditSearchTerm} onChange={e => setAuditSearchTerm(e.target.value)} />
               {isMobile && (
-                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowAuditFilters(v => !v)}>{showAuditFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
+                <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowAuditFilters((v: any) => !v)}>{showAuditFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
               )}
               {(!isMobile || showAuditFilters) && (<>
               <select style={s.filterSelect} value={auditDateFilter} onChange={e => setAuditDateFilter(e.target.value)}>
@@ -9439,7 +9439,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     // Curated icon/color for the actions worth visually emphasizing; anything else
                     // falls back to a readable label derived from the action name itself, so new
                     // action types added elsewhere in the app never show up blank or as raw_snake_case.
-                    const actionLabels = {
+                    const actionLabels: Record<string, { label: string, icon: string, color: string }> = {
                       cause_deleted: { label: 'Campaign/banner deleted', icon: '🗑️', color: C.red },
                       cause_submitted: { label: 'Campaign submitted for approval', icon: '🎯', color: C.gold },
                       cause_edited: { label: 'Campaign edited', icon: '✏️', color: C.gold },
@@ -9525,7 +9525,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       annual_goal_updated: { label: 'Annual goal updated', icon: '🎯', color: C.gold },
                       fiscal_year_end_changed: { label: 'Fiscal year end changed', icon: '📅', color: C.gold },
                     }
-                    const humanize = s => s.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
+                    const humanize = (s: any) => s.replace(/_/g, ' ').replace(/^./, (c: any) => c.toUpperCase())
                     const info = actionLabels[entry.action] || {
                       label: humanize(entry.action),
                       icon: /delet|cancel|refund|remov|permanent/i.test(entry.action) ? '🗑️' : /edit|reschedul|undo|revert|flag/i.test(entry.action) ? '✏️' : '•',
@@ -9535,7 +9535,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     // donation_edited and any future action shaped the same way), a few narrative
                     // overrides for actions that read better as a sentence than a field dump, and a
                     // fallback that prints every remaining field so nothing is ever silently dropped.
-                    const formatVal = (k, v) => {
+                    const formatVal = (k: any, v: any) => {
                       if (v === null || v === undefined || v === '') return null
                       if (typeof v === 'object') return JSON.stringify(v)
                       if (/amount|total|given|owed|revenue/i.test(k) && typeof v === 'number') return `$${v.toLocaleString()}`
@@ -9551,7 +9551,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           return changedKeys.map(k => `${humanize(k)}: ${formatVal(k, d.before[k]) ?? '—'} → ${formatVal(k, d.after[k]) ?? '—'}`).join(' · ')
                         }
                       }
-                      const narrative = {
+                      const narrative: Record<string, () => string> = {
                         bulk_nric_requested: () => `${d.donor_count} donor${d.donor_count > 1 ? 's' : ''}`,
                         nric_synced_by_donor: () => `${d.donation_count} donation${d.donation_count > 1 ? 's' : ''} updated`,
                         bulk_receipts_issued: () => `${d.donation_count} receipt${d.donation_count > 1 ? 's' : ''}${d.year ? ` · ${d.year}` : d.donor_name ? ` · ${d.donor_name}` : ''}`,
@@ -9609,12 +9609,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {(() => {
-              const generalAppeals = [...massAppeals].filter(a => !a.cause_id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              const generalAppeals = [...massAppeals].filter(a => !a.cause_id).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
               if (massAppeals.length === 0 && generalAppeals.length === 0) return null
               return (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: generalAppealsExpanded ? 14 : 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setGeneralAppealsExpanded(v => !v)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setGeneralAppealsExpanded((v: any) => !v)}>
                       <span style={{ fontSize: 11, color: C.muted }}>{generalAppealsExpanded ? '▾' : '▸'}</span>
                       <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 General Appeals</span>
                       <span style={{ fontSize: 12, color: C.muted }}>({generalAppeals.length} sent · not tied to a campaign)</span>
@@ -9662,7 +9662,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
                 <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 380 }} placeholder="🔍 Search campaigns by title, description, or category..." value={campaignSearchTerm} onChange={e => setCampaignSearchTerm(e.target.value)} />
                 {isMobile && (
-                  <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowCampaignFilters(v => !v)}>{showCampaignFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
+                  <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowCampaignFilters((v: any) => !v)}>{showCampaignFilters ? '▾ Hide Filters' : '▸ Filters & Sort'}</button>
                 )}
                 {(!isMobile || showCampaignFilters) && (<>
                 <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={campaignYearFilter} onChange={e => setCampaignYearFilter(e.target.value)}>
@@ -9720,9 +9720,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {(() => {
               const q = campaignSearchTerm.toLowerCase().trim()
-              const matchesSearch = c => !q || [c.title, c.description, c.category].some(f => f?.toLowerCase().includes(q))
-              const matchesYear = c => campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
-              const matchesAmt = c => {
+              const matchesSearch = (c: any) => !q || [c.title, c.description, c.category].some(f => f?.toLowerCase().includes(q))
+              const matchesYear = (c: any) => campaignYearFilter === 'All' || fyOf(c.created_at).toString() === campaignYearFilter
+              const matchesAmt = (c: any) => {
                 const amt = Number(c.target_amount) || 0
                 return campaignAmountFilter === 'All'
                   || (campaignAmountFilter === 'Under 1000' && amt < 1000)
@@ -9730,42 +9730,42 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   || (campaignAmountFilter === '5000-20000' && amt > 5000 && amt <= 20000)
                   || (campaignAmountFilter === 'Over 20000' && amt > 20000)
               }
-              const matchesStatus = c => campaignStatusFilter === 'All' || c.status === campaignStatusFilter
-              const raisedFor = c => donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
-              const sortCauses = arr => [...arr].sort((a, b) => {
-                if (campaignSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
-                if (campaignSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
+              const matchesStatus = (c: any) => campaignStatusFilter === 'All' || c.status === campaignStatusFilter
+              const raisedFor = (c: any) => donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
+              const sortCauses = (arr: any) => [...arr].sort((a, b) => {
+                if (campaignSortBy === 'created_desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                if (campaignSortBy === 'created_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 if (campaignSortBy === 'raised_desc') return raisedFor(b) - raisedFor(a)
                 if (campaignSortBy === 'raised_asc') return raisedFor(a) - raisedFor(b)
-                if (campaignSortBy === 'ending_soon') return new Date(a.end_date || '9999-12-31') - new Date(b.end_date || '9999-12-31')
+                if (campaignSortBy === 'ending_soon') return new Date(a.end_date || '9999-12-31').getTime() - new Date(b.end_date || '9999-12-31').getTime()
                 if (campaignSortBy === 'title_az') return a.title.localeCompare(b.title)
                 return 0
               })
-              const isPast = c => c.status === 'rejected' || c.status === 'deleted' || c.status === 'completed' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
+              const isPast = (c: any) => c.status === 'rejected' || c.status === 'deleted' || c.status === 'completed' || (c.status === 'approved' && c.end_date && new Date(c.end_date) < new Date())
               const activeCauses = sortCauses(myCauses.filter(c => c.type === 'campaign' && !isPast(c) && matchesSearch(c) && matchesYear(c) && matchesAmt(c) && matchesStatus(c)))
               const pastCauses = sortCauses(myCauses.filter(c => c.type === 'campaign' && isPast(c) && matchesSearch(c) && matchesYear(c) && matchesAmt(c) && matchesStatus(c)))
 
-              const renderCard = c => {
+              const renderCard = (c: any) => {
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
                 const donorCount = new Set(donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
                 const loggedExpenses = campaignExpensesByCause[c.id] || []
-                const spent = loggedExpenses.reduce((s, e) => s + Number(e.amount), 0)
+                const spent = loggedExpenses.reduce((s: any, e: any) => s + Number(e.amount), 0)
                 const costForRoi = spent > 0 ? spent : Number(c.cost) || 0
                 const pct = c.target_amount > 0 ? Math.min(100, Math.round((raised / c.target_amount) * 100)) : null
-                const daysLeft = c.end_date ? Math.ceil((new Date(c.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+                const daysLeft = c.end_date ? Math.ceil((new Date(c.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
                 const isActive = c.status === 'approved' && !isPast(c)
                 const goalMet = c.target_amount > 0 && raised >= c.target_amount
 
                 let behindPace = false
                 if (isActive && c.target_amount > 0 && c.end_date) {
                   const periodStart = new Date(c.start_date || c.created_at)
-                  const totalDuration = new Date(c.end_date) - periodStart
-                  const elapsed = new Date() - periodStart
+                  const totalDuration = new Date(c.end_date).getTime() - periodStart.getTime()
+                  const elapsed = new Date().getTime() - periodStart.getTime()
                   const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
                   behindPace = pct < elapsedPct - 15
                 }
 
-                const campaignStatusMap = {
+                const campaignStatusMap: Record<string, { bg: string, color: string, label: string }> = {
                   approved: { bg: C.sage, color: C.white, label: 'Active' },
                   pending: { bg: C.gold, color: C.white, label: '⏳ Pending' },
                   rejected: { bg: C.red, color: C.white, label: '✕ Rejected' },
@@ -9854,7 +9854,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedCampaignId(expandedCampaignId === c.id ? null : c.id)}>{expandedCampaignId === c.id ? '▲ Hide ledger' : '▼ View ledger'}</button>
                           {campaignAppeals.length > 0 && (
-                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedCampaignAppeals(prev => {
+                            <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', flex: 1, justifyContent: 'center', borderRadius: 4 }} onClick={() => setExpandedCampaignAppeals((prev: any) => {
                               const next = new Set(prev)
                               if (next.has(c.id)) next.delete(c.id); else next.add(c.id)
                               return next
@@ -9863,7 +9863,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         </div>
                         {expandedCampaignAppeals.has(c.id) && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {campaignAppeals.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(a => (
+                            {campaignAppeals.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(a => (
                               <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '10px 12px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                                   <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{a.cause_name || 'Campaign appeal'}</span>
@@ -9887,7 +9887,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                             onSaveExpense={form => saveCampaignExpense(c.id, form)}
                             onEditExpense={(expense, updates) => editCampaignExpense(expense, updates)}
                             onDeleteExpense={id => {
-                              const exp = (campaignExpensesByCause[c.id] || []).find(e => e.id === id)
+                              const exp = (campaignExpensesByCause[c.id] || []).find((e: any) => e.id === id)
                               setConfirmModal({
                                 title: 'Delete this expense?',
                                 description: exp ? `"${exp.description}" — $${Number(exp.amount).toLocaleString()} will be permanently removed. This cannot be undone.` : 'This expense will be permanently removed. This cannot be undone.',
@@ -9972,7 +9972,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div>
                       <div
                         style={{ fontSize: 13, fontWeight: 500, color: C.muted, marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                        onClick={() => setShowPastCampaigns(v => !v)}
+                        onClick={() => setShowPastCampaigns((v: any) => !v)}
                       >
                         <span style={{ fontSize: 11, color: C.muted }}>{showPastCampaigns ? '▾' : '▸'}</span>
                         Past Campaigns ({pastCauses.length})
@@ -9998,35 +9998,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {causeError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 6, fontSize: 13, marginTop: 12, marginBottom: 4 }}>{causeError}</div>}
                   <label style={{ display: 'block', marginTop: 12, marginBottom: 10 }}>
                     <div style={s.formLabel}>Title *</div>
-                    <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm(f => ({ ...f, title: e.target.value }))} />
+                    <input style={s.formInput} placeholder="e.g. Winter Meal Drive" value={causeForm.title} onChange={e => setCauseForm((f: any) => ({ ...f, title: e.target.value }))} />
                   </label>
                   <label style={{ display: 'block', marginBottom: 10 }}>
                     <div style={s.formLabel}>Description *</div>
-                    <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm(f => ({ ...f, description: e.target.value }))} />
+                    <textarea style={{ ...s.formInput, minHeight: 80, resize: 'vertical' }} placeholder="What is this campaign for?" value={causeForm.description} onChange={e => setCauseForm((f: any) => ({ ...f, description: e.target.value }))} />
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
                     <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Start Date</div>
-                      <input style={s.formInput} type="date" value={causeForm.start_date} onChange={e => setCauseForm(f => ({ ...f, start_date: e.target.value }))} />
+                      <input style={s.formInput} type="date" value={causeForm.start_date} onChange={e => setCauseForm((f: any) => ({ ...f, start_date: e.target.value }))} />
                     </label>
                     <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>End Date</div>
-                      <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm(f => ({ ...f, end_date: e.target.value }))} />
+                      <input style={s.formInput} type="date" value={causeForm.end_date} onChange={e => setCauseForm((f: any) => ({ ...f, end_date: e.target.value }))} />
                     </label>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
                     <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Target Amount (SGD)</div>
-                      <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm(f => ({ ...f, target_amount: e.target.value }))} />
+                      <input style={s.formInput} type="number" placeholder="Optional" value={causeForm.target_amount} onChange={e => setCauseForm((f: any) => ({ ...f, target_amount: e.target.value }))} />
                     </label>
                     <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Campaign Cost (SGD)</div>
-                      <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue" value={causeForm.cost} onChange={e => setCauseForm(f => ({ ...f, cost: e.target.value }))} />
+                      <input style={s.formInput} type="number" placeholder="e.g. printing, postage, venue" value={causeForm.cost} onChange={e => setCauseForm((f: any) => ({ ...f, cost: e.target.value }))} />
                     </label>
                   </div>
                   <label style={{ display: 'block', marginBottom: 10 }}>
                     <div style={s.formLabel}>Category</div>
-                    <select style={s.formInput} value={causeForm.category} onChange={e => setCauseForm(f => ({ ...f, category: e.target.value }))}>
+                    <select style={s.formInput} value={causeForm.category} onChange={e => setCauseForm((f: any) => ({ ...f, category: e.target.value }))}>
                       <option value="">Select a category...</option>
                       {CAMPAIGN_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
@@ -10034,7 +10034,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {charityIsIpc && (
                     <div style={{ marginBottom: 10, background: C.ivory, borderRadius: 6, padding: '10px 12px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.forest, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={causeForm.tax_deductible} onChange={e => setCauseForm(f => ({ ...f, tax_deductible: e.target.checked }))} />
+                        <input type="checkbox" checked={causeForm.tax_deductible} onChange={e => setCauseForm((f: any) => ({ ...f, tax_deductible: e.target.checked }))} />
                         Donations to this campaign are tax-deductible
                       </label>
                       {!causeForm.tax_deductible && (
@@ -10043,7 +10043,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       {causeForm.tax_deductible && (
                         <label style={{ display: 'block', marginTop: 8 }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Benefit value given to donor per gift (SGD, if any)</div>
-                          <input style={s.formInput} type="number" placeholder="e.g. dinner/gift value — reduces the deductible amount" value={causeForm.benefit_value} onChange={e => setCauseForm(f => ({ ...f, benefit_value: e.target.value }))} />
+                          <input style={s.formInput} type="number" placeholder="e.g. dinner/gift value — reduces the deductible amount" value={causeForm.benefit_value} onChange={e => setCauseForm((f: any) => ({ ...f, benefit_value: e.target.value }))} />
                         </label>
                       )}
                     </div>
@@ -10051,7 +10051,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block' }}>
                       <div style={s.formLabel}>Fundraising Permit</div>
-                      <select style={s.formInput} value={causeForm.permit_status} onChange={e => setCauseForm(f => ({ ...f, permit_status: e.target.value }))}>
+                      <select style={s.formInput} value={causeForm.permit_status} onChange={e => setCauseForm((f: any) => ({ ...f, permit_status: e.target.value }))}>
                         <option value="not_required">Not required (no physical/street collection)</option>
                         <option value="pending">Permit applied for — pending</option>
                         <option value="obtained">Permit obtained</option>
@@ -10061,11 +10061,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 8 }}>
                         <label style={{ display: 'block' }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Number</div>
-                          <input style={s.formInput} placeholder="e.g. HHSC permit no." value={causeForm.permit_number} onChange={e => setCauseForm(f => ({ ...f, permit_number: e.target.value }))} />
+                          <input style={s.formInput} placeholder="e.g. HHSC permit no." value={causeForm.permit_number} onChange={e => setCauseForm((f: any) => ({ ...f, permit_number: e.target.value }))} />
                         </label>
                         <label style={{ display: 'block' }}>
                           <div style={{ ...s.formLabel, fontSize: 11 }}>Permit Expiry</div>
-                          <input style={s.formInput} type="date" value={causeForm.permit_expiry} onChange={e => setCauseForm(f => ({ ...f, permit_expiry: e.target.value }))} />
+                          <input style={s.formInput} type="date" value={causeForm.permit_expiry} onChange={e => setCauseForm((f: any) => ({ ...f, permit_expiry: e.target.value }))} />
                         </label>
                       </div>
                     )}
@@ -10330,7 +10330,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.forest, marginBottom: 8 }}>Detected columns</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
-                        {Object.entries(migrationPreview.detectedColumns).map(([key, val]) => (
+                        {Object.entries(migrationPreview.detectedColumns).map(([key, val]: [string, any]) => (
                           <div key={key} style={{ fontSize: 11, color: val ? C.sage : C.muted }}>
                             {val ? '✓' : '—'} {key}: <span style={{ fontFamily: 'monospace' }}>{val || 'not found'}</span>
                           </div>
@@ -10341,7 +10341,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     {migrationPreview.rowErrors.length > 0 && (
                       <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: C.warning, marginBottom: 6 }}>⚠️ {migrationPreview.totalErrors} row{migrationPreview.totalErrors !== 1 ? 's' : ''} will be skipped</div>
-                        {migrationPreview.rowErrors.map((e, i) => <div key={i} style={{ fontSize: 11, color: C.warning, marginBottom: 2 }}>{e}</div>)}
+                        {migrationPreview.rowErrors.map((e: any, i: any) => <div key={i} style={{ fontSize: 11, color: C.warning, marginBottom: 2 }}>{e}</div>)}
                         {migrationPreview.totalErrors > 10 && <div style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>...and {migrationPreview.totalErrors - 10} more</div>}
                       </div>
                     )}
@@ -10651,7 +10651,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <div style={{ fontSize: 13, color: C.forest, fontWeight: 500, marginBottom: 8 }}>Add these DNS records</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Add these to your domain's DNS settings (ask your web host or IT provider if unsure). Verification can take anywhere from a few minutes to a day.</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {dnsRecords.map((rec, i) => (
+                  {dnsRecords.map((rec: any, i: any) => (
                     <div key={i} style={{ background: C.ivory, borderRadius: 6, padding: 10, border: `1px solid ${C.border}`, fontFamily: 'monospace', fontSize: 11.5 }}>
                       <div><strong>Type:</strong> {rec.type}</div>
                       <div><strong>Name:</strong> {rec.name}</div>
@@ -10866,7 +10866,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, marginBottom: 4 }}>Retry {retryPreviewList.length} recipient{retryPreviewList.length !== 1 ? 's' : ''}</div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>The same message and QR code will be resent to:</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16, maxHeight: 200, overflowY: 'auto' }}>
-              {retryPreviewList.map((r, i) => (
+              {retryPreviewList.map((r: any, i: any) => (
                 <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.donor_name}</div>
                   <div style={{ fontSize: 11, color: C.muted }}>{r.donor_email}</div>
@@ -10934,15 +10934,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             {addDonorError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{addDonorError}</div>}
             <label style={{ display: 'block', marginBottom: 10 }}>
               <div style={s.formLabel}>Full Name *</div>
-              <input style={s.formInput} placeholder="e.g. Tan Wei Ling" value={addDonorForm.full_name} onChange={e => setAddDonorForm(f => ({ ...f, full_name: e.target.value }))} />
+              <input style={s.formInput} placeholder="e.g. Tan Wei Ling" value={addDonorForm.full_name} onChange={e => setAddDonorForm((f: any) => ({ ...f, full_name: e.target.value }))} />
             </label>
             <label style={{ display: 'block', marginBottom: 10 }}>
               <div style={s.formLabel}>Email</div>
-              <input style={s.formInput} placeholder="Optional" value={addDonorForm.email} onChange={e => setAddDonorForm(f => ({ ...f, email: e.target.value }))} />
+              <input style={s.formInput} placeholder="Optional" value={addDonorForm.email} onChange={e => setAddDonorForm((f: any) => ({ ...f, email: e.target.value }))} />
             </label>
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Notes</div>
-              <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Met at gala dinner, interested in Winter Cancer Drive" value={addDonorForm.notes} onChange={e => setAddDonorForm(f => ({ ...f, notes: e.target.value }))} />
+              <textarea style={{ ...s.formInput, minHeight: 70, resize: 'vertical' }} placeholder="e.g. Met at gala dinner, interested in Winter Cancer Drive" value={addDonorForm.notes} onChange={e => setAddDonorForm((f: any) => ({ ...f, notes: e.target.value }))} />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={savingDonorContact} onClick={saveDonorContact}>{savingDonorContact ? 'Saving...' : '✓ Add Donor'}</button>
@@ -11046,14 +11046,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <SenderIdentityLine recipientName={thankYouDraft.donor.name} recipientEmail={thankYouDraft.donor.email} {...senderIdentity} />
             <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
-              <input style={s.formInput} value={thankYouDraft.subject} onChange={e => setThankYouDraft(prev => ({ ...prev, subject: e.target.value }))} />
+              <input style={s.formInput} value={thankYouDraft.subject} onChange={e => setThankYouDraft((prev: any) => ({ ...prev, subject: e.target.value }))} />
             </label>
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea
                 style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit' }}
                 value={thankYouDraft.text}
-                onChange={e => setThankYouDraft(prev => ({ ...prev, text: e.target.value }))}
+                onChange={e => setThankYouDraft((prev: any) => ({ ...prev, text: e.target.value }))}
               />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -11135,21 +11135,21 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <SenderIdentityLine recipientName={rnOutreach.donorName} recipientEmail={rnOutreach.donorEmail} {...senderIdentity} />
             <label style={{ display: 'block', marginBottom: 12 }}>
               <div style={s.formLabel}>Subject</div>
-              <input style={s.formInput} value={rnOutreach.subject} onChange={e => setRnOutreach(prev => ({ ...prev, subject: e.target.value }))} />
+              <input style={s.formInput} value={rnOutreach.subject} onChange={e => setRnOutreach((prev: any) => ({ ...prev, subject: e.target.value }))} />
             </label>
             <label style={{ display: 'block', marginBottom: 16 }}>
               <div style={s.formLabel}>Message</div>
               <textarea
                 style={{ ...s.formInput, minHeight: 260, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
                 value={rnOutreach.text}
-                onChange={e => setRnOutreach(prev => ({ ...prev, text: e.target.value }))}
+                onChange={e => setRnOutreach((prev: any) => ({ ...prev, text: e.target.value }))}
               />
             </label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 style={{ ...s.btnForest, flex: 1, justifyContent: 'center', opacity: rnOutreach.donorEmail?.trim() ? 1 : 0.5 }}
                 disabled={!rnOutreach.donorEmail?.trim()}
-                onClick={() => setRnOutreach(prev => ({ ...prev, previewing: true }))}
+                onClick={() => setRnOutreach((prev: any) => ({ ...prev, previewing: true }))}
               >{rnOutreach.donorEmail?.trim() ? 'Preview email →' : 'No email on file'}</button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
             </div>
@@ -11170,7 +11170,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       )}
 
       {rnOutreach && rnOutreach.previewing && (
-        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach(prev => ({ ...prev, previewing: false }))}>
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => !rnSending && setRnOutreach((prev: any) => ({ ...prev, previewing: false }))}>
           <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
@@ -11202,7 +11202,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   setRnSending(false); setRnOutreach(null); showToast(`Sent to ${sentTo} ✓ · logged`)
                 }}
               >{rnSending ? 'Sending...' : '✓ Send email'}</button>
-              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(prev => ({ ...prev, previewing: false }))}>← Back to edit</button>
+              <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach((prev: any) => ({ ...prev, previewing: false }))}>← Back to edit</button>
             </div>
           </div>
         </div>
@@ -11275,7 +11275,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   <input
                     type="checkbox"
                     checked={customizeMetricsDraft.includes(item.key)}
-                    onChange={() => setCustomizeMetricsDraft(prev => prev.includes(item.key) ? prev.filter(k => k !== item.key) : [...prev, item.key])}
+                    onChange={() => setCustomizeMetricsDraft((prev: any) => prev.includes(item.key) ? prev.filter((k: any) => k !== item.key) : [...prev, item.key])}
                   />
                 </label>
               ))}
@@ -11393,27 +11393,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <div>
                 {volunteerEditError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 12 }}>{volunteerEditError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_name: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Name *</div><input style={s.formInput} value={volunteerEditForm.donor_name} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, donor_name: e.target.value }))} /></label>
                   {charityIsIpc && (
-                    <label style={{ display: 'block' }}><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></label>
+                    <label style={{ display: 'block' }}><div style={s.formLabel}>NRIC / FIN</div><input style={s.formInput} placeholder="e.g. S1234567A" value={volunteerEditForm.donor_nric} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, donor_nric: e.target.value }))} maxLength={9} /></label>
                   )}
-                  <label style={{ display: 'block' }}><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm(f => ({ ...f, amount: e.target.value }))} /></label>
-                  <label style={{ display: 'block' }}><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm(f => ({ ...f, date: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Amount (SGD) *</div><input style={s.formInput} type="number" placeholder="0.00" value={volunteerEditForm.amount} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, amount: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Date</div><input style={s.formInput} type="date" min="2020-01-01" max={new Date().toISOString().split('T')[0]} value={volunteerEditForm.date} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, date: e.target.value }))} /></label>
                   <label style={{ display: 'block' }}><div style={s.formLabel}>Payment Method</div>
-                    <select style={s.formInput} value={volunteerEditForm.payment_method} onChange={e => setVolunteerEditForm(f => ({ ...f, payment_method: e.target.value }))}>
+                    <select style={s.formInput} value={volunteerEditForm.payment_method} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, payment_method: e.target.value }))}>
                       <option>Cash</option><option>Bank Wire</option><option>Cheque</option><option>PayNow Direct</option><option>Other</option>
                     </select>
                   </label>
-                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm(f => ({ ...f, donor_email: e.target.value }))} /></label>
+                  <label style={{ display: 'block' }}><div style={s.formLabel}>Donor Email</div><input style={s.formInput} placeholder="donor@email.com" value={volunteerEditForm.donor_email} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, donor_email: e.target.value }))} /></label>
                   <label style={{ display: 'block' }}><div style={s.formLabel}>Cause (Optional)</div>
-                    <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm(f => ({ ...f, cause_id: e.target.value }))}>
+                    <select style={s.formInput} value={volunteerEditForm.cause_id} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, cause_id: e.target.value }))}>
                       <option value="">General Donation</option>
                       {myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= new Date())).map(c => (
                         <option key={c.id} value={c.id}>{c.title}</option>
                       ))}
                     </select>
                   </label>
-                  <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm(f => ({ ...f, notes: e.target.value }))} /></label>
+                  <label style={{ display: 'block', gridColumn: isMobile ? 'auto' : '1 / -1' }}><div style={s.formLabel}>Notes</div><input style={s.formInput} placeholder="Optional notes" value={volunteerEditForm.notes} onChange={e => setVolunteerEditForm((f: any) => ({ ...f, notes: e.target.value }))} /></label>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                   <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={async () => {
@@ -11523,8 +11523,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email', 'error'); return }
                 if ([...localEds, ...localStaff, ...localBoardMembers, ...localVolunteers].includes(email)) { showToast('Already assigned a role', 'error'); return }
                 setSavingVolunteer(true)
-                const columnMap = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
-                const currentMap = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
+                const columnMap: Record<string, string> = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
+                const currentMap: Record<string, any> = { ed: localEds, staff: localStaff, board: localBoardMembers, volunteer: localVolunteers }
                 const updated = [...currentMap[role], email]
                 const { error } = await supabase.from('charity_contacts').update({ [columnMap[role]]: updated }).eq('charity_uen', charityUen)
                 if (error) { showToast('Error saving', 'error'); setSavingVolunteer(false); return }
@@ -11622,7 +11622,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             )}
             {confirmModal.steps && confirmModal.steps.length > 0 && (
               <div style={{ background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 20 }}>
-                {confirmModal.steps.map((step, i) => (
+                {confirmModal.steps.map((step: any, i: any) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < confirmModal.steps.length - 1 ? 8 : 0 }}>
                     <span style={{ fontSize: 13, color: C.sage }}>✓</span>
                     <span style={{ fontSize: 13, color: C.text }}>{step}</span>
