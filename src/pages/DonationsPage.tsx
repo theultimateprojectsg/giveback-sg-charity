@@ -537,7 +537,7 @@ export function DonationsPage({
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <div style={s.donationCardName}>{d.donor_name}</div>
-                              {isRefunded && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: '#E11D48', padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}
+                              {isRefunded && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: C.refundTag, padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}
                             </div>
                             <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} · {d.receipt_number || '—'}{d.payment_ref ? ` · Ref: ${d.payment_ref}` : ''}</div>
                           </div>
@@ -639,7 +639,7 @@ export function DonationsPage({
                     const rowBg = selectedDonation?.id === d.id ? C.successBg : d.payment_status === 'refunded' ? C.dangerBg : d.source === 'manual' ? '#FDFBF6' : 'transparent'
                     return (
                     <tr key={d.id} ref={selectedDonation?.id === d.id ? selectedRowRef : null} style={{ ...s.tr, background: rowBg, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => { setSelectedDonation(d); setQuickEmailInput(''); setQuickNricInput('') }}>
-                      <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold }}>{d.donor_name?.charAt(0)}</div><div><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={s.donorName}>{d.donor_name}</div>{d.payment_status === 'refunded' && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: '#E11D48', padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
+                      <td style={s.td}><div style={s.donorCell}><div style={{ ...s.donorAvatar, background: d.payment_status !== 'confirmed' ? C.red : (noThankYouExpected || d.thank_you_sent) ? C.sage : C.gold }}>{d.donor_name?.charAt(0)}</div><div><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={s.donorName}>{d.donor_name}</div>{d.payment_status === 'refunded' && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'white', background: C.refundTag, padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>REFUNDED</span>}</div>{d.notes && <div style={{ fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 }}>📝 {d.notes}</div>}</div></div></td>
                       {isTablet && <td style={s.td}><span style={s.amountText}>${Number(d.amount).toLocaleString()}</span></td>}
                       {isTablet && <td style={s.td}><span style={s.dateText}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>}
                       {isTablet ? (

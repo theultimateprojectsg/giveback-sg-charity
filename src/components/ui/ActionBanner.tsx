@@ -3,8 +3,8 @@ import { C } from '../../theme'
 
 const ACTION_BANNER_TONES: Record<string, { fill: string }> = {
   danger: { fill: C.red },
-  warning: { fill: '#96700B' },
-  success: { fill: '#2F6A48' },
+  warning: { fill: C.warningFill },
+  success: { fill: C.successFill },
 }
 
 interface ActionBannerProps {

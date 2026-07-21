@@ -11,7 +11,9 @@ import { join, relative } from 'node:path'
 
 const root = join(import.meta.dirname, '..', 'src')
 const HEX_RE = /#[0-9A-Fa-f]{3,8}\b/g
-const SKIP_FILES = new Set(['theme.ts'])
+// CharityAuth.tsx defines its own small local dark-mode palette (AUTH) at the
+// top of the file, same rationale as excluding theme.ts.
+const SKIP_FILES = new Set(['theme.ts', 'CharityAuth.tsx'])
 const SKIP_DIRS = new Set(['__tests__', 'assets'])
 
 function walk(dir, files = []) {

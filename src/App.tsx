@@ -4533,8 +4533,8 @@ export default function App() {
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
           <p style="font-size:13px;color:${C.text};line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${charityName}, thank you.</p>
           ${customBlock}
-          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
-          ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
+          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
+          ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${causeTitle}</span></div>` : ''}
         </div>`
     }
     if (templateType === 'new_donor') {
@@ -4546,7 +4546,7 @@ export default function App() {
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
           <p style="font-size:13px;color:${C.text};line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
-          ${causeTitle ? `<p style="font-size:13px;color:${C.text};">Your gift went toward: <strong style="color:#D4A017;">🎯 ${causeTitle}</strong></p>` : ''}
+          ${causeTitle ? `<p style="font-size:13px;color:${C.text};">Your gift went toward: <strong style="color:${C.emailAccentGold};">🎯 ${causeTitle}</strong></p>` : ''}
         </div>`
     }
     if (templateType === 'recurring_donor') {
@@ -4570,11 +4570,11 @@ export default function App() {
       </div>
       ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid ${C.border};margin-bottom:12px;">${customBlock}</div>` : ''}
       <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
-        <div style="font-size:11px;color:#7A6E62;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Donation Details</div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Charity</span><span style="font-weight:700;color:${C.forest};">${charityName}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:#7A6E62;">Date</span><span style="font-weight:700;color:${C.forest};">${dateStr}</span></div>
-        ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
+        <div style="font-size:11px;color:${C.emailMuted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Donation Details</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Charity</span><span style="font-weight:700;color:${C.forest};">${charityName}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:${C.emailMuted};">Date</span><span style="font-weight:700;color:${C.forest};">${dateStr}</span></div>
+        ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${causeTitle}</span></div>` : ''}
       </div>`
   }
 
@@ -9331,7 +9331,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                                   return tags.length > 0 ? (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 3 }}>
                                       {tags.slice(0, 3).map((t: any) => (
-                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: '#E8F0EE', padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
+                                        <span key={t.id} style={{ fontSize: 10, fontWeight: 500, color: C.teal, background: C.tealBg, padding: '2px 7px', borderRadius: 20 }}>{t.tag}</span>
                                       ))}
                                       {tags.length > 3 && <span style={{ fontSize: 10, color: C.muted }}>+{tags.length - 3}</span>}
                                     </div>

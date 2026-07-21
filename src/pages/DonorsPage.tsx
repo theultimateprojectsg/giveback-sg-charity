@@ -514,7 +514,7 @@ export function DonorsPage({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)' }}>Est. Tax Savings (22%)</span>
-                      <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: '#9FD9BC' }}>${((selectedDonor.total || 0) * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      <span style={{ fontFamily: C.fontMono, fontSize: 11.5, fontWeight: 500, color: C.mintOnDark }}>${((selectedDonor.total || 0) * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                     </div>
                   </div>
                 )}
@@ -528,7 +528,7 @@ export function DonorsPage({
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: b.hasUnackedBadge ? 12 : 0 }}>
                         {b.isFirstTime && <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🆕 First donation</span>}
                         {b.isBigGift && <span style={{ fontSize: 11, fontWeight: 600, color: 'white', background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>💰 ${thankYouThreshold}+ gift</span>}
-                        {b.isLoyal && <span style={{ fontSize: 11, fontWeight: 600, color: '#9FD9BC', background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🔁 Loyal donor</span>}
+                        {b.isLoyal && <span style={{ fontSize: 11, fontWeight: 600, color: C.mintOnDark, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🔁 Loyal donor</span>}
                         {b.isBiggestYet && <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>📈 Biggest gift yet</span>}
                         {b.isMajorDonor && <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, background: 'rgba(255,255,255,0.12)', padding: '3px 9px', borderRadius: 20 }}>🏆 Major donor</span>}
                       </div>
@@ -1387,7 +1387,7 @@ export function DonorsPage({
               return tags.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {tags.map(t => (
-                    <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: C.teal, background: '#E8F0EE', padding: '4px 6px 4px 10px', borderRadius: 20 }}>
+                    <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: C.teal, background: C.tealBg, padding: '4px 6px 4px 10px', borderRadius: 20 }}>
                       {t.tag}
                       <span
                         title="Remove tag"
