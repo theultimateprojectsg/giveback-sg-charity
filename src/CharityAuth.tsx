@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { supabase } from './supabase'
 import logo from './assets/logo.png'
 
@@ -46,7 +47,7 @@ export default function CharityAuth() {
     setLoading(false)
   }
 
-  function handleKeyDown(e) {
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       if (showForgot) handleForgotPassword()
       else handleLogin()
@@ -294,13 +295,13 @@ export default function CharityAuth() {
   )
 }
 
-const lbl = {
+const lbl: CSSProperties = {
   display: 'block', fontSize: 10, fontWeight: 600,
   color: '#74C69D', letterSpacing: '2px', textTransform: 'uppercase',
   marginBottom: 8, fontFamily: 'sans-serif',
 }
 
-const inp = {
+const inp: CSSProperties = {
   width: '100%', padding: '14px 18px',
   background: 'rgba(255,255,255,0.05)',
   border: '1.5px solid rgba(116,198,157,0.18)',
