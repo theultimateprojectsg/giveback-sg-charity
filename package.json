@@ -8,6 +8,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "check-colors": "node scripts/check-hardcoded-colors.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
