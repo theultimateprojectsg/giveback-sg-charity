@@ -1375,6 +1375,7 @@ export default function App() {
   async function savePledge() {
     if (!pledgeForm.donor_name.trim()) { setPledgeError('Donor name is required'); return }
     if (!pledgeForm.amount || parseFloat(pledgeForm.amount) <= 0) { setPledgeError('Please enter a valid amount'); return }
+    if (parseFloat(pledgeForm.amount) > 1000000) { setPledgeError('Amount seems too large — please check it (max $1,000,000)'); return }
     if (!pledgeForm.expected_date) { setPledgeError('Expected date is required'); return }
     if (new Date(pledgeForm.expected_date) < new Date(new Date().setHours(0,0,0,0))) { setPledgeError('Expected date cannot be in the past'); return }
     if (pledgeForm.is_multi_year && (!pledgeForm.total_years || parseInt(pledgeForm.total_years) < 2)) { setPledgeError('Multi-year pledges need at least 2 years'); return }
@@ -1459,6 +1460,7 @@ export default function App() {
       }))
     } else {
       if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+      if (amount > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
       if (!expectedDate) { showToast('Expected date is required', 'error'); return }
     }
 
@@ -2394,6 +2396,7 @@ export default function App() {
     // type === 'fulfilled': create a real donation record for the amount received
     const amount = parseFloat(fulfillAmount)
     if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (amount > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
 
     const { data: receiptNumber, error: seqError } = await supabase.rpc('next_receipt_number', { p_charity_uen: charityUen, p_year: new Date().getFullYear() })
     if (seqError) { console.error('Could not generate receipt number:', seqError); showToast('Error generating receipt number. Please try again.', 'error'); return }
@@ -2675,6 +2678,7 @@ export default function App() {
   async function saveRecurringGift(form: any) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (parseFloat(form.amount) > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
     if (form.type === 'giro' && !form.giro_reference?.trim()) { showToast('GIRO reference / account is required for GIRO gifts', 'error'); return }
     if (form.type === 'other' && !form.type_detail?.trim()) { showToast('Please describe what "Other" means for this gift', 'error'); return }
@@ -2719,6 +2723,7 @@ export default function App() {
   async function updateRecurringGift(giftId: any, form: any) {
     if (!form.donor_name.trim()) { showToast('Donor name is required', 'error'); return }
     if (!form.amount || parseFloat(form.amount) <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (parseFloat(form.amount) > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
     if (!form.start_date) { showToast('Start date is required', 'error'); return }
     if (form.type === 'giro' && !form.giro_reference?.trim()) { showToast('GIRO reference / account is required for GIRO gifts', 'error'); return }
     if (form.type === 'other' && !form.type_detail?.trim()) { showToast('Please describe what "Other" means for this gift', 'error'); return }
@@ -2775,6 +2780,7 @@ export default function App() {
     if (savingRecurringAmount) return
     const newAmount = parseFloat(editingRecurringAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (newAmount > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
     const newNotes = editingRecurringNote.trim() || null
     if (newAmount === Number(donation.amount) && newNotes === (donation.notes || null)) { setEditingRecurringDonationId(null); return }
     setSavingRecurringAmount(true)
@@ -2811,6 +2817,7 @@ export default function App() {
     if (savingPledgeAmount) return
     const newAmount = parseFloat(editingPledgeAmount)
     if (!newAmount || newAmount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (newAmount > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
     const oldAmount = Number(link.amount_applied)
     const newNotes = editingPledgeNotes.trim() || null
     if (newAmount === oldAmount && newNotes === (link.notes || null)) { setEditingPledgeDonationId(null); return }
@@ -2862,6 +2869,7 @@ export default function App() {
     if (!markReceivedModal) return
     const amount = parseFloat(markReceivedAmount)
     if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return }
+    if (amount > 1000000) { showToast('Amount seems too large — please check it (max $1,000,000)', 'error'); return }
 
     setMarkingReceived(true)
     const gift = markReceivedModal
@@ -5126,6 +5134,7 @@ export default function App() {
   async function generatePayNowEntry(forceDuplicateConfirmed = false) {
     if (!manualForm.is_anonymous && !manualForm.donor_name) { setManualError('Donor name is required'); return }
     if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
+    if (parseFloat(manualForm.amount) > 1000000) { setManualError('Amount seems too large — please check it (max $1,000,000)'); return }
     if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
     if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
     if (manualForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualForm.donor_email.trim())) { setManualError('Invalid email format'); return }
@@ -11436,6 +11445,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     setVolunteerEditError('')
                     if (!volunteerEditForm.donor_name.trim()) { setVolunteerEditError('Donor name is required'); return }
                     if (!volunteerEditForm.amount || parseFloat(volunteerEditForm.amount) <= 0) { setVolunteerEditError('Please enter a valid amount'); return }
+                    if (parseFloat(volunteerEditForm.amount) > 1000000) { setVolunteerEditError('Amount seems too large — please check it (max $1,000,000)'); return }
                     if (new Date(volunteerEditForm.date) > new Date()) { setVolunteerEditError('Date cannot be in the future'); return }
                     if (volunteerEditForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(volunteerEditForm.donor_nric.trim())) { setVolunteerEditError('Invalid NRIC format. Should be like S1234567A'); return }
                     if (volunteerEditForm.donor_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(volunteerEditForm.donor_email.trim())) { setVolunteerEditError('Invalid email format'); return }

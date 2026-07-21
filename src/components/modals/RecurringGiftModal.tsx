@@ -39,6 +39,7 @@ export function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, sa
   function handleSave() {
     if (!form.donor_name.trim()) { setError('Donor name is required'); return }
     if (!form.amount || isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) { setError('Please enter a valid amount'); return }
+    if (parseFloat(form.amount) > 1000000) { setError('Amount seems too large — please check it (max $1,000,000)'); return }
     if (!form.start_date) { setError('Start date is required'); return }
     if (form.type === 'giro' && !form.giro_reference?.trim()) { setError('GIRO reference / account is required for GIRO gifts'); return }
     if (form.type === 'other' && !form.type_detail?.trim()) { setError('Please describe what "Other" means for this gift'); return }
