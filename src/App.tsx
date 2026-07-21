@@ -10171,7 +10171,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           />
         )}
         {/* Not tab-gated: opened from the Campaigns tab's "New Appeal" buttons. See
-            MassAppealModal.jsx for why this must not be nested inside activeTab === 'massappeal'. */}
+            MassAppealModal.tsx for why this must not be nested inside activeTab === 'massappeal'. */}
         <MassAppealModal
           showMassAppealModal={showMassAppealModal} setShowMassAppealModal={setShowMassAppealModal}
           massAppealStep={massAppealStep} setMassAppealStep={setMassAppealStep}

@@ -47,7 +47,7 @@ interface MassAppealPageProps {
 
 // Renders only the appeal-history list. The "New Appeal" send flow lives in
 // MassAppealModal, rendered unconditionally at the App level (not gated by
-// activeTab) — see src/components/modals/MassAppealModal.jsx for why.
+// activeTab) — see src/components/modals/MassAppealModal.tsx for why.
 export function MassAppealPage({
   isMobile, massAppeals, fyOf, myCauses,
   setMassAppealStep, setMassAppealForm, setMassAppealRefs, setShowMassAppealModal, defaultMassAppealMessage,
