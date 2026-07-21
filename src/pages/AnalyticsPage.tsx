@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from '../supabase'
 import { C } from '../theme'
@@ -5,6 +6,191 @@ import { s } from '../styles'
 import { InfoTip } from '../components/ui/InfoTip'
 import { ActionBanner } from '../components/ui/ActionBanner'
 import { fiscalYearBounds } from '../lib/fiscalYear'
+
+interface AnalyticsPageProps {
+  ANALYTICS_NAV_OFFSET: number
+  acquisitionSourceStats: any
+  activeAnalyticsSection: string
+  aiWeekSummary: any
+  confirmedDonations: any[]
+  grants: any[]
+  massAppeals: any
+  pledges: any[]
+  thisMonthTotal: number
+  aiWeekSummaryError: any
+  aiWeekSummaryLoading: any
+  allGivingChangeFlags: any
+  analyticsGoalStats: any
+  annualGoal: number
+  appealConversionStats: any
+  appealListHealthStats: any
+  appealListStrip: any
+  appealSnapshotStats: any
+  appealTrendStats: any
+  campaignGoalStrip: any
+  campaignLeaderboardStats: any
+  campaignSnapshotStats: any
+  causeRaisedMap: any
+  charityIsIpc: boolean
+  charityName: string | undefined
+  charityUen: string | undefined
+  clearDonationFilters: (opts?: any) => void
+  concentrationTopN: number
+  customObligations: any
+  customTasks: any
+  dashboardActionItemsData: any
+  daysToDeadline: number
+  donationSizeBreakdownStats: any
+  donations: any[]
+  donorHighlightsStats: any
+  donorLTVStats: any
+  donorList: any[]
+  donorRetentionSnapshotStats: any
+  enabledModules: Record<string, boolean>
+  filterYear: string | number
+  findDonorRecord: (email: string | null | undefined, name?: string) => any
+  fundingConcentrationStats: any
+  fundraisingSnapshotStats: any
+  fyEndDay: number
+  fyEndMonth: number
+  fyOf: (date: string | Date) => number
+  generateThankYouNote: (donor: any, badge: any) => void
+  giroMissedCycles: any
+  givingChangeMinGifts: number
+  givingChangeMinPct: number
+  givingStreaksStats: any
+  grantExpensesByGrant: any
+  grantMatchClaims: any
+  grantOverviewStats: any
+  grantSnapshotStats: any
+  grantsWithNextReport: any
+  isMobile: boolean
+  isTablet: boolean
+  lapsedDismissals: any
+  lapsedDonorsStats: any
+  lapsedMinDays: number
+  lapsedMinGifts: number
+  lapsedReminderHistory: any
+  majorDonorThreshold: number
+  monthlyChartData: any
+  monthlyCountData: any
+  monthlyEquivalentAmount: any
+  monthlyExpenses: any
+  myCauses: any[]
+  newDonorAcquisitionStats: any
+  obligationForm: any
+  paymentMixStats: any
+  pledgeConcentrationStats: any
+  pledgeInstalments: any[]
+  pledgeReliabilityStats: any
+  pledgeSnapshotStats: any
+  pledgeStatsAndTrend: any
+  pledgeWatchThreshold: number
+  pledgesLoaded: boolean
+  predictableVsOneOffStats: any
+  quietDonorsStats: any
+  quietlyPayingStats: any
+  recurringAuthStats: any
+  recurringCompositionStats: any
+  recurringGifts: any[]
+  recurringHealthStats: any
+  recurringMissedThreshold: number
+  recurringMrrStats: any
+  recurringRiskStats: any
+  recurringSnapshotStats: any
+  recurringTrendCycles: number
+  revenueByChannelStats: any
+  revenueTrendStats: any
+  setActiveTab: (tab: string) => void
+  setAiWeekSummary: (v: any) => void
+  setAiWeekSummaryError: (v: any) => void
+  setAiWeekSummaryLoading: (v: any) => void
+  setCampaignSearchTerm: (v: any) => void
+  setCampaignYearFilter: (v: any) => void
+  setConcentrationTopN: (v: any) => void
+  setConfirmModal: (v: any) => void
+  setCustomObligations: (v: any) => void
+  setCustomTasks: (v: any) => void
+  setDonorFilterLabel: (v: any) => void
+  setFilterDonorKeys: (v: any) => void
+  setFilterThankYou: (v: any) => void
+  setFilterTopDonorNames: (v: any) => void
+  setFilterYear: (v: any) => void
+  setGivingChangeMinGifts: (v: any) => void
+  setGivingChangeMinPct: (v: any) => void
+  setGrantAmountFilter: (v: any) => void
+  setGrantSearchTerm: (v: any) => void
+  setGrantUrgencyFilter: (v: any) => void
+  setGrantYearFilter: (v: any) => void
+  setLapsedMinDays: (v: any) => void
+  setLapsedMinGifts: (v: any) => void
+  setObligationForm: Dispatch<SetStateAction<Record<string, any>>>
+  setPledgeAmountFilter: (v: any) => void
+  setPledgeProgrammeFilter: (v: any) => void
+  setPledgeSearchTerm: (v: any) => void
+  setPledgeTypeFilter: (v: any) => void
+  setPledgeUrgencyFilter: (v: any) => void
+  setPledgeWatchThreshold: (v: any) => void
+  setPledgeYearFilter: (v: any) => void
+  setRecurringAmountFilter: (v: any) => void
+  setRecurringAuthFilter: (v: any) => void
+  setRecurringMissedThreshold: (v: any) => void
+  setRecurringProgrammeFilter: (v: any) => void
+  setRecurringSearchTerm: (v: any) => void
+  setRecurringTrendCycles: (v: any) => void
+  setRecurringTypeFilter: (v: any) => void
+  setRecurringUrgencyFilter: (v: any) => void
+  setRecurringYearFilter: (v: any) => void
+  setSelectedDonor: (v: any) => void
+  setShowAddObligation: Dispatch<SetStateAction<boolean>>
+  setShowAddTask: Dispatch<SetStateAction<boolean>>
+  setShowAllBounceReasons: Dispatch<SetStateAction<boolean>>
+  setShowAllConcentrationDonors: Dispatch<SetStateAction<boolean>>
+  setShowAllEndingSoon: Dispatch<SetStateAction<boolean>>
+  setShowAllFatigueList: Dispatch<SetStateAction<boolean>>
+  setShowAllFrequentSkippers: Dispatch<SetStateAction<boolean>>
+  setShowAllGivingChanges: Dispatch<SetStateAction<boolean>>
+  setShowAllLapsedDonors: Dispatch<SetStateAction<boolean>>
+  setShowAllMissedPayments: Dispatch<SetStateAction<boolean>>
+  setShowAllOverGivers: Dispatch<SetStateAction<boolean>>
+  setShowAllOverdueUnits: Dispatch<SetStateAction<boolean>>
+  setShowAllPausedGifts: Dispatch<SetStateAction<boolean>>
+  setShowAllPledgeConcentration: Dispatch<SetStateAction<boolean>>
+  setShowAllPledgeWatchlist: Dispatch<SetStateAction<boolean>>
+  setShowDismissedLapsedDonors: Dispatch<SetStateAction<boolean>>
+  setShowDoneTasks: Dispatch<SetStateAction<boolean>>
+  setShowSnoozedItems: Dispatch<SetStateAction<boolean>>
+  setSnoozeMenuOpen: (v: any) => void
+  setTaskForm: Dispatch<SetStateAction<Record<string, any>>>
+  setToast: (v: any) => void
+  showAddObligation: boolean
+  showAddTask: boolean
+  showAllBounceReasons: boolean
+  showAllConcentrationDonors: boolean
+  showAllEndingSoon: boolean
+  showAllFatigueList: boolean
+  showAllFrequentSkippers: boolean
+  showAllGivingChanges: boolean
+  showAllLapsedDonors: boolean
+  showAllMissedPayments: boolean
+  showAllOverGivers: boolean
+  showAllOverdueUnits: boolean
+  showAllPausedGifts: boolean
+  showAllPledgeConcentration: boolean
+  showAllPledgeWatchlist: boolean
+  showDismissedLapsedDonors: boolean
+  showDoneTasks: boolean
+  showSnoozedItems: boolean
+  showToast: (msg: string, type?: string) => void
+  snoozeActionItem: (...args: any[]) => void
+  snoozeMenuOpen: any
+  snoozedItems: any
+  taskForm: any
+  topConnectorsStats: any
+  undismissLapsedDonor: (...args: any[]) => void
+  unsnoozeActionItem: (...args: any[]) => void
+  updateCharityJsonField: (field: string, key: string, updater: (current: any) => any) => Promise<{ error?: unknown, next?: any }>
+}
 
 export function AnalyticsPage({
   ANALYTICS_NAV_OFFSET, acquisitionSourceStats, activeAnalyticsSection, aiWeekSummary, confirmedDonations,
@@ -42,7 +228,7 @@ export function AnalyticsPage({
   showAllEndingSoon, showAllFatigueList, showAllFrequentSkippers, showAllGivingChanges, showAllLapsedDonors,
   showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
   showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
-  showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }) {
+  showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
   return (
           <div style={s.content}>
             <div style={s.pageHeader}>
@@ -108,8 +294,8 @@ export function AnalyticsPage({
               const weekDonorKeys = new Set(thisWeekDonations.map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name))
               const weekGrowthPct = lastWeekTotal > 0 ? Math.round(((weekTotal - lastWeekTotal) / lastWeekTotal) * 100) : null
 
-              const donorFirstGiftW = {}
-              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).forEach(d => {
+              const donorFirstGiftW: Record<string, any> = {}
+              ;[...confirmedDonations].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(d => {
                 const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
                 if (!donorFirstGiftW[key]) donorFirstGiftW[key] = d.created_at
               })
@@ -118,7 +304,7 @@ export function AnalyticsPage({
 
               const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
               const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
-              const escalatedGiroW = giroMissedCycles.filter(g => g.missedCycles >= 2).length
+              const escalatedGiroW = giroMissedCycles.filter((g: any) => g.missedCycles >= 2).length
               const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
 
               const monthlyExpensesSet = monthlyExpenses > 0
@@ -134,8 +320,8 @@ export function AnalyticsPage({
                   return pk === key && new Date(p.created_at) < weekAgo
                 })
                 if (priorGifts.length === 0) return false
-                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-                const gapDays = (now - new Date(mostRecentPrior.created_at)) / (1000 * 60 * 60 * 24)
+                const mostRecentPrior = priorGifts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                const gapDays = (now.getTime() - new Date(mostRecentPrior.created_at).getTime()) / (1000 * 60 * 60 * 24)
                 return gapDays >= lapsedMinDays
               })
 
@@ -210,7 +396,7 @@ export function AnalyticsPage({
             {(() => {
               const { actionItemsVisible, fyiItemsVisible, highItems, snoozedActiveItems, nowMs } = dashboardActionItemsData
 
-              const snoozeControl = (item) => item.key && (
+              const snoozeControl = (item: any) => item.key && (
                 snoozeMenuOpen === item.key ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
@@ -237,7 +423,7 @@ export function AnalyticsPage({
                   </span>
                   {showSnoozedItems && (
                     <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {snoozedActiveItems.map((item, i) => {
+                      {snoozedActiveItems.map((item: any, i: any) => {
                         const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
                         return (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
@@ -272,7 +458,7 @@ export function AnalyticsPage({
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {actionItemsVisible.map((item, i) => (
+                      {actionItemsVisible.map((item: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
                           onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                           onMouseLeave={e => e.currentTarget.style.background = C.white}
@@ -292,7 +478,7 @@ export function AnalyticsPage({
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {fyiItemsVisible.map((item, i) => (
+                      {fyiItemsVisible.map((item: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
                           onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                           onMouseLeave={e => e.currentTarget.style.background = C.white}
@@ -316,11 +502,11 @@ export function AnalyticsPage({
               const builtIn = [
                 ...(charityIsIpc && daysToDeadline > 0 ? [{ title: 'IRAS Tax Deduction Submission', date: new Date(today.getFullYear(), 0, 31), type: 'iras' }] : []),
               ]
-              const custom = (customObligations || []).map(o => {
+              const custom = (customObligations || []).map((o: any) => {
                 let d = new Date(o.date)
-                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today ? 1 : 0))
+                if (o.repeat === 'annual' && d < today) d.setFullYear(today.getFullYear() + (d.setFullYear(today.getFullYear()) < today.getTime() ? 1 : 0))
                 return { ...o, dateObj: new Date(o.date.replace(/\d{4}/, today.getFullYear())) }
-              }).map(o => {
+              }).map((o: any) => {
                 let d = new Date(o.date.replace(/\d{4}/, today.getFullYear()))
                 if (d < today) d.setFullYear(today.getFullYear() + 1)
                 return { ...o, dateObj: d }
@@ -328,7 +514,7 @@ export function AnalyticsPage({
               const all = [...builtIn.map(o => ({ ...o, dateObj: o.date })), ...custom]
                 .sort((a, b) => a.dateObj - b.dateObj)
                 .filter(o => {
-                  const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                  const days = Math.ceil((o.dateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                   return days >= 0 && days <= 180
                 })
                 return (
@@ -367,7 +553,7 @@ export function AnalyticsPage({
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {all.map((o, i) => {
-                        const days = Math.ceil((o.dateObj - today) / (1000 * 60 * 60 * 24))
+                        const days = Math.ceil((o.dateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                         const urgent = days <= 7
                         const soon = days <= 30
                         return (
@@ -384,7 +570,7 @@ export function AnalyticsPage({
                   description: `"${o.title}" will be removed.`,
                   confirmLabel: 'Delete',
                   onConfirm: async () => {
-                    const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => (current || []).filter(c => c.title !== o.title || c.date !== o.date))
+                    const { error, next } = await updateCharityJsonField(charityUen, 'custom_obligations', current => (current || []).filter((c: any) => c.title !== o.title || c.date !== o.date))
                     if (error) { showToast('Error removing obligation', 'error'); return }
                     setCustomObligations(next)
                     let cancelled = false
@@ -438,15 +624,15 @@ export function AnalyticsPage({
                       </div>
                     </div>
                   )}
-                  {(customTasks || []).filter(t => !t.done).length === 0 ? (
+                  {(customTasks || []).filter((t: any) => !t.done).length === 0 ? (
                     <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No open tasks right now.</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {(customTasks || []).filter(t => !t.done).map((t, i) => (
+                      {(customTasks || []).filter((t: any) => !t.done).map((t: any, i: any) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <input type="checkbox" checked={false} onChange={async () => {
-                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x))
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map((x: any) => (x.title === t.title && x.date === t.date) ? { ...x, done: true } : x))
                               if (error) { showToast('Error saving', 'error'); return }
                               setCustomTasks(next)
                               let cancelled = false
@@ -454,7 +640,7 @@ export function AnalyticsPage({
                                 msg: 'Task done ✓', undoable: true,
                                 onUndo: async () => {
                                   cancelled = true
-                                  const { next: reverted } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
+                                  const { next: reverted } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map((x: any) => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
                                   setCustomTasks(reverted)
                                   setToast(null)
                                 },
@@ -471,7 +657,7 @@ export function AnalyticsPage({
                             description: `"${t.title}" will be removed.`,
                             confirmLabel: 'Delete',
                             onConfirm: async () => {
-                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).filter(x => x.title !== t.title || x.date !== t.date))
+                              const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).filter((x: any) => x.title !== t.title || x.date !== t.date))
                               if (error) { showToast('Error removing task', 'error'); return }
                               setCustomTasks(next)
                               let cancelled = false
@@ -491,18 +677,18 @@ export function AnalyticsPage({
                       ))}
                     </div>
                   )}
-                  {(customTasks || []).filter(t => t.done).length > 0 && (
+                  {(customTasks || []).filter((t: any) => t.done).length > 0 && (
                     <div style={{ marginTop: 10 }}>
                       <span style={{ fontSize: 11, color: C.muted, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowDoneTasks(v => !v)}>
-                        {showDoneTasks ? 'Hide' : 'Show'} {(customTasks || []).filter(t => t.done).length} completed task{(customTasks || []).filter(t => t.done).length !== 1 ? 's' : ''}
+                        {showDoneTasks ? 'Hide' : 'Show'} {(customTasks || []).filter((t: any) => t.done).length} completed task{(customTasks || []).filter((t: any) => t.done).length !== 1 ? 's' : ''}
                       </span>
                       {showDoneTasks && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-                          {(customTasks || []).filter(t => t.done).map((t, i) => (
+                          {(customTasks || []).filter((t: any) => t.done).map((t: any, i: any) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                               <div style={{ fontSize: 13, color: C.muted, textDecoration: 'line-through' }}>{t.title}</div>
                               <span style={{ fontSize: 11, color: C.forest, cursor: 'pointer' }} onClick={async () => {
-                                const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map(x => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
+                                const { error, next } = await updateCharityJsonField(charityUen, 'custom_tasks', current => (current || []).map((x: any) => (x.title === t.title && x.date === t.date) ? { ...x, done: false } : x))
                                 if (!error) { setCustomTasks(next); showToast('Task reopened') }
                               }}>↺ Reopen</span>
                             </div>
@@ -617,8 +803,8 @@ export function AnalyticsPage({
                     <div style={s.statTileLabel}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
                     {(() => {
                       const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
-                      const totalDaysYE = Math.ceil((yearEndYE - yearStartYE) / (1000 * 60 * 60 * 24))
-                      const daysElapsedYE = Math.max(1, Math.ceil((now - yearStartYE) / (1000 * 60 * 60 * 24)))
+                      const totalDaysYE = Math.ceil((yearEndYE.getTime() - yearStartYE.getTime()) / (1000 * 60 * 60 * 24))
+                      const daysElapsedYE = Math.max(1, Math.ceil((now.getTime() - yearStartYE.getTime()) / (1000 * 60 * 60 * 24)))
                       if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
                       const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
                       const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
@@ -663,36 +849,36 @@ export function AnalyticsPage({
                 const stats = causeRaisedMap[c.id] || { total: 0 }
                 const pct = Math.min(100, (stats.total / c.target_amount) * 100)
                 const periodStart = new Date(c.start_date || c.created_at)
-                const totalDuration = new Date(c.end_date) - periodStart
-                const elapsed = now03 - periodStart
+                const totalDuration = new Date(c.end_date).getTime() - periodStart.getTime()
+                const elapsed = now03.getTime() - periodStart.getTime()
                 const elapsedPct = totalDuration > 0 ? Math.min(100, Math.max(0, (elapsed / totalDuration) * 100)) : 0
                 return pct < elapsedPct - 15
               })
 
-              const activeGrantsList = grantsWithNextReport.filter(g => g.status === 'active')
-              const grantsReceived = activeGrantsList.reduce((s, g) => {
-                if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0)
+              const activeGrantsList = grantsWithNextReport.filter((g: any) => g.status === 'active')
+              const grantsReceived = activeGrantsList.reduce((s: any, g: any) => {
+                if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2: any, c: any) => s2 + Number(c.amount), 0)
                 return s + Number(g.amount)
               }, 0)
               const nearestGrantDeadline = activeGrantsList
-                .filter(g => g.report_due_date)
-                .map(g => Math.ceil((new Date(g.report_due_date) - now03) / (1000 * 60 * 60 * 24)))
-                .filter(d => d >= 0)
-                .sort((a, b) => a - b)[0]
+                .filter((g: any) => g.report_due_date)
+                .map((g: any) => Math.ceil((new Date(g.report_due_date).getTime() - now03.getTime()) / (1000 * 60 * 60 * 24)))
+                .filter((d: any) => d >= 0)
+                .sort((a: any, b: any) => a - b)[0]
 
               const pendingPledgesList = pledges.filter(p => p.status === 'pending')
               const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
               // Outstanding value counts only remaining unpaid instalments for multi-year pledges,
               // matching how the Pledges page itself totals outstanding value -- using the full
               // multi-year amount here would double-count instalments already paid off.
-              const outstandingAmountForPledge = (p) => p.is_multi_year
+              const outstandingAmountForPledge = (p: any) => p.is_multi_year
                 ? pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s, i) => s + Number(i.amount), 0)
                 : Number(p.amount)
               const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
 
-              const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
-              const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-              const daysSinceLastAppeal = lastAppeal ? Math.floor((now03 - new Date(lastAppeal.created_at)) / (1000 * 60 * 60 * 24)) : null
+              const thisYearAppeals = massAppeals.filter((a: any) => fyOf(a.created_at) === fyOf(now03))
+              const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+              const daysSinceLastAppeal = lastAppeal ? Math.floor((now03.getTime() - new Date(lastAppeal.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null
 
               const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
               const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
@@ -702,12 +888,12 @@ export function AnalyticsPage({
                 if (g.frequency === 'annually') return s + amt / 12
                 return s + amt
               }, 0)
-              const escalatedGiroList = giroMissedCycles.filter(g => g.missedCycles >= 2)
+              const escalatedGiroList = giroMissedCycles.filter((g: any) => g.missedCycles >= 2)
 
               const pledgesFulfilledRevenue = pledges.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
-              const massAppealRevenue = thisYearAppeals.reduce((s, a) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
+              const massAppealRevenue = thisYearAppeals.reduce((s: any, a: any) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
               const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
-              const shareOf = (amt) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
+              const shareOf = (amt: any) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
 
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
@@ -833,7 +1019,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = fundraisingSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
+                    {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -886,10 +1072,10 @@ export function AnalyticsPage({
                     ) : (
                       <>
                         <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                          {channelRows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: r.color }} />)}
+                          {channelRows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: r.color }} />)}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {channelRows.map((r, i) => (
+                          {channelRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
                               <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
@@ -960,12 +1146,12 @@ export function AnalyticsPage({
               })()}
 
                 <div style={s.card}>
-                  <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(filterYear) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
+                  <div style={s.analyticsCardTitle}>Monthly Donations — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(String(filterYear)) - 1}`} <InfoTip text="Confirmed donations by month, compared against the same months last year." /></div>
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                     {filterYear !== 'All' && (
                       <>
                         <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.sage, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
-                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(filterYear) - 1}</span>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(String(filterYear)) - 1}</span>
                       </>
                     )}
                   </div>
@@ -974,7 +1160,7 @@ export function AnalyticsPage({
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
-                      <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(filterYear) - 1}` : 'Previous year')]} />
+                      <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'amount' ? filterYear : (filterYear !== 'All' ? `${parseInt(String(filterYear)) - 1}` : 'Previous year')]} />
                       {filterYear !== 'All' && <Bar dataKey="lastYearAmount" fill={C.border} radius={[6, 6, 0, 0]} isAnimationActive={false} />}
                       <Bar dataKey="amount" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                     </BarChart>
@@ -1006,7 +1192,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = campaignSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
+                    {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1028,7 +1214,7 @@ export function AnalyticsPage({
                 const { yr, strip } = campaignGoalStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {strip.map((t, i) => (
+                    {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1053,18 +1239,18 @@ export function AnalyticsPage({
                   <>
                     {endingSoon.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
-                        <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map(r => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
+                        <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map((r: any) => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
                       </div>
                     )}
 
                     <div style={isMobile ? s.twoColMobile : s.twoCol}>
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter(r => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
+                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                         {campaignRows.length === 0 ? (
                           <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {campaignRows.map((row, i) => {
+                            {campaignRows.map((row: any, i: any) => {
                               const bg = row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
                               const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
                               const barColor = row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
@@ -1111,8 +1297,8 @@ export function AnalyticsPage({
                           </div>
                         )}
                         {(() => {
-                          const behindCount = campaignRows.filter(r => r.behind).length
-                          const withGoalCount = campaignRows.filter(r => r.hasGoal).length
+                          const behindCount = campaignRows.filter((r: any) => r.behind).length
+                          const withGoalCount = campaignRows.filter((r: any) => r.hasGoal).length
                           if (withGoalCount === 0) return null
                           return behindCount > 0 ? (
                             <ActionBanner tone="danger" text={`${behindCount} campaign${behindCount !== 1 ? 's' : ''} behind pace`} sub="Consider a mass appeal or check in with the campaign owner" />
@@ -1168,19 +1354,19 @@ export function AnalyticsPage({
 
                             <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {appealReliant.map((r, i) => (
+                              {appealReliant.map((r: any, i: any) => (
                                 <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
                                   <div style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{r.title} is {r.appealPct}% reliant on a mass appeal</div>
                                   <div style={{ fontSize: 10.5, color: C.warning }}>{r.newPct}% new donors · without that appeal, this campaign would have raised far less on its own</div>
                                 </div>
                               ))}
-                              {standoutOrganic.map((r, i) => (
+                              {standoutOrganic.map((r: any, i: any) => (
                                 <div key={`organic-${i}`} style={{ padding: '10px 12px', background: '#EAF3DE', borderRadius: 4, border: `1px solid ${C.border}` }}>
                                   <div style={{ fontSize: 12.5, fontWeight: 500, color: '#27500A' }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
                                   <div style={{ fontSize: 10.5, color: '#27500A' }}>100% new, fully organic — no appeal or referral involved</div>
                                 </div>
                               ))}
-                              {stagnant.map((r, i) => (
+                              {stagnant.map((r: any, i: any) => (
                                 <div key={`stagnant-${i}`} style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
                                   <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{r.title} hasn't attracted any new donors</div>
                                   <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
@@ -1213,7 +1399,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = appealSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
+                    {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1234,7 +1420,7 @@ export function AnalyticsPage({
                 const { yr, strip } = appealListStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {strip.map((t, i) => (
+                    {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1275,7 +1461,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total raised from appeals, by year.</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 12 }}>
                           <span style={{ fontSize: 11, color: C.muted }}>Conversion rate trend</span>
-                          <span style={{ fontSize: 11, color: C.text }}>{trendData.map(d => d.conversionRate !== null ? `${d.conversionRate}%` : '—').join(' → ')}</span>
+                          <span style={{ fontSize: 11, color: C.text }}>{trendData.map((d: any) => d.conversionRate !== null ? `${d.conversionRate}%` : '—').join(' → ')}</span>
                         </div>
                       </div>
                     )}
@@ -1289,7 +1475,7 @@ export function AnalyticsPage({
                           <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{medianResponseDays} day{medianResponseDays !== 1 ? 's' : ''}</div>
                           <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>median time from appeal sent to donation</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {respBuckets.map((b, i) => {
+                            {respBuckets.map((b: any, i: any) => {
                               const pct = respTotal > 0 ? Math.round((b.count / respTotal) * 100) : 0
                               return (
                                 <div key={i}>
@@ -1387,12 +1573,12 @@ export function AnalyticsPage({
 
                           <div style={s.analyticsSubTitle}>Ask amount vs. conversion</div>
                           {distinctAmounts.length < 2 ? (
-                            <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter(a => a.sentCount > 0).length} appeal{scopedAnalyzed.filter(a => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
+                            <div style={{ fontSize: 11.5, color: C.muted, fontStyle: 'italic' }}>Only {scopedAnalyzed.filter((a: any) => a.sentCount > 0).length} appeal{scopedAnalyzed.filter((a: any) => a.sentCount > 0).length !== 1 ? 's' : ''} so far — not enough spread in ask amounts yet to show a reliable pattern.</div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {distinctAmounts.sort((a, b) => a - b).map((amt, i) => {
-                                const matching = scopedAnalyzed.filter(a => Number(a.appeal.amount) === amt && a.sentCount > 0)
-                                const avgConv = Math.round(matching.reduce((s, a) => s + a.conversionRate, 0) / matching.length)
+                              {distinctAmounts.sort((a: any, b: any) => a - b).map((amt: any, i: any) => {
+                                const matching = scopedAnalyzed.filter((a: any) => Number(a.appeal.amount) === amt && a.sentCount > 0)
+                                const avgConv = Math.round(matching.reduce((s: any, a: any) => s + a.conversionRate, 0) / matching.length)
                                 return (
                                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                                     <span style={{ fontSize: 12, color: C.text }}>${amt} ask</span>
@@ -1419,7 +1605,7 @@ export function AnalyticsPage({
 
                 {(() => {
                   const { curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
-                  const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
+                  const ptDelta = (c: any, p: any) => prevDelivery.total === 0 ? null : c - p
 
                   return (
                     <div style={s.card}>
@@ -1456,7 +1642,7 @@ export function AnalyticsPage({
                         <>
                           <div style={s.analyticsSubTitleDivider}>Top bounce reasons</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                            {(showAllBounceReasons ? bounceReasons : bounceReasons.slice(0, 5)).map((r, i) => (
+                            {(showAllBounceReasons ? bounceReasons : bounceReasons.slice(0, 5)).map((r: any, i: any) => (
                               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                                 <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>{r.reason}</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.count}</span>
@@ -1489,7 +1675,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No donors have received more than one appeal yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d, i) => (
+                          {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d: any, i: any) => (
                             <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
@@ -1510,7 +1696,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted }}>No standout over-gifts from appeal recipients yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {(showAllOverGivers ? overGivers : overGivers.slice(0, 5)).map((d, i) => (
+                          {(showAllOverGivers ? overGivers : overGivers.slice(0, 5)).map((d: any, i: any) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, display: 'flex', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                               <span style={{ fontSize: 11, color: C.muted }}>asked ${d.asked} · gave ${d.gave}</span>
@@ -1550,7 +1736,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = pledgeSnapshotStats
                 const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
                 const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
-                const genericTile = (t) => (
+                const genericTile = (t: any) => (
                   <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                     <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1673,16 +1859,16 @@ export function AnalyticsPage({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                             <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
-                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.sage }}>{fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0}% · {onTimeGroup.length} · ${onTimeGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.sage }}>{fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0}% · {onTimeGroup.length} · ${onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
                             <span style={{ fontSize: 12, color: C.text }}>1–14 days late</span>
-                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0}% · {slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0}% · {slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                           </div>
                           {veryLateGroup.length > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
                               <span style={{ fontSize: 12, color: C.warning }}>15+ days late</span>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.warning }}>{Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100)}% · {veryLateGroup.length} · ${veryLateGroup.reduce((s, f) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.warning }}>{Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100)}% · {veryLateGroup.length} · ${veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
                             </div>
                           )}
                         </div>
@@ -1698,7 +1884,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No overdue pledges right now.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                        {(showAllOverdueUnits ? overdueUnits : overdueUnits.slice(0, 5)).map((u, i) => (
+                        {(showAllOverdueUnits ? overdueUnits : overdueUnits.slice(0, 5)).map((u: any, i: any) => (
                           <div key={i} style={{ padding: '9px 11px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
@@ -1730,11 +1916,11 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted }}>No donors currently meet this threshold.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {(showAllPledgeWatchlist ? watchList : watchList.slice(0, 5)).map((d, i) => (
+                        {(showAllPledgeWatchlist ? watchList : watchList.slice(0, 5)).map((d: any, i: any) => (
                           <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: d.overdueNow.length > 0 ? C.red : C.forest }}>{d.name}{d.overdueNow.length > 0 ? ' — overdue now' : ''}</span>
-                              <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s, p) => s + Number(p.amount), 0).toLocaleString()}</span>
+                              <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s: any, p: any) => s + Number(p.amount), 0).toLocaleString()}</span>
                             </div>
                           </div>
                         ))}
@@ -1777,7 +1963,7 @@ export function AnalyticsPage({
                       <>
                         <div style={s.analyticsSubTitleDivider}>Largest outstanding pledges</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d, i) => (
+                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                               <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
@@ -1797,7 +1983,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {monthsRanked.map((m, i) => {
+                        {monthsRanked.map((m: any, i: any) => {
                           const isHeaviest = heaviestMonth && m.label === heaviestMonth.label && monthsRanked.length > 1
                           return (
                             <div key={i} style={{ padding: '10px 12px', background: isHeaviest ? C.warningBg : C.ivory, borderRadius: 4 }}>
@@ -1837,7 +2023,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = recurringSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
+                    {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -1923,7 +2109,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {byProgrammeRows.map((r, i) => (
+                          {byProgrammeRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
@@ -1937,7 +2123,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {byTypeRows.map((r, i) => (
+                          {byTypeRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
@@ -2049,10 +2235,10 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted }}>None right now.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {terminatedGifts.slice(0, 5).map((g, i) => (
+                          {terminatedGifts.slice(0, 5).map((g: any, i: any) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}{g.bank_name ? ` · ${g.bank_name}` : ''}</span>
-                              <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{{ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' }[g.frequency] || 'mo'}</span>
+                              <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{({ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' } as Record<string, string>)[g.frequency] || 'mo'}</span>
                             </div>
                           ))}
                         </div>
@@ -2089,7 +2275,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No missed recurring payments right now.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {(showAllMissedPayments ? missedFiltered : missedFiltered.slice(0, 5)).map((g, i) => {
+                          {(showAllMissedPayments ? missedFiltered : missedFiltered.slice(0, 5)).map((g: any, i: any) => {
                             const fullGift = recurringGifts.find(rg => rg.id === g.gift_id)
                             return (
                               <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
@@ -2117,8 +2303,8 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active gifts with an end date in the next 6 months.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {(showAllEndingSoon ? endingSoon : endingSoon.slice(0, 5)).map((g, i) => {
-                            const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                          {(showAllEndingSoon ? endingSoon : endingSoon.slice(0, 5)).map((g: any, i: any) => {
+                            const monthsOut = Math.round((new Date(g.end_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
                             return (
                               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
@@ -2139,7 +2325,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No paused gifts right now.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {(showAllPausedGifts ? pausedGifts : pausedGifts.slice(0, 5)).map((g, i) => (
+                          {(showAllPausedGifts ? pausedGifts : pausedGifts.slice(0, 5)).map((g: any, i: any) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}</span>
                               <span style={{ fontSize: 11.5, color: C.muted }}>{g.pause_reason ? ` — ${g.pause_reason}` : ''}{g.pause_resume_date ? ` · resume ${new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}</span>
@@ -2158,7 +2344,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No donors have skipped 2+ cycles this year.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {(showAllFrequentSkippers ? frequentSkippers : frequentSkippers.slice(0, 5)).map((g, i) => (
+                          {(showAllFrequentSkippers ? frequentSkippers : frequentSkippers.slice(0, 5)).map((g: any, i: any) => (
                             <div key={i} style={{ padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>
@@ -2198,7 +2384,7 @@ export function AnalyticsPage({
                 const { yr, tiles } = grantSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t, i) => (
+                    {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -2247,7 +2433,7 @@ export function AnalyticsPage({
                           <ResponsiveContainer width="100%" height={110}>
                             <PieChart>
                               <Pie data={expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={2} isAnimationActive={false}>
-                                {expenseByCategory.map((c, i) => (
+                                {expenseByCategory.map((c: any, i: any) => (
                                   <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
                                 ))}
                               </Pie>
@@ -2255,7 +2441,7 @@ export function AnalyticsPage({
                             </PieChart>
                           </ResponsiveContainer>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-                            {expenseByCategory.map((c, i) => (
+                            {expenseByCategory.map((c: any, i: any) => (
                               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{ width: 9, height: 9, borderRadius: 2, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
                                 <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{c.label}</span>
@@ -2275,7 +2461,7 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          {funderTypeBreakdown.map((f, i) => (
+                          {funderTypeBreakdown.map((f: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{f.label}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{f.pct}%</span>
@@ -2330,17 +2516,17 @@ export function AnalyticsPage({
                         <>
                           <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Pace vs report deadline</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {(() => { let behindPaceCount = 0; const rows = activeGrants.map((g, i) => {
-                            const utilized = (grantExpensesByGrant[g.id] || []).reduce((s, e) => s + Number(e.amount), 0)
+                          {(() => { let behindPaceCount = 0; const rows = activeGrants.map((g: any, i: any) => {
+                            const utilized = (grantExpensesByGrant[g.id] || []).reduce((s: any, e: any) => s + Number(e.amount), 0)
                             const pctSpent = g.amount > 0 ? Math.round((utilized / Number(g.amount)) * 100) : 0
                             const start = new Date(g.start_date || g.created_at)
                             const due = g.report_due_date ? new Date(g.report_due_date) : null
-                            const daysToReport = due ? Math.ceil((due - today) / (1000 * 60 * 60 * 24)) : null
+                            const daysToReport = due ? Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null
                             const overdue = daysToReport !== null && daysToReport < 0
                             let pctElapsed = null
                             if (due) {
-                              const totalSpan = due - start
-                              const elapsed = today - start
+                              const totalSpan = due.getTime() - start.getTime()
+                              const elapsed = today.getTime() - start.getTime()
                               pctElapsed = totalSpan > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalSpan) * 100))) : null
                             }
                             const gap = pctElapsed !== null ? pctElapsed - pctSpent : null
@@ -2396,7 +2582,7 @@ export function AnalyticsPage({
                       <>
                         <div style={s.analyticsSubTitleDivider}>By funder, active grants only</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {byFunder.map((f, i) => (
+                          {byFunder.map((f: any, i: any) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(f.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
                               <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
@@ -2411,8 +2597,8 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted }}>No active grants expiring in the next 6 months.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {expiringSoon.map((g, i) => {
-                          const monthsOut = Math.round((new Date(g.end_date) - today) / (1000 * 60 * 60 * 24 * 30.44))
+                        {expiringSoon.map((g: any, i: any) => {
+                          const monthsOut = Math.round((new Date(g.end_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
                           return (
                             <div key={i} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(g.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -2459,7 +2645,7 @@ export function AnalyticsPage({
                             <div style={{ fontSize: 12.5, color: C.muted }}>None — all on pace or not ending soon.</div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {matchingAtRisk.map((m, i) => (
+                              {matchingAtRisk.map((m: any, i: any) => (
                                 <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(m.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                     <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{m.funder_name}</span>
@@ -2498,7 +2684,7 @@ export function AnalyticsPage({
                             <div style={{ fontSize: 12.5, color: C.muted }}>All committed tranches received.</div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {pendingTranches.map((t, i) => (
+                              {pendingTranches.map((t: any, i: any) => (
                                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(t.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <span style={{ fontSize: 12, color: t.overdue ? C.red : C.text }}>{t.funder_name} <span style={{ color: C.muted }}>· {t.label}</span></span>
                                   <span style={{ fontSize: 11.5, color: t.overdue ? C.red : C.muted }}>${t.amount.toLocaleString()} · {t.overdue ? 'overdue' : new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
@@ -2506,8 +2692,8 @@ export function AnalyticsPage({
                               ))}
                             </div>
                           )}
-                          {pendingTranches.some(t => t.overdue) ? (
-                            <ActionBanner tone="danger" text={`${pendingTranches.filter(t => t.overdue).length} tranche${pendingTranches.filter(t => t.overdue).length !== 1 ? 's' : ''} overdue`} sub="Follow up with the funder" />
+                          {pendingTranches.some((t: any) => t.overdue) ? (
+                            <ActionBanner tone="danger" text={`${pendingTranches.filter((t: any) => t.overdue).length} tranche${pendingTranches.filter((t: any) => t.overdue).length !== 1 ? 's' : ''} overdue`} sub="Follow up with the funder" />
                           ) : (
                             <ActionBanner tone="success" text="No overdue tranches" sub="All disbursements are on schedule" />
                           )}
@@ -2540,7 +2726,7 @@ export function AnalyticsPage({
                         <>
                           <div style={s.analyticsSubTitle}>Overdue reports</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
-                            {reportCompliance.overdueReportsList.map((r, i) => (
+                            {reportCompliance.overdueReportsList.map((r: any, i: any) => (
                               <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(r.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.funder_name}</span>
@@ -2616,8 +2802,8 @@ export function AnalyticsPage({
                     </div>
                     {lapsed.length === 0 && <div style={{ fontSize: 13, color: C.sage, fontStyle: 'italic' }}>✓ No lapsed donors right now</div>}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {lapsed.map((d, i) => {
-                        const daysSince = Math.floor((lapsedToday - new Date(d.lastDate)) / (1000 * 60 * 60 * 24))
+                      {lapsed.map((d: any, i: any) => {
+                        const daysSince = Math.floor((lapsedToday.getTime() - new Date(d.lastDate).getTime()) / (1000 * 60 * 60 * 24))
                         const donorKey = d.email?.trim() || d.name
                         const reminderCount = (lapsedReminderHistory[donorKey] || []).length
                         return (
@@ -2631,7 +2817,7 @@ export function AnalyticsPage({
                             </div>
                             {reminderCount > 0 && (
                               <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500 }}>
-                                ✉ Last reached out {Math.floor((new Date() - new Date(lapsedReminderHistory[donorKey][0].sent_at)) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
+                                ✉ Last reached out {Math.floor((new Date().getTime() - new Date(lapsedReminderHistory[donorKey][0].sent_at).getTime()) / (1000 * 60 * 60 * 24))}d ago · {reminderCount}× sent
                               </div>
                             )}
                             {(() => {
@@ -2664,7 +2850,7 @@ export function AnalyticsPage({
                         </button>
                         {showDismissedLapsedDonors && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                            {dismissedLapsed.map((d, i) => {
+                            {dismissedLapsed.map((d: any, i: any) => {
                               const donorKey = d.email?.trim() || d.name
                               return (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
@@ -2694,7 +2880,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {quiet.map((d, i) => (
+                        {quiet.map((d: any, i: any) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.warningBg, borderRadius: 10, border: `1px solid ${C.warningBorder}` }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.warning, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -2719,12 +2905,12 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {quietlyPaying75.map((d, i) => (
+                        {quietlyPaying75.map((d: any, i: any) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.forest, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{d.name}</div>
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>${d.amount}/{d.frequency} · {d.lastContact ? `last contact ${Math.floor((new Date() - new Date(d.lastContact)) / (1000 * 60 * 60 * 24 * 30))}mo ago` : 'no contact ever logged'}</div>
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>${d.amount}/{d.frequency} · {d.lastContact ? `last contact ${Math.floor((new Date().getTime() - new Date(d.lastContact).getTime()) / (1000 * 60 * 60 * 24 * 30))}mo ago` : 'no contact ever logged'}</div>
                             </div>
                           </div>
                         ))}
@@ -2751,7 +2937,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                        {flags.map((f, i) => (
+                        {flags.map((f: any, i: any) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : '#EAF3EC', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(f.email, f.name)); setActiveTab('donors') }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
@@ -2798,7 +2984,7 @@ export function AnalyticsPage({
                     <div style={s.analyticsCardTitle}>Donor Highlights — {filterYear}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
-                      {cards.map((c, i) => (
+                      {cards.map((c: any, i: any) => (
                         <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 18 }}>{c.icon}</span>
@@ -2828,7 +3014,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No active streaks of 3+ months yet.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {streaks.map((d, i) => (
+                        {streaks.map((d: any, i: any) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: C.ivory, borderRadius: 10, border: `1px solid ${C.border}` }}>
                             <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.gold, color: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{d.name?.charAt(0)}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
@@ -2895,7 +3081,7 @@ export function AnalyticsPage({
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {sorted.slice(0, 5).map((d, i) => (
+                      {sorted.slice(0, 5).map((d: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', background: C.ivory, borderRadius: 4 }}>
                           <div style={{ width: 22, height: 22, borderRadius: '50%', background: [C.forest, C.sage, C.gold, C.borderStrong, C.muted][i], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 500, fontFamily: C.fontVoice, flexShrink: 0 }}>{i + 1}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -2918,10 +3104,10 @@ export function AnalyticsPage({
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                      {rows.map((r, i) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
+                      {rows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
-                      {rows.map((r, i) => (
+                      {rows.map((r: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
                           <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
@@ -2933,8 +3119,8 @@ export function AnalyticsPage({
                     {allYears61.length > 1 && (
                       <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
-                        {allMethods61.map((method, mi) => {
-                          const series = yearlyMix61.map(y => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                        {allMethods61.map((method: any, mi: any) => {
+                          const series = yearlyMix61.map((y: any) => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
                           const firstPct = series[0]
                           const lastPct = series[series.length - 1]
                           const delta = lastPct - firstPct
@@ -2942,7 +3128,7 @@ export function AnalyticsPage({
                             <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                               <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
                               <div style={{ display: 'flex', gap: 4, flex: 1 }}>
-                                {yearlyMix61.map((y, yi) => (
+                                {yearlyMix61.map((y: any, yi: any) => (
                                   <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
                                 ))}
                               </div>
@@ -2985,7 +3171,7 @@ export function AnalyticsPage({
                       {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d, i) => (
+                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d: any, i: any) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                           <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
                           <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
@@ -3017,7 +3203,7 @@ export function AnalyticsPage({
                     <div style={s.analyticsCardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {rows78.slice(0, 8).map((r, i) => (
+                      {rows78.slice(0, 8).map((r: any, i: any) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                           <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.name}</span>
                           <span style={{ fontSize: 12, color: C.muted }}>{r.referredCount} referred · {r.sustainedCount} became repeat givers</span>
@@ -3041,7 +3227,7 @@ export function AnalyticsPage({
                     <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {rows57.map((r, i) => (
+                      {rows57.map((r: any, i: any) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.ivory, borderRadius: 6, padding: '8px 12px', border: `1px solid ${C.border}` }}>
                           <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>{r.source}</span>
                           <span style={{ fontSize: 12, color: C.muted }}>{r.totalDonors} donor{r.totalDonors !== 1 ? 's' : ''} · {r.repeatPct}% became repeat givers</span>
@@ -3056,7 +3242,7 @@ export function AnalyticsPage({
                 <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
                 <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
-                  {donationSizeBreakdownStats.map((bucket, i) => (
+                  {donationSizeBreakdownStats.map((bucket: any, i: any) => (
                       <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
@@ -3165,15 +3351,15 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const categoryLabels62 = { unknown: 'Unknown', financial_difficulty: 'Financial difficulty', moved_overseas: 'Moved overseas', switched_cause: 'Switched to another cause', deceased: 'Deceased', asked_to_stop: 'Asked to stop', other: 'Other' }
-                const dismissalsList62 = Object.values(lapsedDismissals).filter(d => d.reason_category)
+                const categoryLabels62: Record<string, string> = { unknown: 'Unknown', financial_difficulty: 'Financial difficulty', moved_overseas: 'Moved overseas', switched_cause: 'Switched to another cause', deceased: 'Deceased', asked_to_stop: 'Asked to stop', other: 'Other' }
+                const dismissalsList62 = Object.values(lapsedDismissals as Record<string, any>).filter((d: any) => d.reason_category)
                 if (dismissalsList62.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
                     <div style={s.analyticsCardTitle}>Why Donors Lapse</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No lapsed donors marked with a reason yet.</div>
                   </div>
                 )
-                const counts62 = {}
+                const counts62: Record<string, number> = {}
                 dismissalsList62.forEach(d => { counts62[d.reason_category] = (counts62[d.reason_category] || 0) + 1 })
                 const rows62 = Object.entries(counts62).map(([cat, count]) => ({ label: categoryLabels62[cat] || cat, count })).sort((a, b) => b.count - a.count)
                 return (
