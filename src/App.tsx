@@ -11,7 +11,7 @@ import logo from './assets/logo.png'
 import './App.css'
 import { donationDonorKey, contactDonorKey } from './lib/donorKeys'
 import { fiscalYearOf, fiscalYearBounds, isoWeekKey } from './lib/fiscalYear'
-import { fillTemplate, escapeHtml } from './lib/format'
+import { fillTemplate, escapeHtml, sanitizeCsvCell } from './lib/format'
 import { colorForDonor } from './lib/color'
 import { computeDonationBadges, computeDonationSummaryStats } from './lib/donationStats'
 import { C } from './theme'
@@ -4245,9 +4245,10 @@ export default function App() {
     document.body.removeChild(offscreen)
 
     // Also add a summary CSV
+    const csvQuote = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`
     const csvLines = [
       'Donor Name,Email,Amount,Reference,PayNow URL',
-      ...selected.map(d => `"${d.donor_name}","${d.donor_email}",${d.amount},"${d.ref}","${d.qrValue}"`),
+      ...selected.map((d: any) => `${csvQuote(d.donor_name)},${csvQuote(d.donor_email)},${d.amount},${csvQuote(d.ref)},${csvQuote(d.qrValue)}`),
     ]
     zip.file('_summary.csv', csvLines.join('\n'))
 

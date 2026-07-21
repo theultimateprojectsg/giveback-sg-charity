@@ -1,6 +1,7 @@
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
+import { sanitizeCsvCell } from '../lib/format'
 import type { Donation, Grant } from '../types'
 
 interface AuditLogEntry {
@@ -80,7 +81,7 @@ export function ReportsPage({
                           d.payment_method || '',
                           d.receipt_number || d.payment_ref || '',
                           d.receipt_issued ? 'Yes' : 'No',
-                        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+                        ].map(v => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`).join(','))
                         const csv = ['Date,Donor Name,Email,Amount,Payment Method,Receipt No.,Receipt Issued', ...rows].join('\n')
                         const blob = new Blob([csv], { type: 'text/csv' })
                         const url = URL.createObjectURL(blob)
@@ -223,7 +224,7 @@ export function ReportsPage({
               entry.actor_type || '',
               entry.action || '',
               details,
-            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+            ].map(v => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`).join(',')
           })
           const csv = ['Timestamp,Actor Email,Actor Type,Action,Details', ...rows].join('\n')
           const blob = new Blob([csv], { type: 'text/csv' })
