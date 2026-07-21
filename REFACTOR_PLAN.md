@@ -377,10 +377,60 @@ CSS Modules scoped to that page, rather than doing a separate blanket pass.
 - **Risk:** low if done incrementally; high and pointless if attempted as one
   giant separate change.
 
-### Phase 8 — TypeScript (optional, last, only if wanted)
-Only worth doing after the file split (Phase 5) — migrating a 19,700-line
-single file to TypeScript is much riskier than migrating 15 small page files
-one at a time with `allowJs`/`checkJs` easing the transition.
+### Phase 8 — TypeScript ✅ done
+Converted every `.js`/`.jsx` source file to `.ts`/`.tsx`, file by file, in
+ascending size/risk order, verifying `npx tsc --noEmit`, `npx vite build`, and
+`npx vitest run` after each step: `lib/` pure functions → `theme`/`styles` →
+`components/ui` → `components/modals` → `components/panels` → the 9
+`pages/*` files → the small root files (`main`, `CharityAuth`, `supabase`) →
+finally `App.tsx` (11.7k lines, the largest and last).
+
+- **Tooling:** `tsconfig.json` uses `allowJs: true` (so `.jsx` and `.tsx`
+  could coexist mid-migration), `strict: true` with `strictNullChecks: false`
+  (deliberate — it was flagging legitimate "form only exists while editing"
+  JSX guard patterns as errors far more than it was catching real bugs) and
+  `noUnusedLocals`/`noUnusedParameters: false`. `typescript-eslint` couldn't
+  be installed (peer-dep conflict with TS 7); `tsc --noEmit` is the sole
+  type-safety net for `.ts`/`.tsx` — ESLint's flat config stays scoped to the
+  (now nonexistent) `.js`/`.jsx` files.
+- **Domain types** live in `src/types.ts` (`Donation`, `DonorContact`,
+  `DonorSummary`, `Pledge`, `RecurringGift`, `Grant`, badge-map aliases), each
+  with an index signature fallback (`[key: string]: unknown`) extended as
+  each page revealed more fields it needed.
+- **Typing discipline scaled down deliberately as file size grew.** The 9 page
+  components got real prop interfaces (concrete types where cheap, `any` for
+  genuinely complex free-form objects like `manualForm`/`confirmModal`).
+  `AnalyticsPage` (235 props) and `App.tsx` (~150 `useState` hooks, passing
+  data into every strictly-typed page) leaned much more heavily on `any` —
+  auto-generating a props interface from the destructured prop list and
+  bulk-loosening `useState(...)`/`useRef(...)` initializers to
+  `useState<any>(...)` was the only tractable way to get ~1,250 initial
+  `App.tsx` compiler errors down to zero without a multi-day rewrite. This
+  was the right tradeoff: a dashboard/root component's value is in shipping
+  real domain types at its *boundaries* (the page props), not in perfectly
+  typing every internal scratch variable.
+- **A scripted mistake became a real bug, caught by browser verification, not
+  `tsc`.** Several of the ~1,250 `App.tsx` errors were "arithmetic on a
+  non-number" complaints from `Object.entries()`/`Object.values()` on
+  not-yet-typed `{}` dictionaries. A batch script fixed these by appending
+  `.getTime()` to the flagged operand — correct for genuine `Date` arithmetic,
+  but it fired on a few plain number fields too (`amt`, `total`,
+  `priorDonorTotals` entries) purely because they were sitting at the same
+  operator position as a real Date bug elsewhere. TypeScript happily compiled
+  `someNumber.getTime()` because the variable was typed `any` — this is
+  exactly the class of bug static types are supposed to prevent, slipping
+  through anyway because the fix papered over the type instead of fixing it.
+  It only surfaced at runtime (`TypeError: b.getTime is not a function`),
+  found by loading the app in a real browser after the "clean tsc" pass and
+  clicking through — not by `tsc --noEmit`, `vite build`, or `vitest run`,
+  all of which stayed green throughout. Lesson reaffirmed: a clean type-check
+  on heavily-`any` code is necessary but not sufficient — live verification
+  still matters most exactly where the types are loosest.
+- Also caught the same way: `index.html` and `main.tsx` both still importing
+  `./App.jsx`/`./src/main.jsx` after the renames — TypeScript has no way to
+  flag a stale string literal in an `<script src>` tag or a `.jsx` extension
+  in an import specifier when `allowImportingTsExtensions` accepts either;
+  only actually loading the page in a browser surfaced the blank-page result.
 
 ## What we are *not* doing
 - No big-bang rewrite. No phase touches more than one domain/tab at a time.
