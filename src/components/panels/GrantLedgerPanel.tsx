@@ -1,8 +1,42 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
+
+interface LedgerExpense { id: string, description: string, amount: number | string, expense_date: string, category?: string | null }
+interface LedgerTranche { id: string, label: string, amount: number | string, expected_date: string, received?: boolean }
+interface LedgerReport { id: string, label: string, due_date: string, submitted?: boolean }
+interface LedgerClaim { id: string, amount: number | string, claim_date: string, notes?: string | null }
+interface LedgerNote { id: string, note: string, created_at: string, created_by?: string | null }
+
+interface GrantLedgerPanelProps {
+  grant: { is_matching?: boolean }
+  expenses: LedgerExpense[]
+  tranches: LedgerTranche[]
+  reports: LedgerReport[]
+  claims: LedgerClaim[]
+  notes: LedgerNote[]
+  categories: string[]
+  s: Record<string, CSSProperties>
+  C: Record<string, string>
+  onSaveExpense: (form: unknown) => Promise<unknown>
+  onEditExpense: (e: LedgerExpense, form: unknown) => Promise<unknown>
+  onDeleteExpense: (id: string) => void
+  onSaveTranche: (form: unknown) => Promise<unknown>
+  onToggleTranche: (t: LedgerTranche) => void
+  onEditTranche: (t: LedgerTranche, form: unknown) => Promise<unknown>
+  onDeleteTranche: (t: LedgerTranche) => void
+  onSaveReport: (form: unknown) => Promise<unknown>
+  onToggleReport: (r: LedgerReport) => void
+  onEditReport: (r: LedgerReport, form: unknown) => Promise<unknown>
+  onDeleteReport: (r: LedgerReport) => void
+  onSaveClaim: (form: unknown) => Promise<unknown>
+  onEditClaim: (c: LedgerClaim, form: unknown) => Promise<unknown>
+  onDeleteClaim: (c: LedgerClaim) => void
+  onSaveNote: (note: string) => Promise<unknown>
+}
 
 export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, notes, categories, s, C,
   onSaveExpense, onEditExpense, onDeleteExpense, onSaveTranche, onToggleTranche, onEditTranche, onDeleteTranche,
-  onSaveReport, onToggleReport, onEditReport, onDeleteReport, onSaveClaim, onEditClaim, onDeleteClaim, onSaveNote }) {
+  onSaveReport, onToggleReport, onEditReport, onDeleteReport, onSaveClaim, onEditClaim, onDeleteClaim, onSaveNote }: GrantLedgerPanelProps) {
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Programme Costs' })
   const [trancheForm, setTrancheForm] = useState({ label: '', amount: '', expected_date: '' })
   const [reportForm, setReportForm] = useState({ label: '', due_date: '' })
@@ -14,60 +48,60 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
   const [savingClaim, setSavingClaim] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
 
-  const [editingExpenseId, setEditingExpenseId] = useState(null)
-  const [editingExpenseForm, setEditingExpenseForm] = useState(null)
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const [editingExpenseForm, setEditingExpenseForm] = useState<{ description: string, amount: string, expense_date: string, category: string } | null>(null)
   const [savingEditedExpense, setSavingEditedExpense] = useState(false)
-  function startEditingExpense(e) {
+  function startEditingExpense(e: LedgerExpense) {
     setEditingExpenseId(e.id)
     setEditingExpenseForm({ description: e.description, amount: String(e.amount), expense_date: e.expense_date, category: e.category || categories[0] || 'Programme Costs' })
   }
-  async function saveEditedExpense(e) {
-    if (savingEditedExpense || !editingExpenseForm.description.trim() || !editingExpenseForm.amount) return
+  async function saveEditedExpense(e: LedgerExpense) {
+    if (savingEditedExpense || !editingExpenseForm || !editingExpenseForm.description.trim() || !editingExpenseForm.amount) return
     setSavingEditedExpense(true)
     await onEditExpense(e, { description: editingExpenseForm.description.trim(), amount: parseFloat(editingExpenseForm.amount), expense_date: editingExpenseForm.expense_date, category: editingExpenseForm.category || null })
     setSavingEditedExpense(false)
     setEditingExpenseId(null)
   }
 
-  const [editingTrancheId, setEditingTrancheId] = useState(null)
-  const [editingTrancheForm, setEditingTrancheForm] = useState(null)
+  const [editingTrancheId, setEditingTrancheId] = useState<string | null>(null)
+  const [editingTrancheForm, setEditingTrancheForm] = useState<{ label: string, amount: string, expected_date: string } | null>(null)
   const [savingEditedTranche, setSavingEditedTranche] = useState(false)
-  function startEditingTranche(t) {
+  function startEditingTranche(t: LedgerTranche) {
     setEditingTrancheId(t.id)
     setEditingTrancheForm({ label: t.label, amount: String(t.amount), expected_date: t.expected_date })
   }
-  async function saveEditedTranche(t) {
-    if (savingEditedTranche || !editingTrancheForm.label.trim() || !editingTrancheForm.amount || !editingTrancheForm.expected_date) return
+  async function saveEditedTranche(t: LedgerTranche) {
+    if (savingEditedTranche || !editingTrancheForm || !editingTrancheForm.label.trim() || !editingTrancheForm.amount || !editingTrancheForm.expected_date) return
     setSavingEditedTranche(true)
     await onEditTranche(t, { label: editingTrancheForm.label.trim(), amount: parseFloat(editingTrancheForm.amount), expected_date: editingTrancheForm.expected_date })
     setSavingEditedTranche(false)
     setEditingTrancheId(null)
   }
 
-  const [editingReportId, setEditingReportId] = useState(null)
-  const [editingReportForm, setEditingReportForm] = useState(null)
+  const [editingReportId, setEditingReportId] = useState<string | null>(null)
+  const [editingReportForm, setEditingReportForm] = useState<{ label: string, due_date: string } | null>(null)
   const [savingEditedReport, setSavingEditedReport] = useState(false)
-  function startEditingReport(r) {
+  function startEditingReport(r: LedgerReport) {
     setEditingReportId(r.id)
     setEditingReportForm({ label: r.label, due_date: r.due_date })
   }
-  async function saveEditedReport(r) {
-    if (savingEditedReport || !editingReportForm.label.trim() || !editingReportForm.due_date) return
+  async function saveEditedReport(r: LedgerReport) {
+    if (savingEditedReport || !editingReportForm || !editingReportForm.label.trim() || !editingReportForm.due_date) return
     setSavingEditedReport(true)
     await onEditReport(r, { label: editingReportForm.label.trim(), due_date: editingReportForm.due_date })
     setSavingEditedReport(false)
     setEditingReportId(null)
   }
 
-  const [editingClaimId, setEditingClaimId] = useState(null)
-  const [editingClaimForm, setEditingClaimForm] = useState(null)
+  const [editingClaimId, setEditingClaimId] = useState<string | null>(null)
+  const [editingClaimForm, setEditingClaimForm] = useState<{ amount: string, claim_date: string, notes: string } | null>(null)
   const [savingEditedClaim, setSavingEditedClaim] = useState(false)
-  function startEditingClaim(c) {
+  function startEditingClaim(c: LedgerClaim) {
     setEditingClaimId(c.id)
     setEditingClaimForm({ amount: String(c.amount), claim_date: c.claim_date, notes: c.notes || '' })
   }
-  async function saveEditedClaim(c) {
-    if (savingEditedClaim || !editingClaimForm.amount || !editingClaimForm.claim_date) return
+  async function saveEditedClaim(c: LedgerClaim) {
+    if (savingEditedClaim || !editingClaimForm || !editingClaimForm.amount || !editingClaimForm.claim_date) return
     setSavingEditedClaim(true)
     await onEditClaim(c, { amount: parseFloat(editingClaimForm.amount), claim_date: editingClaimForm.claim_date, notes: editingClaimForm.notes?.trim() || null })
     setSavingEditedClaim(false)

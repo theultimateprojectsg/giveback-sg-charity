@@ -1,5 +1,58 @@
+import type { Dispatch, SetStateAction, RefObject } from 'react'
 import { C } from '../../theme'
 import { s } from '../../styles'
+import type { DonorSummary } from '../../types'
+
+interface MassAppealRef {
+  donor_name?: string
+  donor_email?: string
+  ref?: string
+  amount?: number | string
+  selected?: boolean
+  restrictionNote?: string
+}
+
+interface MassAppealProgress {
+  done: number
+  total: number
+  sent: number
+  failed: number
+  blocked: number
+}
+
+interface MassAppealModalProps {
+  showMassAppealModal: boolean
+  setShowMassAppealModal: Dispatch<SetStateAction<boolean>>
+  massAppealStep: 'setup' | 'preview' | 'done'
+  setMassAppealStep: Dispatch<SetStateAction<string>>
+  massAppealForm: { cause_id: string, amount: string, message: string, customLabel?: string, targetTag?: string }
+  setMassAppealForm: Dispatch<SetStateAction<MassAppealModalProps['massAppealForm']>>
+  massAppealRefs: MassAppealRef[]
+  setMassAppealRefs: Dispatch<SetStateAction<MassAppealRef[]>>
+  massAppealProgress: MassAppealProgress | null
+  massAppealCancelRef: RefObject<boolean>
+  myCauses: { id: string, title: string, status: string, type: string, end_date?: string | null }[]
+  donorList: DonorSummary[]
+  donorTagsMap: Record<string, { tag: string }[]>
+  showTagSegmentManager: boolean
+  setShowTagSegmentManager: Dispatch<SetStateAction<boolean>>
+  tagSegmentName: string
+  setTagSegmentName: Dispatch<SetStateAction<string>>
+  tagSegmentSearch: string
+  setTagSegmentSearch: Dispatch<SetStateAction<string>>
+  tagSegmentSelectedKeys: Set<string>
+  setTagSegmentSelectedKeys: Dispatch<SetStateAction<Set<string>>>
+  savingTagSegment: boolean
+  saveTagSegment: () => void
+  generateMassAppealRefs: () => void
+  setShowAppealPreview: Dispatch<SetStateAction<boolean>>
+  sendingTestAppeal: boolean
+  sendTestAppealToSelf: () => void
+  setConfirmModal: (modal: unknown) => void
+  sendMassAppealEmails: () => void
+  downloadMassAppealQRZip: () => void
+  defaultMassAppealMessage: () => string
+}
 
 // BUG FIX (2026-07-20): this modal used to be nested inside `activeTab === 'massappeal'`,
 // but the "New Appeal" buttons that open it live on the Campaigns tab (activeTab === 'promotions')
@@ -16,7 +69,7 @@ export function MassAppealModal({
   savingTagSegment, saveTagSegment, generateMassAppealRefs, setShowAppealPreview,
   sendingTestAppeal, sendTestAppealToSelf, setConfirmModal, sendMassAppealEmails, downloadMassAppealQRZip,
   defaultMassAppealMessage,
-}) {
+}: MassAppealModalProps) {
   if (!showMassAppealModal) return null
   return (
     <div data-modal-overlay="true" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={() => { if (!massAppealProgress) { setShowMassAppealModal(false); setMassAppealStep('setup') } }}>

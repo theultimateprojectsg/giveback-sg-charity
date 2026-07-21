@@ -1,6 +1,16 @@
 import { C } from '../../theme'
 
-export function SenderIdentityLine({ recipientName, recipientEmail, senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail, charityName }) {
+interface SenderIdentityLineProps {
+  recipientName?: string | null
+  recipientEmail?: string | null
+  senderDomainStatus?: string | null
+  senderDomain?: string | null
+  senderEmailLocalPart?: string | null
+  replyToEmail?: string | null
+  charityName?: string | null
+}
+
+export function SenderIdentityLine({ recipientName, recipientEmail, senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail, charityName }: SenderIdentityLineProps) {
   const isVerified = senderDomainStatus === 'verified' && senderDomain
   // Mirrors the "from" header the send-thank-you edge function actually sets, so what the charity
   // previews here matches exactly what lands in the recipient's inbox — no surprises about who it

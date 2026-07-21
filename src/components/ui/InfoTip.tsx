@@ -1,6 +1,10 @@
 import React from 'react'
 
-export function InfoTip({ text }) {
+interface InfoTipProps {
+  text: React.ReactNode
+}
+
+export function InfoTip({ text }: InfoTipProps) {
   const [show, setShow] = React.useState(false)
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}

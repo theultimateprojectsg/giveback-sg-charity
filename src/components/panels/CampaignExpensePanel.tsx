@@ -1,20 +1,40 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 
-export function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense, onEditExpense, onDeleteExpense }) {
+interface Expense {
+  id: string
+  description: string
+  amount: number | string
+  expense_date: string
+  category?: string | null
+}
+
+interface CampaignExpensePanelProps {
+  cause: { cost?: number | string }
+  expenses: Expense[]
+  categories: string[]
+  s: Record<string, CSSProperties>
+  C: Record<string, string>
+  onSaveExpense: (form: unknown) => Promise<unknown>
+  onEditExpense: (e: Expense, form: unknown) => Promise<unknown>
+  onDeleteExpense: (id: string) => void
+}
+
+export function CampaignExpensePanel({ cause, expenses, categories, s, C, onSaveExpense, onEditExpense, onDeleteExpense }: CampaignExpensePanelProps) {
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', expense_date: new Date().toISOString().split('T')[0], category: categories[0] || 'Other' })
   const [savingExpense, setSavingExpense] = useState(false)
-  const [editingExpenseId, setEditingExpenseId] = useState(null)
-  const [editingExpenseForm, setEditingExpenseForm] = useState(null)
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const [editingExpenseForm, setEditingExpenseForm] = useState<{ description: string, amount: string, expense_date: string, category: string } | null>(null)
   const [savingEditedExpense, setSavingEditedExpense] = useState(false)
   const spent = expenses.reduce((s2, e) => s2 + Number(e.amount), 0)
 
-  function startEditingExpense(e) {
+  function startEditingExpense(e: Expense) {
     setEditingExpenseId(e.id)
     setEditingExpenseForm({ description: e.description, amount: String(e.amount), expense_date: e.expense_date, category: e.category || categories[0] || 'Other' })
   }
 
-  async function saveEditedExpense(e) {
-    if (savingEditedExpense) return
+  async function saveEditedExpense(e: Expense) {
+    if (savingEditedExpense || !editingExpenseForm) return
     if (!editingExpenseForm.description.trim() || !editingExpenseForm.amount) { return }
     setSavingEditedExpense(true)
     await onEditExpense(e, {
@@ -31,7 +51,7 @@ export function CampaignExpensePanel({ cause, expenses, categories, s, C, onSave
     <div style={{ marginTop: 8, paddingTop: 10, borderTop: `1px dashed ${C.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <div style={{ fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expenses</div>
-        {cause.cost > 0 && <div style={{ fontSize: 11, color: spent > Number(cause.cost) ? C.red : C.muted, fontWeight: spent > Number(cause.cost) ? 500 : 400 }}>{spent > Number(cause.cost) ? '⚠ ' : ''}${spent.toLocaleString()} logged of ${Number(cause.cost).toLocaleString()} budget</div>}
+        {Number(cause.cost) > 0 && <div style={{ fontSize: 11, color: spent > Number(cause.cost) ? C.red : C.muted, fontWeight: spent > Number(cause.cost) ? 500 : 400 }}>{spent > Number(cause.cost) ? '⚠ ' : ''}${spent.toLocaleString()} logged of ${Number(cause.cost).toLocaleString()} budget</div>}
       </div>
       {expenses.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>

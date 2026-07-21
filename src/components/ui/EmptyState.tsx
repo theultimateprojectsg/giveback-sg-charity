@@ -1,6 +1,15 @@
+import type { ReactNode } from 'react'
 import { C } from '../../theme'
 
-export function EmptyState({ icon, title, description, ctaLabel, onCta }) {
+interface EmptyStateProps {
+  icon?: ReactNode
+  title?: ReactNode
+  description?: ReactNode
+  ctaLabel?: ReactNode
+  onCta?: () => void
+}
+
+export function EmptyState({ icon, title, description, ctaLabel, onCta }: EmptyStateProps) {
   return (
     <div style={{ textAlign: 'center', padding: '48px 24px', background: C.ivory, borderRadius: 8, border: `1px dashed ${C.border}` }}>
       <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>

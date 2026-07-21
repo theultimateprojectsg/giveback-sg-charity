@@ -1,14 +1,21 @@
+import type { ReactNode } from 'react'
 import { C } from '../../theme'
 
-const ACTION_BANNER_TONES = {
+const ACTION_BANNER_TONES: Record<string, { fill: string }> = {
   danger: { fill: '#A0472F' },
   warning: { fill: '#96700B' },
   success: { fill: '#2F6A48' },
 }
 
+interface ActionBannerProps {
+  text: ReactNode
+  sub?: ReactNode
+  tone?: 'danger' | 'warning' | 'success'
+}
+
 // Standard bottom-of-card status callout — a dashed divider to separate it from the card body,
 // then a bold filled pill (white text) so it actually pops instead of blending into the card.
-export function ActionBanner({ text, sub, tone = 'danger' }) {
+export function ActionBanner({ text, sub, tone = 'danger' }: ActionBannerProps) {
   const t = ACTION_BANNER_TONES[tone] || ACTION_BANNER_TONES.danger
   const icon = tone === 'success' ? '✓' : '⚠'
   return (

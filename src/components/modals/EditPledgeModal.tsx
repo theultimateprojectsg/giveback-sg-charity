@@ -1,8 +1,27 @@
 import { useState } from 'react'
 import { C } from '../../theme'
 import { s } from '../../styles'
+import type { Pledge } from '../../types'
 
-export function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge, instalments }) {
+interface PledgeInstalment {
+  id: string
+  year_number: number
+  amount?: number | string
+  expected_date?: string | null
+  received?: boolean
+  received_date?: string | null
+}
+
+interface EditPledgeModalProps {
+  pledge: Pledge & { donor_phone?: string, is_multi_year?: boolean, is_anonymous?: boolean, source?: string, notes?: string, cause_id?: string }
+  onClose: () => void
+  onSave: (payload: unknown) => unknown
+  causes: { id: string, title: string }[]
+  onCancelPledge: (pledge: EditPledgeModalProps['pledge']) => void
+  instalments: PledgeInstalment[]
+}
+
+export function EditPledgeModal({ pledge, onClose, onSave, causes, onCancelPledge, instalments }: EditPledgeModalProps) {
   const [form, setForm] = useState({
     donor_name: pledge.donor_name || '',
     donor_email: pledge.donor_email || '',

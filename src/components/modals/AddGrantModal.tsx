@@ -1,9 +1,26 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { C } from '../../theme'
 import { s } from '../../styles'
 import { InfoTip } from '../ui/InfoTip'
+import type { Grant } from '../../types'
 
-export function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes, hasExistingClaims }) {
+interface AddGrantModalProps {
+  isMobile?: boolean
+  onClose: () => void
+  onSave: (form: unknown) => unknown
+  grant?: (Grant & {
+    funder_type?: string, agreement_reference?: string, restricted_amount?: number,
+    purpose_restriction?: string, disbursement_schedule?: string, start_date?: string, end_date?: string,
+    is_renewable?: boolean, contact_name?: string, contact_email?: string, contact_phone?: string,
+    match_ratio?: string, match_cap?: number,
+  }) | null
+  onDelete: (grant: AddGrantModalProps['grant']) => void
+  causes: { id: string, title: string }[]
+  hasExistingClaims?: boolean
+}
+
+export function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, causes, hasExistingClaims }: AddGrantModalProps) {
   const isEditing = !!grant
   const [form, setForm] = useState(() => grant ? {
     funder_name: grant.funder_name || '',
@@ -28,8 +45,8 @@ export function AddGrantModal({ isMobile, onClose, onSave, grant, onDelete, caus
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const hasRestricted = parseFloat(form.restricted_amount) > 0
-  const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
-  const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
+  const sectionHeaderStyle: CSSProperties = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
+  const dividerStyle: CSSProperties = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   async function handleSave() {
     if (!form.funder_name.trim()) { setError('Funder name is required'); return }
     if (!form.funder_type) { setError('Funder type is required'); return }

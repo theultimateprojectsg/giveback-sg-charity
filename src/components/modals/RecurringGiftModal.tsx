@@ -1,8 +1,20 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { C } from '../../theme'
 import { s } from '../../styles'
+import type { RecurringGift } from '../../types'
 
-export function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, onCancelGift }) {
+interface RecurringGiftModalProps {
+  isMobile?: boolean
+  onClose: () => void
+  onSave: (form: unknown) => unknown
+  gift?: (RecurringGift & { donor_phone?: string, start_date?: string, end_date?: string, type?: string, type_detail?: string, cause_id?: string, bank_name?: string, giro_reference?: string, notes?: string }) | null
+  causes: { id: string, title: string }[]
+  saving?: boolean
+  onCancelGift: (gift: RecurringGiftModalProps['gift']) => void
+}
+
+export function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, onCancelGift }: RecurringGiftModalProps) {
   const isEditing = !!gift
   const [form, setForm] = useState(() => gift ? {
     donor_name: gift.donor_name || '',
@@ -21,8 +33,8 @@ export function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, sa
     notes: gift.notes || '',
   } : { donor_name: '', donor_email: '', donor_phone: '', amount: '', frequency: 'monthly', start_date: '', end_date: '', type: 'giro', type_detail: '', cause_id: '', bank_name: '', giro_reference: '', authorization_status: 'active', notes: '' })
   const [error, setError] = useState('')
-  const sectionHeaderStyle = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
-  const dividerStyle = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
+  const sectionHeaderStyle: CSSProperties = { fontSize: 10.5, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }
+  const dividerStyle: CSSProperties = { borderTop: `1px solid ${C.border}`, marginBottom: 10 }
   const needsBankInfo = form.type === 'giro' || form.type === 'standing_order'
   function handleSave() {
     if (!form.donor_name.trim()) { setError('Donor name is required'); return }
