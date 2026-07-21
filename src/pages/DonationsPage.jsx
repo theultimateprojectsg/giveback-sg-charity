@@ -10,7 +10,7 @@ export function DonationsPage({
   filterMinAmount, setFilterMinAmount, donationFilterLabel, setDonationFilterLabel,
   pendingCountForYear, issueAllReceipts, bulkActionInProgress,
   showManualForm, setShowManualForm, closeManualForm, editingDonationId, setEditingDonationId,
-  manualError, manualDuplicateWarning, manualForm, setManualForm, manualReferralSearch, setManualReferralSearch,
+  manualError, manualDuplicateWarning, setManualDuplicateWarning, manualForm, setManualForm, manualReferralSearch, setManualReferralSearch,
   donorList, generatePayNowEntry, saveManualEntry, savingManual, myCauses,
   payNowQrDonation, setPayNowQrDonation, resetManualForm, confirmManualPayNow, confirmingPayNow,
   unconfirmedCountForYear, awaitingThankYouCountForYear, missingNricThisYear, clearDonationFilters,

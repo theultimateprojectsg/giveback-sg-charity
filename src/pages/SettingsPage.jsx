@@ -23,7 +23,7 @@ export function SettingsPage({
   pledgeWatchThreshold, setPledgeWatchThreshold, pledgeDueSoonDays, setPledgeDueSoonDays,
   concentrationTopN, setConcentrationTopN,
   editingFyEnd, setFyEndMonthInput, setFyEndDayInput, setEditingFyEnd, fyEndMonth, fyEndDay, fyEndMonthInput, fyEndDayInput, saveFyEnd,
-  editingGoal, setGoalInput, annualGoal, goalInput, saveAnnualGoal,
+  editingGoal, setEditingGoal, setGoalInput, annualGoal, goalInput, saveAnnualGoal,
   recurringExpenses, deleteRecurringExpense, newExpenseForm, setNewExpenseForm, saveRecurringExpense,
   setShowMigrationTool, setMigrationPreview, setMigrationErrors, setMigrationComplete, setMigrationProgress,
   EMAIL_TEMPLATE_DEFS, emailTemplates, editingEmailTemplate, setEditingEmailTemplate,

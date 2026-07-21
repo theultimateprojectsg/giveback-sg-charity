@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from './supabase'
 import Auth from './CharityAuth'
 import jsPDF from 'jspdf'
@@ -18,12 +17,7 @@ import { C } from './theme'
 import { s } from './styles'
 import { InfoTip } from './components/ui/InfoTip'
 import { EmptyState } from './components/ui/EmptyState'
-import { ActionBanner } from './components/ui/ActionBanner'
 import { SenderIdentityLine } from './components/ui/SenderIdentityLine'
-import { AddGrantModal } from './components/modals/AddGrantModal'
-import { EditPledgeModal } from './components/modals/EditPledgeModal'
-import { RecurringGiftModal } from './components/modals/RecurringGiftModal'
-import { GrantLedgerPanel } from './components/panels/GrantLedgerPanel'
 import { CampaignExpensePanel } from './components/panels/CampaignExpensePanel'
 import { ReportsPage } from './pages/ReportsPage'
 import { GrantsPage } from './pages/GrantsPage'
@@ -166,6 +160,31 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
+const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
+const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
+const BOARD_ALLOWED_TABS = ['analytics', 'settings']
+const DONOR_COLUMN_OPTIONS = [
+  { key: 'total', label: 'Total Given' },
+  { key: 'count', label: 'Donations' },
+  { key: 'avg', label: 'Avg. Donation' },
+  { key: 'lastDate', label: 'Last Donation' },
+  { key: 'recurring', label: 'Recurring Status' },
+  { key: 'pledge', label: 'Pledge Status' },
+  { key: 'warmth', label: 'Relationship Warmth' },
+]
+const DONATION_COLUMN_OPTIONS = [
+  { key: 'amount', label: 'Amount' },
+  { key: 'date', label: 'Date' },
+  { key: 'cause', label: 'Cause' },
+  { key: 'source', label: 'Source' },
+  { key: 'reference', label: 'Reference' },
+  { key: 'nric', label: 'NRIC' },
+  { key: 'payment', label: 'Payment' },
+  { key: 'receipt', label: 'Receipt' },
+  { key: 'receiptNo', label: 'Receipt No.' },
+  { key: 'thankYou', label: 'Thank You' },
+]
+
 export default function App() {
   const screenSize = useScreenSize()
   const isMobile = screenSize === 'mobile'
@@ -173,8 +192,9 @@ export default function App() {
   const [donations, setDonations] = useState([])
   const [emailTemplates, setEmailTemplates] = useState({})
   const [loading, setLoading] = useState(true)
-  const [issuing, setIssuing] = useState(null)
+  const [, setIssuing] = useState(null)
   const [session, setSession] = useState(null)
+  const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const [authLoading, setAuthLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('analytics')
   const [settingsSection, setSettingsSection] = useState('general')
@@ -290,6 +310,8 @@ export default function App() {
     } else {
       supabase.auth.updateUser({ data: { last_selected_donor: null } })
     }
+    // intentionally fires only on donor selection change; session is a guard, not a trigger
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDonor])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('All')
@@ -349,8 +371,7 @@ export default function App() {
   const [donorReceiptNameOverrides, setDonorReceiptNameOverrides] = useState({})
   const [householdLinkSearch, setHouseholdLinkSearch] = useState('')
   const [newTagInput, setNewTagInput] = useState('')
-  const [savingTag, setSavingTag] = useState(false)
-  const [showTagPicker, setShowTagPicker] = useState(false)
+  const [, setSavingTag] = useState(false)
   const [savingCommPrefs, setSavingCommPrefs] = useState(false)
   const [savingHousehold, setSavingHousehold] = useState(false)
   const [savingReceiptOverride, setSavingReceiptOverride] = useState(false)
@@ -359,15 +380,6 @@ export default function App() {
   const [savingBirthday, setSavingBirthday] = useState(false)
   const [savingTaxResidency, setSavingTaxResidency] = useState(false)
   const [savingMailingAddress, setSavingMailingAddress] = useState(false)
-  const DONOR_COLUMN_OPTIONS = [
-    { key: 'total', label: 'Total Given' },
-    { key: 'count', label: 'Donations' },
-    { key: 'avg', label: 'Avg. Donation' },
-    { key: 'lastDate', label: 'Last Donation' },
-    { key: 'recurring', label: 'Recurring Status' },
-    { key: 'pledge', label: 'Pledge Status' },
-    { key: 'warmth', label: 'Relationship Warmth' },
-  ]
   const [donorSortBy, setDonorSortBy] = useState(null)
   const [donorSortDir, setDonorSortDir] = useState('asc')
   const [donorColumnOrder, setDonorColumnOrder] = useState(DONOR_COLUMN_OPTIONS.map(o => o.key))
@@ -383,19 +395,6 @@ export default function App() {
       return next
     })
   }
-  const DONATION_COLUMN_OPTIONS = [
-    { key: 'amount', label: 'Amount' },
-    { key: 'date', label: 'Date' },
-    { key: 'cause', label: 'Cause' },
-    { key: 'source', label: 'Source' },
-    { key: 'reference', label: 'Reference' },
-    { key: 'nric', label: 'NRIC' },
-    { key: 'payment', label: 'Payment' },
-    { key: 'receipt', label: 'Receipt' },
-    { key: 'receiptNo', label: 'Receipt No.' },
-    { key: 'thankYou', label: 'Thank You' },
-  ]
-  const DONATION_COLUMN_DEFAULTS = ['amount', 'date', 'cause', 'source', 'reference', 'nric', 'payment', 'receipt', 'receiptNo', 'thankYou']
   const [donationColumnOrder, setDonationColumnOrder] = useState(DONATION_COLUMN_OPTIONS.map(o => o.key))
   const [draggedDonationColumn, setDraggedDonationColumn] = useState(null)
   const orderedDonationColumns = donationColumnOrder.map(k => DONATION_COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean)
@@ -640,7 +639,7 @@ export default function App() {
   const [showAllGivingChanges, setShowAllGivingChanges] = useState(false)
   const [givingChangeAckHistory, setGivingChangeAckHistory] = useState({})
 
-  function buildUpgradeThankYouNote(donor, changePct, recent, prevAvg) {
+  function buildUpgradeThankYouNote(donor, changePct, recent) {
     const lines = []
     lines.push(`Dear ${donor.name},`)
     lines.push('')
@@ -673,7 +672,7 @@ export default function App() {
       }
       setLapsedReminderPreviewing(false)
     }
-  }, [showLapsedReminderModal, lapsedReminderCandidate, emailTemplates])
+  }, [showLapsedReminderModal, lapsedReminderCandidate, emailTemplates, charityName])
   const [skipCycleModal, setSkipCycleModal] = useState(null)
   const [skipCycleReason, setSkipCycleReason] = useState('')
   const [skippingCycle, setSkippingCycle] = useState(false)
@@ -728,7 +727,7 @@ export default function App() {
       setRecurringReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setRecurringReminderPreviewing(false)
     }
-  }, [showRecurringReminderModal, recurringReminderCandidate, emailTemplates])
+  }, [showRecurringReminderModal, recurringReminderCandidate, emailTemplates, charityName])
   const [pledgeResolutionModal, setPledgeResolutionModal] = useState(null)
   const [pledgeResolutionNotes, setPledgeResolutionNotes] = useState('')
   const [fulfillAmount, setFulfillAmount] = useState('')
@@ -757,7 +756,7 @@ export default function App() {
       setPledgeReminderBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setPledgeReminderPreviewing(false)
     }
-  }, [showPledgeReminderModal, pledgeReminderCandidate, emailTemplates])
+  }, [showPledgeReminderModal, pledgeReminderCandidate, emailTemplates, charityName])
   const [recurringGifts, setRecurringGifts] = useState([])
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [savingRecurring, setSavingRecurring] = useState(false)
@@ -774,7 +773,7 @@ export default function App() {
   const massAppealSendingRef = useRef(false)
   const [massAppeals, setMassAppeals] = useState([])
   const [showMigrationTool, setShowMigrationTool] = useState(false)
-  const [migrationFile, setMigrationFile] = useState(null)
+  const [, setMigrationFile] = useState(null)
   const [migrationPreview, setMigrationPreview] = useState(null)
   const [migrationErrors, setMigrationErrors] = useState([])
   const [migrationProgress, setMigrationProgress] = useState(null)
@@ -841,6 +840,9 @@ export default function App() {
     } else {
       setDonationPledgeLink(null)
     }
+    // intentionally keyed on the id only -- using the whole object would refetch on every
+    // unrelated field edit (notes, impact note, etc.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDonation?.id])
   const [editingNoteId, setEditingNoteId] = useState(null)
   const [editingImpactNoteId, setEditingImpactNoteId] = useState(null)
@@ -889,10 +891,9 @@ export default function App() {
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalInput, setGoalInput] = useState('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
-  const [visibleMetrics, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
+  const [, setVisibleMetrics] = useState(DEFAULT_VISIBLE_METRICS)
   const DEFAULT_ENABLED_MODULES = { campaigns: false, massappeal: false, pledges: false, recurring: false, grants: false }
   const [enabledModules, setEnabledModules] = useState(DEFAULT_ENABLED_MODULES)
-  const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('analytics')
@@ -923,11 +924,9 @@ export default function App() {
     onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [activeTab, isMobile, enabledModules])
-  const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
   useEffect(() => {
     if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
   }, [roleLoaded, userRole, activeTab])
-  const BOARD_ALLOWED_TABS = ['analytics', 'settings']
   useEffect(() => {
     if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('analytics')
   }, [roleLoaded, userRole, activeTab])
@@ -946,6 +945,9 @@ export default function App() {
     if (filterYear === calendarYear && filterYear !== correctFiscalYear) {
       setFilterYear(correctFiscalYear)
     }
+    // intentionally narrow -- this only re-syncs when the FY-end setting itself changes; adding
+    // filterYear would fight a user's own manual filter selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charityIpcLoaded, fyEndMonth, fyEndDay])
   // The Donations tab defaults to "this year" so it opens focused rather than showing everything —
   // but if this year genuinely has no donations yet (early in the year, or historical/demo data),
@@ -960,11 +962,14 @@ export default function App() {
       const hasDataThisYear = donations.some(d => fyOf(d.created_at).toString() === currentFiscalYear)
       if (!hasDataThisYear && donations.length > 0) setFilterYear('All')
     }
+    // intentionally one-shot -- gated by yearDefaultCheckedRef, so this only ever does its
+    // check once after the first load completes, regardless of later donations/filterYear changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading])
   const selectedRowRef = useRef(null)
   
   const [confirmModal, setConfirmModal] = useState(null)
-  const [donorBadgeAcks, setDonorBadgeAcks] = useState([])
+  const [, setDonorBadgeAcks] = useState([])
   const [thankYouDraft, setThankYouDraft] = useState(null)
   const [thankYouDraftPreviewing, setThankYouDraftPreviewing] = useState(false)
   const [rnOutreach, setRnOutreach] = useState(null)
@@ -982,7 +987,7 @@ export default function App() {
       setPledgeThankYouBody(fillTemplate(saved?.body || EMAIL_TEMPLATE_DEFAULTS[key].body, vars))
       setPledgeThankYouPreviewing(false)
     }
-  }, [showPledgeThankYouModal, pledgeCompletionCandidate, emailTemplates])
+  }, [showPledgeThankYouModal, pledgeCompletionCandidate, emailTemplates, charityName])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1024,12 +1029,16 @@ export default function App() {
       const merged = [...saved.filter(k => validKeys.includes(k)), ...validKeys.filter(k => !saved.includes(k))]
       setDonationColumnOrder(merged)
     }
+    // intentionally keyed on the user id only -- this hydrates local UI state from saved
+    // preferences once per login; watching the metadata fields themselves would refire every
+    // time one of these very setters calls supabase.auth.updateUser and changes the session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id])
 
   useEffect(() => {
     if (session) {
       loadDonations(session)
-      loadInsightDismissals(session)
+      loadInsightDismissals()
       loadMyCauses()
       loadCharityIpcStatus(session)
       loadDonorBadgeAcks(session)
@@ -1052,6 +1061,9 @@ export default function App() {
       loadGrantMatchClaims()
       loadGivingChangeAcks(session)
     }
+    // intentionally fires only on session change (login) -- the load* functions are plain
+    // functions recreated every render, so including them would refetch everything on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
 
   async function loadGivingChangeAcks(activeSession = session) {
@@ -1279,7 +1291,7 @@ export default function App() {
     setDonorLastContactMap(map)
   }
 
-  async function loadInsightDismissals(activeSession = session) {
+  async function loadInsightDismissals() {
     const { data, error } = await supabase
       .from('audit_log')
       .select('details')
@@ -2237,7 +2249,6 @@ export default function App() {
     setRescheduleReason('')
   }
 
-  const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
   async function saveEmailTemplate(key, val) {
@@ -3563,6 +3574,9 @@ export default function App() {
   useEffect(() => {
     if (session && activeTab === 'activity') loadAuditLog()
     setShowMobileMenu(false)
+    // intentionally keyed on session id, not the full session object -- loadAuditLog is a plain
+    // function recreated every render, and the full session changes on every token refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, activeTab])
 
   // Separate from the effect above — updateUser() fires onAuthStateChange, which replaces the
@@ -3572,6 +3586,7 @@ export default function App() {
     if (session && session.user?.user_metadata?.last_active_tab !== activeTab) {
       supabase.auth.updateUser({ data: { last_active_tab: activeTab } })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, session?.user?.id])
 
   useEffect(() => {
@@ -3589,6 +3604,8 @@ export default function App() {
       setDonorNotes([])
     }
     return () => { cancelled = true }
+    // loadDonorNotes is a plain function recreated every render; would refetch on every render if listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDonor])
 
   // Records a communication-log entry for a donor and updates the in-memory maps so anything keyed
@@ -3940,7 +3957,7 @@ export default function App() {
     showToast(`Migration complete — ${imported} records imported ✓`)
   }
 
-  function generateAppealRef(donorName, causeId) {
+  function generateAppealRef(donorName) {
     const clean = donorName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()
     // 7 base36 chars (~78 billion combinations) instead of 4 (~1.7 million) -- refs aren't
     // namespaced by appeal, so low entropy risked two different appeals minting the same ref
@@ -3997,7 +4014,7 @@ export default function App() {
     }
     // Regenerate with consistent refs
     const finalRefs = targetDonors.map(donor => {
-      const ref = generateAppealRef(donor.name, massAppealForm.cause_id)
+      const ref = generateAppealRef(donor.name)
       const donorKey44b = donor.email?.trim() || donor.name
       const contact44b = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey44b)
       const restrictions44b = contact44b?.communication_restrictions?.toLowerCase() || ''
@@ -4918,7 +4935,6 @@ export default function App() {
   }
 
   async function mergeDonorInto(sourceDonor, targetDonorKey) {
-    const sourceKey = sourceDonor.email?.trim() || sourceDonor.name
     const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
     if (!targetDonorRow) { showToast('Target donor not found', 'error'); return }
     const filter = sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`
@@ -5342,24 +5358,11 @@ export default function App() {
     : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
   const pendingCount = donations.filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
   const pendingCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)).filter(d => !d.receipt_issued && d.payment_status === 'confirmed').length
-  const unconfirmedCount = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'refunded').length
 const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear)).filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'refunded').length
   const missingNricThisYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear)))
     .filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
   const awaitingThankYouCountForYear = (filterYear === 'All' ? donations : donations.filter(d => fyOf(d.created_at).toString() === filterYear))
     .filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && !d.is_anonymous && d.donor_email?.trim()).length
-  const dashboardCurrentYear = fyOf(new Date())
-  const dashboardDonationsThisYear = donations.filter(d => fyOf(d.created_at) === dashboardCurrentYear)
-  const dashboardConfirmedTotal = dashboardDonationsThisYear.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
-  const dashboardUniqueDonors = [...new Set(dashboardDonationsThisYear.map(d => d.donor_name))].length
-  const dashboardMissingNric = dashboardDonationsThisYear.filter(d => !d.donor_nric && d.payment_status === 'confirmed').length
-  const failedNotifications = auditLog.filter(e => e.action === 'charity_notification_failed').length
-  const actionItems = [
-    unconfirmedCount > 0 && { label: `${unconfirmedCount} payment${unconfirmedCount > 1 ? 's' : ''} to confirm`, tab: 'donations' },
-    pendingCount > 0 && { label: `${pendingCount} receipt${pendingCount > 1 ? 's' : ''} pending`, tab: 'iras' },
-    charityIsIpc && missingNricThisYear > 0 && { label: `${missingNricThisYear} NRIC${missingNricThisYear > 1 ? 's' : ''} missing`, tab: 'donations' },
-    failedNotifications > 0 && { label: `${failedNotifications} notification${failedNotifications > 1 ? 's' : ''} failed`, tab: 'activity' },
-  ].filter(Boolean)
   const loyalDonorThreshold = 3
   const { donationBadgeInfo, donorBadgeMap } = React.useMemo(
     () => computeDonationBadges(donations, { thankYouThreshold, majorDonorThreshold, loyalDonorThreshold }),
@@ -5386,13 +5389,13 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     return Object.values(donorMap).sort((a, b) => b.total - a.total)
   }, [donations])
-  const activeDonorList = donorList.filter(d => !d.deactivated)
+  const activeDonorList = React.useMemo(() => donorList.filter(d => !d.deactivated), [donorList])
   const findDonorRecord = React.useCallback((email, name) => {
     const key = email?.trim() || name
     return donorList.find(d => (d.email?.trim() || d.name) === key) || { name, email, total: 0, count: 0, receipts: 0 }
   }, [donorList])
 
-  const contactOnlyDonors = donorContacts
+  const contactOnlyDonors = React.useMemo(() => donorContacts
     .filter(c => {
       const contactKey = c.email?.trim() || c.full_name
       return !activeDonorList.some(d => (d.email?.trim() || d.name) === contactKey)
@@ -5410,9 +5413,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       deceased: false,
       isContactOnly: true,
       contactNotes: c.notes,
-    }))
+    })), [donorContacts, activeDonorList])
 
-  const combinedDonorList = [...activeDonorList, ...contactOnlyDonors]
+  const combinedDonorList = React.useMemo(() => [...activeDonorList, ...contactOnlyDonors], [activeDonorList, contactOnlyDonors])
 
   useEffect(() => {
     if (pendingSelectedDonorKey && !selectedDonor && activeDonorList.length > 0) {
@@ -5422,22 +5425,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }
       setPendingSelectedDonorKey(null)
     }
-  }, [pendingSelectedDonorKey, activeDonorList])
+  }, [pendingSelectedDonorKey, activeDonorList, selectedDonor])
   const deactivatedDonorList = donorList.filter(d => d.deactivated)
-  const noteworthyDonors = React.useMemo(() => {
-    return donorList
-      .filter(d => {
-        const key = d.email?.trim() || d.name
-        const b = donorBadgeMap[key]
-        return b && (b.isFirstTime || b.isBigGift || b.isLoyal || b.isBiggestYet)
-      })
-      .sort((a, b) => {
-        const keyA = a.email?.trim() || a.name
-        const keyB = b.email?.trim() || b.name
-        return new Date(donorBadgeMap[keyB].mostRecent) - new Date(donorBadgeMap[keyA].mostRecent)
-      })
-      .slice(0, 5)
-  }, [donorList, donorBadgeMap])
   const causeRaisedMap = React.useMemo(() => {
     const map = {}
     donations.forEach(d => {
@@ -5481,9 +5470,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return rows
   }, [donations, filterYear, myCauses, fyOf])
 
-  const now = new Date()
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const confirmedDonations = React.useMemo(() => donations.filter(d => d.payment_status === 'confirmed'), [donations])
   const campaignCauseIds = React.useMemo(() => new Set(myCauses.filter(c => c.type === 'campaign').map(c => c.id)), [myCauses])
   const donorFirstGiftDate = React.useMemo(() => {
@@ -5509,7 +5495,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).filter(Boolean)
   }, [recurringGifts])
   const recurringTrendFlags = React.useMemo(() => {
-    const stepsNeeded = recurringTrendCycles - 1
     return recurringGifts.filter(g => g.status === 'active').map(g => {
       const cycles = donations
         .filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed')
@@ -6180,12 +6165,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wasRescheduledWhileOverdue = (p) => (pledgeRescheduleHistory[p.id] || []).some(r => new Date(r.old_expected_date) < new Date(r.created_at))
     const watchList = Object.values(byDonor).map(d => {
       const broken = d.pledges.filter(p => p.status === 'cancelled' || (p.status === 'pending' && new Date(p.expected_date) < today) || (p.status === 'pending' && wasRescheduledWhileOverdue(p)))
-      const rescheduled = d.pledges.filter(p => p.status === 'pending')
       return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
     return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList }
-  }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf])
+  }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf, pledgeRescheduleHistory])
 
   const pledgeConcentrationStats = React.useMemo(() => {
     const outstandingUnits = []
@@ -6343,7 +6327,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const reliabilityDelta = (reliabilityPct !== null && reliabilityPctPrevYear !== null) ? reliabilityPct - reliabilityPctPrevYear : null
 
     return { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades, reliabilityPct, reliabilityDelta, reliabilityYr: curFy }
-  }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, recurringTrendCycles, donations, fyOf, fyEndMonth, fyEndDay])
+  }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, donations, fyOf, fyEndMonth, fyEndDay])
 
   const recurringRiskStats = React.useMemo(() => {
     const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
@@ -6925,19 +6909,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).filter(f => !f.isHandled).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
   }, [confirmedDonations, givingChangeMinGifts, givingChangeMinPct, givingChangeAckHistory])
 
-  const { thisMonthTotal, lastMonthTotal, monthChangePct, sixMonthTrend, trendMax, repeatDonorsThisMonth, longestSupporter } = React.useMemo(() => {
+  const { thisMonthTotal, repeatDonorsThisMonth, longestSupporter } = React.useMemo(() => {
     const now = new Date()
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const thisMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= thisMonthStart).reduce((s, d) => s + d.amount, 0)
-    const lastMonthTotal = confirmedDonations.filter(d => new Date(d.created_at) >= lastMonthStart && new Date(d.created_at) < thisMonthStart).reduce((s, d) => s + d.amount, 0)
-    const monthChangePct = lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : null
-    const sixMonthTrend = Array.from({ length: 6 }, (_, i) => {
-      const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - (5 - i) + 1, 1)
-      return confirmedDonations.filter(d => new Date(d.created_at) >= monthStart && new Date(d.created_at) < monthEnd).reduce((s, d) => s + d.amount, 0)
-    })
-    const trendMax = Math.max(...sixMonthTrend, 1)
     const repeatDonorsThisMonth = donorList.filter(d => {
       const donationsThisMonth = donations.filter(don => donationDonorKey(don) === contactDonorKey(d) && new Date(don.created_at) >= thisMonthStart)
       return donationsThisMonth.length > 0 && d.count > donationsThisMonth.length
@@ -6946,39 +6921,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       ? donorList.map(d => ({ ...d, monthsSupporting: Math.max(1, Math.round((now - new Date([...donations].filter(don => donationDonorKey(don) === contactDonorKey(d)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0]?.created_at)) / (1000 * 60 * 60 * 24 * 30))) }))
           .sort((a, b) => b.monthsSupporting - a.monthsSupporting)[0]
       : null
-    return { thisMonthTotal, lastMonthTotal, monthChangePct, sixMonthTrend, trendMax, repeatDonorsThisMonth, longestSupporter }
+    return { thisMonthTotal, repeatDonorsThisMonth, longestSupporter }
   }, [confirmedDonations, donations, donorList])
 
-  const { issuedCount, uniqueDonors, uniqueDonorsThisYear, avgDonation, medianDonation } = React.useMemo(
+  const { uniqueDonorsThisYear, avgDonation, medianDonation } = React.useMemo(
     () => computeDonationSummaryStats(donations, { filterYear, fyEndMonth, fyEndDay, totalAllTime }),
     [donations, filterYear, fyEndMonth, fyEndDay, totalAllTime]
   )
   const currentYear = new Date().getFullYear()
   const irasDeadline = new Date(`${currentYear + 1}-01-31`)
   const daysToDeadline = Math.ceil((irasDeadline - new Date()) / (1000 * 60 * 60 * 24))
-
-  // COC Annual Submission deadline: 6 months after financial year end
-  const { cocDeadline, daysToCocDeadline, fyEndLabel } = (() => {
-    const today = new Date()
-    let fyEndThisCycle = new Date(today.getFullYear(), fyEndMonth - 1, fyEndDay)
-    // If FY-end hasn't happened yet this calendar year, the most recent FY-end was last year
-    if (fyEndThisCycle > today) {
-      fyEndThisCycle = new Date(today.getFullYear() - 1, fyEndMonth - 1, fyEndDay)
-    }
-    const deadline = new Date(fyEndThisCycle)
-    deadline.setMonth(deadline.getMonth() + 6)
-    // If that deadline already passed, we're actually counting toward next cycle's deadline
-    if (deadline < today) {
-      const nextFyEnd = new Date(fyEndThisCycle.getFullYear() + 1, fyEndMonth - 1, fyEndDay)
-      const nextDeadline = new Date(nextFyEnd)
-      nextDeadline.setMonth(nextDeadline.getMonth() + 6)
-      const days = Math.ceil((nextDeadline - today) / (1000 * 60 * 60 * 24))
-      return { cocDeadline: nextDeadline, daysToCocDeadline: days, fyEndLabel: nextFyEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'long' }) }
-    }
-    const days = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24))
-    return { cocDeadline: deadline, daysToCocDeadline: days, fyEndLabel: fyEndThisCycle.toLocaleDateString('en-SG', { day: 'numeric', month: 'long' }) }
-  })()
-  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
 
   const activeDonationFilterCount = [
     searchTerm !== '',
@@ -7026,6 +6978,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (donationSortBy === 'receiptNo') cmp = (a.receipt_number || a.payment_ref || '').localeCompare(b.receipt_number || b.payment_ref || '')
     if (donationSortBy === 'thankYou') cmp = (a.thank_you_sent ? 1 : 0) - (b.thank_you_sent ? 1 : 0)
     return donationSortDir === 'asc' ? cmp : -cmp
+    // causeNameForDonation is a plain function recreated every render; omitted intentionally so
+    // this memo doesn't recompute every render — it's derived from myCauses, which changing
+    // without any of the listed deps also changing is not a real-world case here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [donations, searchTerm, charityIsIpc, filterYear, fyOf, filterType, filterNric, filterSource, filterThankYou, filterMinAmount, donationSortBy, donationSortDir])
 
   const donationsTotalPages = Math.max(1, Math.ceil(filteredDonations.length / donationsPerPage))
@@ -7073,6 +7029,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       if (va > vb) return 1 * dir
       return 0
     })
+    // getDonorWarmth is a plain function recreated every render; omitted intentionally, same
+    // reasoning as causeNameForDonation above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredDonorList, donorSortBy, donorSortDir, recurringGifts, pledges, donorLastContactMap])
 
   const donorsTotalPages = Math.max(1, Math.ceil(sortedDonorList.length / donorsPerPage))
@@ -7564,7 +7523,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   function buildThankYouNote(donor, badgeState) {
-    const firstName = donor.name?.split(' ')[0] || donor.name
     const lines = []
     lines.push(`Dear ${donor.name},`)
     lines.push('')
@@ -8648,13 +8606,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
     if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within ${pledgeDueSoonDays} days and may need a gentle reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
 
-    const wasRecurringRecentlyReminded = (g) => {
-      const history = recurringReminderHistory[g.id]
-      if (!history || history.length === 0) return false
-      const daysSinceLastReminder = Math.floor((today - new Date(history[0].sent_at)) / (1000 * 60 * 60 * 24))
-      return daysSinceLastReminder < 7
-    }
-    const overdueRecurring = recurringGifts.filter(g => { if (g.status !== 'active' || wasRecurringRecentlyReminded(g)) return false; const daysLate = Math.floor((today - new Date(g.next_expected_date)) / (1000 * 60 * 60 * 24)); return daysLate > 7 })
     const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
     const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
     if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
@@ -8868,7 +8819,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { items, actionItemsVisible, fyiItemsVisible, highItems, snoozedActiveItems, nowMs }
   }, [
     donations, confirmedDonations, pledgesLoaded, pledges, pledgeReminderHistory, pledgeDueSoonDays,
-    recurringGifts, recurringReminderHistory, giroMissedCycles, allGivingChangeFlags, donorLastContactMap,
+    giroMissedCycles, allGivingChangeFlags, donorLastContactMap,
     insightDismissals, lapsedMinGifts, lapsedMinDays, lapsedDismissals, donationBadgeInfo, cumulativeThresholds,
     grantsWithNextReport, donorList, majorDonorThreshold, donorContacts, customObligations, charityIsIpc,
     daysToDeadline, snoozedItems,
@@ -9087,7 +9038,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             filterMinAmount={filterMinAmount} setFilterMinAmount={setFilterMinAmount} donationFilterLabel={donationFilterLabel} setDonationFilterLabel={setDonationFilterLabel}
             pendingCountForYear={pendingCountForYear} issueAllReceipts={issueAllReceipts} bulkActionInProgress={bulkActionInProgress}
             showManualForm={showManualForm} setShowManualForm={setShowManualForm} closeManualForm={closeManualForm} editingDonationId={editingDonationId} setEditingDonationId={setEditingDonationId}
-            manualError={manualError} manualDuplicateWarning={manualDuplicateWarning} manualForm={manualForm} setManualForm={setManualForm} manualReferralSearch={manualReferralSearch} setManualReferralSearch={setManualReferralSearch}
+            manualError={manualError} manualDuplicateWarning={manualDuplicateWarning} setManualDuplicateWarning={setManualDuplicateWarning} manualForm={manualForm} setManualForm={setManualForm} manualReferralSearch={manualReferralSearch} setManualReferralSearch={setManualReferralSearch}
             donorList={donorList} generatePayNowEntry={generatePayNowEntry} saveManualEntry={saveManualEntry} savingManual={savingManual} myCauses={myCauses}
             payNowQrDonation={payNowQrDonation} setPayNowQrDonation={setPayNowQrDonation} resetManualForm={resetManualForm} confirmManualPayNow={confirmManualPayNow} confirmingPayNow={confirmingPayNow}
             unconfirmedCountForYear={unconfirmedCountForYear} awaitingThankYouCountForYear={awaitingThankYouCountForYear} missingNricThisYear={missingNricThisYear} clearDonationFilters={clearDonationFilters}
@@ -9140,7 +9091,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             fundraisingSnapshotStats={fundraisingSnapshotStats} fyEndDay={fyEndDay} fyEndMonth={fyEndMonth} fyOf={fyOf}
             generateThankYouNote={generateThankYouNote} giroMissedCycles={giroMissedCycles}
             givingChangeMinGifts={givingChangeMinGifts} givingChangeMinPct={givingChangeMinPct}
-            givingStreaksStats={givingStreaksStats} grantExpenses={grantExpenses}
+            givingStreaksStats={givingStreaksStats}
             grantExpensesByGrant={grantExpensesByGrant} grantMatchClaims={grantMatchClaims}
             grantOverviewStats={grantOverviewStats} grantSnapshotStats={grantSnapshotStats}
             grantsWithNextReport={grantsWithNextReport} isMobile={isMobile}
@@ -9808,7 +9759,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               const renderCard = c => {
                 const raised = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
                 const donorCount = new Set(donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').map(d => d.donor_email?.trim() || d.donor_nric || d.donor_name)).size
-                const grantFunding = grants.filter(g => g.cause_id === c.id).reduce((s, g) => s + Number(g.amount), 0)
                 const loggedExpenses = campaignExpensesByCause[c.id] || []
                 const spent = loggedExpenses.reduce((s, e) => s + Number(e.amount), 0)
                 const costForRoi = spent > 0 ? spent : Number(c.cost) || 0
@@ -10166,7 +10116,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             recurringFailedDeductionHistory={recurringFailedDeductionHistory} undoFailedDeduction={undoFailedDeduction}
             recurringReminderHistory={recurringReminderHistory}
             donationsByRecurringGift={donationsByRecurringGift} expandedRecurringId={expandedRecurringId} setExpandedRecurringId={setExpandedRecurringId}
-            editingRecurringDonationId={editingRecurringDonationId} editingRecurringAmount={editingRecurringAmount} setEditingRecurringAmount={setEditingRecurringAmount}
+            editingRecurringDonationId={editingRecurringDonationId} setEditingRecurringDonationId={setEditingRecurringDonationId} editingRecurringAmount={editingRecurringAmount} setEditingRecurringAmount={setEditingRecurringAmount}
             editingRecurringNote={editingRecurringNote} setEditingRecurringNote={setEditingRecurringNote}
             saveRecurringDonationAmount={saveRecurringDonationAmount} savingRecurringAmount={savingRecurringAmount}
             startEditingRecurringAmount={startEditingRecurringAmount} deleteDonation={deleteDonation} markRecurringReceived={markRecurringReceived}
@@ -10205,7 +10155,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             pledgeGivenTotals={pledgeGivenTotals} donationsByPledge={donationsByPledge} pledgeReminderHistory={pledgeReminderHistory} pledgeRescheduleHistory={pledgeRescheduleHistory}
             setSelectedDonor={setSelectedDonor} findDonorRecord={findDonorRecord} setActiveTab={setActiveTab} pendingDonorProfileTabRef={pendingDonorProfileTabRef} setDonorProfileTab={setDonorProfileTab}
             expandedPledgeId={expandedPledgeId} setExpandedPledgeId={setExpandedPledgeId}
-            editingPledgeDonationId={editingPledgeDonationId} editingPledgeAmount={editingPledgeAmount} setEditingPledgeAmount={setEditingPledgeAmount}
+            editingPledgeDonationId={editingPledgeDonationId} setEditingPledgeDonationId={setEditingPledgeDonationId} editingPledgeAmount={editingPledgeAmount} setEditingPledgeAmount={setEditingPledgeAmount}
             editingPledgeNotes={editingPledgeNotes} setEditingPledgeNotes={setEditingPledgeNotes} savePledgeDonationAmount={savePledgeDonationAmount} savingPledgeAmount={savingPledgeAmount}
             startEditingPledgeAmount={startEditingPledgeAmount} deleteDonation={deleteDonation} fulfillPledge={fulfillPledge}
             pledgeMoreMenuId={pledgeMoreMenuId} setPledgeMoreMenuId={setPledgeMoreMenuId}
@@ -10305,7 +10255,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             pledgeWatchThreshold={pledgeWatchThreshold} setPledgeWatchThreshold={setPledgeWatchThreshold} pledgeDueSoonDays={pledgeDueSoonDays} setPledgeDueSoonDays={setPledgeDueSoonDays}
             concentrationTopN={concentrationTopN} setConcentrationTopN={setConcentrationTopN}
             editingFyEnd={editingFyEnd} setFyEndMonthInput={setFyEndMonthInput} setFyEndDayInput={setFyEndDayInput} setEditingFyEnd={setEditingFyEnd} fyEndMonth={fyEndMonth} fyEndDay={fyEndDay} fyEndMonthInput={fyEndMonthInput} fyEndDayInput={fyEndDayInput} saveFyEnd={saveFyEnd}
-            editingGoal={editingGoal} setGoalInput={setGoalInput} annualGoal={annualGoal} goalInput={goalInput} saveAnnualGoal={saveAnnualGoal}
+            editingGoal={editingGoal} setEditingGoal={setEditingGoal} setGoalInput={setGoalInput} annualGoal={annualGoal} goalInput={goalInput} saveAnnualGoal={saveAnnualGoal}
             recurringExpenses={recurringExpenses} deleteRecurringExpense={deleteRecurringExpense} newExpenseForm={newExpenseForm} setNewExpenseForm={setNewExpenseForm} saveRecurringExpense={saveRecurringExpense}
             setShowMigrationTool={setShowMigrationTool} setMigrationPreview={setMigrationPreview} setMigrationErrors={setMigrationErrors} setMigrationComplete={setMigrationComplete} setMigrationProgress={setMigrationProgress}
             EMAIL_TEMPLATE_DEFS={EMAIL_TEMPLATE_DEFS} emailTemplates={emailTemplates} editingEmailTemplate={editingEmailTemplate} setEditingEmailTemplate={setEditingEmailTemplate}

@@ -18,7 +18,7 @@ export function RecurringPage({
   recurringSkipHistory, setConfirmModal, undoSkipCycle,
   recurringFailedDeductionHistory, undoFailedDeduction, recurringReminderHistory,
   donationsByRecurringGift, expandedRecurringId, setExpandedRecurringId,
-  editingRecurringDonationId, editingRecurringAmount, setEditingRecurringAmount,
+  editingRecurringDonationId, setEditingRecurringDonationId, editingRecurringAmount, setEditingRecurringAmount,
   editingRecurringNote, setEditingRecurringNote, saveRecurringDonationAmount, savingRecurringAmount,
   startEditingRecurringAmount, deleteDonation, markRecurringReceived,
   setRecurringReminderCandidate, setShowRecurringReminderModal, skipRecurringCycle,

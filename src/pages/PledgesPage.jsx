@@ -28,7 +28,7 @@ export function PledgesPage({
   pledgeGivenTotals, donationsByPledge, pledgeReminderHistory, pledgeRescheduleHistory,
   setSelectedDonor, findDonorRecord, setActiveTab, pendingDonorProfileTabRef, setDonorProfileTab,
   expandedPledgeId, setExpandedPledgeId,
-  editingPledgeDonationId, editingPledgeAmount, setEditingPledgeAmount,
+  editingPledgeDonationId, setEditingPledgeDonationId, editingPledgeAmount, setEditingPledgeAmount,
   editingPledgeNotes, setEditingPledgeNotes, savePledgeDonationAmount, savingPledgeAmount,
   startEditingPledgeAmount, deleteDonation, fulfillPledge,
   pledgeMoreMenuId, setPledgeMoreMenuId,

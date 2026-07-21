@@ -618,7 +618,7 @@ export function DonorsPage({
               {(() => {
                 const donorKey31 = selectedDonor.email?.trim() || selectedDonor.name
                 const existingContact = donorContacts.find(c => (c.email?.trim() || c.full_name) === donorKey31)
-                const [localOverride, setLocalOverride] = [donorReceiptNameOverrides[donorKey31] || '', null]
+                const [localOverride] = [donorReceiptNameOverrides[donorKey31] || '', null]
                 return (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
@@ -1114,7 +1114,7 @@ export function DonorsPage({
                 <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No communications logged yet.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {donorNotes.filter(n => n.note_type !== 'moment_done').map((n, i) => {
+                  {donorNotes.filter(n => n.note_type !== 'moment_done').map((n) => {
                     const typeConfig = {
                       call:      { icon: '📞', label: 'Call',      color: C.forest },
                       email:     { icon: '📧', label: 'Email',     color: C.sage },

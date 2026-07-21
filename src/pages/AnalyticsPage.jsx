@@ -15,7 +15,7 @@ export function AnalyticsPage({
   donorLTVStats, donorList, donorRetentionSnapshotStats, enabledModules, filterYear,
   findDonorRecord, fundingConcentrationStats, fundraisingSnapshotStats, fyEndDay, fyEndMonth,
   fyOf, generateThankYouNote, giroMissedCycles, givingChangeMinGifts, givingChangeMinPct,
-  givingStreaksStats, grantExpenses, grantExpensesByGrant, grantMatchClaims, grantOverviewStats,
+  givingStreaksStats, grantExpensesByGrant, grantMatchClaims, grantOverviewStats,
   grantSnapshotStats, grantsWithNextReport, isMobile, isTablet, lapsedDismissals,
   lapsedDonorsStats, lapsedMinDays, lapsedMinGifts, lapsedReminderHistory, majorDonorThreshold, monthlyChartData, monthlyCountData, monthlyEquivalentAmount,
   monthlyExpenses, myCauses, newDonorAcquisitionStats, obligationForm, paymentMixStats,
@@ -674,8 +674,6 @@ export function AnalyticsPage({
                 if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2, c) => s2 + Number(c.amount), 0)
                 return s + Number(g.amount)
               }, 0)
-              const grantsSpent = activeGrantsList.reduce((s, g) => s + grantExpenses.filter(e => e.grant_id === g.id).reduce((s2, e) => s2 + Number(e.amount), 0), 0)
-              const grantsRemaining = grantsReceived - grantsSpent
               const nearestGrantDeadline = activeGrantsList
                 .filter(g => g.report_due_date)
                 .map(g => Math.ceil((new Date(g.report_due_date) - now03) / (1000 * 60 * 60 * 24)))
@@ -684,7 +682,6 @@ export function AnalyticsPage({
 
               const pendingPledgesList = pledges.filter(p => p.status === 'pending')
               const overduePledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) < now03)
-              const upcomingPledgesList = pendingPledgesList.filter(p => new Date(p.expected_date) >= now03)
               // Outstanding value counts only remaining unpaid instalments for multi-year pledges,
               // matching how the Pledges page itself totals outstanding value -- using the full
               // multi-year amount here would double-count instalments already paid off.
@@ -692,7 +689,6 @@ export function AnalyticsPage({
                 ? pledgeInstalments.filter(i => i.pledge_id === p.id && !i.received).reduce((s, i) => s + Number(i.amount), 0)
                 : Number(p.amount)
               const overduePledgeTotal = overduePledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
-              const upcomingPledgeTotal = upcomingPledgesList.reduce((s, p) => s + outstandingAmountForPledge(p), 0)
 
               const thisYearAppeals = massAppeals.filter(a => fyOf(a.created_at) === fyOf(now03))
               const lastAppeal = [...massAppeals].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
@@ -1051,7 +1047,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg } = campaignLeaderboardStats
+                const { endingSoon, campaignRows, trendData, donorGrowthAgg } = campaignLeaderboardStats
 
                 return (
                   <>
@@ -1422,7 +1418,7 @@ export function AnalyticsPage({
                 })()}
 
                 {(() => {
-                  const { yr, curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
+                  const { curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
                   const ptDelta = (c, p) => prevDelivery.total === 0 ? null : c - p
 
                   return (
@@ -1665,7 +1661,7 @@ export function AnalyticsPage({
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {(() => {
                 const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
-                const { overdueUnits, overdueTotal } = pledgeStatsAndTrend
+                const { overdueUnits } = pledgeStatsAndTrend
 
                 return (
                   <div style={s.card}>
@@ -1859,7 +1855,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const { giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
+                const { mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
                 const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
 
                 return (
