@@ -76,11 +76,25 @@ export interface RecurringGift {
   id: string
   donor_name?: string | null
   donor_email?: string | null
+  donor_phone?: string | null
   amount: number
   frequency: string
   status: 'active' | 'paused' | 'cancelled' | string
   authorization_status?: string
   next_expected_date?: string | null
+  last_received_date?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  cancelled_at?: string | null
+  cause_id?: string | null
+  type?: string
+  type_detail?: string | null
+  bank_name?: string | null
+  giro_reference?: string | null
+  reference?: string | null
+  notes?: string | null
+  pause_reason?: string | null
+  pause_resume_date?: string | null
   [key: string]: unknown
 }
 

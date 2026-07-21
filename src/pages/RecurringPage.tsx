@@ -1,8 +1,81 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
 import { InfoTip } from '../components/ui/InfoTip'
 import { EmptyState } from '../components/ui/EmptyState'
 import { RecurringGiftModal } from '../components/modals/RecurringGiftModal'
+import type { RecurringGift, Donation } from '../types'
+
+interface RecurringPageProps {
+  isMobile?: boolean
+  recurringGifts: RecurringGift[]
+  myCauses: { id: string, title: string, type: string }[]
+  fyOf: (date: string | number | Date) => number
+  showRecurringForm: boolean
+  setShowRecurringForm: Dispatch<SetStateAction<boolean>>
+  savingRecurring?: boolean
+  editingRecurringGift: RecurringGift | null
+  setEditingRecurringGift: Dispatch<SetStateAction<RecurringGift | null>>
+  saveRecurringGift: (form: unknown) => unknown
+  updateRecurringGift: (id: string, form: unknown) => unknown
+  cancelRecurringGift: (g: RecurringGift) => void
+  recurringSearchTerm: string
+  setRecurringSearchTerm: Dispatch<SetStateAction<string>>
+  showRecurringFilters: boolean
+  setShowRecurringFilters: Dispatch<SetStateAction<boolean>>
+  recurringUrgencyFilter: string
+  setRecurringUrgencyFilter: Dispatch<SetStateAction<string>>
+  recurringAmountFilter: string
+  setRecurringAmountFilter: Dispatch<SetStateAction<string>>
+  recurringTypeFilter: string
+  setRecurringTypeFilter: Dispatch<SetStateAction<string>>
+  recurringYearFilter: string
+  setRecurringYearFilter: Dispatch<SetStateAction<string>>
+  recurringProgrammeFilter: string
+  setRecurringProgrammeFilter: Dispatch<SetStateAction<string>>
+  recurringAuthFilter: string
+  setRecurringAuthFilter: Dispatch<SetStateAction<string>>
+  recurringSortBy: string
+  setRecurringSortBy: Dispatch<SetStateAction<string>>
+  exportRecurringExcel: (filtered: RecurringGift[]) => void
+  recurringGivenTotals: Record<string, { total: number, count: number }>
+  setSelectedDonor: (donor: unknown) => void
+  setActiveTab: (tab: string) => void
+  findDonorRecord: (email?: string | null, name?: string | null) => unknown
+  recurringSkipHistory: Record<string, unknown[]>
+  setConfirmModal: (modal: unknown) => void
+  undoSkipCycle: (g: RecurringGift) => void
+  recurringFailedDeductionHistory: Record<string, { reason?: string }[]>
+  undoFailedDeduction: (g: RecurringGift, entry: unknown) => void
+  recurringReminderHistory: Record<string, { sent_at: string }[]>
+  donationsByRecurringGift: Record<string, Donation[]>
+  expandedRecurringId: string | null
+  setExpandedRecurringId: Dispatch<SetStateAction<string | null>>
+  editingRecurringDonationId: string | null
+  setEditingRecurringDonationId: Dispatch<SetStateAction<string | null>>
+  editingRecurringAmount: string
+  setEditingRecurringAmount: Dispatch<SetStateAction<string>>
+  editingRecurringNote: string
+  setEditingRecurringNote: Dispatch<SetStateAction<string>>
+  saveRecurringDonationAmount: (d: Donation) => void
+  savingRecurringAmount?: boolean
+  startEditingRecurringAmount: (d: Donation) => void
+  deleteDonation: (id: string) => void
+  markRecurringReceived: (g: RecurringGift) => void
+  setRecurringReminderCandidate: (g: RecurringGift) => void
+  setShowRecurringReminderModal: Dispatch<SetStateAction<boolean>>
+  skipRecurringCycle: (g: RecurringGift) => void
+  recurringMoreMenuId: string | null
+  setRecurringMoreMenuId: Dispatch<SetStateAction<string | null>>
+  pauseRecurringGift: (g: RecurringGift) => void
+  recordFailedDeduction: (g: RecurringGift) => void
+  reactivateRecurringGift: (g: RecurringGift) => void
+  restoreCancelledRecurringGift: (g: RecurringGift) => void
+  showPausedRecurring: boolean
+  setShowPausedRecurring: Dispatch<SetStateAction<boolean>>
+  showCancelledRecurring: boolean
+  setShowCancelledRecurring: Dispatch<SetStateAction<boolean>>
+}
 
 export function RecurringPage({
   isMobile, recurringGifts, myCauses, fyOf,
@@ -25,7 +98,7 @@ export function RecurringPage({
   recurringMoreMenuId, setRecurringMoreMenuId, pauseRecurringGift, recordFailedDeduction,
   reactivateRecurringGift, restoreCancelledRecurringGift,
   showPausedRecurring, setShowPausedRecurring, showCancelledRecurring, setShowCancelledRecurring,
-}) {
+}: RecurringPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>
@@ -130,7 +203,7 @@ export function RecurringPage({
             if (recurringUrgencyFilter !== 'All') {
               if (g.status !== 'active') matchesUrgency = false
               else {
-                const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
+                const days = Math.ceil((new Date(g.next_expected_date || 0).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                 const gapDaysF = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
                 const missedCyclesF = -days > 7 ? Math.floor(-days / gapDaysF) + 1 : 0
                 if (recurringUrgencyFilter === 'Late') matchesUrgency = days < -7 && missedCyclesF < 2
@@ -153,15 +226,15 @@ export function RecurringPage({
         const today = new Date(); today.setHours(0,0,0,0)
 
         const q = recurringSearchTerm.toLowerCase().trim()
-        const matchesSearch = (g) => {
+        const matchesSearch = (g: RecurringGift) => {
           if (!q) return true
           const fields = [g.donor_name, g.donor_email, g.donor_phone, g.notes, g.giro_reference, g.reference, g.bank_name]
           return fields.some(f => f?.toLowerCase().includes(q))
         }
-        const matchesUrgency = (g) => {
+        const matchesUrgency = (g: RecurringGift) => {
           if (recurringUrgencyFilter === 'All') return true
           if (g.status !== 'active') return false
-          const days = Math.ceil((new Date(g.next_expected_date) - today) / (1000 * 60 * 60 * 24))
+          const days = Math.ceil((new Date(g.next_expected_date || 0).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
           const gapDaysF = g.frequency === 'weekly' ? 7 : g.frequency === 'quarterly' ? 91 : g.frequency === 'annually' ? 365 : 30
           const missedCyclesF = -days > 7 ? Math.floor(-days / gapDaysF) + 1 : 0
           if (recurringUrgencyFilter === 'Late') return days < -7 && missedCyclesF < 2
@@ -170,7 +243,7 @@ export function RecurringPage({
           if (recurringUrgencyFilter === 'Healthy') return days > 7
           return true
         }
-        const matchesAmount = (g) => {
+        const matchesAmount = (g: RecurringGift) => {
           const amt = Number(g.amount)
           if (recurringAmountFilter === 'All') return true
           if (recurringAmountFilter === 'Under 50') return amt < 50
@@ -179,57 +252,59 @@ export function RecurringPage({
           if (recurringAmountFilter === 'Over 500') return amt > 500
           return true
         }
-        const matchesType = (g) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
-        const matchesYear = (g) => recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
-        const matchesProgramme = (g) => recurringProgrammeFilter === 'All' || (recurringProgrammeFilter === '__none__' ? !g.cause_id : g.cause_id === recurringProgrammeFilter)
-        const matchesAuth = (g) => recurringAuthFilter === 'All' || g.authorization_status === recurringAuthFilter
+        const matchesType = (g: RecurringGift) => recurringTypeFilter === 'All' || g.type === recurringTypeFilter
+        const matchesYear = (g: RecurringGift) => recurringYearFilter === 'All' || (g.start_date && fyOf(g.start_date).toString() === recurringYearFilter)
+        const matchesProgramme = (g: RecurringGift) => recurringProgrammeFilter === 'All' || (recurringProgrammeFilter === '__none__' ? !g.cause_id : g.cause_id === recurringProgrammeFilter)
+        const matchesAuth = (g: RecurringGift) => recurringAuthFilter === 'All' || g.authorization_status === recurringAuthFilter
 
-        const reliabilityPctOf = (g) => {
-          const gapDays = { weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30
-          const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today - new Date(g.start_date)) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
+        const reliabilityPctOf = (g: RecurringGift) => {
+          const gapDays = ({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 } as Record<string, number>)[g.frequency] || 30
+          const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today.getTime() - new Date(g.start_date || 0).getTime()) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
           const receivedCount = recurringGivenTotals[g.id]?.count || 0
           return Math.min(100, Math.round((receivedCount / cyclesElapsed) * 100))
         }
 
         const filtered = recurringGifts.filter(g => matchesSearch(g) && matchesUrgency(g) && matchesAmount(g) && matchesType(g) && matchesYear(g) && matchesProgramme(g) && matchesAuth(g)).sort((a, b) => {
-          if (recurringSortBy === 'next_asc') return new Date(a.next_expected_date) - new Date(b.next_expected_date)
-          if (recurringSortBy === 'next_desc') return new Date(b.next_expected_date) - new Date(a.next_expected_date)
+          if (recurringSortBy === 'next_asc') return new Date(a.next_expected_date || 0).getTime() - new Date(b.next_expected_date || 0).getTime()
+          if (recurringSortBy === 'next_desc') return new Date(b.next_expected_date || 0).getTime() - new Date(a.next_expected_date || 0).getTime()
           if (recurringSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
           if (recurringSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
-          if (recurringSortBy === 'start_desc') return new Date(b.start_date || 0) - new Date(a.start_date || 0)
-          if (recurringSortBy === 'start_asc') return new Date(a.start_date || 0) - new Date(b.start_date || 0)
-          if (recurringSortBy === 'donor_az') return a.donor_name.localeCompare(b.donor_name)
+          if (recurringSortBy === 'start_desc') return new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime()
+          if (recurringSortBy === 'start_asc') return new Date(a.start_date || 0).getTime() - new Date(b.start_date || 0).getTime()
+          if (recurringSortBy === 'donor_az') return (a.donor_name || '').localeCompare(b.donor_name || '')
           if (recurringSortBy === 'reliability_asc') return reliabilityPctOf(a) - reliabilityPctOf(b)
           return 0
         })
 
-        const renderRecurringCard = (g) => {
+        const renderRecurringCard = (g: RecurringGift) => {
           const nextDate = new Date(g.next_expected_date)
-          const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24))
+          const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
           const isLate = daysUntil < -7 && g.status === 'active'
           const isDueSoon = daysUntil >= -7 && daysUntil <= 7 && g.status === 'active'
-          const frequencyLabel = { weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' }[g.frequency] || g.frequency
+          const frequencyLabel = ({ weekly: 'week', monthly: 'month', quarterly: 'quarter', annually: 'year' } as Record<string, string>)[g.frequency] || g.frequency
           const typeLabel = g.type === 'giro' ? 'GIRO' : g.type === 'habitual_paynow' ? 'Habitual PayNow' : g.type === 'standing_order' ? 'Standing Order' : 'Other'
           const needsBankInfo = g.type === 'giro' || g.type === 'standing_order'
           const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
-          const authLabel = { pending: 'Pending bank approval', active: 'Authorized', terminated: 'Terminated by bank' }[g.authorization_status] || null
+          const authLabel = ({ pending: 'Pending bank approval', active: 'Authorized', terminated: 'Terminated by bank' } as Record<string, string>)[g.authorization_status || ''] || null
           const authColor = g.authorization_status === 'terminated' ? C.red : g.authorization_status === 'pending' ? C.gold : C.sage
           const statusMap = {
             active: { bg: C.sage, color: C.white, label: 'Active' },
             paused: { bg: C.gold, color: C.white, label: 'Paused' },
             cancelled: { bg: C.muted, color: C.white, label: 'Cancelled' },
           }
-          const statusInfo = statusMap[g.status] || { bg: C.ivory, color: C.muted, label: g.status }
+          const statusInfo = (statusMap as Record<string, { bg: string, color: string, label: string }>)[g.status] || { bg: C.ivory, color: C.muted, label: g.status }
           const endLabel = g.end_date ? new Date(g.end_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : (g.status === 'cancelled' && g.cancelled_at ? new Date(g.cancelled_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Ongoing')
-          const annualMultiplier = { weekly: 52, monthly: 12, quarterly: 4, annually: 1 }[g.frequency] || 12
+          const annualMultiplier = ({ weekly: 52, monthly: 12, quarterly: 4, annually: 1 } as Record<string, number>)[g.frequency] || 12
           const annualizedValue = Number(g.amount) * annualMultiplier
-          const gapDays = { weekly: 7, monthly: 30, quarterly: 91, annually: 365 }[g.frequency] || 30
-          const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today - new Date(g.start_date)) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
+          const gapDays = ({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 } as Record<string, number>)[g.frequency] || 30
+          const cyclesElapsed = g.start_date ? Math.max(1, Math.floor((today.getTime() - new Date(g.start_date || 0).getTime()) / (gapDays * 24 * 60 * 60 * 1000)) + 1) : 1
           const receivedCount = recurringGivenTotals[g.id]?.count || 0
           const reliabilityPct = Math.min(100, Math.round((receivedCount / cyclesElapsed) * 100))
           const reliabilityColor = reliabilityPct >= 80 ? C.sage : reliabilityPct >= 50 ? C.gold : C.red
 
-          const rHasActivity = recurringGivenTotals[g.id] || g.status !== 'cancelled' || (recurringSkipHistory[g.id] || []).length > 0 || (recurringFailedDeductionHistory[g.id] || []).length > 0 || (g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0) || (donationsByRecurringGift[g.id] || []).length > 0
+          const isCancelled = ['cancelled'].includes(g.status)
+          const isActiveStatus = ['active'].includes(g.status)
+          const rHasActivity = recurringGivenTotals[g.id] || !isCancelled || (recurringSkipHistory[g.id] || []).length > 0 || (recurringFailedDeductionHistory[g.id] || []).length > 0 || (isActiveStatus && (recurringReminderHistory[g.id] || []).length > 0) || (donationsByRecurringGift[g.id] || []).length > 0
           return (
             <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
@@ -375,7 +450,7 @@ export function RecurringPage({
                   {g.status === 'active' && (recurringReminderHistory[g.id] || []).length > 0 && (() => {
                     const history = recurringReminderHistory[g.id]
                     const last = history[0]
-                    const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                    const daysAgo = Math.floor((new Date().getTime() - new Date(last.sent_at).getTime()) / (1000 * 60 * 60 * 24))
                     return (
                       <div style={{ fontSize: 12.5, color: C.gold, fontWeight: 500 }}>✉ Last reminded {daysAgo === 0 ? 'today' : `${daysAgo}d ago`} · {history.length}× sent</div>
                     )

@@ -11,7 +11,7 @@ interface RecurringGiftModalProps {
   gift?: (RecurringGift & { donor_phone?: string, start_date?: string, end_date?: string, type?: string, type_detail?: string, cause_id?: string, bank_name?: string, giro_reference?: string, notes?: string }) | null
   causes: { id: string, title: string }[]
   saving?: boolean
-  onCancelGift: (gift: RecurringGiftModalProps['gift']) => void
+  onCancelGift?: (gift: RecurringGiftModalProps['gift']) => void
 }
 
 export function RecurringGiftModal({ isMobile, onClose, onSave, gift, causes, saving, onCancelGift }: RecurringGiftModalProps) {
