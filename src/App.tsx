@@ -1223,6 +1223,12 @@ export default function App() {
     const { error: dbError } = await supabase.from('charity_contacts').update({ logo_url: publicUrl }).eq('charity_uen', charityUen)
     if (dbError) { showToast(`Error saving logo: ${dbError.message}`, 'error'); setUploadingLogo(false); return }
     setCharityLogoUrl(publicUrl)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'charity_logo_updated',
+      details: { charity_uen: charityUen },
+    })
     setUploadingLogo(false)
     showToast('Logo updated ✓')
   }
@@ -1231,6 +1237,12 @@ export default function App() {
     const { error } = await supabase.from('charity_contacts').update({ logo_url: null }).eq('charity_uen', charityUen)
     if (error) { showToast('Error removing logo', 'error'); return }
     setCharityLogoUrl(null)
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'charity_logo_removed',
+      details: { charity_uen: charityUen },
+    })
     showToast('Logo removed')
   }
 
@@ -1416,6 +1428,12 @@ export default function App() {
     }
 
     setPledges(prev => [...prev, data[0]].sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_created',
+      details: { donor_name: pledgeForm.donor_name.trim(), amount: perYearAmount * years, is_multi_year: pledgeForm.is_multi_year || false },
+    })
     setPledgeForm({ donor_name: '', donor_email: '', donor_phone: '', amount: '', expected_date: '', notes: '', is_multi_year: false, total_years: '3', cause_id: '', is_anonymous: false, source: '' })
     setShowPledgeForm(false)
     // A failed instalment insert would otherwise leave a multi-year pledge with no instalment
@@ -1476,6 +1494,12 @@ export default function App() {
     }).eq('id', pledgeId).select().single()
     if (error) { showToast('Error updating pledge', 'error'); return }
     setPledges(prev => prev.map(p => p.id === pledgeId ? data : p).sort((a, b) => new Date(a.expected_date).getTime() - new Date(b.expected_date).getTime()))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_updated',
+      details: { donor_name: form.donor_name.trim(), amount, pledge_id: pledgeId },
+    })
     setEditingPledge(null)
     showToast('Pledge updated ✓')
   }
@@ -3254,6 +3278,12 @@ export default function App() {
         const { error } = await supabase.from('recurring_gifts').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', gift.id)
         if (error) { showToast('Error cancelling', 'error'); return }
         setRecurringGifts(prev => prev.map(g => g.id === gift.id ? { ...g, status: 'cancelled', cancelled_at: new Date().toISOString() } : g))
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'recurring_gift_cancelled',
+          details: { donor_name: gift.donor_name, charity_uen: charityUen },
+        })
         showToast('Recurring gift cancelled')
       },
     })
@@ -3447,9 +3477,16 @@ export default function App() {
 
   async function deleteCauseConfirmed(id: any) {
     setBulkActionInProgress(true)
+    const causeTitle = myCauses.find((c: any) => c.id === id)?.title
     const { error } = await supabase.from('causes').update({ status: 'deleted', active: false }).eq('id', id)
     setBulkActionInProgress(false)
     if (error) { showToast('Error deleting', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'cause_deleted',
+      details: { title: causeTitle, charity_uen: charityUen },
+    })
     loadMyCauses()
     showToast('Submission deleted')
   }
@@ -4177,6 +4214,12 @@ export default function App() {
       setSelectedAppealDetail(updatedAppeal[0])
     }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'mass_appeal_retry_sent',
+      details: { cause_name: appeal.cause_name, retried_count: recipientsToRetry.length, retried_sent: retriedSent, retried_failed: retriedFailed },
+    })
     setRetryingAppealRecipients(false)
     setRetryPreviewList(null)
     showToast(`Retried ${recipientsToRetry.length} — ${retriedSent} sent${retriedFailed > 0 ? `, ${retriedFailed} still failed` : ''}`)
@@ -4303,6 +4346,13 @@ export default function App() {
       [matchingPledge.id]: (prev[matchingPledge.id] || 0) + Number(donation.amount)
     }))
     setPledgeDonationLinks(prev => ({ ...prev, [matchingPledge.id]: [...(prev[matchingPledge.id] || []), linkData] }))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donation_auto_linked_to_pledge',
+      donation_id: donation.id,
+      details: { donor_name: matchingPledge.donor_name, amount_applied: donation.amount },
+    })
 
     if (wouldReach >= Number(matchingPledge.amount)) {
       const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -4363,6 +4413,13 @@ export default function App() {
       showToast(`Linked $${Number(donation.amount).toLocaleString()} to ${pledge.donor_name}'s pledge`)
     }
 
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donation_linked_to_pledge',
+      donation_id: donation.id,
+      details: { donor_name: pledge.donor_name, amount_applied: donation.amount, pledge_completed: total >= Number(pledge.amount) },
+    })
     setLinkingPledgeManually(false)
     setShowManualPledgeLinkModal(false)
     setManualPledgeLinkSelection('')
@@ -4377,6 +4434,12 @@ export default function App() {
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); setSendingPledgeThankYou(false); return }
     setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_fulfilled',
+      details: { donor_name: pledge.donor_name, amount: pledge.amount, donation_id: donation.id, thank_you_sent: true },
+    })
 
     const { error: emailError } = await sendCharityEmail({
       type: 'pledge_thank_you',
@@ -4409,6 +4472,12 @@ export default function App() {
     const { error: fulfillError } = await supabase.from('pledges').update({ status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote }).eq('id', pledge.id)
     if (fulfillError) { showToast('Error marking pledge fulfilled', 'error'); return }
     setPledges(prev => prev.map(p => p.id === pledge.id ? { ...p, status: 'fulfilled', fulfilled_donation_id: donation.id, resolution_notes: autoNote } : p))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'pledge_fulfilled',
+      details: { donor_name: pledge.donor_name, amount: pledge.amount, donation_id: donation.id, thank_you_sent: false },
+    })
 
     showToast('Pledge marked fulfilled')
     setShowPledgeThankYouModal(false)
@@ -4642,6 +4711,13 @@ export default function App() {
     await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
     setDonations(prev => prev.map(x => x.id === donation.id ? { ...x, thank_you_sent: true } : x))
     setSelectedDonation((prev: any) => (prev && prev.id === donation.id ? { ...prev, thank_you_sent: true } : prev))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'thank_you_email_sent',
+      donation_id: donation.id,
+      details: { donor_name: donation.donor_name, donor_email: donation.donor_email, amount: donation.amount },
+    })
     setSendingThankYouId(null)
     showToast(`Email sent to ${donation.donor_email}`)
   }
@@ -7165,6 +7241,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (error) { setAddDonorError(`Error: ${error.message}`); return }
 
     setDonorContacts(prev => [data[0], ...prev])
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'prospect_added',
+      details: { donor_name: data[0].full_name, charity_uen: charityUen },
+    })
     setShowAddDonorModal(false)
     setAddDonorForm({ full_name: '', email: '', notes: '' })
     showToast(`${data[0].full_name} added ✓`)
@@ -11200,6 +11282,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   } else {
                     await logDonorContact(donorKey, `Thank-you note sent`, 'email', true, { subject, body: text })
                   }
+                  await supabase.from('audit_log').insert({
+                    actor_type: 'charity',
+                    actor_email: session.user.email,
+                    action: givingChangeMeta ? 'giving_change_checkin_sent' : 'milestone_thank_you_sent',
+                    details: { donor_name: donor.name, donor_email: donor.email, charity_uen: charityUen },
+                  })
                   setThankYouDraft(null)
                   setThankYouDraftPreviewing(false)
                   showToast(`Thank-you note sent to ${donor.email}`)
