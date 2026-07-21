@@ -2272,6 +2272,12 @@ export default function App() {
       return merged
     })
     if (error) { showToast('Could not save this template', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: val ? 'email_template_customized' : 'email_template_reset',
+      details: { template_key: key, charity_uen: charityUen },
+    })
     setEmailTemplates(next)
   }
 

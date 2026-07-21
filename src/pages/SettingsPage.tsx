@@ -442,7 +442,15 @@ export function SettingsPage({
 
         {(() => {
           const nStyle: CSSProperties = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
-          const saveNum = (col: string, v: number) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(({ error }: { error: unknown }) => { if (error) showToast('Could not save this setting', 'error') })
+          const saveNum = (col: string, v: number) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(async ({ error }: { error: unknown }) => {
+            if (error) { showToast('Could not save this setting', 'error'); return }
+            await supabase.from('audit_log').insert({
+              actor_type: 'charity',
+              actor_email: session?.user?.email,
+              action: 'alert_sensitivity_updated',
+              details: { field: col, value: v, charity_uen: charityUen },
+            })
+          })
           const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: C.muted, padding: '10px 0', borderBottom: `1px solid ${C.border}` }
           return (
             <div style={{ ...s.card, marginTop: 16 }}>
