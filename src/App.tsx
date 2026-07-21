@@ -5439,6 +5439,47 @@ export default function App() {
   }
 
   const charityUen   = session?.user?.user_metadata?.charity_uen  || ''
+
+  useEffect(() => {
+    if (!session?.user?.email || !activeTab) return
+    supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'page_viewed',
+      details: { page: activeTab, charity_uen: charityUen },
+    }).then()
+  }, [activeTab, session?.user?.email])
+
+  useEffect(() => {
+    if (!selectedDonor || !session?.user?.email) return
+    supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donor_profile_viewed',
+      details: { donor_name: selectedDonor.name, donor_email: selectedDonor.email, charity_uen: charityUen },
+    }).then()
+  }, [selectedDonor?.email || selectedDonor?.name])
+
+  function logExport(reportName: string, details?: any) {
+    if (!session?.user?.email) return
+    supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'report_exported',
+      details: { report: reportName, charity_uen: charityUen, ...details },
+    }).then()
+  }
+
+  useEffect(() => {
+    if (!selectedDonation || !session?.user?.email) return
+    supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'donation_viewed',
+      details: { donation_id: selectedDonation.id, donor_name: selectedDonation.donor_name, charity_uen: charityUen },
+    }).then()
+  }, [selectedDonation?.id])
+
   const totalAllTime = donations.reduce((s, d) => s + d.amount, 0)
   const totalThisYear = filterYear === 'All'
     ? donations.filter(d => d.payment_status === 'confirmed').reduce((s, d) => s + d.amount, 0)
@@ -7152,6 +7193,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Pledges')
     XLSX.writeFile(wb, `GivingTree-Pledges-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('pledges_excel', { row_count: rows.length })
   }
 
   function exportGrantsExcel(filteredGrants: any) {
@@ -7178,6 +7220,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Grants')
     XLSX.writeFile(wb, `GivingTree-Grants-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('grants_excel', { row_count: rows.length })
   }
 
   function exportRecurringExcel(filteredGifts: any) {
@@ -7212,6 +7255,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Recurring Gifts')
     XLSX.writeFile(wb, `GivingTree-RecurringGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('recurring_gifts_excel', { row_count: rows.length })
   }
 
   async function saveDonorContact() {
@@ -7310,6 +7354,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donors')
     XLSX.writeFile(wb, `GivingTree-Donors-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('donors_excel', { row_count: rows.length })
   }
 
   function exportCampaignsExcel(filteredCampaigns: any) {
@@ -7338,6 +7383,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Campaigns')
     XLSX.writeFile(wb, `GivingTree-Campaigns-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('campaigns_excel', { row_count: rows.length })
   }
 
   function exportMassAppealsExcel(filteredAppeals: any) {
@@ -7358,6 +7404,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Mass Appeals')
     XLSX.writeFile(wb, `GivingTree-MassAppeals-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('mass_appeals_excel', { row_count: rows.length })
   }
 
   function exportAuditLogExcel(filteredEntries: any) {
@@ -7373,6 +7420,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Audit Log')
     XLSX.writeFile(wb, `GivingTree-AuditLog-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('audit_log_excel', { row_count: rows.length })
   }
 
   function exportDonationsExcel() {
@@ -7398,6 +7446,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donations')
     XLSX.writeFile(wb, `GivingTree-Donations-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('donations_excel', { row_count: rows.length, includes_nric: charityIsIpc })
   }
 
   // Year-filtered donor map for IRAS tab
@@ -7461,6 +7510,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       XLSX.utils.book_append_sheet(wb, wsMissing, 'Missing NRIC ⚠️')
     }
     XLSX.writeFile(wb, `GivingTree-IRAS-${charityName}-YA${parseInt(filterYear) + 1}.xlsx`)
+    logExport('iras_excel', { year: filterYear, record_count: records.length, includes_nric: true })
   }
 
   async function saveVisibleMetrics(metrics: any) {
@@ -7676,6 +7726,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Donor Contacts')
     XLSX.writeFile(wb, `GivingTree-DonorContacts-${charityName}.xlsx`)
+    logExport('donor_contacts_excel', { row_count: rows.length })
   }
 
   function exportWeeklySnapshotPDF() {
@@ -7751,6 +7802,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
 
     doc.save(`weekly-snapshot-${new Date().toISOString().split('T')[0]}.pdf`)
+    logExport('weekly_snapshot_pdf')
   }
 
   function exportAnalyticsPDF() {
@@ -7820,6 +7872,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
 
     doc.save(`GivingTree-Analytics-${charityName}-${filterYear}.pdf`)
+    logExport('analytics_pdf', { year: filterYear })
   }
 
   function exportPDF() {
@@ -7842,6 +7895,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       headStyles: { fillColor: [64, 145, 108], textColor: [255, 255, 255] },
     })
     doc.save(`GivingTree-Report-${charityName}-${filterYear}.pdf`)
+    logExport('donation_report_pdf', { year: filterYear, row_count: yearDonationsForExport.length })
   }
 
   function exportQuarterlyBoardReportPDF() {
@@ -7924,6 +7978,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY54)
 
     doc.save(`GivingTree-QuarterlyBoardSummary-${charityName}-${quarterLabel54.replace(' ', '-')}.pdf`)
+    logExport('quarterly_board_report_pdf', { quarter: quarterLabel54 })
   }
 
   function exportGrantReportPDF(grant: any) {
@@ -7987,6 +8042,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text(`Prepared by ${charityName}. Generated by Giving Tree — a free donation platform for Singapore charities.`, 14, finalY, { maxWidth: 180 })
 
     doc.save(`${grant.funder_name.replace(/[^a-zA-Z0-9]/g, '_')}-Grant-Report-${new Date().toISOString().split('T')[0]}.pdf`)
+    logExport('grant_report_pdf', { funder_name: grant.funder_name })
   }
 
   function generateReceiptPDFDoc(donation: any) {
@@ -8231,6 +8287,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   function exportSingleReceiptPDF(donation: any) {
     const doc = generateReceiptPDFDoc(donation)
     doc.save(`Receipt-${donation.receipt_number || donation.payment_ref || donation.id}.pdf`)
+    logExport('receipt_pdf', { donation_id: donation.id, donor_name: donation.donor_name })
   }
 
   function getReceiptPDFBase64(donation: any) {
@@ -8322,6 +8379,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     a.download = `GivingTree-YearEndStatements-${charityName}-${year}.zip`
     a.click()
     URL.revokeObjectURL(url)
+    logExport('year_end_statements_zip', { year, donor_count: Object.keys(byDonor).length })
     showToast(`${Object.keys(byDonor).length} statements downloaded ✓`)
   }
 
@@ -8387,6 +8445,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY)
 
     doc.save(`GivingTree-YearEnd-${charityName}-${filterYear}.pdf`)
+    logExport('year_end_summary_pdf', { year: filterYear })
   }
 
   function exportGrantsComplianceReport() {
@@ -8510,6 +8569,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, y92)
     doc.save(`GivingTree-GrantsCompliance-${charityName}-${new Date().toISOString().split('T')[0]}.pdf`)
+    logExport('grants_compliance_pdf')
   }
 
   function exportPermitRegister() {
@@ -8559,6 +8619,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(120, 120, 120)
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY92)
     doc.save(`GivingTree-PermitRegister-${charityName}-${new Date().toISOString().split('T')[0]}.pdf`)
+    logExport('permit_register_pdf')
   }
 
   function exportRestrictedFundStatement() {
@@ -8631,6 +8692,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     doc.text('Methodology: for each restricted grant, expenditure is drawn from its restricted balance first (up to the restricted amount). This statement does not distinguish restricted vs. unrestricted spend within a single expense entry — review with your treasurer/auditor before use in audited financial statements.', 14, finalY93, { maxWidth: 182 })
     doc.text('Generated by Giving Tree — a free donation platform for Singapore charities.', 14, finalY93 + 18)
     doc.save(`GivingTree-RestrictedFunds-${charityName}-${filterYear}.pdf`)
+    logExport('restricted_fund_statement_pdf', { year: filterYear })
   }
 
   async function handleSetNewPassword() {
@@ -8640,6 +8702,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     setResetLoading(false)
     if (error) { setResetMsg(error.message); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session?.user?.email,
+      action: 'password_changed',
+      details: { charity_uen: charityUen },
+    })
     setResetMsg('Password updated! Redirecting...')
     setTimeout(() => { setShowResetPassword(false); setNewPassword(''); setConfirmPassword(''); setResetMsg('') }, 1500)
   }
@@ -10396,6 +10464,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             exportAllDonorYearEndStatements={exportAllDonorYearEndStatements} exportDonorContactsCSV={exportDonorContactsCSV}
             exportIRASExcel={exportIRASExcel} exportGrantsComplianceReport={exportGrantsComplianceReport}
             exportPermitRegister={exportPermitRegister} exportRestrictedFundStatement={exportRestrictedFundStatement}
+            logExport={logExport}
           />
         )}
 

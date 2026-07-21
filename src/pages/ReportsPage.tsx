@@ -32,12 +32,13 @@ interface ReportsPageProps {
   exportGrantsComplianceReport: () => void
   exportPermitRegister: () => void
   exportRestrictedFundStatement: () => void
+  logExport: (reportName: string, details?: Record<string, unknown>) => void
 }
 
 export function ReportsPage({
   donations, charityName, charityIsIpc, grants, auditLog, filterYear, setFilterYear, fyOf, showToast,
   exportAnalyticsPDF, exportQuarterlyBoardReportPDF, exportWeeklySnapshotPDF, exportYearEndSummary,
-  exportAllDonorYearEndStatements, exportDonorContactsCSV, exportIRASExcel, exportGrantsComplianceReport,
+  exportAllDonorYearEndStatements, exportDonorContactsCSV, exportIRASExcel, exportGrantsComplianceReport, logExport,
   exportPermitRegister, exportRestrictedFundStatement,
 }: ReportsPageProps) {
   return (
@@ -90,6 +91,7 @@ export function ReportsPage({
                         a.download = `${charityName}-COC-Annual-Return-${year}.csv`
                         a.click()
                         URL.revokeObjectURL(url)
+                        logExport('coc_annual_return_csv', { year, row_count: yearDonations.length })
                         showToast(`FY ${year} annual return exported ✓`)
                       }}>⬇️ Export CSV</button>
                     </div>
@@ -234,6 +236,7 @@ export function ReportsPage({
           a.download = `${charityName}-audit-trail-${new Date().toISOString().split('T')[0]}.csv`
           a.click()
           URL.revokeObjectURL(url)
+          logExport('audit_trail_csv', { row_count: auditLog.length })
           showToast('Audit trail exported ✓')
         }}>⬇️ Export Audit Trail CSV</button>
       </div>
