@@ -1,9 +1,116 @@
+import type { Dispatch, SetStateAction, MutableRefObject } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
 import { InfoTip } from '../components/ui/InfoTip'
 import { EmptyState } from '../components/ui/EmptyState'
 import { SenderIdentityLine } from '../components/ui/SenderIdentityLine'
 import { EditPledgeModal } from '../components/modals/EditPledgeModal'
+import type { Pledge, Donation } from '../types'
+
+interface PledgesPageProps {
+  isMobile?: boolean
+  pledges: Pledge[]
+  myCauses: { id: string, title: string }[]
+  fyOf: (date: string | number | Date) => number
+  senderIdentity: Record<string, unknown>
+  setShowPledgeForm: Dispatch<SetStateAction<boolean>>
+  pledgeError: string
+  setPledgeError: Dispatch<SetStateAction<string>>
+  editingPledge: Pledge | null
+  setEditingPledge: Dispatch<SetStateAction<Pledge | null>>
+  updatePledge: (id: string, form: unknown) => unknown
+  cancelPledge: (p: Pledge) => void
+  pledgeInstalments: { id: string, pledge_id: string, year_number: number, expected_date: string, received?: boolean }[]
+  pledgeSearchTerm: string
+  setPledgeSearchTerm: Dispatch<SetStateAction<string>>
+  showPledgeFilters: boolean
+  setShowPledgeFilters: Dispatch<SetStateAction<boolean>>
+  pledgeUrgencyFilter: string
+  setPledgeUrgencyFilter: Dispatch<SetStateAction<string>>
+  pledgeDueSoonDays: number
+  pledgeAmountFilter: string
+  setPledgeAmountFilter: Dispatch<SetStateAction<string>>
+  pledgeYearFilter: string
+  setPledgeYearFilter: Dispatch<SetStateAction<string>>
+  pledgeTypeFilter: string
+  setPledgeTypeFilter: Dispatch<SetStateAction<string>>
+  pledgeProgrammeFilter: string
+  setPledgeProgrammeFilter: Dispatch<SetStateAction<string>>
+  pledgeSortBy: string
+  setPledgeSortBy: Dispatch<SetStateAction<string>>
+  exportPledgesExcel: (filtered: Pledge[]) => void
+  showPledgeReminderModal: boolean
+  pledgeReminderCandidate: Pledge | null
+  pledgeReminderPreviewing: boolean
+  setPledgeReminderPreviewing: Dispatch<SetStateAction<boolean>>
+  setShowPledgeReminderModal: Dispatch<SetStateAction<boolean>>
+  setPledgeReminderCandidate: Dispatch<SetStateAction<Pledge | null>>
+  pledgeReminderSubject: string
+  setPledgeReminderSubject: Dispatch<SetStateAction<string>>
+  pledgeReminderBody: string
+  setPledgeReminderBody: Dispatch<SetStateAction<string>>
+  sendingPledgeReminder: boolean
+  sendPledgeReminder: () => void
+  showPledgeThankYouModal: boolean
+  pledgeCompletionCandidate: { pledge: Pledge, donation: Donation } | null
+  pledgeThankYouPreviewing: boolean
+  setPledgeThankYouPreviewing: Dispatch<SetStateAction<boolean>>
+  setShowPledgeThankYouModal: Dispatch<SetStateAction<boolean>>
+  setPledgeCompletionCandidate: Dispatch<SetStateAction<unknown>>
+  pledgeThankYouSubject: string
+  setPledgeThankYouSubject: Dispatch<SetStateAction<string>>
+  pledgeThankYouBody: string
+  setPledgeThankYouBody: Dispatch<SetStateAction<string>>
+  skipPledgeThankYou: () => void
+  sendingPledgeThankYou: boolean
+  sendPledgeThankYou: () => void
+  logContactModal: Pledge | null
+  setLogContactModal: Dispatch<SetStateAction<Pledge | null>>
+  logContactMethod: string
+  setLogContactMethod: Dispatch<SetStateAction<string>>
+  logContactNote: string
+  setLogContactNote: Dispatch<SetStateAction<string>>
+  loggingContact: boolean
+  logPledgeContact: () => void
+  showPledgeForm: boolean
+  pledgeForm: Record<string, unknown> & { donor_name?: string, donor_email?: string, donor_phone?: string, cause_id?: string, source?: string, is_anonymous?: boolean, is_multi_year?: boolean, amount?: string, total_years?: string, expected_date?: string, notes?: string }
+  setPledgeForm: Dispatch<SetStateAction<PledgesPageProps['pledgeForm']>>
+  savingPledge: boolean
+  savePledge: () => void
+  pledgeGivenTotals: Record<string, number>
+  donationsByPledge: Record<string, { donation_id: string, created_at: string, amount_applied: number, payment_status?: string, notes?: string, source?: string }[]>
+  pledgeReminderHistory: Record<string, { sent_at: string, channel?: string }[]>
+  pledgeRescheduleHistory: Record<string, { old_expected_date: string, new_expected_date: string, reason?: string }[]>
+  setSelectedDonor: (d: unknown) => void
+  findDonorRecord: (email?: string | null, name?: string | null) => unknown
+  setActiveTab: (tab: string) => void
+  pendingDonorProfileTabRef: MutableRefObject<string | null>
+  setDonorProfileTab: (tab: string) => void
+  expandedPledgeId: string | null
+  setExpandedPledgeId: Dispatch<SetStateAction<string | null>>
+  editingPledgeDonationId: string | null
+  setEditingPledgeDonationId: Dispatch<SetStateAction<string | null>>
+  editingPledgeAmount: string
+  setEditingPledgeAmount: Dispatch<SetStateAction<string>>
+  editingPledgeNotes: string
+  setEditingPledgeNotes: Dispatch<SetStateAction<string>>
+  savePledgeDonationAmount: (l: unknown) => void
+  savingPledgeAmount: boolean
+  startEditingPledgeAmount: (l: unknown) => void
+  deleteDonation: (id: string) => void
+  fulfillPledge: (p: Pledge) => void
+  pledgeMoreMenuId: string | null
+  setPledgeMoreMenuId: Dispatch<SetStateAction<string | null>>
+  setRescheduleModal: (p: Pledge) => void
+  setRescheduleNewDate: Dispatch<SetStateAction<string>>
+  setRescheduleReason: Dispatch<SetStateAction<string>>
+  openThankYouForFulfilledPledge: (p: Pledge) => void
+  revertPledgeToPending: (p: Pledge) => void
+  showFulfilledPledges: boolean
+  setShowFulfilledPledges: Dispatch<SetStateAction<boolean>>
+  showCancelledPledges: boolean
+  setShowCancelledPledges: Dispatch<SetStateAction<boolean>>
+}
 
 export function PledgesPage({
   isMobile, pledges, myCauses, fyOf, senderIdentity,
@@ -35,7 +142,7 @@ export function PledgesPage({
   setRescheduleModal, setRescheduleNewDate, setRescheduleReason,
   openThankYouForFulfilledPledge, revertPledgeToPending,
   showFulfilledPledges, setShowFulfilledPledges, showCancelledPledges, setShowCancelledPledges,
-}) {
+}: PledgesPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>
@@ -342,9 +449,9 @@ export function PledgesPage({
 
       {(() => {
         const today = new Date(); today.setHours(0,0,0,0)
-        const renderPledgeCard = (p) => {
+        const renderPledgeCard = (p: Pledge) => {
           const expectedDate = new Date(p.expected_date)
-          const daysUntil = Math.ceil((expectedDate - today) / (1000 * 60 * 60 * 24))
+          const daysUntil = Math.ceil((expectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
           const isOverdue = daysUntil < 0 && p.status === 'pending'
           const isDueSoon = daysUntil >= 0 && daysUntil <= 7 && p.status === 'pending'
           const given = pledgeGivenTotals[p.id] || 0
@@ -356,7 +463,7 @@ export function PledgesPage({
             fulfilled: { bg: C.sage, color: C.white, label: 'Fulfilled' },
             cancelled: { bg: C.red, color: C.white, label: 'Cancelled' },
           }
-          const pledgeStatusInfo = pledgeStatusMap[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
+          const pledgeStatusInfo = (pledgeStatusMap as Record<string, { bg: string, color: string, label: string }>)[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
           const hasActivity = (donationsByPledge[p.id] || []).length > 0 || (p.status === 'pending' && ((pledgeReminderHistory[p.id] || []).length > 0 || (pledgeRescheduleHistory[p.id] || []).length > 0)) || p.resolution_notes
           return (
             <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -457,7 +564,7 @@ export function PledgesPage({
                   {p.status === 'pending' && (pledgeReminderHistory[p.id] || []).length > 0 && (() => {
                     const history = pledgeReminderHistory[p.id]
                     const last = history[0]
-                    const daysAgo = Math.floor((new Date() - new Date(last.sent_at)) / (1000 * 60 * 60 * 24))
+                    const daysAgo = Math.floor((new Date().getTime() - new Date(last.sent_at).getTime()) / (1000 * 60 * 60 * 24))
                     const channelInfo = { phone: ['📞', 'Called'], email: ['📧', 'Emailed'], in_person: ['🤝', 'Met in person'], whatsapp: ['💬', 'WhatsApped'], other: ['📝', 'Followed up'] }[last.channel] || ['✉', 'Reminded']
                     return (
                       <div
@@ -577,21 +684,21 @@ export function PledgesPage({
         }
 
         const q = pledgeSearchTerm.toLowerCase().trim()
-        const matchesSearch = (p) => {
+        const matchesSearch = (p: Pledge) => {
           if (!q) return true
           const searchFields = [p.donor_name, p.donor_email, p.donor_phone, p.notes, p.reference]
           return searchFields.some(field => field?.toLowerCase().includes(q))
         }
-        const matchesUrgency = (p) => {
+        const matchesUrgency = (p: Pledge) => {
           if (pledgeUrgencyFilter === 'All') return true
           if (p.status !== 'pending') return false
-          const days = Math.ceil((new Date(p.expected_date) - today) / (1000 * 60 * 60 * 24))
+          const days = Math.ceil((new Date(p.expected_date || 0).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
           if (pledgeUrgencyFilter === 'Overdue') return days < 0
           if (pledgeUrgencyFilter === 'Due Soon') return days >= 0 && days <= pledgeDueSoonDays
           if (pledgeUrgencyFilter === 'Healthy') return days > pledgeDueSoonDays
           return true
         }
-        const matchesAmount = (p) => {
+        const matchesAmount = (p: Pledge) => {
           const amt = Number(p.amount)
           if (pledgeAmountFilter === 'All') return true
           if (pledgeAmountFilter === 'Under 100') return amt < 100
@@ -600,18 +707,18 @@ export function PledgesPage({
           if (pledgeAmountFilter === 'Over 1000') return amt > 1000
           return true
         }
-        const matchesYear = (p) => pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
-        const matchesType = (p) => pledgeTypeFilter === 'All' || (pledgeTypeFilter === 'Multi-year' ? !!p.is_multi_year : !p.is_multi_year)
-        const matchesProgramme = (p) => pledgeProgrammeFilter === 'All' || (pledgeProgrammeFilter === '__none__' ? !p.cause_id : p.cause_id === pledgeProgrammeFilter)
+        const matchesYear = (p: Pledge) => pledgeYearFilter === 'All' || fyOf(p.expected_date).toString() === pledgeYearFilter
+        const matchesType = (p: Pledge) => pledgeTypeFilter === 'All' || (pledgeTypeFilter === 'Multi-year' ? !!p.is_multi_year : !p.is_multi_year)
+        const matchesProgramme = (p: Pledge) => pledgeProgrammeFilter === 'All' || (pledgeProgrammeFilter === '__none__' ? !p.cause_id : p.cause_id === pledgeProgrammeFilter)
 
-        const sortPledges = (arr) => [...arr].sort((a, b) => {
-          if (pledgeSortBy === 'expected_asc') return new Date(a.expected_date) - new Date(b.expected_date)
-          if (pledgeSortBy === 'expected_desc') return new Date(b.expected_date) - new Date(a.expected_date)
+        const sortPledges = (arr: Pledge[]) => [...arr].sort((a, b) => {
+          if (pledgeSortBy === 'expected_asc') return new Date(a.expected_date || 0).getTime() - new Date(b.expected_date || 0).getTime()
+          if (pledgeSortBy === 'expected_desc') return new Date(b.expected_date || 0).getTime() - new Date(a.expected_date || 0).getTime()
           if (pledgeSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
           if (pledgeSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
-          if (pledgeSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
-          if (pledgeSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
-          if (pledgeSortBy === 'donor_az') return a.donor_name.localeCompare(b.donor_name)
+          if (pledgeSortBy === 'created_desc') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+          if (pledgeSortBy === 'created_asc') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+          if (pledgeSortBy === 'donor_az') return (a.donor_name || '').localeCompare(b.donor_name || '')
           return 0
         })
 

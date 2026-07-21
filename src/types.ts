@@ -65,10 +65,18 @@ export interface Pledge {
   id: string
   donor_name?: string | null
   donor_email?: string | null
+  donor_phone?: string | null
   amount: number
   status: 'pending' | 'fulfilled' | 'cancelled' | string
   expected_date?: string | null
   is_multi_year?: boolean
+  total_years?: number
+  cause_id?: string | null
+  reference?: string | null
+  notes?: string | null
+  resolution_notes?: string | null
+  is_anonymous?: boolean
+  created_at?: string
   [key: string]: unknown
 }
 
