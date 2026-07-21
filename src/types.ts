@@ -23,6 +23,13 @@ export interface Donation {
   donor_deactivated?: boolean
   donor_do_not_contact?: boolean
   donor_deceased?: boolean
+  acquisition_source?: string | null
+  acquisition_source_detail?: string | null
+  referred_by_donor_key?: string | null
+  created_by?: string | null
+  receipt_name?: string | null
+  void_reason?: string | null
+  reissued_from?: string | null
   [key: string]: unknown
 }
 

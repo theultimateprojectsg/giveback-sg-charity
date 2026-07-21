@@ -1,9 +1,164 @@
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react'
 import { supabase } from '../supabase'
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
 import { QRCodeSVG } from 'qrcode.react'
 import { fillTemplate } from '../lib/format'
+import type { Donation, Pledge, RecurringGift } from '../types'
+
+interface ManualForm {
+  donor_name: string
+  donor_nric: string
+  amount: string | number
+  payment_method: string
+  notes: string
+  donor_email: string
+  date: string
+  cause_id: string
+  receipt_name: string
+  is_anonymous: boolean
+  acquisition_source: string
+  acquisition_source_detail: string
+  referred_by_donor_key: string
+  payment_ref: string
+  duplicateConfirmed?: boolean
+  [key: string]: unknown
+}
+
+interface DonationsPageProps {
+  isMobile: boolean
+  isTablet: boolean
+  userRole: string
+  donations: Donation[]
+  setDonations: Dispatch<SetStateAction<Donation[]>>
+  session: { user: { email: string } } | null
+  charityUen?: string
+  charityName?: string
+  charityIsIpc: boolean
+  charityIpcLoaded: boolean
+  filterMinAmount: number | string | null
+  setFilterMinAmount: Dispatch<SetStateAction<number | string | null>>
+  donationFilterLabel: string | null
+  setDonationFilterLabel: Dispatch<SetStateAction<string | null>>
+  pendingCountForYear: number
+  issueAllReceipts: () => void
+  bulkActionInProgress: boolean
+  showManualForm: boolean
+  setShowManualForm: Dispatch<SetStateAction<boolean>>
+  closeManualForm: () => void
+  editingDonationId: string | null
+  setEditingDonationId: Dispatch<SetStateAction<string | null>>
+  manualError: string
+  manualDuplicateWarning: { donors: { name: string, count: number, total: number }[], matchedOn: string } | null
+  setManualDuplicateWarning: Dispatch<SetStateAction<any>>
+  manualForm: ManualForm
+  setManualForm: Dispatch<SetStateAction<ManualForm>>
+  manualReferralSearch: string
+  setManualReferralSearch: Dispatch<SetStateAction<string>>
+  donorList: { name: string, email?: string | null }[]
+  generatePayNowEntry: (skipDuplicateCheck?: boolean) => void
+  saveManualEntry: (skipDuplicateCheck?: boolean) => void
+  savingManual: boolean
+  myCauses: { id: string, title: string, status: string, type: string, end_date?: string | null }[]
+  payNowQrDonation: any
+  setPayNowQrDonation: Dispatch<SetStateAction<any>>
+  resetManualForm: () => void
+  confirmManualPayNow: () => void
+  confirmingPayNow: boolean
+  unconfirmedCountForYear: number
+  awaitingThankYouCountForYear: number
+  missingNricThisYear: number
+  clearDonationFilters: (opts?: { keepYear?: boolean }) => void
+  setFilterType: Dispatch<SetStateAction<string>>
+  setFilterThankYou: Dispatch<SetStateAction<string>>
+  setFilterNric: Dispatch<SetStateAction<string>>
+  filterYear: string | number
+  setFilterYear: Dispatch<SetStateAction<string | number>>
+  showDonationFilters: boolean
+  setShowDonationFilters: Dispatch<SetStateAction<boolean>>
+  searchTerm: string
+  setSearchTerm: Dispatch<SetStateAction<string>>
+  filterType: string
+  filterNric: string
+  filterSource: string
+  setFilterSource: Dispatch<SetStateAction<string>>
+  filterThankYou: string
+  exportDonationsExcel: () => void
+  activeDonationFilterCount: number
+  bulkProgress: { done: number, total: number } | null
+  bulkCancelRef: RefObject<boolean>
+  filteredDonations: Donation[]
+  donationsPerPage: number
+  setDonationsPerPage: Dispatch<SetStateAction<number>>
+  paginatedDonations: Donation[]
+  loading: boolean
+  setSelectedDonation: Dispatch<SetStateAction<Donation | null>>
+  setQuickEmailInput: Dispatch<SetStateAction<string>>
+  setQuickNricInput: Dispatch<SetStateAction<string>>
+  causeNameForDonation: (d: Donation) => string
+  confirmPaymentFlow: (d: Donation) => void
+  setConfirmModal: Dispatch<SetStateAction<any>>
+  orderedDonationColumns: { key: string, label: string }[]
+  draggedDonationColumn: string | null
+  setDraggedDonationColumn: Dispatch<SetStateAction<string | null>>
+  reorderDonationColumn: (from: string | null, to: string) => void
+  donationSortBy: string | null
+  setDonationSortBy: Dispatch<SetStateAction<string | null>>
+  donationSortDir: 'asc' | 'desc'
+  setDonationSortDir: Dispatch<SetStateAction<'asc' | 'desc'>>
+  selectedDonation: Donation | null
+  selectedRowRef: RefObject<HTMLTableRowElement | null>
+  donationsPage: number
+  setDonationsPage: Dispatch<SetStateAction<number>>
+  donationsTotalPages: number
+  setVolunteerEditEntry: Dispatch<SetStateAction<any>>
+  setVolunteerEditForm: Dispatch<SetStateAction<any>>
+  setVolunteerFlagMessage: Dispatch<SetStateAction<string>>
+  setVolunteerEditError: Dispatch<SetStateAction<string>>
+  quickEmailInput: string
+  quickNricInput: string
+  nricRequestSent: Record<string, boolean>
+  setNricRequestSent: Dispatch<SetStateAction<Record<string, boolean>>>
+  emailTemplates: Record<string, { subject?: string, body?: string } | undefined>
+  sendCharityEmail: (args: any) => Promise<{ error?: unknown }>
+  showToast: (msg: string, type?: string) => void
+  editingNoteId: string | null
+  setEditingNoteId: Dispatch<SetStateAction<string | null>>
+  noteText: string
+  setNoteText: Dispatch<SetStateAction<string>>
+  editingImpactNoteId: string | null
+  setEditingImpactNoteId: Dispatch<SetStateAction<string | null>>
+  impactNoteText: string
+  setImpactNoteText: Dispatch<SetStateAction<string>>
+  donationPledgeLink: { pledgeDonorName?: string, amount_applied: number, pledgeReference?: string } | null
+  recurringGifts: RecurringGift[]
+  refunds: { id: string, donation_id: string, refund_amount: number, refund_date: string, reason: string }[]
+  deleteRefund: (r: any) => void
+  exportSingleReceiptPDF: (d: Donation) => void
+  pledges: Pledge[]
+  setShowManualPledgeLinkModal: Dispatch<SetStateAction<boolean>>
+  showRefundForm: boolean
+  setShowRefundForm: Dispatch<SetStateAction<boolean>>
+  refundForm: { reason: string }
+  setRefundForm: Dispatch<SetStateAction<{ reason: string }>>
+  savingRefund: boolean
+  saveRefund: (d: Donation) => void
+  setShowVoidModal: Dispatch<SetStateAction<boolean>>
+  setVoidReason: Dispatch<SetStateAction<string>>
+  sendingThankYouId: string | null
+  thankYouDefaultsFor: (d: Donation) => { subject: string, body: string }
+  setThankYouSubjectInput: Dispatch<SetStateAction<string>>
+  setThankYouCustomMessage: Dispatch<SetStateAction<string>>
+  setThankYouPreviewing: Dispatch<SetStateAction<boolean>>
+  setThankYouPreviewModal: Dispatch<SetStateAction<Donation | null>>
+  showDonationMoreActions: boolean
+  setShowDonationMoreActions: Dispatch<SetStateAction<boolean>>
+  deletingId: string | null
+  deleteDonation: (id: string) => void
+  unconfirmPayment: (d: Donation) => void
+  fyOf: (date: string | Date) => number
+}
 
 export function DonationsPage({
   isMobile, isTablet, userRole, donations, setDonations, session, charityUen, charityName, charityIsIpc, charityIpcLoaded,
@@ -38,7 +193,7 @@ export function DonationsPage({
   setThankYouPreviewing, setThankYouPreviewModal,
   showDonationMoreActions, setShowDonationMoreActions,
   deletingId, deleteDonation, unconfirmPayment, fyOf,
-}) {
+}: DonationsPageProps) {
   return (
     <div style={s.content}>
       {userRole === 'volunteer' && (
@@ -203,9 +358,9 @@ export function DonationsPage({
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               {manualForm.payment_method === 'PayNow Direct' && !editingDonationId ? (
-                <button style={{ ...s.btnGold, flex: 1, justifyContent: 'center' }} onClick={generatePayNowEntry} disabled={savingManual}>{savingManual ? 'Generating...' : '📱 Generate PayNow Code'}</button>
+                <button style={{ ...s.btnGold, flex: 1, justifyContent: 'center' }} onClick={() => generatePayNowEntry()} disabled={savingManual}>{savingManual ? 'Generating...' : '📱 Generate PayNow Code'}</button>
               ) : (
-                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={saveManualEntry} disabled={savingManual}>{savingManual ? 'Saving...' : (editingDonationId ? '✓ Save Changes' : '✓ Save Entry')}</button>
+                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => saveManualEntry()} disabled={savingManual}>{savingManual ? 'Saving...' : (editingDonationId ? '✓ Save Changes' : '✓ Save Entry')}</button>
               )}
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={closeManualForm}>Cancel</button>
             </div>
@@ -294,7 +449,7 @@ export function DonationsPage({
         </select>
         <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportDonationsExcel}>⬇️ Export to Excel</button>
         {activeDonationFilterCount > 0 && (
-          <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearDonationFilters}>✕ Clear Filters ({activeDonationFilterCount})</button>
+          <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => clearDonationFilters()}>✕ Clear Filters ({activeDonationFilterCount})</button>
         )}
         </>)}
       </div>
@@ -317,7 +472,7 @@ export function DonationsPage({
       <div style={{ display: 'flex', gap: 24 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {userRole === 'volunteer' ? (() => {
-            const myEntries = donations.filter(d => d.created_by === session?.user?.email).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            const myEntries = donations.filter(d => d.created_by === session?.user?.email).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             return (
               <div style={{ ...s.tableCard }}>
                 <div style={s.tableHeader}>
@@ -361,7 +516,7 @@ export function DonationsPage({
               <div style={s.empty}>
                 No donations found matching your filters.
                 <div style={{ marginTop: 10 }}>
-                  <button style={s.viewBtn} onClick={clearDonationFilters}>✕ Clear Filters</button>
+                  <button style={s.viewBtn} onClick={() => clearDonationFilters()}>✕ Clear Filters</button>
                 </div>
               </div>
             ) : (isMobile || isTablet) ? (
@@ -545,7 +700,7 @@ export function DonationsPage({
                           receiptNo: <td key="receiptNo" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{d.receipt_number || d.payment_ref || '—'}</span></td>,
                           thankYou: <td key="thankYou" style={s.td}>{d.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : (d.payment_status === 'refunded' || noThankYouExpected) ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>N/A</span> : <span style={{ fontSize: 10, color: C.muted }}>—</span>}</td>,
                         }
-                        return orderedDonationColumns.map(o => cellRenderers[o.key]).filter(Boolean)
+                        return orderedDonationColumns.map(o => (cellRenderers as Record<string, ReactNode>)[o.key]).filter(Boolean)
                       })()}
                     </tr>
                     )
