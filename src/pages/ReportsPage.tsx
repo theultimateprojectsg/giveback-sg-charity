@@ -1,13 +1,44 @@
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
+import type { Donation, Grant } from '../types'
+
+interface AuditLogEntry {
+  created_at: string
+  actor_email?: string
+  actor_type?: string
+  action?: string
+  details?: Record<string, unknown>
+}
+
+interface ReportsPageProps {
+  donations: Donation[]
+  charityName: string
+  charityIsIpc: boolean
+  grants: Grant[]
+  auditLog: AuditLogEntry[]
+  filterYear: string
+  setFilterYear: (year: string) => void
+  fyOf: (date: string | number | Date) => number
+  showToast: (msg: string, type?: string) => void
+  exportAnalyticsPDF: () => void
+  exportQuarterlyBoardReportPDF: () => void
+  exportWeeklySnapshotPDF: () => void
+  exportYearEndSummary: () => void
+  exportAllDonorYearEndStatements: () => void
+  exportDonorContactsCSV: () => void
+  exportIRASExcel: () => void
+  exportGrantsComplianceReport: () => void
+  exportPermitRegister: () => void
+  exportRestrictedFundStatement: () => void
+}
 
 export function ReportsPage({
   donations, charityName, charityIsIpc, grants, auditLog, filterYear, setFilterYear, fyOf, showToast,
   exportAnalyticsPDF, exportQuarterlyBoardReportPDF, exportWeeklySnapshotPDF, exportYearEndSummary,
   exportAllDonorYearEndStatements, exportDonorContactsCSV, exportIRASExcel, exportGrantsComplianceReport,
   exportPermitRegister, exportRestrictedFundStatement,
-}) {
+}: ReportsPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>

@@ -93,6 +93,8 @@ export interface Grant {
   report_due_date?: string | null
   is_matching?: boolean
   unrestricted_amount?: number
+  start_date?: string | null
+  created_at?: string
   [key: string]: unknown
 }
 

@@ -1,6 +1,49 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
+
+interface MassAppeal {
+  id: string
+  cause_id?: string | null
+  cause_name?: string | null
+  message?: string | null
+  amount: number | string
+  status: string
+  created_at: string
+  sent_count: number
+  failed_count: number
+  donor_count: number
+  [key: string]: unknown
+}
+
+interface MassAppealPageProps {
+  isMobile?: boolean
+  massAppeals: MassAppeal[]
+  fyOf: (date: string | number | Date) => number
+  myCauses: { id: string, title: string }[]
+  setMassAppealStep: Dispatch<SetStateAction<string>>
+  setMassAppealForm: Dispatch<SetStateAction<unknown>>
+  setMassAppealRefs: Dispatch<SetStateAction<unknown[]>>
+  setShowMassAppealModal: Dispatch<SetStateAction<boolean>>
+  defaultMassAppealMessage: () => string
+  massAppealSearchTerm: string
+  setMassAppealSearchTerm: Dispatch<SetStateAction<string>>
+  massAppealYearFilter: string
+  setMassAppealYearFilter: Dispatch<SetStateAction<string>>
+  massAppealAmountFilter: string
+  setMassAppealAmountFilter: Dispatch<SetStateAction<string>>
+  massAppealProgrammeFilter: string
+  setMassAppealProgrammeFilter: Dispatch<SetStateAction<string>>
+  massAppealStatusFilter: string
+  setMassAppealStatusFilter: Dispatch<SetStateAction<string>>
+  massAppealSortBy: string
+  setMassAppealSortBy: Dispatch<SetStateAction<string>>
+  exportMassAppealsExcel: (filtered: MassAppeal[]) => void
+  expandedAppealYears: Set<number>
+  setExpandedAppealYears: Dispatch<SetStateAction<Set<number>>>
+  openAppealDetail: (appeal: MassAppeal) => void
+}
 
 // Renders only the appeal-history list. The "New Appeal" send flow lives in
 // MassAppealModal, rendered unconditionally at the App level (not gated by
@@ -12,7 +55,7 @@ export function MassAppealPage({
   massAppealAmountFilter, setMassAppealAmountFilter, massAppealProgrammeFilter, setMassAppealProgrammeFilter,
   massAppealStatusFilter, setMassAppealStatusFilter, massAppealSortBy, setMassAppealSortBy,
   exportMassAppealsExcel, expandedAppealYears, setExpandedAppealYears, openAppealDetail,
-}) {
+}: MassAppealPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>
@@ -110,15 +153,15 @@ export function MassAppealPage({
             || (massAppealStatusFilter === 'Partial' && a.status === 'sent' && a.failed_count > 0)
           return matchesSearch && matchesYear && matchesAmt && matchesProgramme && matchesStatus
         }).sort((a, b) => {
-          if (massAppealSortBy === 'created_desc') return new Date(b.created_at) - new Date(a.created_at)
-          if (massAppealSortBy === 'created_asc') return new Date(a.created_at) - new Date(b.created_at)
+          if (massAppealSortBy === 'created_desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          if (massAppealSortBy === 'created_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           if (massAppealSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
           if (massAppealSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
           if (massAppealSortBy === 'sent_desc') return b.sent_count - a.sent_count
           if (massAppealSortBy === 'failed_desc') return b.failed_count - a.failed_count
           return 0
         })
-        const byYear = {}
+        const byYear: Record<number, MassAppeal[]> = {}
         searchedAppeals.forEach(a => {
           const y = fyOf(a.created_at)
           if (!byYear[y]) byYear[y] = []
@@ -126,7 +169,7 @@ export function MassAppealPage({
         })
         const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
 
-        const renderAppealCard = (a) => (
+        const renderAppealCard = (a: MassAppeal) => (
           <div key={a.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }} onClick={() => openAppealDetail(a)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
               <div style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{a.cause_name || 'General Appeal'}</div>
