@@ -21,7 +21,11 @@ export const C = {
   successBg: '#EAF3EC',
   bucket1:   '#74C69D',
   dangerText: '#A32D2D',
+  dangerTextStrong: '#791F1F',
   dangerBg:   '#FBEEE9',
+  dangerBorder: '#E0BBA9',
+  successText: '#27500A',
+  warningTextStrong: '#854F0B',
   fontVoice: "'Fraunces', serif",
   fontMono:  "'IBM Plex Mono', monospace",
 }

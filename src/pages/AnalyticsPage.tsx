@@ -557,7 +557,7 @@ export function AnalyticsPage({
                         const urgent = days <= 7
                         const soon = days <= 30
                         return (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? '#FBEEE9' : soon ? C.warningBg : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? '#E0BBA9' : soon ? C.warningBorder : C.border}` }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: urgent ? C.dangerBg : soon ? C.warningBg : C.ivory, borderRadius: 4, border: `1px solid ${urgent ? C.dangerBorder : soon ? C.warningBorder : C.border}` }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500, color: urgent ? C.red : C.forest }}>{o.title}</div>
                               <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{o.dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
@@ -1251,8 +1251,8 @@ export function AnalyticsPage({
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {campaignRows.map((row: any, i: any) => {
-                              const bg = row.behind ? '#FBEEE9' : row.slightlyBehind ? '#FDF8EC' : row.hasGoal && row.goalReached ? '#EAF3DE' : C.ivory
-                              const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? '#27500A' : C.forest
+                              const bg = row.behind ? C.dangerBg : row.slightlyBehind ? C.warningBg : row.hasGoal && row.goalReached ? C.successBg : C.ivory
+                              const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? C.successText : C.forest
                               const barColor = row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
                               let statusText = null
                               if (row.hasGoal) {
@@ -1361,9 +1361,9 @@ export function AnalyticsPage({
                                 </div>
                               ))}
                               {standoutOrganic.map((r: any, i: any) => (
-                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: '#EAF3DE', borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: '#27500A' }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
-                                  <div style={{ fontSize: 10.5, color: '#27500A' }}>100% new, fully organic — no appeal or referral involved</div>
+                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: C.successBg, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.successText }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
+                                  <div style={{ fontSize: 10.5, color: C.successText }}>100% new, fully organic — no appeal or referral involved</div>
                                 </div>
                               ))}
                               {stagnant.map((r: any, i: any) => (
@@ -1542,8 +1542,8 @@ export function AnalyticsPage({
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                             {[...scopedAnalyzed].sort((a, b) => b.conversionRate - a.conversionRate).map((a, i) => {
                               const isSending = a.appeal.status === 'sending'
-                              const bg = a.conversionRate >= 25 ? '#EAF3DE' : a.conversionRate >= 15 ? '#FDF8EC' : C.ivory
-                              const textColor = a.conversionRate >= 25 ? '#27500A' : a.conversionRate >= 15 ? '#854F0B' : C.text
+                              const bg = a.conversionRate >= 25 ? C.successBg : a.conversionRate >= 15 ? C.warningBg : C.ivory
+                              const textColor = a.conversionRate >= 25 ? C.successText : a.conversionRate >= 15 ? C.warningTextStrong : C.text
                               return (
                                 <div key={i} style={{ padding: '8px 10px', background: bg, borderRadius: 4 }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -1676,7 +1676,7 @@ export function AnalyticsPage({
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                           {(showAllFatigueList ? fatigueList : fatigueList.slice(0, 5)).map((d: any, i: any) => (
-                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
+                            <div key={i} style={{ padding: '8px 10px', background: d.isFatigued ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: d.isFatigued ? C.red : C.forest }}>{d.name}</span>
                                 <span style={{ fontSize: 11, color: d.isFatigued ? C.red : C.muted }}>{d.isFatigued ? `gave earlier, skipped most recent` : `gave ${d.gaveCount} of ${d.totalAppeals} sent`}</span>
@@ -1821,11 +1821,11 @@ export function AnalyticsPage({
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New pledges committed</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.successText }}>+ New pledges committed</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>${Math.round(newPledgeValue).toLocaleString()}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.dangerBg, borderRadius: 4 }}>
                           <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
                         </div>
@@ -1885,7 +1885,7 @@ export function AnalyticsPage({
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
                         {(showAllOverdueUnits ? overdueUnits : overdueUnits.slice(0, 5)).map((u: any, i: any) => (
-                          <div key={i} style={{ padding: '9px 11px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                          <div key={i} style={{ padding: '9px 11px', background: C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
                               <span style={{ fontSize: 12, fontWeight: 500, color: C.red }}>${u.amount.toLocaleString()}</span>
@@ -1917,7 +1917,7 @@ export function AnalyticsPage({
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {(showAllPledgeWatchlist ? watchList : watchList.slice(0, 5)).map((d: any, i: any) => (
-                          <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                          <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: d.overdueNow.length > 0 ? C.red : C.forest }}>{d.name}{d.overdueNow.length > 0 ? ' — overdue now' : ''}</span>
                               <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s: any, p: any) => s + Number(p.amount), 0).toLocaleString()}</span>
@@ -2145,11 +2145,11 @@ export function AnalyticsPage({
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#EAF3DE', borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: '#27500A' }}>+ New MRR added</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#27500A' }}>${Math.round(newMrr).toLocaleString()}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
+                          <span style={{ fontSize: 12, color: C.successText }}>+ New MRR added</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>${Math.round(newMrr).toLocaleString()}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.dangerBg, borderRadius: 4 }}>
                           <span style={{ fontSize: 12, color: C.red }}>− Churned MRR lost</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(churnedMrr).toLocaleString()}</span>
                         </div>
@@ -2189,12 +2189,12 @@ export function AnalyticsPage({
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {[...upgrades, ...downgrades].slice(0, 5).map((f, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? '#EAF3DE' : '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(f.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? C.successBg : C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(f.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.donor_name}</span>
-                                <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F' }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong }}>{f.donor_name}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
                               </div>
-                              <div style={{ fontSize: 11, color: f.direction === 'upgrade' ? '#27500A' : '#791F1F', marginTop: 2 }}>{recurringTrendCycles} consecutive cycles {f.direction === 'upgrade' ? 'increasing' : 'decreasing'}</div>
+                              <div style={{ fontSize: 11, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong, marginTop: 2 }}>{recurringTrendCycles} consecutive cycles {f.direction === 'upgrade' ? 'increasing' : 'decreasing'}</div>
                             </div>
                           ))}
                         </div>
@@ -2236,7 +2236,7 @@ export function AnalyticsPage({
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {terminatedGifts.slice(0, 5).map((g: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                               <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.donor_name}{g.bank_name ? ` · ${g.bank_name}` : ''}</span>
                               <span style={{ fontSize: 11.5, color: C.red }}>${Number(g.amount).toLocaleString()}/{({ weekly: 'wk', monthly: 'mo', quarterly: 'qtr', annually: 'yr' } as Record<string, string>)[g.frequency] || 'mo'}</span>
                             </div>
@@ -2278,7 +2278,7 @@ export function AnalyticsPage({
                           {(showAllMissedPayments ? missedFiltered : missedFiltered.slice(0, 5)).map((g: any, i: any) => {
                             const fullGift = recurringGifts.find(rg => rg.id === g.gift_id)
                             return (
-                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? '#FBEEE9' : C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                              <div key={i} style={{ padding: '8px 10px', background: g.missedCycles >= 2 ? C.dangerBg : C.warningBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(g.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 500, color: g.missedCycles >= 2 ? C.red : C.warning }}>
                                     {g.donor_name}
@@ -2533,7 +2533,7 @@ export function AnalyticsPage({
                             const behind = gap !== null && gap >= 20
                             const slightlyBehind = gap !== null && gap >= 8 && gap < 20
                             if (overdue || behind) behindPaceCount++
-                            const bg = overdue || behind ? '#FBEEE9' : slightlyBehind ? '#FDF8EC' : C.ivory
+                            const bg = overdue || behind ? C.dangerBg : slightlyBehind ? C.warningBg : C.ivory
                             const textColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.text
                             const barColor = overdue || behind ? C.red : slightlyBehind ? C.gold : C.sage
                             let verdict = 'Not enough data to assess pace'
@@ -2646,7 +2646,7 @@ export function AnalyticsPage({
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {matchingAtRisk.map((m: any, i: any) => (
-                                <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(m.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div key={i} style={{ padding: '8px 10px', background: C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(m.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                     <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{m.funder_name}</span>
                                     <span style={{ fontSize: 11, color: C.red }}>{m.pct}% claimed</span>
@@ -2685,7 +2685,7 @@ export function AnalyticsPage({
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {pendingTranches.map((t: any, i: any) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? '#FBEEE9' : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(t.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: t.overdue ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(t.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                   <span style={{ fontSize: 12, color: t.overdue ? C.red : C.text }}>{t.funder_name} <span style={{ color: C.muted }}>· {t.label}</span></span>
                                   <span style={{ fontSize: 11.5, color: t.overdue ? C.red : C.muted }}>${t.amount.toLocaleString()} · {t.overdue ? 'overdue' : new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
                                 </div>
@@ -2727,7 +2727,7 @@ export function AnalyticsPage({
                           <div style={s.analyticsSubTitle}>Overdue reports</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
                             {reportCompliance.overdueReportsList.map((r: any, i: any) => (
-                              <div key={i} style={{ padding: '8px 10px', background: '#FBEEE9', borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(r.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                              <div key={i} style={{ padding: '8px 10px', background: C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(r.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                   <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{r.funder_name}</span>
                                   <span style={{ fontSize: 11, color: C.red }}>{r.daysOverdue}d overdue</span>
@@ -2938,7 +2938,7 @@ export function AnalyticsPage({
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         {flags.map((f: any, i: any) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? '#FBEEE9' : C.successBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(f.email, f.name)); setActiveTab('donors') }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: f.changePct < 0 ? C.dangerBg : C.successBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(f.email, f.name)); setActiveTab('donors') }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>{f.name}</div>
                               <div style={{ fontSize: 11, color: C.muted }}>Avg was ${f.prevAvg} · Last gift ${f.recent.toLocaleString()}</div>

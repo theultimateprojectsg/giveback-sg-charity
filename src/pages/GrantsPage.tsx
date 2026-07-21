@@ -272,7 +272,7 @@ export function GrantsPage({
                       )}
                     </div>
                     {g.purpose_restriction && (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: '#FBEEE9', border: `1px solid #E0BBA9`, borderRadius: 4, padding: '6px 10px', marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, background: C.dangerBg, border: `1px solid ${C.dangerBorder}`, borderRadius: 4, padding: '6px 10px', marginTop: 8, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                         <span>⚠</span>
                         <span>{g.purpose_restriction}</span>
                       </div>

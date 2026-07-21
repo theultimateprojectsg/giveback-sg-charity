@@ -9787,9 +9787,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           {(c.category || (charityIsIpc && c.tax_deductible === false) || (c.permit_status === 'pending') || (c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date())) && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                               {c.category && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>{c.category}</span>}
-                              {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>Not tax-deductible</span>}
+                              {charityIsIpc && c.tax_deductible === false && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.dangerBg, color: C.red }}>Not tax-deductible</span>}
                               {c.permit_status === 'pending' && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.warningBg, color: C.warning }}>⏳ Permit pending</span>}
-                              {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: '#FBEEE9', color: C.red }}>⚠ Permit expired</span>}
+                              {c.permit_status === 'obtained' && c.permit_expiry && new Date(c.permit_expiry) < new Date() && <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.dangerBg, color: C.red }}>⚠ Permit expired</span>}
                             </div>
                           )}
                         </div>
@@ -10842,7 +10842,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{
                             fontSize: 10.5, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
                             color: r.status === 'sent' ? C.sage : r.status === 'blocked' ? C.gold : C.red,
-                            background: r.status === 'sent' ? C.successBg : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
+                            background: r.status === 'sent' ? C.successBg : r.status === 'blocked' ? (C.gold + '1A') : C.dangerBg,
                           }}>
                             {r.status === 'sent' ? '✓ Sent' : r.status === 'blocked' ? '🚫 Blocked' : '✕ Failed'}
                           </span>
@@ -11689,10 +11689,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         }}>
           <div style={{
             width: 22, height: 22, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-            background: toast.undoable ? C.warningBg : toast.type === 'success' ? C.successBg : '#FCEBEB',
+            background: toast.undoable ? C.warningBg : toast.type === 'success' ? C.successBg : C.dangerBg,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: toast.undoable ? C.warning : toast.type === 'success' ? C.forest : '#791F1F' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: toast.undoable ? C.warning : toast.type === 'success' ? C.forest : C.dangerTextStrong }}>
               {toast.undoable ? '🗑' : toast.type === 'success' ? '✓' : '✕'}
             </span>
           </div>

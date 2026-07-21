@@ -340,7 +340,7 @@ export function DonorsPage({
                           <div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                               <div style={s.donorName}>{d.name}</div>
-                              {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBEEE9', padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
+                              {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: C.dangerBg, padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
                               {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: C.warningBg, padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
                             </div>
                           </div>
@@ -446,7 +446,7 @@ export function DonorsPage({
           <button style={s.backBtn} onClick={() => setSelectedDonor(null)}>← Back to Donors</button>
         </div>
         {selectedDonor.doNotContact && (
-          <div style={{ background: '#FBEEE9', border: `1px solid ${C.red}`, borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ background: C.dangerBg, border: `1px solid ${C.red}`, borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>🚫 Do Not Contact — this donor is excluded from all emails, appeals, and outreach.</span>
           </div>
         )}

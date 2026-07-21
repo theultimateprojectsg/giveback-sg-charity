@@ -329,7 +329,7 @@ export function RecurringPage({
                         <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 4, background: C.ivory, border: `1px solid ${C.border}`, color: C.muted }}>General / unrestricted</span>
                       )}
                       {needsBankInfo && authLabel && g.authorization_status !== 'active' && (
-                        <span style={{ fontSize: 11, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? '#FBEEE9' : C.warningBg, padding: '3px 8px', borderRadius: 4 }}>{authLabel}</span>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: authColor, background: g.authorization_status === 'terminated' ? C.dangerBg : C.warningBg, padding: '3px 8px', borderRadius: 4 }}>{authLabel}</span>
                       )}
                     </div>
                   </div>
@@ -383,7 +383,7 @@ export function RecurringPage({
                 {g.status === 'paused' && (g.pause_reason || g.pause_resume_date) && (() => {
                   const resumeDatePassed = g.pause_resume_date && new Date(g.pause_resume_date) < today
                   return (
-                  <div style={{ fontSize: 11.5, color: resumeDatePassed ? C.red : C.warning, background: resumeDatePassed ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', marginTop: 8 }}>
+                  <div style={{ fontSize: 11.5, color: resumeDatePassed ? C.red : C.warning, background: resumeDatePassed ? C.dangerBg : C.warningBg, borderRadius: 4, padding: '6px 10px', marginTop: 8 }}>
                     {g.pause_reason && <div>Paused: {g.pause_reason}</div>}
                     {g.pause_resume_date && <div>{resumeDatePassed ? '⚠ Was expected to resume' : 'Expected to resume'} {new Date(g.pause_resume_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} — remember to reactivate it</div>}
                   </div>

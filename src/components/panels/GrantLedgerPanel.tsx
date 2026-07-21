@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import { C } from '../../theme'
 
 interface LedgerExpense { id: string, description: string, amount: number | string, expense_date: string, category?: string | null }
 interface LedgerTranche { id: string, label: string, amount: number | string, expected_date: string, received?: boolean }
@@ -176,7 +177,7 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
               )
             }
             return (
-              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.received ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.received ? C.ivory : isOverdue ? C.dangerBg : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                 <span style={{ color: t.received ? C.muted : isOverdue ? C.red : C.warning, textDecoration: t.received ? 'line-through' : 'none' }}>
                   {t.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· ${Number(t.amount).toLocaleString()} · {new Date(t.expected_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
                 </span>
@@ -217,7 +218,7 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
               )
             }
             return (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: r.submitted ? C.ivory : isOverdue ? '#FBEEE9' : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: r.submitted ? C.ivory : isOverdue ? C.dangerBg : C.warningBg, borderRadius: 4, padding: '6px 10px', fontSize: 12 }}>
                 <span style={{ color: r.submitted ? C.muted : isOverdue ? C.red : C.warning, textDecoration: r.submitted ? 'line-through' : 'none' }}>
                   {r.label} <span style={{ color: C.muted, textDecoration: 'none' }}>· {new Date(r.due_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}{isOverdue ? ' — overdue' : ''}</span>
                 </span>
