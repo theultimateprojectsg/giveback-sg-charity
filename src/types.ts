@@ -87,13 +87,25 @@ export interface RecurringGift {
 export interface Grant {
   id: string
   funder_name?: string
+  funder_type?: string
+  agreement_reference?: string | null
   amount: number
   status: 'active' | string
   cause_id?: string | null
   report_due_date?: string | null
   is_matching?: boolean
+  is_renewable?: boolean
   unrestricted_amount?: number
+  restricted_amount?: number
+  purpose_restriction?: string | null
+  disbursement_schedule?: string | null
+  match_cap?: number
+  match_ratio?: string | null
+  contact_name?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
   start_date?: string | null
+  end_date?: string | null
   created_at?: string
   [key: string]: unknown
 }

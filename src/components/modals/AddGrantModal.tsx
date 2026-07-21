@@ -15,7 +15,7 @@ interface AddGrantModalProps {
     is_renewable?: boolean, contact_name?: string, contact_email?: string, contact_phone?: string,
     match_ratio?: string, match_cap?: number,
   }) | null
-  onDelete: (grant: AddGrantModalProps['grant']) => void
+  onDelete?: (grant: AddGrantModalProps['grant']) => void
   causes: { id: string, title: string }[]
   hasExistingClaims?: boolean
 }

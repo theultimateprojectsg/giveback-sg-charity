@@ -15,7 +15,7 @@ interface GrantLedgerPanelProps {
   claims: LedgerClaim[]
   notes: LedgerNote[]
   categories: string[]
-  s: Record<string, CSSProperties>
+  s: Record<string, CSSProperties | ((positive: boolean) => CSSProperties)>
   C: Record<string, string>
   onSaveExpense: (form: unknown) => Promise<unknown>
   onEditExpense: (e: LedgerExpense, form: unknown) => Promise<unknown>

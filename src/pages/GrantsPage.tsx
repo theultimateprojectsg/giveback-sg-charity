@@ -1,9 +1,78 @@
+import type { Dispatch, SetStateAction } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
 import { InfoTip } from '../components/ui/InfoTip'
 import { EmptyState } from '../components/ui/EmptyState'
 import { AddGrantModal } from '../components/modals/AddGrantModal'
 import { GrantLedgerPanel } from '../components/panels/GrantLedgerPanel'
+import type { Grant } from '../types'
+
+interface LedgerExpense { id: string, description: string, amount: number | string, expense_date: string, category?: string | null }
+interface LedgerTranche { id: string, label: string, amount: number | string, expected_date: string, received?: boolean }
+interface LedgerReport { id: string, label: string, due_date: string, submitted?: boolean }
+interface LedgerClaim { id: string, amount: number | string, claim_date: string, notes?: string | null }
+interface LedgerNote { id: string, note: string, created_at: string, created_by?: string | null }
+
+interface GrantsPageProps {
+  isMobile?: boolean
+  grants: Grant[]
+  grantsWithNextReport: Grant[]
+  myCauses: { id: string, title: string, type: string }[]
+  fyOf: (date: string | number | Date) => number
+  showGrantForm: boolean
+  setShowGrantForm: Dispatch<SetStateAction<boolean>>
+  editingGrant: Grant | null
+  setEditingGrant: Dispatch<SetStateAction<Grant | null>>
+  saveGrant: (form: unknown) => unknown
+  updateGrant: (id: string, form: unknown) => unknown
+  deleteGrant: (grant: Grant) => void
+  grantMatchClaims: Record<string, LedgerClaim[]>
+  grantSearchTerm: string
+  setGrantSearchTerm: Dispatch<SetStateAction<string>>
+  showGrantFilters: boolean
+  setShowGrantFilters: Dispatch<SetStateAction<boolean>>
+  grantUrgencyFilter: string
+  setGrantUrgencyFilter: Dispatch<SetStateAction<string>>
+  grantAmountFilter: string
+  setGrantAmountFilter: Dispatch<SetStateAction<string>>
+  grantYearFilter: string
+  setGrantYearFilter: Dispatch<SetStateAction<string>>
+  grantFunderTypeFilter: string
+  setGrantFunderTypeFilter: Dispatch<SetStateAction<string>>
+  grantFundingTypeFilter: string
+  setGrantFundingTypeFilter: Dispatch<SetStateAction<string>>
+  grantSortBy: string
+  setGrantSortBy: Dispatch<SetStateAction<string>>
+  exportGrantsExcel: (filtered: Grant[]) => void
+  highlightedGrantId: string | null
+  grantExpensesByGrant: Record<string, LedgerExpense[]>
+  expandedGrantId: string | null
+  setExpandedGrantId: Dispatch<SetStateAction<string | null>>
+  grantReports: Record<string, LedgerReport[]>
+  grantTranches: Record<string, LedgerTranche[]>
+  grantNotes: Record<string, LedgerNote[]>
+  grantExpenseCategories: string[]
+  saveGrantExpense: (grantId: string, form: unknown) => Promise<unknown>
+  editGrantExpense: (expense: LedgerExpense, updates: unknown) => Promise<unknown>
+  deleteGrantExpense: (id: string) => void
+  setConfirmModal: (modal: unknown) => void
+  saveGrantTranche: (grantId: string, form: unknown) => Promise<unknown>
+  toggleGrantTrancheReceived: (t: LedgerTranche) => void
+  editGrantTranche: (t: LedgerTranche, form: unknown) => Promise<unknown>
+  deleteGrantTranche: (t: LedgerTranche) => void
+  saveGrantReport: (grantId: string, form: unknown) => Promise<unknown>
+  toggleGrantReportSubmitted: (r: LedgerReport) => void
+  editGrantReport: (r: LedgerReport, form: unknown) => Promise<unknown>
+  deleteGrantReport: (r: LedgerReport) => void
+  saveGrantMatchClaim: (grantId: string, form: unknown) => Promise<unknown>
+  editGrantMatchClaim: (c: LedgerClaim, form: unknown) => Promise<unknown>
+  deleteGrantMatchClaim: (c: LedgerClaim) => void
+  saveGrantNote: (grantId: string, note: string) => Promise<unknown>
+  exportGrantReportPDF: (g: Grant) => void
+  changeGrantStatus: (g: Grant, status: string) => void
+  showPastGrants: boolean
+  setShowPastGrants: Dispatch<SetStateAction<boolean>>
+}
 
 export function GrantsPage({
   isMobile, grants, grantsWithNextReport, myCauses, fyOf,
@@ -20,7 +89,7 @@ export function GrantsPage({
   saveGrantReport, toggleGrantReportSubmitted, editGrantReport, deleteGrantReport,
   saveGrantMatchClaim, editGrantMatchClaim, deleteGrantMatchClaim, saveGrantNote,
   exportGrantReportPDF, changeGrantStatus, showPastGrants, setShowPastGrants,
-}) {
+}: GrantsPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>
@@ -101,7 +170,7 @@ export function GrantsPage({
           const q = grantSearchTerm.toLowerCase().trim()
           const filtered = grantsWithNextReport.filter(g => {
             const matchesSearch = q === '' || [g.funder_name, g.agreement_reference, g.contact_name, g.contact_email, g.contact_phone].some(f => f?.toLowerCase().includes(q))
-            const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+            const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
             const matchesUrgency = grantUrgencyFilter === 'All'
               || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
               || (grantUrgencyFilter === 'Due Soon' && days !== null && days >= 0 && days <= 60)
@@ -128,7 +197,7 @@ export function GrantsPage({
         const filteredGrants = grantsWithNextReport.filter(g => {
           const q = grantSearchTerm.toLowerCase().trim()
           const matchesSearch = q === '' || [g.funder_name, g.agreement_reference, g.contact_name, g.contact_email, g.contact_phone].some(f => f?.toLowerCase().includes(q))
-          const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date) - new Date()) / (1000 * 60 * 60 * 24)) : null
+          const days = g.report_due_date ? Math.ceil((new Date(g.report_due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
           const matchesUrgency = grantUrgencyFilter === 'All'
             || (grantUrgencyFilter === 'Overdue' && days !== null && days < 0)
             || (grantUrgencyFilter === 'Due Soon' && days !== null && days >= 0 && days <= 60)
@@ -147,30 +216,30 @@ export function GrantsPage({
             || (grantFundingTypeFilter === 'Matching' && g.is_matching)
           return matchesSearch && matchesUrgency && matchesAmount && matchesYear && matchesFunderType && matchesFundingType
         }).sort((a, b) => {
-          if (grantSortBy === 'start_desc') return new Date(b.start_date || b.created_at) - new Date(a.start_date || a.created_at)
-          if (grantSortBy === 'start_asc') return new Date(a.start_date || a.created_at) - new Date(b.start_date || b.created_at)
+          if (grantSortBy === 'start_desc') return new Date(b.start_date || b.created_at || 0).getTime() - new Date(a.start_date || a.created_at || 0).getTime()
+          if (grantSortBy === 'start_asc') return new Date(a.start_date || a.created_at || 0).getTime() - new Date(b.start_date || b.created_at || 0).getTime()
           if (grantSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
           if (grantSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
-          if (grantSortBy === 'report_asc') return new Date(a.report_due_date || '9999-12-31') - new Date(b.report_due_date || '9999-12-31')
-          if (grantSortBy === 'funder_az') return a.funder_name.localeCompare(b.funder_name)
+          if (grantSortBy === 'report_asc') return new Date(a.report_due_date || '9999-12-31').getTime() - new Date(b.report_due_date || '9999-12-31').getTime()
+          if (grantSortBy === 'funder_az') return (a.funder_name || '').localeCompare(b.funder_name || '')
           return 0
         })
 
         const activeGrants = filteredGrants.filter(g => g.status === 'active')
         const pastGrants = filteredGrants.filter(g => g.status !== 'active')
 
-        const statusBadgeInfo = (status) => {
+        const statusBadgeInfo = (status: string) => {
           const map = {
             active: { bg: C.sage, color: C.white, label: 'Active' },
             completed: { bg: C.muted, color: C.white, label: 'Completed' },
             closed: { bg: C.muted, color: C.white, label: 'Closed' },
           }
-          return map[status] || { bg: C.muted, color: C.white, label: status }
+          return (map as Record<string, { bg: string, color: string, label: string }>)[status] || { bg: C.muted, color: C.white, label: status }
         }
 
         const funderTypeLabels = { government: 'Government / statutory board', corporate: 'Corporate foundation', trust: 'Private trust / individual', other: 'Other' }
 
-        const renderGrantCard = (g) => {
+        const renderGrantCard = (g: Grant) => {
           const isHighlighted = highlightedGrantId === g.id
           const myExpenses84 = grantExpensesByGrant[g.id] || []
           const spent84 = myExpenses84.reduce((s, e) => s + Number(e.amount), 0)
@@ -183,7 +252,7 @@ export function GrantsPage({
           const myClaims = (grantMatchClaims[g.id] || [])
           const claimedTotal = myClaims.reduce((s, c) => s + Number(c.amount), 0)
           const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
-          const subtitleParts = [funderTypeLabels[g.funder_type], linkedCause?.title, g.agreement_reference ? `Ref: ${g.agreement_reference}` : null, g.contact_name].filter(Boolean)
+          const subtitleParts = [(funderTypeLabels as Record<string, string>)[g.funder_type || ''], linkedCause?.title, g.agreement_reference ? `Ref: ${g.agreement_reference}` : null, g.contact_name].filter(Boolean)
           return (
             <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'background 0.3s, border-color 0.3s' }}>
 

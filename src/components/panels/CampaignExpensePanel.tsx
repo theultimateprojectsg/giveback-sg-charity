@@ -13,7 +13,7 @@ interface CampaignExpensePanelProps {
   cause: { cost?: number | string }
   expenses: Expense[]
   categories: string[]
-  s: Record<string, CSSProperties>
+  s: Record<string, CSSProperties | ((positive: boolean) => CSSProperties)>
   C: Record<string, string>
   onSaveExpense: (form: unknown) => Promise<unknown>
   onEditExpense: (e: Expense, form: unknown) => Promise<unknown>
