@@ -24,6 +24,17 @@ jobs:
       - name: Lint (report only, non-blocking)
         run: npm run lint || true
 
+      # Not blocking: a handful of genuinely one-off colors (tooltip chrome,
+      # single-use accents) will always show up here by design. Surfaces new
+      # drift from the shared palette in theme.ts without failing CI.
+      - name: Check for hardcoded colors (report only, non-blocking)
+        run: npm run check-colors || true
+
+      # `vite build` transpiles TS via esbuild without type-checking it, so this
+      # is the only step that actually enforces the Phase 8 TypeScript migration.
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 
