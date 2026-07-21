@@ -253,7 +253,7 @@ export function AnalyticsPage({
                 { id: 'analytics-section-today', label: 'Today' },
                 { id: 'analytics-section-fundraising', label: 'Fundraising' },
                 ...(enabledModules.campaigns !== false ? [{ id: 'analytics-section-campaigns', label: 'Campaigns' }] : []),
-                ...(enabledModules.massappeal !== false ? [{ id: 'analytics-section-massappeals', label: 'Mass Appeals' }] : []),
+                { id: 'analytics-section-massappeals', label: 'Mass Appeals' },
                 ...(enabledModules.pledges !== false ? [{ id: 'analytics-section-pledges', label: 'Pledges' }] : []),
                 ...(enabledModules.recurring !== false ? [{ id: 'analytics-section-recurring', label: 'Recurring' }] : []),
                 ...(enabledModules.grants !== false ? [{ id: 'analytics-section-grants', label: 'Grants' }] : []),
@@ -1389,7 +1389,7 @@ export function AnalyticsPage({
               })()}
             </div>
 
-            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.massappeal === false ? 'none' : undefined }}>
+            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>

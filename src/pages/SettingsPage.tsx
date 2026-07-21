@@ -344,8 +344,7 @@ export function SettingsPage({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals and appeals', count: myCauses.filter(c => c.type === 'campaign').length },
-              { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk email appeals with personal PayNow QR codes', count: massAppeals.length },
+              { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals, plus mass email appeals', count: myCauses.filter(c => c.type === 'campaign').length + massAppeals.length },
               { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
               { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
               { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },

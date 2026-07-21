@@ -22,7 +22,6 @@ import { SenderIdentityLine } from './components/ui/SenderIdentityLine'
 import { CampaignExpensePanel } from './components/panels/CampaignExpensePanel'
 import { ReportsPage } from './pages/ReportsPage'
 import { GrantsPage } from './pages/GrantsPage'
-import { MassAppealPage } from './pages/MassAppealPage'
 import { MassAppealModal } from './components/modals/MassAppealModal'
 import { RecurringPage } from './pages/RecurringPage'
 import { PledgesPage } from './pages/PledgesPage'
@@ -161,8 +160,8 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
-const VALID_TABS = ['donors', 'donations', 'analytics', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'massappeal', 'grants', 'reports', 'settings']
-const MODULE_TAB_IDS: Record<string, string> = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
+const VALID_TABS = ['donors', 'donations', 'analytics', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'grants', 'reports', 'settings']
+const MODULE_TAB_IDS: Record<string, string> = { campaigns: 'promotions', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
 const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
 const BOARD_ALLOWED_TABS = ['analytics', 'settings']
 const DONOR_COLUMN_OPTIONS = [
@@ -570,7 +569,6 @@ export default function App() {
   const [appealRecipientStatusFilter, setAppealRecipientStatusFilter] = useState<any>('All')
   const [showMassAppealModal, setShowMassAppealModal] = useState<any>(false)
   const [generalAppealsExpanded, setGeneralAppealsExpanded] = useState<any>(false)
-  const [generalAppealsShowAll, setGeneralAppealsShowAll] = useState<any>(false)
   const [expandedCampaignAppeals, setExpandedCampaignAppeals] = useState<any>(new Set())
   const [donorContacts, setDonorContacts] = useState<any[]>([])
   const [showAddDonorModal, setShowAddDonorModal] = useState<any>(false)
@@ -881,7 +879,7 @@ export default function App() {
   const [goalInput, setGoalInput] = useState<any>('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
   const [, setVisibleMetrics] = useState<any>(DEFAULT_VISIBLE_METRICS)
-  const DEFAULT_ENABLED_MODULES = { campaigns: false, massappeal: false, pledges: false, recurring: false, grants: false }
+  const DEFAULT_ENABLED_MODULES = { campaigns: false, pledges: false, recurring: false, grants: false }
   const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
@@ -893,7 +891,7 @@ export default function App() {
       'analytics-section-today',
       'analytics-section-fundraising',
       ...(enabledModules.campaigns !== false ? ['analytics-section-campaigns'] : []),
-      ...(enabledModules.massappeal !== false ? ['analytics-section-massappeals'] : []),
+      'analytics-section-massappeals',
       ...(enabledModules.pledges !== false ? ['analytics-section-pledges'] : []),
       ...(enabledModules.recurring !== false ? ['analytics-section-recurring'] : []),
       ...(enabledModules.grants !== false ? ['analytics-section-grants'] : []),
@@ -7390,7 +7388,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (turningOff) {
       const recordCounts: Record<string, number> = {
         campaigns: myCauses.filter(c => c.type === 'campaign').length,
-        massappeal: massAppeals.length,
         pledges: pledges.length,
         recurring: recurringGifts.length,
         grants: grants.length,
@@ -8912,7 +8909,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               {!sidebarCollapsed && <div style={s.navLabel}>Fundraising</div>}
               {[
                 { id: 'promotions',  icon: '📣', label: 'Campaigns', module: 'campaigns' },
-                { id: 'massappeal',  icon: '📢', label: 'Mass Appeal', module: 'massappeal' },
                 { id: 'pledges',     icon: '🤝', label: 'Pledges', module: 'pledges' },
                 { id: 'recurring',   icon: '🔁', label: 'Recurring', module: 'recurring' },
                 { id: 'grants',      icon: '💰', label: 'Grants', module: 'grants' },
@@ -8988,7 +8984,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fundraising</div>
                 {enabledModules.campaigns !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>}
-                {enabledModules.massappeal !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>}
                 {enabledModules.pledges !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>}
                 {enabledModules.recurring !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>}
                 {enabledModules.grants !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>}
@@ -9637,50 +9632,130 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             </div>
 
             {(() => {
-              const generalAppeals = [...massAppeals].filter(a => !a.cause_id).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              if (massAppeals.length === 0 && generalAppeals.length === 0) return null
+              if (massAppeals.length === 0) return (
+                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 No appeals sent yet</span>
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
+                </div>
+              )
+              const searchedAppeals = massAppeals.filter(a => {
+                const q = massAppealSearchTerm.toLowerCase().trim()
+                const matchesSearch = !q || [a.cause_name, a.message].some((f: any) => f?.toLowerCase().includes(q))
+                const matchesYear = massAppealYearFilter === 'All' || fyOf(a.created_at).toString() === massAppealYearFilter
+                const amt = Number(a.amount)
+                const matchesAmt = massAppealAmountFilter === 'All'
+                  || (massAppealAmountFilter === 'Under 20' && amt < 20)
+                  || (massAppealAmountFilter === '20-50' && amt >= 20 && amt <= 50)
+                  || (massAppealAmountFilter === '50-100' && amt > 50 && amt <= 100)
+                  || (massAppealAmountFilter === 'Over 100' && amt > 100)
+                const matchesProgramme = massAppealProgrammeFilter === 'All' || (massAppealProgrammeFilter === '__none__' ? !a.cause_id : a.cause_id === massAppealProgrammeFilter)
+                const matchesStatus = massAppealStatusFilter === 'All'
+                  || (massAppealStatusFilter === 'Sending' && a.status === 'sending')
+                  || (massAppealStatusFilter === 'Sent' && a.status === 'sent' && a.failed_count === 0)
+                  || (massAppealStatusFilter === 'Partial' && a.status === 'sent' && a.failed_count > 0)
+                return matchesSearch && matchesYear && matchesAmt && matchesProgramme && matchesStatus
+              }).sort((a: any, b: any) => {
+                if (massAppealSortBy === 'created_desc') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                if (massAppealSortBy === 'created_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                if (massAppealSortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
+                if (massAppealSortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+                if (massAppealSortBy === 'sent_desc') return b.sent_count - a.sent_count
+                if (massAppealSortBy === 'failed_desc') return b.failed_count - a.failed_count
+                return 0
+              })
+              const renderAppealCard = (a: any) => (
+                <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{a.cause_name || 'General appeal'}</span>
+                    {a.status === 'sending' ? (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.gold, background: C.gold + '1A', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⏳ Sending…</span>
+                    ) : a.status === 'cancelled' ? (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.muted, background: C.ivory, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⊘ Cancelled</span>
+                    ) : a.failed_count > 0 ? (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 500, color: C.forest, marginBottom: 2 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}> suggested</span></div>
+                  {a.message ? (
+                    <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.4, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>"{a.message}"</div>
+                  ) : (
+                    <div style={{ fontSize: 12.5, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>No message added</div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                    <span>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span>{a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</span>
+                  </div>
+                </div>
+              )
+              const byYear: Record<number, any[]> = {}
+              searchedAppeals.forEach((a: any) => { const y = fyOf(a.created_at); if (!byYear[y]) byYear[y] = []; byYear[y].push(a) })
+              const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
               return (
                 <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: generalAppealsExpanded ? 14 : 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setGeneralAppealsExpanded((v: any) => !v)}>
                       <span style={{ fontSize: 11, color: C.muted }}>{generalAppealsExpanded ? '▾' : '▸'}</span>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 General Appeals</span>
-                      <span style={{ fontSize: 12, color: C.muted }}>({generalAppeals.length} sent · not tied to a campaign)</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 Appeals</span>
+                      <span style={{ fontSize: 12, color: C.muted }}>({massAppeals.length} sent)</span>
                     </div>
                     <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
                   </div>
                   {generalAppealsExpanded && (
-                    generalAppeals.length === 0 ? (
-                      <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No general appeals sent yet.</div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                        {generalAppeals.slice(0, generalAppealsShowAll ? undefined : 4).map(a => (
-                          <div key={a.id} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 16px', cursor: 'pointer' }} onClick={() => openAppealDetail(a)}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                              <span style={{ fontSize: 14, fontWeight: 500, color: C.forest }}>{a.cause_name || 'General appeal'}</span>
-                              {a.failed_count > 0 ? (
-                                <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>⚠ Partial</span>
-                              ) : (
-                                <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>✓ Sent</span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 20, fontWeight: 500, color: C.forest, marginBottom: 2 }}>${Number(a.amount).toLocaleString()}<span style={{ fontSize: 12, fontWeight: 400, color: C.muted }}> suggested</span></div>
-                            {a.message ? (
-                              <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.4, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>"{a.message}"</div>
-                            ) : (
-                              <div style={{ fontSize: 12.5, color: C.muted, fontStyle: 'italic', marginBottom: 10 }}>No message added</div>
-                            )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
-                              <span>{new Date(a.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                              <span>{a.failed_count > 0 ? `${a.sent_count} of ${a.donor_count} sent` : `${a.sent_count} sent`}</span>
+                    <div>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+                        <input style={{ ...s.searchBox, flex: 'none', width: isMobile ? '100%' : 260 }} placeholder="🔍 Search by campaign name or message..." value={massAppealSearchTerm} onChange={e => setMassAppealSearchTerm(e.target.value)} />
+                        <select style={{ ...s.formInput, width: isMobile ? '100%' : 130 }} value={massAppealYearFilter} onChange={e => setMassAppealYearFilter(e.target.value)}>
+                          <option value="All">All years</option>
+                          {[...new Set(massAppeals.map((a: any) => fyOf(a.created_at)))].sort((a: any, b: any) => b - a).map((y: any) => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                        <select style={{ ...s.formInput, width: isMobile ? '100%' : 140 }} value={massAppealAmountFilter} onChange={e => setMassAppealAmountFilter(e.target.value)}>
+                          <option value="All">All amounts</option>
+                          <option value="Under 20">Under $20</option>
+                          <option value="20-50">$20 – $50</option>
+                          <option value="50-100">$50 – $100</option>
+                          <option value="Over 100">Over $100</option>
+                        </select>
+                        <select style={{ ...s.formInput, width: isMobile ? '100%' : 170 }} value={massAppealProgrammeFilter} onChange={e => setMassAppealProgrammeFilter(e.target.value)}>
+                          <option value="All">All programmes</option>
+                          <option value="__none__">General appeal</option>
+                          {myCauses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                        <select style={{ ...s.formInput, width: isMobile ? '100%' : 140 }} value={massAppealStatusFilter} onChange={e => setMassAppealStatusFilter(e.target.value)}>
+                          <option value="All">All statuses</option>
+                          <option value="Sent">Fully sent</option>
+                          <option value="Partial">Partial (some failed)</option>
+                          <option value="Sending">Still sending</option>
+                        </select>
+                        <select style={{ ...s.formInput, width: isMobile ? '100%' : 160 }} value={massAppealSortBy} onChange={e => setMassAppealSortBy(e.target.value)}>
+                          <option value="created_desc">Sort: Newest first</option>
+                          <option value="created_asc">Sort: Oldest first</option>
+                          <option value="amount_desc">Sort: Amount (high–low)</option>
+                          <option value="amount_asc">Sort: Amount (low–high)</option>
+                          <option value="sent_desc">Sort: Most sent</option>
+                          <option value="failed_desc">Sort: Most failed</option>
+                        </select>
+                        {(massAppealSearchTerm !== '' || massAppealYearFilter !== 'All' || massAppealAmountFilter !== 'All' || massAppealProgrammeFilter !== 'All' || massAppealStatusFilter !== 'All') && (
+                          <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={() => { setMassAppealSearchTerm(''); setMassAppealYearFilter('All'); setMassAppealAmountFilter('All'); setMassAppealProgrammeFilter('All'); setMassAppealStatusFilter('All') }}>✕ Clear Filters</button>
+                        )}
+                        <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={() => exportMassAppealsExcel(searchedAppeals)}>⬇️ Export to Excel</button>
+                      </div>
+                      {searchedAppeals.length === 0 ? (
+                        <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>No appeals match your filters.</div>
+                      ) : (
+                        years.map(year => (
+                          <div key={year} style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: C.forest, marginBottom: 10 }}>{year} <span style={{ color: C.muted, fontWeight: 400 }}>({byYear[year].length})</span></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                              {byYear[year].map(renderAppealCard)}
                             </div>
                           </div>
-                        ))}
-                        {generalAppeals.length > 4 && !generalAppealsShowAll && (
-                          <button style={{ ...s.viewBtn, fontSize: 11, justifyContent: 'center' }} onClick={() => setGeneralAppealsShowAll(true)}>+ {generalAppeals.length - 4} more</button>
-                        )}
-                      </div>
-                    )
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
               )
@@ -10182,24 +10257,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           />
         )}
 
-        {/* ── MASS APPEAL ── */}
-        {activeTab === 'massappeal' && enabledModules.massappeal !== false && (
-          <MassAppealPage
-            isMobile={isMobile} massAppeals={massAppeals} fyOf={fyOf} myCauses={myCauses}
-            setMassAppealStep={setMassAppealStep} setMassAppealForm={setMassAppealForm}
-            setMassAppealRefs={setMassAppealRefs} setShowMassAppealModal={setShowMassAppealModal} defaultMassAppealMessage={defaultMassAppealMessage}
-            massAppealSearchTerm={massAppealSearchTerm} setMassAppealSearchTerm={setMassAppealSearchTerm}
-            massAppealYearFilter={massAppealYearFilter} setMassAppealYearFilter={setMassAppealYearFilter}
-            massAppealAmountFilter={massAppealAmountFilter} setMassAppealAmountFilter={setMassAppealAmountFilter}
-            massAppealProgrammeFilter={massAppealProgrammeFilter} setMassAppealProgrammeFilter={setMassAppealProgrammeFilter}
-            massAppealStatusFilter={massAppealStatusFilter} setMassAppealStatusFilter={setMassAppealStatusFilter}
-            massAppealSortBy={massAppealSortBy} setMassAppealSortBy={setMassAppealSortBy}
-            exportMassAppealsExcel={exportMassAppealsExcel} expandedAppealYears={expandedAppealYears} setExpandedAppealYears={setExpandedAppealYears}
-            openAppealDetail={openAppealDetail}
-          />
-        )}
-        {/* Not tab-gated: opened from the Campaigns tab's "New Appeal" buttons. See
-            MassAppealModal.tsx for why this must not be nested inside activeTab === 'massappeal'. */}
+        {/* Mass appeals no longer have their own tab — appeal history, filtering, and
+            sending all live inside the Campaigns tab (see the "Appeals" section there).
+            This modal stays un-gated at the App level since it's opened from Campaigns'
+            "New Appeal" buttons, which live outside any per-tab conditional. */}
         <MassAppealModal
           showMassAppealModal={showMassAppealModal} setShowMassAppealModal={setShowMassAppealModal}
           massAppealStep={massAppealStep} setMassAppealStep={setMassAppealStep}
