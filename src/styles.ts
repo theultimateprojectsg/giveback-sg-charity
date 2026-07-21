@@ -112,6 +112,7 @@ mobileOverflowItem: {
   dateText: { color: C.muted, fontSize: 11.5 },
   badgeIssued: { fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' },
   badgePending: { fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' },
+  badgeDanger: { fontSize: 10, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' },
   issueBtn: { padding: '6px 14px', background: C.sage, color: 'white', border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' },
   issuingBtn: { padding: '6px 14px', background: C.ivoryDark, color: C.muted, border: 'none', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'default', fontFamily: 'inherit' },
   viewBtn: { padding: '6px 14px', background: C.ivory, color: C.forest, border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },

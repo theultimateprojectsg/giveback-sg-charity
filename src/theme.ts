@@ -20,6 +20,8 @@ export const C = {
   warningBorder: '#E8CC7A',
   successBg: '#EAF3EC',
   bucket1:   '#74C69D',
+  dangerText: '#A32D2D',
+  dangerBg:   '#FBEEE9',
   fontVoice: "'Fraunces', serif",
   fontMono:  "'IBM Plex Mono', monospace",
 }

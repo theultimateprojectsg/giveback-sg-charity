@@ -547,21 +547,21 @@ export function DonationsPage({
                       <div style={{ marginTop: 8, marginLeft: 42 }}>
                         <div style={{ marginBottom: 6 }}>
                           {causeNameForDonation(d) ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#854F0B', background: '#FDF8EC', padding: '3px 9px', borderRadius: 20 }}>{causeNameForDonation(d)}</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>{causeNameForDonation(d)}</span>
                           ) : (
                             <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>General</span>
                           )}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                           {isRefunded ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20 }}>↩ Refunded</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '3px 9px', borderRadius: 20 }}>↩ Refunded</span>
                           ) : isPaid ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Paid</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 9px', borderRadius: 20 }}>Paid</span>
                           ) : userRole !== 'ed' ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20 }}>Unpaid · awaiting ED confirmation</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '3px 9px', borderRadius: 20 }}>Unpaid · awaiting ED confirmation</span>
                           ) : (
                             <span
-                              style={{ fontSize: 10, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '3px 9px', borderRadius: 20, cursor: 'pointer' }}
+                              style={{ fontSize: 10, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '3px 9px', borderRadius: 20, cursor: 'pointer' }}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setConfirmModal({
@@ -579,19 +579,19 @@ export function DonationsPage({
                             >Unpaid · tap to confirm</span>
                           )}
                           {isPaid && (isReceipted ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Receipted</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 9px', borderRadius: 20 }}>Receipted</span>
                           ) : (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Receipt pending</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>Receipt pending</span>
                           ))}
                           {isPaid && isReceipted && d.donor_email?.trim() && (
                             d.thank_you_sent ? (
-                              <span style={{ fontSize: 10, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '3px 9px', borderRadius: 20 }}>Thanked</span>
+                              <span style={{ fontSize: 10, fontWeight: 500, color: C.sage, background: C.successBg, padding: '3px 9px', borderRadius: 20 }}>Thanked</span>
                             ) : (
-                              <span style={{ fontSize: 10, fontWeight: 500, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>Not thanked</span>
+                              <span style={{ fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>Not thanked</span>
                             )
                           )}
                           {charityIsIpc && !d.donor_nric && isPaid && (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: '#854F0B', background: '#FAEEDA', padding: '3px 9px', borderRadius: 20 }}>NRIC missing</span>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>NRIC missing</span>
                           )}
                         </div>
                       </div>
@@ -657,13 +657,13 @@ export function DonationsPage({
                           cause: (
                             <td key="cause" style={s.td}>
                               {causeNameForDonation(d) ? (
-                                <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: '#FDF8EC', padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
+                                <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={causeNameForDonation(d)}>🎯 {causeNameForDonation(d)}</span>
                               ) : (
                                 <span style={{ fontSize: 11, color: C.muted }}>General</span>
                               )}
                             </td>
                           ),
-                          source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: '#FDF8EC' }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
+                          source: <td key="source" style={s.td}>{d.source === 'manual' ? <span style={{ ...s.badgePending, color: C.gold, background: C.warningBg }}>✏️ {d.payment_method || 'Manual'}</span> : <span style={s.badgeIssued}>📱 App</span>}</td>,
                           reference: <td key="reference" style={s.td}><span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }} title={d.payment_ref || ''}>{d.payment_ref || '—'}</span></td>,
                           nric: charityIsIpc ? <td key="nric" style={s.td}>{d.donor_nric ? <span style={s.badgeIssued}>✓ {d.donor_nric}</span> : <span style={s.badgePending}>⚠️ Missing</span>}</td> : null,
                           payment: (
@@ -757,24 +757,24 @@ export function DonationsPage({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                   {selectedDonation.payment_status === 'refunded' ? (
-                    <span style={{ fontSize: 11, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '4px 10px', borderRadius: 20 }}>↩ Refunded</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '4px 10px', borderRadius: 20 }}>↩ Refunded</span>
                   ) : selectedDonation.payment_status === 'confirmed' ? (
-                    <span style={{ fontSize: 11, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Paid</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>Paid</span>
                   ) : (
-                    <span style={{ fontSize: 11, fontWeight: 500, color: '#A32D2D', background: '#FCEBEB', padding: '4px 10px', borderRadius: 20 }}>Unpaid</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: C.dangerText, background: C.dangerBg, padding: '4px 10px', borderRadius: 20 }}>Unpaid</span>
                   )}
                   {selectedDonation.payment_status === 'confirmed' && (
                     selectedDonation.receipt_issued ? (
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Receipted</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>Receipted</span>
                     ) : (
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#854F0B', background: '#FAEEDA', padding: '4px 10px', borderRadius: 20 }}>Receipt pending</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '4px 10px', borderRadius: 20 }}>Receipt pending</span>
                     )
                   )}
                   {selectedDonation.payment_status === 'confirmed' && selectedDonation.receipt_issued && selectedDonation.donor_email?.trim() && (
                     selectedDonation.thank_you_sent ? (
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#3B6D11', background: '#EAF3DE', padding: '4px 10px', borderRadius: 20 }}>Thanked</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>Thanked</span>
                     ) : (
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#854F0B', background: '#FAEEDA', padding: '4px 10px', borderRadius: 20 }}>Not thanked</span>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '4px 10px', borderRadius: 20 }}>Not thanked</span>
                     )
                   )}
                 </div>
@@ -890,11 +890,11 @@ export function DonationsPage({
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Tax Deduction</div>
                     <div style={{ background: C.successBg, borderRadius: 12, border: `1px solid #C8E3D3`, padding: '4px 16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #D7EBE0' }}>
-                        <span style={{ fontSize: 13, color: '#3B6D11' }}>250% Deductible</span>
+                        <span style={{ fontSize: 13, color: C.sage }}>250% Deductible</span>
                         <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5).toLocaleString()}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                        <span style={{ fontSize: 13, color: '#3B6D11' }}>Est. Tax Savings</span>
+                        <span style={{ fontSize: 13, color: C.sage }}>Est. Tax Savings</span>
                         <span style={{ fontSize: 14, fontWeight: 800, color: C.forest }}>${(selectedDonation.amount * 2.5 * 0.22).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                       </div>
                     </div>
@@ -953,7 +953,7 @@ export function DonationsPage({
                     </div>
                   </div>
                 ) : (
-                  <div style={{ background: '#FDF8EC', borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20 }}
+                  <div style={{ background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20 }}
                     onClick={() => { setEditingImpactNoteId(selectedDonation.id); setImpactNoteText(selectedDonation.impact_note || '') }}>
                     {selectedDonation.impact_note
                       ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {selectedDonation.impact_note}</div>

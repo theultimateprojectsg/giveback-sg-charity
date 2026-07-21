@@ -518,7 +518,7 @@ export function PledgesPage({
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {myInstalments.map(i => (
-                          <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? '#FBEEE9' : C.ivory), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
+                          <span key={i.id} style={{ fontSize: 10.5, padding: '3px 8px', borderRadius: 20, background: i.received ? C.successBg : (new Date(i.expected_date) < new Date() ? C.dangerBg : C.ivory), color: i.received ? C.sage : (new Date(i.expected_date) < new Date() ? C.red : C.muted), border: `1px solid ${i.received ? C.sage : C.border}` }}>
                             Year {i.year_number}{i.received ? ' ✓' : ` · ${new Date(i.expected_date).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })}`}
                           </span>
                         ))}
