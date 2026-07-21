@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import Auth from './CharityAuth'
 import jsPDF from 'jspdf'
@@ -160,6 +161,7 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
+const VALID_TABS = ['donors', 'donations', 'analytics', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'massappeal', 'grants', 'reports', 'settings']
 const MODULE_TAB_IDS = { campaigns: 'promotions', massappeal: 'massappeal', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
 const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
 const BOARD_ALLOWED_TABS = ['analytics', 'settings']
@@ -196,7 +198,13 @@ export default function App() {
   const [session, setSession] = useState(null)
   const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
   const [authLoading, setAuthLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('analytics')
+  const { tab: tabParam } = useParams()
+  const navigate = useNavigate()
+  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'analytics'
+  const setActiveTab = React.useCallback((nextTab) => navigate(`/${nextTab}`), [navigate])
+  useEffect(() => {
+    if (!VALID_TABS.includes(tabParam)) navigate('/analytics', { replace: true })
+  }, [tabParam, navigate])
   const [settingsSection, setSettingsSection] = useState('general')
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [donorProfileTab, setDonorProfileTab] = useState('donations')
@@ -219,41 +227,22 @@ export default function App() {
   // Warns before the browser navigates away entirely (Back button, closing the tab, typing a new
   // URL) — this is a single-page app with no per-tab history entries, so Back doesn't switch tabs,
   // it exits the app outright.
-  const backGuardDepthRef = useRef(0)
   useEffect(() => {
     if (!session) return
 
     // Closing the tab / refreshing / typing a new URL can't show a custom dialog — browsers force
     // a generic native prompt for those, for phishing-prevention reasons. Keep that as a fallback.
+    // The Back/Forward buttons no longer need a guard here (Phase 6): each tab is a real URL now,
+    // so Back/Forward between tabs is legitimate in-app navigation, not "leaving the app" — a
+    // popstate hijack here would fight React Router's own history entries.
     function onBeforeUnload(e) {
       e.preventDefault()
       e.returnValue = ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
 
-    // The Back button, though, we can intercept ourselves: push a buffer history entry, and when
-    // Back fires a popstate, swallow it (push the buffer back on) and show our own styled confirm
-    // instead of letting the tab navigate away.
-    window.history.pushState(null, '', window.location.href)
-    backGuardDepthRef.current = 1
-    function onPopState() {
-      window.history.pushState(null, '', window.location.href)
-      backGuardDepthRef.current += 1
-      setConfirmModal({
-        title: 'Leave Giving Tree?',
-        description: 'Going back will exit the app. Make sure anything you were working on is saved first.',
-        confirmLabel: 'Leave app',
-        onConfirm: () => {
-          window.removeEventListener('popstate', onPopState)
-          window.history.go(-(backGuardDepthRef.current + 1))
-        },
-      })
-    }
-    window.addEventListener('popstate', onPopState)
-
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload)
-      window.removeEventListener('popstate', onPopState)
     }
   }, [session])
   useEffect(() => {
@@ -897,7 +886,7 @@ export default function App() {
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('analytics')
-  }, [enabledModules, activeTab])
+  }, [enabledModules, activeTab, setActiveTab])
   useEffect(() => {
     if (activeTab !== 'analytics') return
     const sectionIds = [
@@ -926,10 +915,10 @@ export default function App() {
   }, [activeTab, isMobile, enabledModules])
   useEffect(() => {
     if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
-  }, [roleLoaded, userRole, activeTab])
+  }, [roleLoaded, userRole, activeTab, setActiveTab])
   useEffect(() => {
     if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('analytics')
-  }, [roleLoaded, userRole, activeTab])
+  }, [roleLoaded, userRole, activeTab, setActiveTab])
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState(DEFAULT_VISIBLE_METRICS)
   const [fyEndMonth, setFyEndMonth] = useState(12)
@@ -8822,7 +8811,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     giroMissedCycles, allGivingChangeFlags, donorLastContactMap,
     insightDismissals, lapsedMinGifts, lapsedMinDays, lapsedDismissals, donationBadgeInfo, cumulativeThresholds,
     grantsWithNextReport, donorList, majorDonorThreshold, donorContacts, customObligations, charityIsIpc,
-    daysToDeadline, snoozedItems,
+    daysToDeadline, snoozedItems, setActiveTab,
   ])
 
   if (authLoading) return (

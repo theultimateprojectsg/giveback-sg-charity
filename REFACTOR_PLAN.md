@@ -169,7 +169,7 @@ the pattern React apps used for years before hooks-per-domain. Less elegant,
 but honest about what's safe to change today, and doesn't block Phase 5's
 main win (breaking up the file).
 
-### Phase 5 — Split each tab into its own page component — 🔄 in progress
+### Phase 5 — Split each tab into its own page component — ✅ done
 - [x] **Reports** → `src/pages/ReportsPage.jsx` (2026-07-20). Turned out to be the
   smallest tab (~200 lines), not Settings (~2000 lines) as originally guessed —
   measured actual line counts between `activeTab ===` blocks before picking
@@ -336,10 +336,40 @@ data-fetching + layout + tab routing.
 - **Risk:** medium-high per tab, but isolated — a bad split of `Grants` doesn't
   endanger `Donations`. This is the strangler-fig core of the whole plan.
 
-### Phase 6 — Real routing (optional, do after Phase 5)
-Swap the `activeTab` string for React Router, giving real URLs per tab
-(shareable links, browser back/forward working correctly).
-- **Risk:** low, purely additive once pages already exist as components.
+### Phase 6 — Real routing — ✅ done (2026-07-21)
+Installed `react-router-dom`, wrapped `<App />` in a `<BrowserRouter>` with a
+`/:tab` route in `main.jsx`. Inside `App()`, `activeTab`/`setActiveTab` (was
+`useState`) are now backed by `useParams()`/`useNavigate()` — a thin
+`VALID_TABS.includes(tabParam) ? tabParam : 'analytics'` guard falls back to
+Dashboard for any unknown/invalid path, and an effect redirects the URL bar
+itself (`replace: true`) so a bad URL doesn't linger. This was genuinely
+"purely additive" as the plan predicted — none of the ~75 `setActiveTab(...)`
+call sites across `App.jsx` and the page components needed to change, since
+they all just call `setActiveTab('someTab')` with a literal string, same
+signature as before.
+
+**One real conflict found and fixed:** a pre-existing custom back-button
+guard (`popstate` handler pushing a dummy history entry + a styled "Leave
+Giving Tree?" confirm) was written back when the whole app was a single URL
+with no real history entries, so *any* Back press meant "leaving the app."
+With real per-tab URLs now creating real history entries, that guard
+started hijacking legitimate in-app Back/Forward navigation between tabs —
+directly undermining Phase 6's own goal. Removed the popstate interception;
+kept the `beforeunload` handler (still valid — that one guards against
+closing the tab/refreshing/typing a new URL, which is a separate, real
+concern from in-app Back/Forward).
+
+Verified live: URL bar updates on every tab click (`/donations`,
+`/donors`, `/settings`, ...), browser Back and Forward move correctly
+between visited tabs with no crash and no unwanted "leave app" prompt, and
+navigating directly to an invalid path (`/nonexistent-tab-xyz`) redirects
+cleanly to `/analytics` instead of showing a broken/blank page. 43/43
+tests, build and lint clean (`npx eslint .` — zero problems, added 4 new
+`setActiveTab` deps to effects/memos that needed it now that it's no longer
+a bare `useState` setter).
+- **Not done / left for later if wanted:** deep-linking to a specific donor
+  detail, pledge, grant, etc. (e.g. `/donors/:donorId`) — out of scope for
+  this pass, which only covers the 12 top-level tabs.
 
 ### Phase 7 — Styling migration (opportunistic, folded into Phase 5)
 As each tab is split out in Phase 5, migrate its inline `style={{}}` objects to
