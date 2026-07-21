@@ -2,6 +2,19 @@ import { useState } from 'react'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { supabase } from './supabase'
 import logo from './assets/logo.png'
+import { C } from './theme'
+
+// This screen renders on a dark green background, unlike the rest of the app
+// (which is built on the light `theme.ts` palette) — so it needs its own
+// small set of colors readable on dark, kept local rather than mixed into
+// the shared light-mode palette.
+const AUTH = {
+  bg: '#0A1A0F',
+  gold: '#D4A017',
+  green: '#52B788',
+  greenBright: '#40916C',
+  errorText: '#FF7B6B',
+}
 
 export default function CharityAuth() {
   const [email, setEmail] = useState('')
@@ -59,7 +72,7 @@ export default function CharityAuth() {
       <style>{`
         .auth-page {
           min-height: 100vh;
-          background: #0A1A0F;
+          background: ${AUTH.bg};
           font-family: Georgia, serif;
           display: flex;
           justify-content: center;
@@ -177,19 +190,19 @@ export default function CharityAuth() {
             Giving Tree
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, width: 220 }}>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #D4A017)' }} />
+            <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${AUTH.gold})` }} />
             <svg width="14" height="12" viewBox="0 0 16 14">
-              <path d="M8 13 C8 13 1 7.5 1 3.5 C1 1.5 2.5 0.5 4 1.5 C5.5 2.5 8 5 8 5 C8 5 10.5 2.5 12 1.5 C13.5 0.5 15 1.5 15 3.5 C15 7.5 8 13 8 13Z" fill="#D4A017" />
+              <path d="M8 13 C8 13 1 7.5 1 3.5 C1 1.5 2.5 0.5 4 1.5 C5.5 2.5 8 5 8 5 C8 5 10.5 2.5 12 1.5 C13.5 0.5 15 1.5 15 3.5 C15 7.5 8 13 8 13Z" fill={AUTH.gold} />
             </svg>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, #D4A017, transparent)' }} />
+            <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${AUTH.gold}, transparent)` }} />
           </div>
-          <div style={{ fontSize: 11, color: '#74C69D', letterSpacing: '3px', textTransform: 'uppercase', textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: C.bucket1, letterSpacing: '3px', textTransform: 'uppercase', textAlign: 'center', marginBottom: 20 }}>
             Many Hearts. One Purpose.
           </div>
 
           <div className="auth-feature-block">
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(116,198,157,0.15)', borderRadius: 16, padding: '16px 28px', textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif' }}>Charity Portal</div>
+              <div style={{ fontSize: 11, color: AUTH.gold, letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif' }}>Charity Portal</div>
             </div>
             <div className="auth-feature-list">
               {[
@@ -200,7 +213,7 @@ export default function CharityAuth() {
               ].map((f, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ fontSize: 20 }}>{f.icon}</div>
-                  <div style={{ fontSize: 13, color: '#52B788', fontFamily: 'sans-serif' }}>{f.text}</div>
+                  <div style={{ fontSize: 13, color: AUTH.green, fontFamily: 'sans-serif' }}>{f.text}</div>
                 </div>
               ))}
             </div>
@@ -212,22 +225,22 @@ export default function CharityAuth() {
           <div className="auth-right-inner">
 
             <div className="auth-intro">
-              <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif', marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: AUTH.gold, letterSpacing: '3px', textTransform: 'uppercase', fontFamily: 'sans-serif', marginBottom: 10 }}>
                 Charity Portal Access
               </div>
               <div className="auth-welcome-heading" style={{ fontSize: 28, fontWeight: 700, color: 'white', marginBottom: 8 }}>Welcome back</div>
-              <div style={{ fontSize: 13, color: '#52B788', fontFamily: 'sans-serif', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 13, color: AUTH.green, fontFamily: 'sans-serif', lineHeight: 1.6 }}>
                 Sign in to manage donations and issue receipts.
               </div>
             </div>
 
             {error && (
-              <div style={{ background: 'rgba(192,57,43,0.12)', border: '1px solid rgba(192,57,43,0.25)', color: '#FF7B6B', padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20, fontFamily: 'sans-serif', lineHeight: 1.5 }}>
+              <div style={{ background: 'rgba(192,57,43,0.12)', border: '1px solid rgba(192,57,43,0.25)', color: AUTH.errorText, padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20, fontFamily: 'sans-serif', lineHeight: 1.5 }}>
                 {error}
               </div>
             )}
             {message && (
-              <div style={{ background: 'rgba(64,145,108,0.15)', border: '1px solid rgba(64,145,108,0.3)', color: '#74C69D', padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20, fontFamily: 'sans-serif', lineHeight: 1.5 }}>
+              <div style={{ background: 'rgba(64,145,108,0.15)', border: '1px solid rgba(64,145,108,0.3)', color: C.bucket1, padding: '12px 16px', borderRadius: 10, fontSize: 13, marginBottom: 20, fontFamily: 'sans-serif', lineHeight: 1.5 }}>
                 {message}
               </div>
             )}
@@ -241,7 +254,7 @@ export default function CharityAuth() {
               <div style={{ marginBottom: 10, position: 'relative' }}>
                 <label style={lbl}>Password</label>
                 <input style={inp} placeholder="••••••••" type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} autoComplete="current-password" />
-                <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 16, bottom: 15, fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif', userSelect: 'none' }}>
+                <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 16, bottom: 15, fontSize: 12, color: C.bucket1, cursor: 'pointer', fontFamily: 'sans-serif', userSelect: 'none' }}>
                   {showPass ? 'Hide' : 'Show'}
                 </div>
               </div>
@@ -249,7 +262,7 @@ export default function CharityAuth() {
 
             {!showForgot && (
               <div style={{ textAlign: 'right', marginBottom: 10 }}>
-                <span onClick={() => { setShowForgot(true); setError(''); setMessage('') }} style={{ fontSize: 12, color: '#74C69D', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                <span onClick={() => { setShowForgot(true); setError(''); setMessage('') }} style={{ fontSize: 12, color: C.bucket1, cursor: 'pointer', fontFamily: 'sans-serif' }}>
                   Forgot password?
                 </span>
               </div>
@@ -257,7 +270,7 @@ export default function CharityAuth() {
 
             <button onClick={showForgot ? handleForgotPassword : handleLogin} disabled={loading} style={{
               width: '100%', padding: '16px',
-              background: loading ? 'rgba(64,145,108,0.3)' : 'linear-gradient(135deg, #40916C, #1B4332)',
+              background: loading ? 'rgba(64,145,108,0.3)' : `linear-gradient(135deg, ${AUTH.greenBright}, ${C.forest})`,
               color: 'white', border: 'none', borderRadius: 14,
               fontSize: 15, fontWeight: 700,
               cursor: loading ? 'default' : 'pointer',
@@ -271,20 +284,20 @@ export default function CharityAuth() {
 
             {showForgot && (
               <div style={{ textAlign: 'center', marginTop: 16 }}>
-                <span onClick={() => { setShowForgot(false); setError(''); setMessage('') }} style={{ fontSize: 12, color: '#D4A017', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                <span onClick={() => { setShowForgot(false); setError(''); setMessage('') }} style={{ fontSize: 12, color: AUTH.gold, cursor: 'pointer', fontFamily: 'sans-serif' }}>
                   ← Back to Sign In
                 </span>
               </div>
             )}
 
-            <div style={{ marginTop: 28, padding: '14px 18px', background: 'rgba(116,198,157,0.04)', border: '1px solid rgba(116,198,157,0.1)', borderRadius: 12, fontSize: 12, color: '#52B788', fontFamily: 'sans-serif', lineHeight: 1.7, textAlign: 'center' }}>
+            <div style={{ marginTop: 28, padding: '14px 18px', background: 'rgba(116,198,157,0.04)', border: '1px solid rgba(116,198,157,0.1)', borderRadius: 12, fontSize: 12, color: AUTH.green, fontFamily: 'sans-serif', lineHeight: 1.7, textAlign: 'center' }}>
               🔒 Access restricted to registered charities only.<br />
-              Contact <span style={{ color: '#D4A017' }}>hello@givingtree.sg</span> to get set up.
+              Contact <span style={{ color: AUTH.gold }}>hello@givingtree.sg</span> to get set up.
             </div>
 
             <div style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 10, opacity: 0.4 }}>
               <div style={{ flex: 1, height: 1, background: 'rgba(116,198,157,0.3)' }} />
-              <div style={{ fontSize: 11, color: '#52B788', fontFamily: 'sans-serif', letterSpacing: '2px', textTransform: 'uppercase' }}>The Giving Tree</div>
+              <div style={{ fontSize: 11, color: AUTH.green, fontFamily: 'sans-serif', letterSpacing: '2px', textTransform: 'uppercase' }}>The Giving Tree</div>
               <div style={{ flex: 1, height: 1, background: 'rgba(116,198,157,0.3)' }} />
             </div>
 
@@ -297,7 +310,7 @@ export default function CharityAuth() {
 
 const lbl: CSSProperties = {
   display: 'block', fontSize: 10, fontWeight: 600,
-  color: '#74C69D', letterSpacing: '2px', textTransform: 'uppercase',
+  color: C.bucket1, letterSpacing: '2px', textTransform: 'uppercase',
   marginBottom: 8, fontFamily: 'sans-serif',
 }
 

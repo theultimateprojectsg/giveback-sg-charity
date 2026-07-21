@@ -299,7 +299,7 @@ export function DonorsPage({
                   </div>
                   <div style={s.donationCardBadges}>
                     {d.isContactOnly ? (
-                      <span style={{ ...s.badgePending, color: C.gold, background: '#FBF2DE' }}>👤 Prospect — no gift yet</span>
+                      <span style={{ ...s.badgePending, color: C.gold, background: C.warningBg }}>👤 Prospect — no gift yet</span>
                     ) : (
                       <span style={d.receipts === d.count ? s.badgeIssued : s.badgePending}>{d.receipts}/{d.count} receipts issued</span>
                     )}
@@ -341,7 +341,7 @@ export function DonorsPage({
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
                               <div style={s.donorName}>{d.name}</div>
                               {d.doNotContact && <span style={{ fontSize: 10, fontWeight: 600, color: C.red, background: '#FBEEE9', padding: '2px 7px', borderRadius: 4 }}>🚫 DNC</span>}
-                              {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: '#FBF2DE', padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
+                              {d.isContactOnly && <span style={{ fontSize: 10, fontWeight: 600, color: C.gold, background: C.warningBg, padding: '2px 7px', borderRadius: 4 }}>👤 Prospect</span>}
                             </div>
                           </div>
                         </div>
@@ -477,7 +477,7 @@ export function DonorsPage({
               })()}
               {(() => {
                 const warmth76 = getDonorWarmth(selectedDonor)
-                const warmthColor76 = warmth76.level === 'green' ? '#74C69D' : warmth76.level === 'amber' ? '#E8CC7A' : '#E0A599'
+                const warmthColor76 = warmth76.level === 'green' ? C.bucket1 : warmth76.level === 'amber' ? C.warningBorder : '#E0A599'
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: warmthColor76 }} />

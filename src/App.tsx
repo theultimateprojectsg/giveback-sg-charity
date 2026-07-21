@@ -4201,7 +4201,7 @@ export default function App() {
         canvas.width = size
         canvas.height = size
         const ctx = canvas.getContext('2d')
-        ctx.fillStyle = '#ffffff'
+        ctx.fillStyle = '${C.white}fff'
         ctx.fillRect(0, 0, size, size)
         ctx.drawImage(img, 20, 20, size - 40, size - 40)
         URL.revokeObjectURL(url)
@@ -4520,18 +4520,18 @@ export default function App() {
     const causeTitle = causeNameForDonation(donation)
     const dateStr = new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
     const customBlock = customMessage?.trim()
-      ? `<p style="font-size:13px;color:#1C1C1C;line-height:1.6;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      ? `<p style="font-size:13px;color:${C.text};line-height:1.6;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
       : ''
 
     if (templateType === 'major_gift') {
       return `
-        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+        <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:28px;margin-bottom:6px;">🌳</div>
           <div style="font-size:17px;font-weight:700;color:white;">A Gift That Changes Things</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you, ${donation.donor_name}, for your extraordinary generosity</div>
         </div>
-        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
-          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${charityName}, thank you.</p>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
+          <p style="font-size:13px;color:${C.text};line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${charityName}, thank you.</p>
           ${customBlock}
           <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
           ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
@@ -4539,41 +4539,41 @@ export default function App() {
     }
     if (templateType === 'new_donor') {
       return `
-        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+        <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:17px;font-weight:700;color:white;">Welcome, ${donation.donor_name}!</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${charityName}</div>
         </div>
-        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
-          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
+          <p style="font-size:13px;color:${C.text};line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
-          ${causeTitle ? `<p style="font-size:13px;color:#1C1C1C;">Your gift went toward: <strong style="color:#D4A017;">🎯 ${causeTitle}</strong></p>` : ''}
+          ${causeTitle ? `<p style="font-size:13px;color:${C.text};">Your gift went toward: <strong style="color:#D4A017;">🎯 ${causeTitle}</strong></p>` : ''}
         </div>`
     }
     if (templateType === 'recurring_donor') {
       return `
-        <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+        <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:17px;font-weight:700;color:white;">Thank You for Your Continued Support</div>
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${donation.donor_name}, your steady giving makes a real difference</div>
         </div>
-        <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
-          <p style="font-size:13px;color:#1C1C1C;line-height:1.6;">Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift of <strong>SGD $${amount}</strong>.</p>
+        <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
+          <p style="font-size:13px;color:${C.text};line-height:1.6;">Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
         </div>`
     }
     return `
-      <div style="background:#1B4332;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+      <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
         <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${donation.donor_name}!</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your generosity makes a difference</div>
       </div>
-      <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;margin-bottom:16px;">
-        <p style="font-size:13px;color:#1C1C1C;line-height:1.6;margin:0;">We don't say this often enough: thank you. Not just for this gift, but for choosing to keep giving. Consistent support like yours is what lets us plan further ahead and take on more than we could with one-off gifts alone.</p>
+      <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};margin-bottom:16px;">
+        <p style="font-size:13px;color:${C.text};line-height:1.6;margin:0;">We don't say this often enough: thank you. Not just for this gift, but for choosing to keep giving. Consistent support like yours is what lets us plan further ahead and take on more than we could with one-off gifts alone.</p>
       </div>
-      ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid #E2D9CC;margin-bottom:12px;">${customBlock}</div>` : ''}
-      <div style="background:white;border-radius:12px;padding:16px;border:1px solid #E2D9CC;">
+      ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid ${C.border};margin-bottom:12px;">${customBlock}</div>` : ''}
+      <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
         <div style="font-size:11px;color:#7A6E62;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Donation Details</div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Charity</span><span style="font-weight:700;color:#1B4332;">${charityName}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Charity</span><span style="font-weight:700;color:${C.forest};">${charityName}</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:#7A6E62;">Amount</span><span style="font-weight:700;color:#40916C;">SGD $${amount}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:#7A6E62;">Date</span><span style="font-weight:700;color:#1B4332;">${dateStr}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:#7A6E62;">Date</span><span style="font-weight:700;color:${C.forest};">${dateStr}</span></div>
         ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;"><span style="color:#7A6E62;">Cause</span><span style="font-weight:700;color:#D4A017;">🎯 ${causeTitle}</span></div>` : ''}
       </div>`
   }
@@ -10842,7 +10842,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                           <span style={{
                             fontSize: 10.5, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
                             color: r.status === 'sent' ? C.sage : r.status === 'blocked' ? C.gold : C.red,
-                            background: r.status === 'sent' ? '#EAF3EC' : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
+                            background: r.status === 'sent' ? C.successBg : r.status === 'blocked' ? (C.gold + '1A') : '#FBEEE9',
                           }}>
                             {r.status === 'sent' ? '✓ Sent' : r.status === 'blocked' ? '🚫 Blocked' : '✕ Failed'}
                           </span>
@@ -11328,7 +11328,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       {thankYouPreviewModal && thankYouPreviewing && (() => {
         const d = thankYouPreviewModal
         const previewBodyHtml = buildThankYouPreviewHtml(d, thankYouCustomMessage)
-        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:#FAF7F2;">${previewBodyHtml}</div>`
+        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:${C.ivory};">${previewBodyHtml}</div>`
         return (
           <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setThankYouPreviewModal(null); setThankYouPreviewing(false) }}>
             <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>

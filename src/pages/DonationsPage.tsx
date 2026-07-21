@@ -1026,7 +1026,7 @@ export function DonationsPage({
                     </>
                   )}
                   {selectedDonation.payment_status === 'confirmed' && donationPledgeLink && (
-                    <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: '#EAF3EC', border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, background: C.successBg, border: `1px solid ${C.sage}`, borderRadius: 6, padding: '8px 12px' }}>
                       ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()}){donationPledgeLink.pledgeReference ? ` · ${donationPledgeLink.pledgeReference}` : ''}
                     </div>
                   )}

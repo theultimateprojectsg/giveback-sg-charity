@@ -12,7 +12,7 @@ export const s = {
   logoText: { fontSize: 18, fontWeight: 800, color: 'white' },
   logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 },
   charityBadge: { margin: 16, background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 10 },
-  charityIcon: { width: 36, height: 36, background: '#FFF5E6', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
+  charityIcon: { width: 36, height: 36, background: '${C.white}5E6', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 },
   charityName: { fontFamily: C.fontVoice, fontSize: 15, fontWeight: 500, color: 'white', lineHeight: 1.3 },
   charityUen: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   navSection: { padding: '6px 12px', flex: 1 },
