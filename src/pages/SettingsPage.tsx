@@ -1,7 +1,120 @@
+import type { Dispatch, SetStateAction, MutableRefObject, CSSProperties } from 'react'
 import { supabase } from '../supabase'
 import { C } from '../theme'
 import { s } from '../styles'
 import { fillTemplate } from '../lib/format'
+import type { Grant, Pledge, RecurringGift } from '../types'
+
+interface EmailTemplateDef { key: string, label: string, description: string, tokens: string[] }
+interface EmailTemplateGroup { group: string, items: EmailTemplateDef[] }
+
+interface SettingsPageProps {
+  isMobile?: boolean
+  userRole: string
+  session: { user?: { email?: string } } | null
+  setConfirmModal: (modal: unknown) => void
+  intentionalSignOutRef: MutableRefObject<boolean>
+  charityName: string
+  charityUen: string
+  charityIsIpc: boolean
+  charityLogoUrl: string | null
+  uploadingLogo: boolean
+  uploadCharityLogo: (file: File) => void
+  removeCharityLogo: () => void
+  senderDomainStatus: string | null
+  senderEmailLocalPart: string | null
+  senderDomain: string | null
+  setSenderDomainInput: Dispatch<SetStateAction<string>>
+  setShowDomainSetup: Dispatch<SetStateAction<boolean>>
+  checkingVerification: boolean
+  checkDomainVerification: () => void
+  settingsSection: string
+  setSettingsSection: Dispatch<SetStateAction<string>>
+  localEds: string[]
+  localStaff: string[]
+  localBoardMembers: string[]
+  localVolunteers: string[]
+  setVolunteerInput: Dispatch<SetStateAction<string>>
+  setNewTeamMemberRole: Dispatch<SetStateAction<string>>
+  setShowAddTeamMemberModal: Dispatch<SetStateAction<boolean>>
+  removeTeamMember: (role: string, email: string) => void
+  myCauses: { id: string, type: string }[]
+  pledges: Pledge[]
+  recurringGifts: RecurringGift[]
+  grants: Grant[]
+  enabledModules: Record<string, boolean>
+  toggleEnabledModule: (key: string) => void
+  editingDonorThresholds: boolean
+  setThankYouThresholdInput: Dispatch<SetStateAction<string>>
+  setMajorDonorThresholdInput: Dispatch<SetStateAction<string>>
+  setEditingDonorThresholds: Dispatch<SetStateAction<boolean>>
+  thankYouThreshold: number
+  majorDonorThreshold: number
+  thankYouThresholdInput: string
+  majorDonorThresholdInput: string
+  saveDonorThresholds: () => void
+  editingCumulativeThresholds: boolean
+  cumulativeThresholdsInput: string[]
+  setCumulativeThresholdsInput: Dispatch<SetStateAction<string[]>>
+  setEditingCumulativeThresholds: Dispatch<SetStateAction<boolean>>
+  cumulativeThresholds: number[]
+  saveCumulativeThresholds: () => void
+  showToast: (msg: string, type?: string) => void
+  lapsedMinGifts: number
+  setLapsedMinGifts: Dispatch<SetStateAction<number>>
+  lapsedMinDays: number
+  setLapsedMinDays: Dispatch<SetStateAction<number>>
+  givingChangeMinGifts: number
+  setGivingChangeMinGifts: Dispatch<SetStateAction<number>>
+  givingChangeMinPct: number
+  setGivingChangeMinPct: Dispatch<SetStateAction<number>>
+  recurringTrendCycles: number
+  setRecurringTrendCycles: Dispatch<SetStateAction<number>>
+  recurringMissedThreshold: number
+  setRecurringMissedThreshold: Dispatch<SetStateAction<number>>
+  pledgeWatchThreshold: number
+  setPledgeWatchThreshold: Dispatch<SetStateAction<number>>
+  pledgeDueSoonDays: number
+  setPledgeDueSoonDays: Dispatch<SetStateAction<number>>
+  concentrationTopN: number
+  setConcentrationTopN: Dispatch<SetStateAction<number>>
+  editingFyEnd: boolean
+  setFyEndMonthInput: Dispatch<SetStateAction<string>>
+  setFyEndDayInput: Dispatch<SetStateAction<string>>
+  setEditingFyEnd: Dispatch<SetStateAction<boolean>>
+  fyEndMonth: number
+  fyEndDay: number
+  fyEndMonthInput: string
+  fyEndDayInput: string
+  saveFyEnd: () => void
+  editingGoal: boolean
+  setEditingGoal: Dispatch<SetStateAction<boolean>>
+  setGoalInput: Dispatch<SetStateAction<string>>
+  annualGoal: number | null
+  goalInput: string
+  saveAnnualGoal: () => void
+  recurringExpenses: { id: string, name: string, amount: number | string }[]
+  deleteRecurringExpense: (id: string) => void
+  newExpenseForm: { name: string, amount: string }
+  setNewExpenseForm: Dispatch<SetStateAction<{ name: string, amount: string }>>
+  saveRecurringExpense: () => void
+  setShowMigrationTool: Dispatch<SetStateAction<boolean>>
+  setMigrationPreview: Dispatch<SetStateAction<unknown>>
+  setMigrationErrors: Dispatch<SetStateAction<unknown[]>>
+  setMigrationComplete: Dispatch<SetStateAction<unknown>>
+  setMigrationProgress: Dispatch<SetStateAction<unknown>>
+  EMAIL_TEMPLATE_DEFS: EmailTemplateGroup[]
+  emailTemplates: Record<string, { subject?: string, body?: string } | undefined>
+  editingEmailTemplate: string | null
+  setEditingEmailTemplate: Dispatch<SetStateAction<string | null>>
+  setEmailTemplateSubjectInput: Dispatch<SetStateAction<string>>
+  setEmailTemplateBodyInput: Dispatch<SetStateAction<string>>
+  EMAIL_TEMPLATE_DEFAULTS: Record<string, { subject?: string, body?: string } | undefined>
+  emailTemplateSubjectInput: string
+  emailTemplateBodyInput: string
+  EMAIL_TEMPLATE_PREVIEW_VARS: Record<string, unknown>
+  saveEmailTemplate: (key: string, value: { subject: string, body: string } | null) => void
+}
 
 export function SettingsPage({
   isMobile, userRole, session, setConfirmModal, intentionalSignOutRef,
@@ -29,7 +142,7 @@ export function SettingsPage({
   EMAIL_TEMPLATE_DEFS, emailTemplates, editingEmailTemplate, setEditingEmailTemplate,
   setEmailTemplateSubjectInput, setEmailTemplateBodyInput, EMAIL_TEMPLATE_DEFAULTS,
   emailTemplateSubjectInput, emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS, saveEmailTemplate,
-}) {
+}: SettingsPageProps) {
   return (
     <div style={s.content}>
       <div style={s.pageHeader}>
@@ -327,9 +440,9 @@ export function SettingsPage({
         </div>
 
         {(() => {
-          const nStyle = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
-          const saveNum = (col, v) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(({ error }) => { if (error) showToast('Could not save this setting', 'error') })
-          const rowStyle = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: C.muted, padding: '10px 0', borderBottom: `1px solid ${C.border}` }
+          const nStyle: CSSProperties = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
+          const saveNum = (col: string, v: number) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(({ error }: { error: unknown }) => { if (error) showToast('Could not save this setting', 'error') })
+          const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: C.muted, padding: '10px 0', borderBottom: `1px solid ${C.border}` }
           return (
             <div style={{ ...s.card, marginTop: 16 }}>
               <div style={s.cardTitle}>Dashboard Alert Sensitivity</div>
