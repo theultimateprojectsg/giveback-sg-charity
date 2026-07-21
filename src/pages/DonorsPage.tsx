@@ -455,7 +455,12 @@ export function DonorsPage({
             <div style={{ background: C.forest, borderRadius: 4, padding: '20px 18px', marginBottom: 16 }}>
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: (() => { const w = getDonorWarmth(selectedDonor); return w.level === 'green' ? C.sage : w.level === 'amber' ? C.gold : C.red })(), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontFamily: C.fontVoice, fontWeight: 500, marginBottom: 12 }}>{selectedDonor.name?.charAt(0)}</div>
               <div style={{ fontFamily: C.fontVoice, fontSize: 19, fontWeight: 500, color: 'white', marginBottom: 4 }}>{selectedDonor.name}</div>
-              <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>Donor since {new Date(donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}</div>
+              <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>
+                {(() => {
+                  const firstGiftDate = donations.filter(d => (d.donor_email?.trim() || d.donor_name) === (selectedDonor.email?.trim() || selectedDonor.name)).slice(-1)[0]?.created_at
+                  return firstGiftDate ? `Donor since ${new Date(firstGiftDate).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' })}` : 'Prospect — no gift yet'
+                })()}
+              </div>
               {(() => {
                 const donorKeyHdr = selectedDonor.email?.trim() || selectedDonor.name
                 const linkedPhone = [...pledges, ...recurringGifts].find(r => (r.donor_email?.trim() || r.donor_name) === donorKeyHdr)?.donor_phone

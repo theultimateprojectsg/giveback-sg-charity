@@ -3,6 +3,19 @@ export function fillTemplate(str: string | null | undefined, vars: Record<string
   return str.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars?.[k] ?? ''))
 }
 
+// Escapes text before it's interpolated into a raw HTML string (email templates,
+// anything rendered via an iframe srcDoc). Donor-entered fields (donor_name,
+// notes, cause titles, etc.) are untrusted — some come from a public donation
+// form — and interpolating them into HTML unescaped is a stored-XSS hole.
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // Named presets for the ~10 distinct `.toLocaleDateString('en-SG', {...})` option
 // combinations found in App.jsx. `'numeric'` matches the bare `toLocaleDateString('en-SG')`
 // call with no options (locale-default numeric date, e.g. "1/6/2025").

@@ -11,7 +11,7 @@ import logo from './assets/logo.png'
 import './App.css'
 import { donationDonorKey, contactDonorKey } from './lib/donorKeys'
 import { fiscalYearOf, fiscalYearBounds, isoWeekKey } from './lib/fiscalYear'
-import { fillTemplate } from './lib/format'
+import { fillTemplate, escapeHtml } from './lib/format'
 import { colorForDonor } from './lib/color'
 import { computeDonationBadges, computeDonationSummaryStats } from './lib/donationStats'
 import { C } from './theme'
@@ -4517,10 +4517,17 @@ export default function App() {
       : badgeInfo?.isFirstTime ? 'new_donor'
       : 'standard'
     const amount = Number(donation.amount).toLocaleString()
-    const causeTitle = causeNameForDonation(donation)
+    // donor_name/cause titles are untrusted — donor_name in particular can come
+    // from a public donation form — so everything interpolated into this raw
+    // HTML string below must be escaped first. Was previously unescaped: a
+    // donor name like `<img src=x onerror=alert(1)>` executed for real inside
+    // the unsandboxed preview iframe.
+    const safeDonorName = escapeHtml(donation.donor_name)
+    const safeCharityName = escapeHtml(charityName)
+    const causeTitle = escapeHtml(causeNameForDonation(donation))
     const dateStr = new Date(donation.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
     const customBlock = customMessage?.trim()
-      ? `<p style="font-size:13px;color:${C.text};line-height:1.6;margin:10px 0;">${customMessage.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      ? `<p style="font-size:13px;color:${C.text};line-height:1.6;margin:10px 0;">${escapeHtml(customMessage.trim())}</p>`
       : ''
 
     if (templateType === 'major_gift') {
@@ -4528,10 +4535,10 @@ export default function App() {
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:28px;margin-bottom:6px;">🌳</div>
           <div style="font-size:17px;font-weight:700;color:white;">A Gift That Changes Things</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you, ${donation.donor_name}, for your extraordinary generosity</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you, ${safeDonorName}, for your extraordinary generosity</div>
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
-          <p style="font-size:13px;color:${C.text};line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${charityName}, thank you.</p>
+          <p style="font-size:13px;color:${C.text};line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${safeCharityName}, thank you.</p>
           ${customBlock}
           <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
           ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${causeTitle}</span></div>` : ''}
@@ -4540,8 +4547,8 @@ export default function App() {
     if (templateType === 'new_donor') {
       return `
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
-          <div style="font-size:17px;font-weight:700;color:white;">Welcome, ${donation.donor_name}!</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${charityName}</div>
+          <div style="font-size:17px;font-weight:700;color:white;">Welcome, ${safeDonorName}!</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${safeCharityName}</div>
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
           <p style="font-size:13px;color:${C.text};line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
@@ -4553,7 +4560,7 @@ export default function App() {
       return `
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:17px;font-weight:700;color:white;">Thank You for Your Continued Support</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${donation.donor_name}, your steady giving makes a real difference</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeDonorName}, your steady giving makes a real difference</div>
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
           <p style="font-size:13px;color:${C.text};line-height:1.6;">Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift of <strong>SGD $${amount}</strong>.</p>
@@ -4562,7 +4569,7 @@ export default function App() {
     }
     return `
       <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
-        <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${donation.donor_name}!</div>
+        <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${safeDonorName}!</div>
         <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your generosity makes a difference</div>
       </div>
       <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};margin-bottom:16px;">
@@ -4571,7 +4578,7 @@ export default function App() {
       ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid ${C.border};margin-bottom:12px;">${customBlock}</div>` : ''}
       <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
         <div style="font-size:11px;color:${C.emailMuted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Donation Details</div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Charity</span><span style="font-weight:700;color:${C.forest};">${charityName}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Charity</span><span style="font-weight:700;color:${C.forest};">${safeCharityName}</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:${C.emailMuted};">Date</span><span style="font-weight:700;color:${C.forest};">${dateStr}</span></div>
         ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${causeTitle}</span></div>` : ''}
@@ -5001,6 +5008,7 @@ export default function App() {
   async function saveManualEntry(forceDuplicateConfirmed = false) {
   if (!manualForm.is_anonymous && !manualForm.donor_name) { setManualError('Donor name is required'); return }
   if (!manualForm.amount || parseFloat(manualForm.amount) <= 0) { setManualError('Please enter a valid amount'); return }
+  if (parseFloat(manualForm.amount) > 1000000) { setManualError('Amount seems too large — please check it (max $1,000,000)'); return }
   if (new Date(manualForm.date) > new Date()) { setManualError('Donation date cannot be in the future'); return }
   if (new Date(manualForm.date) < new Date('2020-01-01')) { setManualError('Donation date seems too far in the past — please check it'); return }
   if (manualForm.donor_nric && !/^[A-Z]\d{7}[A-Z]$/i.test(manualForm.donor_nric.trim())) { setManualError('Invalid NRIC format. Should be like S1234567A'); return }
@@ -7122,7 +7130,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setAddDonorError('')
 
     const newKey = addDonorForm.email?.trim() || addDonorForm.full_name.trim()
-    const alreadyExists = activeDonorList.some(d => (d.email?.trim() || d.name) === newKey)
+    const newNameLower = addDonorForm.full_name.trim().toLowerCase()
+    // Two checks, not one: the exact-key match alone misses a same-name
+    // collision whenever the existing donor has an email on file but this new
+    // entry doesn't (or vice versa) — email and name aren't comparable keys.
+    // Checks combinedDonorList (not activeDonorList) so it also catches a
+    // duplicate against an existing prospect, not just a donor with real gifts.
+    const alreadyExists = combinedDonorList.some(d =>
+      (d.email?.trim() || d.name) === newKey || d.name?.trim().toLowerCase() === newNameLower
+    )
     if (alreadyExists) {
       setAddDonorError('A donor with this name or email already exists in your donation records.')
       setSavingDonorContact(false)
