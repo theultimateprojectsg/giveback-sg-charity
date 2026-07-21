@@ -8910,10 +8910,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             <>
               {!sidebarCollapsed && <div style={s.navLabel}>Fundraising</div>}
               {[
-                { id: 'promotions', icon: '📣', label: 'Campaigns', module: 'campaigns' },
-                { id: 'pledges',    icon: '🤝', label: 'Pledges', module: 'pledges' },
-                { id: 'recurring',  icon: '🔁', label: 'Recurring', module: 'recurring' },
-                { id: 'grants',     icon: '💰', label: 'Grants', module: 'grants' },
+                { id: 'promotions',  icon: '📣', label: 'Campaigns', module: 'campaigns' },
+                { id: 'massappeal',  icon: '📢', label: 'Mass Appeal', module: 'massappeal' },
+                { id: 'pledges',     icon: '🤝', label: 'Pledges', module: 'pledges' },
+                { id: 'recurring',   icon: '🔁', label: 'Recurring', module: 'recurring' },
+                { id: 'grants',      icon: '💰', label: 'Grants', module: 'grants' },
               ].filter(item => enabledModules[item.module] !== false).map(item => (
                 <div key={item.id}
                   title={item.label}
@@ -8986,6 +8987,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               <>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Fundraising</div>
                 {enabledModules.campaigns !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('promotions'); setSelectedDonor(null); setShowMobileMenu(false) }}>📣 Campaigns</div>}
+                {enabledModules.massappeal !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('massappeal'); setSelectedDonor(null); setShowMobileMenu(false) }}>📢 Mass Appeal</div>}
                 {enabledModules.pledges !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>}
                 {enabledModules.recurring !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>}
                 {enabledModules.grants !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>}
@@ -10258,7 +10260,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             settingsSection={settingsSection} setSettingsSection={setSettingsSection}
             localEds={localEds} localStaff={localStaff} localBoardMembers={localBoardMembers} localVolunteers={localVolunteers}
             setVolunteerInput={setVolunteerInput} setNewTeamMemberRole={setNewTeamMemberRole} setShowAddTeamMemberModal={setShowAddTeamMemberModal} removeTeamMember={removeTeamMember}
-            myCauses={myCauses} pledges={pledges} recurringGifts={recurringGifts} grants={grants} enabledModules={enabledModules} toggleEnabledModule={toggleEnabledModule}
+            myCauses={myCauses} pledges={pledges} recurringGifts={recurringGifts} grants={grants} massAppeals={massAppeals} enabledModules={enabledModules} toggleEnabledModule={toggleEnabledModule}
             editingDonorThresholds={editingDonorThresholds} setThankYouThresholdInput={setThankYouThresholdInput} setMajorDonorThresholdInput={setMajorDonorThresholdInput} setEditingDonorThresholds={setEditingDonorThresholds}
             thankYouThreshold={thankYouThreshold} majorDonorThreshold={majorDonorThreshold} thankYouThresholdInput={thankYouThresholdInput} majorDonorThresholdInput={majorDonorThresholdInput} saveDonorThresholds={saveDonorThresholds}
             editingCumulativeThresholds={editingCumulativeThresholds} cumulativeThresholdsInput={cumulativeThresholdsInput} setCumulativeThresholdsInput={setCumulativeThresholdsInput} setEditingCumulativeThresholds={setEditingCumulativeThresholds}

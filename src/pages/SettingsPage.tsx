@@ -42,6 +42,7 @@ interface SettingsPageProps {
   pledges: Pledge[]
   recurringGifts: RecurringGift[]
   grants: Grant[]
+  massAppeals: any[]
   enabledModules: Record<string, boolean>
   toggleEnabledModule: (key: string) => void
   editingDonorThresholds: boolean
@@ -125,7 +126,7 @@ export function SettingsPage({
   settingsSection, setSettingsSection,
   localEds, localStaff, localBoardMembers, localVolunteers,
   setVolunteerInput, setNewTeamMemberRole, setShowAddTeamMemberModal, removeTeamMember,
-  myCauses, pledges, recurringGifts, grants, enabledModules, toggleEnabledModule,
+  myCauses, pledges, recurringGifts, grants, massAppeals, enabledModules, toggleEnabledModule,
   editingDonorThresholds, setThankYouThresholdInput, setMajorDonorThresholdInput, setEditingDonorThresholds,
   thankYouThreshold, majorDonorThreshold, thankYouThresholdInput, majorDonorThresholdInput, saveDonorThresholds,
   editingCumulativeThresholds, cumulativeThresholdsInput, setCumulativeThresholdsInput, setEditingCumulativeThresholds,
@@ -344,6 +345,7 @@ export function SettingsPage({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { key: 'campaigns', icon: '📣', label: 'Campaigns', desc: 'Trackable fundraising goals and appeals', count: myCauses.filter(c => c.type === 'campaign').length },
+              { key: 'massappeal', icon: '📢', label: 'Mass Appeal', desc: 'Bulk email appeals with personal PayNow QR codes', count: massAppeals.length },
               { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
               { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
               { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },
