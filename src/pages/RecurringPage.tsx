@@ -42,6 +42,7 @@ interface RecurringPageProps {
   setSelectedDonor: (donor: unknown) => void
   setActiveTab: (tab: string) => void
   findDonorRecord: (email?: string | null, name?: string | null) => unknown
+  deactivatedOrDncKeys?: Set<string>
   recurringSkipHistory: Record<string, unknown[]>
   setConfirmModal: (modal: unknown) => void
   undoSkipCycle: (g: RecurringGift) => void
@@ -87,7 +88,7 @@ export function RecurringPage({
   recurringTypeFilter, setRecurringTypeFilter, recurringYearFilter, setRecurringYearFilter,
   recurringProgrammeFilter, setRecurringProgrammeFilter, recurringAuthFilter, setRecurringAuthFilter,
   recurringSortBy, setRecurringSortBy, exportRecurringExcel, recurringGivenTotals,
-  setSelectedDonor, setActiveTab, findDonorRecord,
+  setSelectedDonor, setActiveTab, findDonorRecord, deactivatedOrDncKeys,
   recurringSkipHistory, setConfirmModal, undoSkipCycle,
   recurringFailedDeductionHistory, undoFailedDeduction, recurringReminderHistory,
   donationsByRecurringGift, expandedRecurringId, setExpandedRecurringId,
@@ -312,7 +313,12 @@ export function RecurringPage({
               <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(g.donor_email, g.donor_name)); setActiveTab('donors') }}>{g.donor_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(g.donor_email, g.donor_name)); setActiveTab('donors') }}>{g.donor_name}</div>
+                      {deactivatedOrDncKeys?.has(g.donor_email?.trim() || g.donor_name || '') && (
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: C.red + '1A', color: C.red }}>⊘ Deactivated donor</span>
+                      )}
+                    </div>
                     {(g.donor_email || g.donor_phone) && (
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 3 }}>
                         {g.donor_email && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>✉️</span>{g.donor_email}</span>}

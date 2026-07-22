@@ -5633,6 +5633,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
   }, [pendingSelectedDonorKey, activeDonorList, selectedDonor])
   const deactivatedDonorList = donorList.filter(d => d.deactivated)
+  const deactivatedOrDncKeys = React.useMemo(() => {
+    const s = new Set<string>()
+    donorList.forEach(d => { if (d.deactivated || d.doNotContact) s.add(d.email?.trim() || d.name) })
+    return s
+  }, [donorList])
   const causeRaisedMap = React.useMemo(() => {
     const map: Record<string, any> = {}
     donations.forEach(d => {
@@ -10471,7 +10476,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {/* ── RECURRING ── */}
         {activeTab === 'recurring' && enabledModules.recurring !== false && (
           <RecurringPage
-            isMobile={isMobile} recurringGifts={recurringGifts} myCauses={myCauses} fyOf={fyOf}
+            isMobile={isMobile} recurringGifts={recurringGifts} myCauses={myCauses} fyOf={fyOf} deactivatedOrDncKeys={deactivatedOrDncKeys}
             showRecurringForm={showRecurringForm} setShowRecurringForm={setShowRecurringForm} savingRecurring={savingRecurring}
             editingRecurringGift={editingRecurringGift} setEditingRecurringGift={setEditingRecurringGift}
             saveRecurringGift={saveRecurringGift} updateRecurringGift={updateRecurringGift} cancelRecurringGift={cancelRecurringGift}
@@ -10507,7 +10512,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {/* ── PLEDGES ── */}
         {activeTab === 'pledges' && enabledModules.pledges !== false && (
           <PledgesPage
-            isMobile={isMobile} pledges={pledges} myCauses={myCauses} fyOf={fyOf} senderIdentity={senderIdentity}
+            isMobile={isMobile} pledges={pledges} myCauses={myCauses} fyOf={fyOf} senderIdentity={senderIdentity} deactivatedOrDncKeys={deactivatedOrDncKeys}
             setShowPledgeForm={setShowPledgeForm} pledgeError={pledgeError} setPledgeError={setPledgeError}
             editingPledge={editingPledge} setEditingPledge={setEditingPledge} updatePledge={updatePledge} cancelPledge={cancelPledge} pledgeInstalments={pledgeInstalments}
             pledgeSearchTerm={pledgeSearchTerm} setPledgeSearchTerm={setPledgeSearchTerm} showPledgeFilters={showPledgeFilters} setShowPledgeFilters={setShowPledgeFilters}

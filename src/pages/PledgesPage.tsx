@@ -83,6 +83,7 @@ interface PledgesPageProps {
   pledgeRescheduleHistory: Record<string, { old_expected_date: string, new_expected_date: string, reason?: string }[]>
   setSelectedDonor: (d: unknown) => void
   findDonorRecord: (email?: string | null, name?: string | null) => unknown
+  deactivatedOrDncKeys?: Set<string>
   setActiveTab: (tab: string) => void
   pendingDonorProfileTabRef: MutableRefObject<string | null>
   setDonorProfileTab: (tab: string) => void
@@ -133,7 +134,7 @@ export function PledgesPage({
   logContactNote, setLogContactNote, loggingContact, logPledgeContact,
   showPledgeForm, pledgeForm, setPledgeForm, savingPledge, savePledge,
   pledgeGivenTotals, donationsByPledge, pledgeReminderHistory, pledgeRescheduleHistory,
-  setSelectedDonor, findDonorRecord, setActiveTab, pendingDonorProfileTabRef, setDonorProfileTab,
+  setSelectedDonor, findDonorRecord, setActiveTab, pendingDonorProfileTabRef, setDonorProfileTab, deactivatedOrDncKeys,
   expandedPledgeId, setExpandedPledgeId,
   editingPledgeDonationId, setEditingPledgeDonationId, editingPledgeAmount, setEditingPledgeAmount,
   editingPledgeNotes, setEditingPledgeNotes, savePledgeDonationAmount, savingPledgeAmount,
@@ -472,7 +473,12 @@ export function PledgesPage({
               <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: 15, fontWeight: 500, color: C.forest, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(p.donor_email, p.donor_name)); setActiveTab('donors') }}>{p.donor_name}</div>
+                      {deactivatedOrDncKeys?.has(p.donor_email?.trim() || p.donor_name || '') && (
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: C.red + '1A', color: C.red }}>⊘ Deactivated donor</span>
+                      )}
+                    </div>
                     {(p.donor_email || p.donor_phone) && (
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 3 }}>
                         {p.donor_email && <span style={{ fontSize: 12, color: C.muted, display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ fontSize: 11, opacity: 0.7 }}>✉️</span>{p.donor_email}</span>}
