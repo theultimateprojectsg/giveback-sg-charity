@@ -58,6 +58,8 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
   }
   async function saveEditedExpense(e: LedgerExpense) {
     if (savingEditedExpense || !editingExpenseForm || !editingExpenseForm.description.trim() || !editingExpenseForm.amount) return
+    const editedExpenseAmount = parseFloat(editingExpenseForm.amount)
+    if (isNaN(editedExpenseAmount) || editedExpenseAmount <= 0) return
     setSavingEditedExpense(true)
     await onEditExpense(e, { description: editingExpenseForm.description.trim(), amount: parseFloat(editingExpenseForm.amount), expense_date: editingExpenseForm.expense_date, category: editingExpenseForm.category || null })
     setSavingEditedExpense(false)
@@ -73,6 +75,8 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
   }
   async function saveEditedTranche(t: LedgerTranche) {
     if (savingEditedTranche || !editingTrancheForm || !editingTrancheForm.label.trim() || !editingTrancheForm.amount || !editingTrancheForm.expected_date) return
+    const editedTrancheAmount = parseFloat(editingTrancheForm.amount)
+    if (isNaN(editedTrancheAmount) || editedTrancheAmount <= 0) return
     setSavingEditedTranche(true)
     await onEditTranche(t, { label: editingTrancheForm.label.trim(), amount: parseFloat(editingTrancheForm.amount), expected_date: editingTrancheForm.expected_date })
     setSavingEditedTranche(false)
@@ -103,6 +107,8 @@ export function GrantLedgerPanel({ grant, expenses, tranches, reports, claims, n
   }
   async function saveEditedClaim(c: LedgerClaim) {
     if (savingEditedClaim || !editingClaimForm || !editingClaimForm.amount || !editingClaimForm.claim_date) return
+    const editedClaimAmount = parseFloat(editingClaimForm.amount)
+    if (isNaN(editedClaimAmount) || editedClaimAmount <= 0) return
     setSavingEditedClaim(true)
     await onEditClaim(c, { amount: parseFloat(editingClaimForm.amount), claim_date: editingClaimForm.claim_date, notes: editingClaimForm.notes?.trim() || null })
     setSavingEditedClaim(false)
