@@ -695,6 +695,8 @@ export default function App() {
 
   const [lapsedMinGifts, setLapsedMinGifts] = useState<any>(2)
   const [lapsedMinDays, setLapsedMinDays] = useState<any>(60)
+  const [editingAlertSensitivity, setEditingAlertSensitivity] = useState<boolean>(false)
+  const [alertSensitivityInputs, setAlertSensitivityInputs] = useState<Record<string, string>>({})
   const [thankYouThreshold, setThankYouThreshold] = useState<any>(200)
   const [majorDonorThreshold, setMajorDonorThreshold] = useState<any>(1000)
   const [editingDonorThresholds, setEditingDonorThresholds] = useState<any>(false)
@@ -7657,6 +7659,40 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast('Financial year end updated ✓')
   }
 
+  async function saveAlertSensitivity() {
+    const clamp = (key: string, min: number) => Math.max(min, parseInt(alertSensitivityInputs[key]) || min)
+    const parsed = {
+      lapsed_min_gifts: clamp('lapsed_min_gifts', 1),
+      lapsed_min_days: clamp('lapsed_min_days', 1),
+      giving_change_min_gifts: clamp('giving_change_min_gifts', 2),
+      giving_change_min_pct: clamp('giving_change_min_pct', 1),
+      recurring_trend_cycles: clamp('recurring_trend_cycles', 2),
+      recurring_missed_threshold: clamp('recurring_missed_threshold', 1),
+      pledge_watch_threshold: clamp('pledge_watch_threshold', 1),
+      pledge_due_soon_days: clamp('pledge_due_soon_days', 1),
+      concentration_top_n: clamp('concentration_top_n', 1),
+    }
+    const { error } = await supabase.from('charity_contacts').update(parsed).eq('charity_uen', charityUen)
+    if (error) { showToast('Could not save these settings', 'error'); return }
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'alert_sensitivity_updated',
+      details: { ...parsed, charity_uen: charityUen },
+    })
+    setLapsedMinGifts(parsed.lapsed_min_gifts)
+    setLapsedMinDays(parsed.lapsed_min_days)
+    setGivingChangeMinGifts(parsed.giving_change_min_gifts)
+    setGivingChangeMinPct(parsed.giving_change_min_pct)
+    setRecurringTrendCycles(parsed.recurring_trend_cycles)
+    setRecurringMissedThreshold(parsed.recurring_missed_threshold)
+    setPledgeWatchThreshold(parsed.pledge_watch_threshold)
+    setPledgeDueSoonDays(parsed.pledge_due_soon_days)
+    setConcentrationTopN(parsed.concentration_top_n)
+    setEditingAlertSensitivity(false)
+    showToast('Alert sensitivity updated ✓')
+  }
+
   function showToast(msg: any, type = 'success') {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast({ msg, type })
@@ -10484,11 +10520,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             thankYouThreshold={thankYouThreshold} majorDonorThreshold={majorDonorThreshold} thankYouThresholdInput={thankYouThresholdInput} majorDonorThresholdInput={majorDonorThresholdInput} saveDonorThresholds={saveDonorThresholds}
             editingCumulativeThresholds={editingCumulativeThresholds} cumulativeThresholdsInput={cumulativeThresholdsInput} setCumulativeThresholdsInput={setCumulativeThresholdsInput} setEditingCumulativeThresholds={setEditingCumulativeThresholds}
             cumulativeThresholds={cumulativeThresholds} saveCumulativeThresholds={saveCumulativeThresholds} showToast={showToast}
-            lapsedMinGifts={lapsedMinGifts} setLapsedMinGifts={setLapsedMinGifts} lapsedMinDays={lapsedMinDays} setLapsedMinDays={setLapsedMinDays}
-            givingChangeMinGifts={givingChangeMinGifts} setGivingChangeMinGifts={setGivingChangeMinGifts} givingChangeMinPct={givingChangeMinPct} setGivingChangeMinPct={setGivingChangeMinPct}
-            recurringTrendCycles={recurringTrendCycles} setRecurringTrendCycles={setRecurringTrendCycles} recurringMissedThreshold={recurringMissedThreshold} setRecurringMissedThreshold={setRecurringMissedThreshold}
-            pledgeWatchThreshold={pledgeWatchThreshold} setPledgeWatchThreshold={setPledgeWatchThreshold} pledgeDueSoonDays={pledgeDueSoonDays} setPledgeDueSoonDays={setPledgeDueSoonDays}
-            concentrationTopN={concentrationTopN} setConcentrationTopN={setConcentrationTopN}
+            lapsedMinGifts={lapsedMinGifts} lapsedMinDays={lapsedMinDays}
+            givingChangeMinGifts={givingChangeMinGifts} givingChangeMinPct={givingChangeMinPct}
+            recurringTrendCycles={recurringTrendCycles} recurringMissedThreshold={recurringMissedThreshold}
+            pledgeWatchThreshold={pledgeWatchThreshold} pledgeDueSoonDays={pledgeDueSoonDays}
+            concentrationTopN={concentrationTopN}
+            editingAlertSensitivity={editingAlertSensitivity} setEditingAlertSensitivity={setEditingAlertSensitivity}
+            alertSensitivityInputs={alertSensitivityInputs} setAlertSensitivityInputs={setAlertSensitivityInputs}
+            saveAlertSensitivity={saveAlertSensitivity}
             editingFyEnd={editingFyEnd} setFyEndMonthInput={setFyEndMonthInput} setFyEndDayInput={setFyEndDayInput} setEditingFyEnd={setEditingFyEnd} fyEndMonth={fyEndMonth} fyEndDay={fyEndDay} fyEndMonthInput={fyEndMonthInput} fyEndDayInput={fyEndDayInput} saveFyEnd={saveFyEnd}
             editingGoal={editingGoal} setEditingGoal={setEditingGoal} setGoalInput={setGoalInput} annualGoal={annualGoal} goalInput={goalInput} saveAnnualGoal={saveAnnualGoal}
             recurringExpenses={recurringExpenses} deleteRecurringExpense={deleteRecurringExpense} newExpenseForm={newExpenseForm} setNewExpenseForm={setNewExpenseForm} saveRecurringExpense={saveRecurringExpense}

@@ -62,23 +62,19 @@ interface SettingsPageProps {
   saveCumulativeThresholds: () => void
   showToast: (msg: string, type?: string) => void
   lapsedMinGifts: number
-  setLapsedMinGifts: Dispatch<SetStateAction<number>>
   lapsedMinDays: number
-  setLapsedMinDays: Dispatch<SetStateAction<number>>
   givingChangeMinGifts: number
-  setGivingChangeMinGifts: Dispatch<SetStateAction<number>>
   givingChangeMinPct: number
-  setGivingChangeMinPct: Dispatch<SetStateAction<number>>
   recurringTrendCycles: number
-  setRecurringTrendCycles: Dispatch<SetStateAction<number>>
   recurringMissedThreshold: number
-  setRecurringMissedThreshold: Dispatch<SetStateAction<number>>
   pledgeWatchThreshold: number
-  setPledgeWatchThreshold: Dispatch<SetStateAction<number>>
   pledgeDueSoonDays: number
-  setPledgeDueSoonDays: Dispatch<SetStateAction<number>>
   concentrationTopN: number
-  setConcentrationTopN: Dispatch<SetStateAction<number>>
+  editingAlertSensitivity: boolean
+  setEditingAlertSensitivity: Dispatch<SetStateAction<boolean>>
+  alertSensitivityInputs: Record<string, string>
+  setAlertSensitivityInputs: Dispatch<SetStateAction<Record<string, string>>>
+  saveAlertSensitivity: () => void
   editingFyEnd: boolean
   setFyEndMonthInput: Dispatch<SetStateAction<string>>
   setFyEndDayInput: Dispatch<SetStateAction<string>>
@@ -131,11 +127,12 @@ export function SettingsPage({
   thankYouThreshold, majorDonorThreshold, thankYouThresholdInput, majorDonorThresholdInput, saveDonorThresholds,
   editingCumulativeThresholds, cumulativeThresholdsInput, setCumulativeThresholdsInput, setEditingCumulativeThresholds,
   cumulativeThresholds, saveCumulativeThresholds, showToast,
-  lapsedMinGifts, setLapsedMinGifts, lapsedMinDays, setLapsedMinDays,
-  givingChangeMinGifts, setGivingChangeMinGifts, givingChangeMinPct, setGivingChangeMinPct,
-  recurringTrendCycles, setRecurringTrendCycles, recurringMissedThreshold, setRecurringMissedThreshold,
-  pledgeWatchThreshold, setPledgeWatchThreshold, pledgeDueSoonDays, setPledgeDueSoonDays,
-  concentrationTopN, setConcentrationTopN,
+  lapsedMinGifts, lapsedMinDays,
+  givingChangeMinGifts, givingChangeMinPct,
+  recurringTrendCycles, recurringMissedThreshold,
+  pledgeWatchThreshold, pledgeDueSoonDays,
+  concentrationTopN,
+  editingAlertSensitivity, setEditingAlertSensitivity, alertSensitivityInputs, setAlertSensitivityInputs, saveAlertSensitivity,
   editingFyEnd, setFyEndMonthInput, setFyEndDayInput, setEditingFyEnd, fyEndMonth, fyEndDay, fyEndMonthInput, fyEndDayInput, saveFyEnd,
   editingGoal, setEditingGoal, setGoalInput, annualGoal, goalInput, saveAnnualGoal,
   recurringExpenses, deleteRecurringExpense, newExpenseForm, setNewExpenseForm, saveRecurringExpense,
@@ -441,62 +438,56 @@ export function SettingsPage({
         </div>
 
         {(() => {
-          const nStyle: CSSProperties = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
-          const saveNum = (col: string, v: number) => supabase.from('charity_contacts').update({ [col]: v }).eq('charity_uen', charityUen).then(async ({ error }: { error: unknown }) => {
-            if (error) { showToast('Could not save this setting', 'error'); return }
-            await supabase.from('audit_log').insert({
-              actor_type: 'charity',
-              actor_email: session?.user?.email,
-              action: 'alert_sensitivity_updated',
-              details: { field: col, value: v, charity_uen: charityUen },
-            })
-          })
+          const fields: { key: string, before: string, value: number, after: string }[] = [
+            { key: 'lapsed_min_gifts', before: 'Lapsed donor: gave', value: lapsedMinGifts, after: '+ times, no gift in' },
+            { key: 'lapsed_min_days', before: '', value: lapsedMinDays, after: '+ days' },
+            { key: 'giving_change_min_gifts', before: 'Notable giving change: over', value: givingChangeMinGifts, after: 'gifts, change of' },
+            { key: 'giving_change_min_pct', before: '', value: givingChangeMinPct, after: '% or more' },
+            { key: 'recurring_trend_cycles', before: 'Recurring giving trend: same direction for', value: recurringTrendCycles, after: 'cycles in a row' },
+            { key: 'recurring_missed_threshold', before: 'At-risk recurring gift: missed', value: recurringMissedThreshold, after: '+ cycles' },
+            { key: 'pledge_watch_threshold', before: 'Pledge watch: donor has broken', value: pledgeWatchThreshold, after: '+ pledges' },
+            { key: 'pledge_due_soon_days', before: "Flag a pledge as due soon when it's within", value: pledgeDueSoonDays, after: 'days' },
+            { key: 'concentration_top_n', before: 'Donor concentration: track top', value: concentrationTopN, after: 'donors' },
+          ]
           const rowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12.5, color: C.muted, padding: '10px 0', borderBottom: `1px solid ${C.border}` }
+          const nStyle: CSSProperties = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
+          const valueChipStyle: CSSProperties = { fontWeight: 700, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 8px' }
           return (
             <div style={{ ...s.card, marginTop: 16 }}>
-              <div style={s.cardTitle}>Dashboard Alert Sensitivity</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ ...s.cardTitle, marginBottom: 0 }}>Dashboard Alert Sensitivity</div>
+                {!editingAlertSensitivity && (
+                  <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px' }} onClick={() => {
+                    setAlertSensitivityInputs(Object.fromEntries(fields.map(f => [f.key, f.value.toString()])))
+                    setEditingAlertSensitivity(true)
+                  }}>Edit</button>
+                )}
+              </div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, lineHeight: 1.6 }}>
                 Controls when donors get flagged in your Dashboard lists and Analytics. Also editable inline on each Analytics card — both change the same setting.
               </div>
-              <div style={rowStyle}>
-                <span>Lapsed donor: gave</span>
-                <input type="number" min={1} style={nStyle} value={lapsedMinGifts} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinGifts(v); saveNum('lapsed_min_gifts', v) }} />
-                <span>+ times, no gift in</span>
-                <input type="number" min={1} style={nStyle} value={lapsedMinDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setLapsedMinDays(v); saveNum('lapsed_min_days', v) }} />
-                <span>+ days</span>
-              </div>
-              <div style={rowStyle}>
-                <span>Notable giving change: over</span>
-                <input type="number" min={2} style={nStyle} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); saveNum('giving_change_min_gifts', v) }} />
-                <span>gifts, change of</span>
-                <input type="number" min={1} style={nStyle} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); saveNum('giving_change_min_pct', v) }} />
-                <span>% or more</span>
-              </div>
-              <div style={rowStyle}>
-                <span>Recurring giving trend: same direction for</span>
-                <input type="number" min={2} style={nStyle} value={recurringTrendCycles} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setRecurringTrendCycles(v); saveNum('recurring_trend_cycles', v) }} />
-                <span>cycles in a row</span>
-              </div>
-              <div style={rowStyle}>
-                <span>At-risk recurring gift: missed</span>
-                <input type="number" min={1} style={nStyle} value={recurringMissedThreshold} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setRecurringMissedThreshold(v); saveNum('recurring_missed_threshold', v) }} />
-                <span>+ cycles</span>
-              </div>
-              <div style={rowStyle}>
-                <span>Pledge watch: donor has broken</span>
-                <input type="number" min={1} style={nStyle} value={pledgeWatchThreshold} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setPledgeWatchThreshold(v); saveNum('pledge_watch_threshold', v) }} />
-                <span>+ pledges</span>
-              </div>
-              <div style={rowStyle}>
-                <span>Flag a pledge as due soon when it's within</span>
-                <input type="number" min={1} style={nStyle} value={pledgeDueSoonDays} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setPledgeDueSoonDays(v); saveNum('pledge_due_soon_days', v) }} />
-                <span>days</span>
-              </div>
-              <div style={{ ...rowStyle, borderBottom: 'none' }}>
-                <span>Donor concentration: track top</span>
-                <input type="number" min={1} style={nStyle} value={concentrationTopN} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setConcentrationTopN(v); saveNum('concentration_top_n', v) }} />
-                <span>donors</span>
-              </div>
+              {fields.map((f, i) => (
+                <div key={f.key} style={i === fields.length - 1 ? { ...rowStyle, borderBottom: 'none' } : rowStyle}>
+                  {f.before && <span>{f.before}</span>}
+                  {editingAlertSensitivity ? (
+                    <input
+                      type="number"
+                      style={nStyle}
+                      value={alertSensitivityInputs[f.key] ?? ''}
+                      onChange={e => setAlertSensitivityInputs(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    />
+                  ) : (
+                    <span style={valueChipStyle}>{f.value}</span>
+                  )}
+                  <span>{f.after}</span>
+                </div>
+              ))}
+              {editingAlertSensitivity && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                  <button style={s.issueBtn} onClick={saveAlertSensitivity}>Save</button>
+                  <button style={s.viewBtn} onClick={() => setEditingAlertSensitivity(false)}>Cancel</button>
+                </div>
+              )}
             </div>
           )
         })()}
