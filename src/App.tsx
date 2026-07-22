@@ -1460,7 +1460,7 @@ export default function App() {
     // rows at all -- invisible to every outstanding/overdue calculation from that point on --
     // so this must be surfaced loudly rather than only logged to the console.
     if (instalmentsFailed) {
-      showToast('Pledge saved, but its yearly instalments failed to save — edit the pledge to add them, or delete and re-create it', 'error')
+      showToast('Pledge saved, but its yearly instalments failed to save — delete and re-create it to try again (editing an existing pledge can only correct instalments that already exist, not add missing ones)', 'error')
     } else {
       showToast(pledgeForm.is_multi_year ? `${years}-year pledge recorded ✓` : 'Pledge recorded ✓')
     }
