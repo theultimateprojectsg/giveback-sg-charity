@@ -386,7 +386,7 @@ export function AnalyticsPage({
                     >
                       {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
                     </button>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Sends only aggregate totals (amounts, counts) to Anthropic's Claude API — never donor names, emails, NRICs, or any other personal data.</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Rewrites the summary above in a more natural voice, as an extra paragraph below it — sends only aggregate totals (amounts, counts) to Anthropic's Claude API, never donor names, emails, NRICs, or any other personal data.</span>
                   </div>
                 </div>
               )
@@ -728,7 +728,7 @@ export function AnalyticsPage({
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   {/* Coverage ratio */}
-                  <div style={{ ...s.card, marginBottom: 0 }}>
+                  <div style={{ ...s.card, marginBottom: 0, ...(coverageRatio !== null && coverageRatio < 0.75 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
                     <div style={s.statTileLabel}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
@@ -746,7 +746,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Cash runway */}
-                  <div style={{ ...s.card, marginBottom: 0 }}>
+                  <div style={{ ...s.card, marginBottom: 0, ...(runwayMonthsFH !== null && runwayMonthsFH < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
                     <div style={s.statTileLabel}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
                     {runwayMonthsFH === null ? (
                       <div>
@@ -764,7 +764,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Unrestricted funding coverage */}
-                  <div style={{ ...s.card, marginBottom: 0 }}>
+                  <div style={{ ...s.card, marginBottom: 0, ...(unrestrictedCoverageMonths !== null && unrestrictedCoverageMonths < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
                     <div style={s.statTileLabel}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
                     {unrestrictedCoverageMonths === null ? (
                       <div>
@@ -782,7 +782,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Fixed-cost coverage from recurring income */}
-                  <div style={{ ...s.card, marginBottom: 0 }}>
+                  <div style={{ ...s.card, marginBottom: 0, ...(fixedCostCoveragePct !== null && fixedCostCoveragePct < 25 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
                     <div style={s.statTileLabel}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
                     {fixedCostCoveragePct === null ? (
                       <div>
@@ -1031,7 +1031,13 @@ export function AnalyticsPage({
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
                           </div>
                         )}
-                        {t.extra && <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>}
+                        {t.extra && (
+                          typeof t.extra === 'string' && t.extra.startsWith('median') ? (
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${C.border}` }}>{t.extra} <span style={{ fontSize: 10, fontWeight: 400, color: C.muted }}>(less skewed by large gifts)</span></div>
+                          ) : (
+                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>
+                          )
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2069,13 +2075,16 @@ export function AnalyticsPage({
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
                     </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                    <div
+                      style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0, cursor: atRiskCount > 0 ? 'pointer' : 'default' }}
+                      onClick={atRiskCount > 0 ? () => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
+                    >
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                         {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk` : 'gifts flagged at risk'}</div>
+                      <div style={{ fontSize: 11, color: atRiskCount > 0 ? C.forest : C.muted, fontWeight: atRiskCount > 0 ? 500 : 400, textDecoration: atRiskCount > 0 ? 'underline' : 'none' }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk — see who ↓` : 'gifts flagged at risk'}</div>
                     </div>
                   </div>
                 )
@@ -2875,7 +2884,7 @@ export function AnalyticsPage({
                 const quiet = quietDonorsStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>Quiet Donors</div>
+                    <div style={s.analyticsCardTitle}>Slowing Down</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
                     {quiet.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No donors showing a slowdown right now.</div>
@@ -2900,7 +2909,7 @@ export function AnalyticsPage({
                 const quietlyPaying75 = quietlyPayingStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={s.analyticsCardTitle}>Quietly Paying Donors</div>
+                    <div style={s.analyticsCardTitle}>Paying, But No Contact</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
                     {quietlyPaying75.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No quietly-paying donors right now — nice work staying in touch.</div>
@@ -3211,6 +3220,9 @@ export function AnalyticsPage({
                         </div>
                       ))}
                     </div>
+                    {rows78.length < 3 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 10, fontStyle: 'italic' }}>Only {rows78.length} connector{rows78.length !== 1 ? 's' : ''} so far — too little data yet to call this a pattern.</div>
+                    )}
                   </div>
                 )
               })()}
@@ -3235,6 +3247,9 @@ export function AnalyticsPage({
                         </div>
                       ))}
                     </div>
+                    {rows57.length < 3 && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 10, fontStyle: 'italic' }}>Only {rows57.length} source{rows57.length !== 1 ? 's' : ''} so far — too little data yet to call this a pattern.</div>
+                    )}
                   </div>
                 )
               })()}

@@ -5834,7 +5834,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       })
       const donorKeysWithCampaign = Object.keys(donorCampaignSets)
       const loyalDonors = Object.values(donorCampaignSets).filter(set => set.size >= 2).length
-      const loyaltyPct = donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
+      // With only one campaign ever run, no donor can possibly have given to 2+ campaigns --
+      // the metric would always read 0%, which looks like a performance problem rather than
+      // "not enough campaigns exist yet to measure this."
+      const totalCampaignsEver = myCauses.filter(c => c.type === 'campaign').length
+      const loyaltyPct = totalCampaignsEver < 2 ? null : donorKeysWithCampaign.length > 0 ? Math.round((loyalDonors / donorKeysWithCampaign.length) * 100) : null
 
       const timesToGoal = reachedGoalCampaigns.map(c => {
         const campDonationsSorted = donations.filter(d => d.cause_id === c.id && d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -5857,7 +5861,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
     const strip = [
       { label: 'Goal Success Rate', val: cur.withGoalCount > 0 ? `${cur.reachedCount} of ${cur.withGoalCount}` : '—', sub: 'campaigns with a goal hit it', tip: 'Of campaigns with both a target amount and an end date, how many reached their target.', d: ptDelta(cur.successRatePct, prev.successRatePct), unit: 'pt' },
-      { label: 'Cross-Campaign Loyalty', val: cur.donorCount > 0 ? `${cur.loyaltyPct}%` : '—', sub: 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${cur.donorCount} donor${cur.donorCount !== 1 ? 's' : ''}.`, d: ptDelta(cur.loyaltyPct, prev.loyaltyPct), unit: 'pt' },
+      { label: 'Cross-Campaign Loyalty', val: cur.loyaltyPct === null ? 'N/A' : `${cur.loyaltyPct}%`, sub: cur.loyaltyPct === null ? 'needs 2+ campaigns to measure' : 'of donors gave to 2+ campaigns', tip: `Share of this year's campaign donors who supported more than one campaign, out of ${cur.donorCount} donor${cur.donorCount !== 1 ? 's' : ''}. Needs at least 2 campaigns to ever have run before this is measurable.`, d: ptDelta(cur.loyaltyPct, prev.loyaltyPct), unit: 'pt' },
       { label: 'Avg Time to Goal', val: cur.avgTimeToGoal !== null ? `${cur.avgTimeToGoal}d` : '—', sub: 'for campaigns that reached target', tip: 'Average days from a campaign starting to the donation that pushed it past its goal, across campaigns that reached target.', d: dayDelta(cur.avgTimeToGoal, prev.avgTimeToGoal), unit: 'd', invert: true },
     ]
 
