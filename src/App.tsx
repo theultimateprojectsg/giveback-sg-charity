@@ -3544,7 +3544,7 @@ export default function App() {
   async function submitCause() {
     if (!causeForm.title.trim()) { setCauseError('Title is required'); return }
     if (!causeForm.description.trim()) { setCauseError('Description is required'); return }
-    if (causeForm.target_amount && (isNaN(parseFloat(causeForm.target_amount)) || parseFloat(causeForm.target_amount) < 0)) { setCauseError('Target amount must be a positive number'); return }
+    if (causeForm.target_amount && (isNaN(parseFloat(causeForm.target_amount)) || parseFloat(causeForm.target_amount) <= 0)) { setCauseError('Target amount must be a positive number'); return }
     if (causeForm.cost && (isNaN(parseFloat(causeForm.cost)) || parseFloat(causeForm.cost) < 0)) { setCauseError('Cost must be a positive number'); return }
     if (causeForm.benefit_value && (isNaN(parseFloat(causeForm.benefit_value)) || parseFloat(causeForm.benefit_value) < 0)) { setCauseError('Benefit value must be a positive number'); return }
     if (causeForm.start_date && causeForm.end_date && causeForm.end_date < causeForm.start_date) { setCauseError('End date cannot be before start date'); return }
