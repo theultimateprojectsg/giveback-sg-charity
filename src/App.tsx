@@ -7538,7 +7538,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   // Year-filtered donor map for IRAS tab
   const irasYearDonorMap: Record<string, any> = {}
-  donations.filter(d => filterYear !== 'All' && new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed').forEach(d => {
+  donations.filter(d => filterYear !== 'All' && fyOf(d.created_at) === parseInt(filterYear) && d.payment_status === 'confirmed').forEach(d => {
     const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
     if (!irasYearDonorMap[key]) irasYearDonorMap[key] = { name: d.donor_name, total: 0, count: 0, donations: [] }
     irasYearDonorMap[key].total += d.amount
@@ -7549,7 +7549,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   function exportIRASExcel() {
     if (filterYear === 'All') { showToast('Select a specific year before exporting'); return }
-    const yearDonations = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
+    const yearDonations = donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && d.payment_status === 'confirmed')
     const cover = [
       { 'Field': 'Charity Name', 'Value': charityName },
       { 'Field': 'UEN', 'Value': charityUen },
@@ -8486,7 +8486,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   async function exportAllDonorYearEndStatements() {
     if (filterYear === 'All') { showToast('Select a specific year first', 'error'); return }
     const year = parseInt(filterYear)
-    const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === year && d.payment_status === 'confirmed' && !d.is_anonymous)
+    const yearDons = donations.filter(d => fyOf(d.created_at) === year && d.payment_status === 'confirmed' && !d.is_anonymous)
     if (yearDons.length === 0) { showToast('No donations found for this year', 'error'); return }
 
     const byDonor: Record<string, any> = {}
@@ -8517,7 +8517,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   function exportYearEndSummary() {
     if (filterYear === 'All') { showToast('Select a specific year first'); return }
     const doc = new jsPDF()
-    const yearDons = donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear) && d.payment_status === 'confirmed')
+    const yearDons = donations.filter(d => fyOf(d.created_at) === parseInt(filterYear) && d.payment_status === 'confirmed')
     const yearTotal = yearDons.reduce((s, d) => s + d.amount, 0)
     const yearDonors = new Set(yearDons.map(d => d.donor_name)).size
     const yearTop: any[] = Object.values(yearDons.reduce((acc: Record<string, any>, d) => {
@@ -9478,7 +9478,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               </div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: 20, background: C.forest, border: 'none' }}>
                 <select style={{ background: 'transparent', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', outline: 'none', appearance: 'none', WebkitAppearance: 'none', paddingRight: 18 }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-                  {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y} style={{ background: C.forest, color: 'white' }}>{y}</option>)}
+                  {[...new Set(donations.map(d => fyOf(d.created_at)))].sort((a,b) => b-a).map(y => <option key={y} style={{ background: C.forest, color: 'white' }}>{y}</option>)}
                 </select>
                 <span style={{ position: 'absolute', right: 14, color: 'white', fontSize: 10, pointerEvents: 'none' }}>▼</span>
               </div>
@@ -9523,7 +9523,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             <div style={isMobile ? s.irasInfoGridMobile : isTablet ? s.irasInfoGridTablet : s.irasInfoGrid}>
               {(() => {
-                const yearDons = filterYear === 'All' ? [] : donations.filter(d => new Date(d.created_at).getFullYear() === parseInt(filterYear))
+                const yearDons = filterYear === 'All' ? [] : donations.filter(d => fyOf(d.created_at) === parseInt(filterYear))
                 const missingNric = yearDons.filter(d => !d.donor_nric).length
                 const cards = [
                   { label: 'Total Donations', value: `$${totalThisYear.toLocaleString()}`, note: filterYear === 'All' ? 'Select a year for details' : `${yearDons.length} transactions`, warn: false },
@@ -9570,7 +9570,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   ⚠️ Select a year above to enable the export.
                   <select style={{ ...s.filterSelect, padding: '4px 10px', fontSize: 12, marginLeft: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
                     <option value="All">Select year</option>
-                    {[...new Set(donations.map(d => new Date(d.created_at).getFullYear()))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)}
+                    {[...new Set(donations.map(d => fyOf(d.created_at)))].sort((a,b) => b-a).map(y => <option key={y}>{y}</option>)}
                   </select>
                 </div>
               )}
