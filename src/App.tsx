@@ -7539,7 +7539,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const turningOff = enabledModules[key] !== false
     if (turningOff) {
       const recordCounts: Record<string, number> = {
-        campaigns: myCauses.filter(c => c.type === 'campaign').length,
+        campaigns: myCauses.filter(c => c.type === 'campaign').length + massAppeals.length,
         pledges: pledges.length,
         recurring: recurringGifts.length,
         grants: grants.length,
