@@ -3037,6 +3037,14 @@ export default function App() {
     const history = recurringSkipHistory[gift.id] || []
     const lastSkip = history[0]
     if (!lastSkip) return
+    // If a real payment was recorded after this skip (donor paid anyway, or a later cycle came
+    // in), next_expected_date has already moved forward for a legitimate reason. Blindly
+    // restoring it to the pre-skip date would walk it backwards past the last actual payment,
+    // showing a "next expected" date that's already in the past relative to money that's in.
+    if (gift.last_received_date && new Date(lastSkip.skipped_cycle_date) <= new Date(gift.last_received_date)) {
+      showToast('Can\'t undo this skip — a payment was recorded since then, so the expected date has already moved forward for a real reason.', 'error')
+      return
+    }
     const { error: deleteError } = await supabase.from('recurring_gift_events').delete().eq('id', lastSkip.id)
     if (deleteError) { showToast('Error undoing skip', 'error'); return }
     const { error: giftError } = await supabase.from('recurring_gifts').update({
