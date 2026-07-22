@@ -5043,28 +5043,55 @@ export default function App() {
     const targetDonorRow = combinedDonorList.find(d => (d.email?.trim() || d.name) === targetDonorKey)
     if (!targetDonorRow) { showToast('Target donor not found', 'error'); return }
     const filter = sourceDonor.email?.trim() ? `donor_email.eq.${sourceDonor.email.trim()}` : `donor_name.eq.${sourceDonor.name}`
+    const sourceKey = sourceDonor.email?.trim() || sourceDonor.name
+    const targetName = targetDonorRow.name
+    const targetEmail = targetDonorRow.email || null
 
-    // Merging rewrites donor_name/donor_email on every affected donation with no way to identify
-    // the originals afterward -- snapshot them first so a wrong merge can be undone.
-    const { data: beforeRows, error: snapshotError } = await supabase.from('donations')
-      .select('id, donor_name, donor_email')
-      .or(filter)
-    if (snapshotError) { showToast('Error preparing merge', 'error'); return }
+    // Pledges, recurring gifts, notes, and tags aren't linked to a donation by id -- they're
+    // matched to a donor purely by donor_name/donor_email (or donor_key for notes/tags). Merging
+    // only the donations rows would silently strand these under the old identity, invisible from
+    // the merged donor's profile even though the money and history are real. Snapshot everything
+    // first so a wrong merge can be fully undone, not just the donations part of it.
+    const [
+      { data: beforeRows, error: snapshotError },
+      { data: beforePledges, error: pledgeSnapshotError },
+      { data: beforeRecurring, error: recurringSnapshotError },
+      { data: beforeNotes, error: notesSnapshotError },
+      { data: beforeTags, error: tagsSnapshotError },
+    ] = await Promise.all([
+      supabase.from('donations').select('id, donor_name, donor_email').or(filter),
+      supabase.from('pledges').select('id, donor_name, donor_email').or(filter),
+      supabase.from('recurring_gifts').select('id, donor_name, donor_email').or(filter),
+      supabase.from('donor_notes').select('id').eq('donor_key', sourceKey),
+      supabase.from('donor_tags').select('id').eq('donor_key', sourceKey),
+    ])
+    if (snapshotError || pledgeSnapshotError || recurringSnapshotError || notesSnapshotError || tagsSnapshotError) {
+      showToast('Error preparing merge', 'error'); return
+    }
 
-    const { error } = await supabase.from('donations')
-      .update({ donor_name: targetDonorRow.name, donor_email: targetDonorRow.email || null })
-      .or(filter)
-    if (error) { showToast('Error merging donors', 'error'); return }
+    const [{ error }, { error: pledgeError }, { error: recurringError }, { error: notesError }, { error: tagsError }] = await Promise.all([
+      supabase.from('donations').update({ donor_name: targetName, donor_email: targetEmail }).or(filter),
+      supabase.from('pledges').update({ donor_name: targetName, donor_email: targetEmail }).or(filter),
+      supabase.from('recurring_gifts').update({ donor_name: targetName, donor_email: targetEmail }).or(filter),
+      supabase.from('donor_notes').update({ donor_key: targetDonorKey }).eq('donor_key', sourceKey),
+      supabase.from('donor_tags').update({ donor_key: targetDonorKey }).eq('donor_key', sourceKey),
+    ])
+    if (error || pledgeError || recurringError || notesError || tagsError) { showToast('Error merging donors', 'error'); return }
 
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
       action: 'donors_merged',
-      details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name, affected_donation_ids: (beforeRows || []).map(r => r.id) },
+      details: {
+        merged_from: sourceDonor.name, merged_into: targetDonorRow.name,
+        affected_donation_ids: (beforeRows || []).map(r => r.id),
+        affected_pledge_ids: (beforePledges || []).map(r => r.id),
+        affected_recurring_gift_ids: (beforeRecurring || []).map(r => r.id),
+      },
     })
 
     setSelectedDonor(null)
-    await loadDonations()
+    await Promise.all([loadDonations(), loadPledges(), loadRecurringGifts(), loadAllDonorTags()])
 
     let cancelled = false
     setToast({
@@ -5072,16 +5099,20 @@ export default function App() {
       undoable: true,
       onUndo: async () => {
         cancelled = true
-        for (const row of (beforeRows || [])) {
-          await supabase.from('donations').update({ donor_name: row.donor_name, donor_email: row.donor_email }).eq('id', row.id)
-        }
+        await Promise.all([
+          ...(beforeRows || []).map(row => supabase.from('donations').update({ donor_name: row.donor_name, donor_email: row.donor_email }).eq('id', row.id)),
+          ...(beforePledges || []).map(row => supabase.from('pledges').update({ donor_name: row.donor_name, donor_email: row.donor_email }).eq('id', row.id)),
+          ...(beforeRecurring || []).map(row => supabase.from('recurring_gifts').update({ donor_name: row.donor_name, donor_email: row.donor_email }).eq('id', row.id)),
+          ...(beforeNotes || []).map(row => supabase.from('donor_notes').update({ donor_key: sourceKey }).eq('id', row.id)),
+          ...(beforeTags || []).map(row => supabase.from('donor_tags').update({ donor_key: sourceKey }).eq('id', row.id)),
+        ])
         await supabase.from('audit_log').insert({
           actor_type: 'charity',
           actor_email: session.user.email,
           action: 'donors_merge_undone',
           details: { merged_from: sourceDonor.name, merged_into: targetDonorRow.name },
         })
-        await loadDonations()
+        await Promise.all([loadDonations(), loadPledges(), loadRecurringGifts(), loadAllDonorTags()])
         setToast(null)
         showToast('Merge undone ✓')
       },
