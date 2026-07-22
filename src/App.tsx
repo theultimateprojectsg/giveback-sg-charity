@@ -61,6 +61,24 @@ function useScreenSize() {
 // overwrites the first — an added task or a toggled setting just vanishes with no error shown
 // to anyone. Re-fetching the column immediately before merging shrinks that race window from
 // "however long the page has been open" to the time of one round trip.
+// Manual entries and CSV imports write payment_method as free text, so the same method
+// shows up under different casings/formats ("Cash" vs "cash", "bank_transfer" vs "Bank Transfer").
+// Normalize to one canonical label per method before grouping, so charts don't silently
+// split one payment method into multiple slices.
+function normalizePaymentMethodLabel(raw: any): string {
+  const key = String(raw || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
+  const canonical: Record<string, string> = {
+    cash: 'Cash',
+    giro: 'GIRO',
+    paynow: 'PayNow',
+    'bank transfer': 'Bank Transfer',
+    cheque: 'Cheque',
+    check: 'Cheque',
+  }
+  if (canonical[key]) return canonical[key]
+  return key ? key.replace(/\b\w/g, c => c.toUpperCase()) : 'Manual'
+}
+
 async function updateCharityJsonField(charityUen: any, field: any, mutate: any) {
   const { data, error: fetchError } = await supabase.from('charity_contacts').select(field).eq('charity_uen', charityUen).single()
   if (fetchError) return { error: fetchError }
@@ -5697,9 +5715,9 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const totalRevenue = campaignsAmt + massAppealAmt + recurringAmt + generalAmt + grantsAmt
 
     const channelRows = [
-      { label: 'Campaigns', amt: campaignsAmt, color: C.sage },
+      { label: 'Campaigns', amt: campaignsAmt, color: C.bucket1 },
       { label: 'Mass Appeals', amt: massAppealAmt, color: C.gold },
-      { label: 'Recurring Gifts', amt: recurringAmt, color: C.teal },
+      { label: 'Recurring Gifts', amt: recurringAmt, color: C.red },
       { label: 'Grants', amt: grantsAmt, color: C.forest },
       { label: 'General / Unrestricted', amt: generalAmt, color: C.muted },
     ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0, rawPct: totalRevenue > 0 ? (r.amt / totalRevenue) * 100 : 0 }))
@@ -6905,7 +6923,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const totalAmt = scoped.reduce((s, d) => s + d.amount, 0)
     const byMethod: Record<string, any> = {}
     scoped.forEach(d => {
-      const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+      const label = d.source === 'manual' ? normalizePaymentMethodLabel(d.payment_method) : 'PayNow (app)'
       if (!byMethod[label]) byMethod[label] = 0
       byMethod[label] += d.amount
     })
@@ -6919,7 +6937,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const mix: Record<string, any> = {}
       allMethods61.forEach(m => { mix[m] = 0 })
       yearDons.forEach(d => {
-        const label = d.source === 'manual' ? (d.payment_method || 'Manual') : 'PayNow (app)'
+        const label = d.source === 'manual' ? normalizePaymentMethodLabel(d.payment_method) : 'PayNow (app)'
         mix[label] = (mix[label] || 0) + d.amount
       })
       return { year: y, mix, total: yearTotal }

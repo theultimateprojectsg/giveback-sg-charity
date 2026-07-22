@@ -894,6 +894,7 @@ export function AnalyticsPage({
               const massAppealRevenue = thisYearAppeals.reduce((s: any, a: any) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
               const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
               const shareOf = (amt: any) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
+              const shareOfTip = "Share of this mix, not of overall confirmed revenue — this blends all-time/active totals (active grants, all-time fulfilled pledges) with a single month of recurring income, so it won't match the fiscal-year percentages on the Revenue by Channel chart below."
 
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
@@ -910,7 +911,7 @@ export function AnalyticsPage({
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(campaignRevenue)}% of total revenue</div>
+                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(campaignRevenue)}% of current funding mix <InfoTip text={shareOfTip} /></div>
                     </div>
                   </div>
 
@@ -927,7 +928,7 @@ export function AnalyticsPage({
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(grantsReceived)}% of total revenue</div>
+                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(grantsReceived)}% of current funding mix <InfoTip text={shareOfTip} /></div>
                     </div>
                   </div>
 
@@ -944,7 +945,7 @@ export function AnalyticsPage({
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(pledgesFulfilledRevenue)}% of total revenue</div>
+                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(pledgesFulfilledRevenue)}% of current funding mix <InfoTip text={shareOfTip} /></div>
                     </div>
                   </div>
 
@@ -962,7 +963,7 @@ export function AnalyticsPage({
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(massAppealRevenue)}% of total revenue (est.)</div>
+                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(massAppealRevenue)}% of current funding mix (est.) <InfoTip text={shareOfTip} /></div>
                     </div>
                   </div>
 
@@ -979,7 +980,7 @@ export function AnalyticsPage({
                       <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
                         <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>{shareOf(recurringMonthlyTotal)}% of total revenue</div>
+                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(recurringMonthlyTotal)}% of current funding mix <InfoTip text={shareOfTip} /></div>
                     </div>
                   </div>
                 </div>
@@ -1023,7 +1024,7 @@ export function AnalyticsPage({
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
+                        {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
@@ -1196,7 +1197,7 @@ export function AnalyticsPage({
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
+                        {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
@@ -1403,7 +1404,7 @@ export function AnalyticsPage({
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
+                        {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
@@ -2027,7 +2028,7 @@ export function AnalyticsPage({
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
-                        {t.d === null ? (
+                        {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
@@ -3098,7 +3099,7 @@ export function AnalyticsPage({
 
               {paymentMixStats && (() => {
                 const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
-                const colors = [C.sage, C.gold, C.teal, C.warning, C.red, C.muted]
+                const colors = [C.forest, C.gold, C.red, C.bucket1, C.muted, C.borderStrong]
 
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
