@@ -643,7 +643,7 @@ export function DonorsPage({
                           onClick={() => {
                             setConfirmModal({
                               title: `Merge ${selectedDonor.name} into ${d.name}?`,
-                              subtitle: `All of ${selectedDonor.name}'s donations will be reassigned to ${d.name}. This cannot be undone.`,
+                              subtitle: `All of ${selectedDonor.name}'s donations, pledges, recurring gifts, notes, and tags will be reassigned to ${d.name}. This cannot be undone.`,
                               confirmLabel: 'Merge donors',
                               onConfirm: () => mergeDonorInto(selectedDonor, d.email?.trim() || d.name),
                             })
