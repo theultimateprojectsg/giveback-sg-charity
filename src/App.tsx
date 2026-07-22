@@ -4349,6 +4349,33 @@ export default function App() {
     setLoading(false)
   }
 
+  // Linking a donation to a pledge only ever updated the pledge's grand total and (once fully
+  // met) its overall status -- for a multi-year pledge, the per-year instalment rows never got
+  // marked received, so the Year 1/Year 2/... badges on the Pledges page stayed permanently
+  // "pending" regardless of real payments. Mark instalments received in year order as the
+  // cumulative amount applied to the pledge crosses each year's threshold.
+  async function applyPaymentToInstalments(pledgeId: any, totalAppliedSoFar: number, donationDate: any) {
+    const pledge = pledges.find(p => p.id === pledgeId)
+    if (!pledge?.is_multi_year) return
+    const myInstalments = pledgeInstalments
+      .filter(i => i.pledge_id === pledgeId && !i.received)
+      .sort((a, b) => a.year_number - b.year_number)
+    let cumulative = pledgeInstalments
+      .filter(i => i.pledge_id === pledgeId && i.received)
+      .reduce((s, i) => s + Number(i.amount), 0)
+    const receivedDate = donationDate ? new Date(donationDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+    const newlyReceivedIds: any[] = []
+    for (const inst of myInstalments) {
+      cumulative += Number(inst.amount)
+      if (totalAppliedSoFar + 0.005 < cumulative) break
+      newlyReceivedIds.push(inst.id)
+    }
+    if (newlyReceivedIds.length === 0) return
+    const { error } = await supabase.from('pledge_instalments').update({ received: true, received_date: receivedDate }).in('id', newlyReceivedIds)
+    if (error) { console.error('Could not mark instalments received:', error); return }
+    setPledgeInstalments(prev => prev.map(i => newlyReceivedIds.includes(i.id) ? { ...i, received: true, received_date: receivedDate } : i))
+  }
+
   async function checkPledgeCompletion(donation: any) {
     const donorKey = donation.donor_email?.trim() || donation.donor_nric || donation.donor_name
     const matchingPledge = pledges.find(p => {
@@ -4387,6 +4414,7 @@ export default function App() {
       donation_id: donation.id,
       details: { donor_name: matchingPledge.donor_name, amount_applied: donation.amount },
     })
+    await applyPaymentToInstalments(matchingPledge.id, wouldReach, donation.created_at)
 
     if (wouldReach >= Number(matchingPledge.amount)) {
       const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -4435,6 +4463,7 @@ export default function App() {
       .select('amount_applied')
       .eq('pledge_id', pledge.id)
     const total = (existingLinks || []).reduce((s, l) => s + Number(l.amount_applied), 0)
+    await applyPaymentToInstalments(pledge.id, total, donation.created_at)
 
     if (total >= Number(pledge.amount)) {
       const autoNote = `Auto-fulfilled by donation of $${Number(donation.amount).toLocaleString()} confirmed on ${new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`
