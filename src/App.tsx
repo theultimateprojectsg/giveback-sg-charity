@@ -5461,16 +5461,6 @@ export default function App() {
   const charityUen   = session?.user?.user_metadata?.charity_uen  || ''
 
   useEffect(() => {
-    if (!session?.user?.email || !activeTab) return
-    supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'page_viewed',
-      details: { page: activeTab, charity_uen: charityUen },
-    }).then()
-  }, [activeTab, session?.user?.email])
-
-  useEffect(() => {
     if (!selectedDonor || !session?.user?.email) return
     supabase.from('audit_log').insert({
       actor_type: 'charity',

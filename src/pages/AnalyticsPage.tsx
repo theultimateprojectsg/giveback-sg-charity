@@ -2615,7 +2615,7 @@ export function AnalyticsPage({
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{g.funder_name}</span>
                                 <span style={{ fontSize: 11, color: C.text }}>ends in {monthsOut} mo</span>
                               </div>
-                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>No renewal or replacement grant in the pipeline yet</div>
+                              <div style={{ fontSize: 11, color: C.text, marginTop: 2 }}>{g.is_renewable ? 'Marked renewable — worth starting the renewal conversation with the funder' : 'Not marked renewable — line up a replacement funder before this runs out'}</div>
                             </div>
                           )
                         })}
