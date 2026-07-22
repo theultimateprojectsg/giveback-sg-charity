@@ -160,10 +160,10 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
-const VALID_TABS = ['donors', 'donations', 'analytics', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'grants', 'reports', 'settings']
+const VALID_TABS = ['donors', 'donations', 'dashboard', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'grants', 'reports', 'settings']
 const MODULE_TAB_IDS: Record<string, string> = { campaigns: 'promotions', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
 const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
-const BOARD_ALLOWED_TABS = ['analytics', 'settings']
+const BOARD_ALLOWED_TABS = ['dashboard', 'settings']
 const DONOR_COLUMN_OPTIONS = [
   { key: 'total', label: 'Total Given' },
   { key: 'count', label: 'Donations' },
@@ -199,10 +199,10 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState<any>(true)
   const { tab: tabParam } = useParams()
   const navigate = useNavigate()
-  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'analytics'
+  const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'dashboard'
   const setActiveTab = React.useCallback((nextTab: any) => navigate(`/${nextTab}`), [navigate])
   useEffect(() => {
-    if (!VALID_TABS.includes(tabParam)) navigate('/analytics', { replace: true })
+    if (!VALID_TABS.includes(tabParam)) navigate('/dashboard', { replace: true })
   }, [tabParam, navigate])
   const [settingsSection, setSettingsSection] = useState<any>('general')
   const [selectedDonor, setSelectedDonor] = useState<any>(null)
@@ -885,10 +885,10 @@ export default function App() {
   const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
-    if (disabledTabIds.includes(activeTab)) setActiveTab('analytics')
+    if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
   }, [enabledModules, activeTab, setActiveTab])
   useEffect(() => {
-    if (activeTab !== 'analytics') return
+    if (activeTab !== 'dashboard') return
     const sectionIds = [
       'analytics-section-today',
       'analytics-section-fundraising',
@@ -917,7 +917,7 @@ export default function App() {
     if (roleLoaded && userRole === 'volunteer' && !VOLUNTEER_ALLOWED_TABS.includes(activeTab)) setActiveTab('donations')
   }, [roleLoaded, userRole, activeTab, setActiveTab])
   useEffect(() => {
-    if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('analytics')
+    if (roleLoaded && userRole === 'board' && !BOARD_ALLOWED_TABS.includes(activeTab)) setActiveTab('dashboard')
   }, [roleLoaded, userRole, activeTab, setActiveTab])
   const [showCustomizeAnalytics, setShowCustomizeAnalytics] = useState<any>(false)
   const [customizeMetricsDraft, setCustomizeMetricsDraft] = useState<any>(DEFAULT_VISIBLE_METRICS)
@@ -7547,7 +7547,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       action: updated[key] ? 'module_enabled' : 'module_disabled',
       details: { module: key, charity_uen: charityUen },
     })
-    if (!updated[key] && activeTab === key) setActiveTab('analytics')
+    if (!updated[key] && activeTab === key) setActiveTab('dashboard')
     showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} ${updated[key] ? 'enabled' : 'hidden'} ✓`)
   }
 
@@ -8816,7 +8816,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Escalated'); setActiveTab('recurring') } })
 
     const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
-    if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('analytics'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+    if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('dashboard'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
     const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(donationDonorKey(d)))
     if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} waiting on a thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
@@ -9083,7 +9083,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         <div style={{ ...s.navSection, overflowX: 'hidden' }}>
           {!sidebarCollapsed && <div style={s.navLabel}>Main</div>}
           {[
-            { id: 'analytics', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
+            { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
             { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
             { id: 'donors',    icon: '👥', label: 'Donors',    roles: ['ed', 'staff'] },
 
@@ -9166,7 +9166,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           <div style={s.mobileOverflowMenu}>
             <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Main</div>
             {[
-              { id: 'analytics', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
+              { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['ed', 'staff', 'board'] },
               { id: 'donations', icon: '💳', label: 'Donations', roles: ['ed', 'staff', 'volunteer'] },
               { id: 'donors',    icon: '👥', label: 'Donors', roles: ['ed', 'staff'] },
             ].filter(item => item.roles.includes(userRole)).map(item => (
@@ -9275,7 +9275,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         )}
 
         {/* ── ANALYTICS ── */}
-        {activeTab === 'analytics' && (
+        {activeTab === 'dashboard' && (
           <AnalyticsPage
             ANALYTICS_NAV_OFFSET={ANALYTICS_NAV_OFFSET} acquisitionSourceStats={acquisitionSourceStats} confirmedDonations={confirmedDonations}
             grants={grants} massAppeals={massAppeals} pledges={pledges} thisMonthTotal={thisMonthTotal}

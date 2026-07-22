@@ -9,7 +9,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/:tab" element={<App />} />
-        <Route path="/" element={<Navigate to="/analytics" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
