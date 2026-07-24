@@ -2765,7 +2765,6 @@ export function AnalyticsPage({
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
               </div>
 
-              <div style={{ ...s.analyticsSubTitle, color: C.forest }}>Retention & Lifetime Value</div>
               {(() => {
                 const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
                 return (
@@ -2793,6 +2792,148 @@ export function AnalyticsPage({
                   </div>
                 )
               })()}
+
+              {(() => {
+                const cards = donorHighlightsStats
+                if (cards.length === 0) return null
+
+                return (
+                  <div id="donor-highlights-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
+                    <div style={s.analyticsCardTitle}>Donor Highlights — {filterYear}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
+                      {cards.map((c: any, i: any) => (
+                        <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 18 }}>{c.icon}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</span>
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{c.name}</div>
+                          <div style={{ fontSize: 12, color: C.muted }}>{c.sub}</div>
+                          {c.donor.email?.trim() && (
+                            <button
+                              style={{ ...s.btnGold, justifyContent: 'center', fontSize: 12, padding: '8px 14px', marginTop: 4 }}
+                              onClick={() => generateThankYouNote(c.donor, { unackedBigGift: true })}
+                            >✍️ Draft thank-you</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
+              {paymentMixStats && (() => {
+                const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
+                const colors = [C.forest, C.gold, C.red, C.bucket1, C.muted, C.borderStrong]
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
+                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
+                      {rows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
+                      {rows.map((r: any, i: any) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {allYears61.length > 1 && (
+                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
+                        {allMethods61.map((method: any, mi: any) => {
+                          const series = yearlyMix61.map((y: any) => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
+                          const firstPct = series[0]
+                          const lastPct = series[series.length - 1]
+                          const delta = lastPct - firstPct
+                          return (
+                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
+                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
+                                {yearlyMix61.map((y: any, yi: any) => (
+                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
+                                ))}
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+              {(() => {
+                const { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend } = fundingConcentrationStats
+
+                return (
+                  <div style={{ ...s.card, marginBottom: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
+                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
+                        <option value={5}>Top 5</option>
+                        <option value={10}>Top 10</option>
+                        <option value={20}>Top 20</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2 }}>{concentrationPct}%</div>
+                      {concentrationTrend !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
+                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
+                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
+                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d: any, i: any) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
+                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
+                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {sorted.length > 5 && (
+                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
+                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
+                      </button>
+                    )}
+                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setFilterDonorKeys(null); setDonorFilterLabel(null); setActiveTab('donors') }}>View Top Donors →</button>
+                  </div>
+                )
+              })()}
+              </div>
+
+              <div style={{ ...s.card, marginBottom: 24 }}>
+                <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
+                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
+                  {donationSizeBreakdownStats.map((bucket: any, i: any) => (
+                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{bucket.pct}% of donations · ${bucket.total.toLocaleString()}</div>
+                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${bucket.pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
+                        </div>
+                      </div>
+                  ))}
+                </div>
+              </div>
 
               <div style={{ ...s.analyticsSubTitle, color: C.red, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Needs Attention</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
@@ -2971,7 +3112,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && d.receipt_issued && d.donor_email?.trim() && !d.thank_you_sent)
+                const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && !d.donor_deceased && !d.donor_do_not_contact)
                 const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
                 if (owedDonations.length === 0) return null
                 return (
@@ -2986,35 +3127,6 @@ export function AnalyticsPage({
               </div>
 
               <div style={{ ...s.analyticsSubTitle, color: C.sage, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Recognition & Stewardship</div>
-              {(() => {
-                const cards = donorHighlightsStats
-                if (cards.length === 0) return null
-
-                return (
-                  <div id="donor-highlights-card-analytics" style={{ ...s.card, marginBottom: 24, scrollMarginTop: 20 }}>
-                    <div style={s.analyticsCardTitle}>Donor Highlights — {filterYear}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Standout supporters worth a personal thank-you.</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${cards.length}, 1fr)`, gap: 12 }}>
-                      {cards.map((c: any, i: any) => (
-                        <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 18 }}>{c.icon}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{c.label}</span>
-                          </div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: C.forest }}>{c.name}</div>
-                          <div style={{ fontSize: 12, color: C.muted }}>{c.sub}</div>
-                          {c.donor.email?.trim() && (
-                            <button
-                              style={{ ...s.btnGold, justifyContent: 'center', fontSize: 12, padding: '8px 14px', marginTop: 4 }}
-                              onClick={() => generateThankYouNote(c.donor, { unackedBigGift: true })}
-                            >✍️ Draft thank-you</button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
               {(() => {
                 const streaks = givingStreaksStats
                 return (
@@ -3107,100 +3219,6 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {paymentMixStats && (() => {
-                const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
-                const colors = [C.forest, C.gold, C.red, C.bucket1, C.muted, C.borderStrong]
-
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
-                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                      {rows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: allYears61.length > 1 ? 18 : 0 }}>
-                      {rows.map((r: any, i: any) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i % colors.length], flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
-                          <span style={{ fontSize: 12, color: C.muted, minWidth: 70, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {allYears61.length > 1 && (
-                      <div style={{ borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Shift over time</div>
-                        {allMethods61.map((method: any, mi: any) => {
-                          const series = yearlyMix61.map((y: any) => y.total > 0 ? Math.round((y.mix[method] / y.total) * 100) : 0)
-                          const firstPct = series[0]
-                          const lastPct = series[series.length - 1]
-                          const delta = lastPct - firstPct
-                          return (
-                            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                              <span style={{ fontSize: 12, color: C.text, width: 100, flexShrink: 0 }}>{method}</span>
-                              <div style={{ display: 'flex', gap: 4, flex: 1 }}>
-                                {yearlyMix61.map((y: any, yi: any) => (
-                                  <div key={yi} style={{ fontSize: 10, color: C.muted, textAlign: 'center', flex: 1 }}>{y.year}: {series[yi]}%</div>
-                                ))}
-                              </div>
-                              <span style={{ fontSize: 11, fontWeight: 500, color: delta > 0 ? C.sage : delta < 0 ? C.red : C.muted, width: 50, textAlign: 'right' }}>{delta === 0 ? '—' : `${delta > 0 ? '+' : ''}${delta}pt`}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
-                const { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend } = fundingConcentrationStats
-
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
-                      <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
-                        <option value={5}>Top 5</option>
-                        <option value={10}>Top 10</option>
-                        <option value={20}>Top 20</option>
-                      </select>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 2 }}>{concentrationPct}%</div>
-                      {concentrationTrend !== null && (
-                        <span style={{ fontSize: 12, fontWeight: 500, color: concentrationTrend <= 0 ? C.sage : C.red }}>
-                          {concentrationTrend === 0 ? '—' : concentrationTrend < 0 ? `↓ ${Math.abs(concentrationTrend)}pt` : `↑ ${concentrationTrend}pt`} vs 90d ago
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue from top {Math.min(concentrationTopN, sorted.length)} donors</div>
-                    <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 8 }}>
-                      <div style={{ width: `${concentrationPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
-                    </div>
-                    <div style={{ fontSize: 11.5, color: highRisk ? C.red : medRisk ? C.gold : C.sage, fontWeight: 500, marginBottom: 14 }}>
-                      {tooFewDonors ? 'Too few donors to assess yet' : highRisk ? '⚠ High risk — diversify donor base' : medRisk ? '⚠ Moderate risk' : '✓ Healthy diversification'}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                    {sorted.slice(0, showAllConcentrationDonors ? 10 : 5).map((d: any, i: any) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setSelectedDonor(findDonorRecord(d.email, d.name)); setActiveTab('donors') }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest }}>{d.name}</span>
-                          <span style={{ fontFamily: C.fontMono, fontSize: 13, fontWeight: 500, color: C.forest }}>
-                            ${d.total.toLocaleString()} / {grandTotal > 0 ? Math.round((d.total / grandTotal) * 100) : 0}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {sorted.length > 5 && (
-                      <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 0, marginBottom: 10, display: 'block' }} onClick={() => setShowAllConcentrationDonors(v => !v)}>
-                        {showAllConcentrationDonors ? 'Show fewer' : `Show top ${Math.min(10, sorted.length)}`}
-                      </button>
-                    )}
-                    <button style={{ ...s.viewBtn, fontSize: 11.5, padding: '6px 12px', width: '100%', justifyContent: 'center' }} onClick={() => { setFilterTopDonorNames(topDonorNames); setFilterDonorKeys(null); setDonorFilterLabel(null); setActiveTab('donors') }}>View Top Donors →</button>
-                  </div>
-                )
-              })()}
-
               {(() => {
                 const rows78 = topConnectorsStats
                 if (rows78.length === 0) return (
@@ -3255,22 +3273,6 @@ export function AnalyticsPage({
                 )
               })()}
 
-              <div style={{ ...s.card, marginBottom: 0 }}>
-                <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
-                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
-                  {donationSizeBreakdownStats.map((bucket: any, i: any) => (
-                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{bucket.pct}% of donations · ${bucket.total.toLocaleString()}</div>
-                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${bucket.pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
-                        </div>
-                      </div>
-                  ))}
-                </div>
-              </div>
               </div>
 
             <div id="analytics-section-forecasting" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
