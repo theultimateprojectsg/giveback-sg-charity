@@ -2765,6 +2765,7 @@ export function AnalyticsPage({
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
               </div>
 
+              <div style={{ ...s.analyticsSubTitle, color: C.forest }}>Retention & Lifetime Value</div>
               {(() => {
                 const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
                 return (
@@ -2793,7 +2794,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              <div style={{ ...s.analyticsSubTitle, color: C.red }}>Needs Attention</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.red, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Needs Attention</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
               {(() => {
                 const lapsedToday = new Date()
@@ -2984,7 +2985,7 @@ export function AnalyticsPage({
               })()}
               </div>
 
-              <div style={{ ...s.analyticsSubTitle, color: C.sage }}>Recognition & Stewardship</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.sage, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Recognition & Stewardship</div>
               {(() => {
                 const cards = donorHighlightsStats
                 if (cards.length === 0) return null
@@ -3040,7 +3041,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Donor Composition & Analysis</div>
+              <div style={{ ...s.analyticsSubTitle, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Donor Composition & Analysis</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
