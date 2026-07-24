@@ -8914,7 +8914,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('dashboard'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
     const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(donationDonorKey(d)))
-    if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed gift${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} waiting on a thank-you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
+    if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed donation${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} pending thank you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
 
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
     // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
