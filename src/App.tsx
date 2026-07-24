@@ -7015,7 +7015,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const fundingConcentrationStats = React.useMemo(() => {
     const donorTotals: Record<string, any> = {}
-    confirmedDonations.forEach(d => {
+    confirmedDonations.filter(d => !d.is_anonymous).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!donorTotals[key]) donorTotals[key] = { name: d.donor_name, email: d.donor_email, total: 0, gifts: [] }
       donorTotals[key].total += d.amount
@@ -7033,7 +7033,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const quarterAgo = new Date()
     quarterAgo.setDate(quarterAgo.getDate() - 90)
     const priorDonorTotals: Record<string, any> = {}
-    confirmedDonations.filter(d => new Date(d.created_at) < quarterAgo).forEach(d => {
+    confirmedDonations.filter(d => !d.is_anonymous && new Date(d.created_at) < quarterAgo).forEach(d => {
       const key = d.donor_email?.trim() || d.donor_nric || d.donor_name
       if (!priorDonorTotals[key]) priorDonorTotals[key] = 0
       priorDonorTotals[key] += d.amount
