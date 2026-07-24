@@ -213,7 +213,7 @@ export default function App() {
   const [loading, setLoading] = useState<any>(true)
   const [, setIssuing] = useState<any>(null)
   const [session, setSession] = useState<any>(null)
-  const charityName = session?.user?.user_metadata?.charity_name || 'Your Charity'
+  const charityName = session?.user?.app_metadata?.charity_name || 'Your Charity'
   const [authLoading, setAuthLoading] = useState<any>(true)
   const { tab: tabParam } = useParams()
   const navigate = useNavigate()
@@ -597,7 +597,7 @@ export default function App() {
   const [savingDonorContact, setSavingDonorContact] = useState<any>(false)
 
   async function loadDonorContacts(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_donor_contacts')
@@ -1074,7 +1074,7 @@ export default function App() {
   }, [session])
 
   async function loadGivingChangeAcks(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('giving_change_acks')
@@ -1091,7 +1091,7 @@ export default function App() {
   }
 
   async function loadLapsedReminders(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('lapsed_donor_events')
@@ -1119,7 +1119,7 @@ export default function App() {
   }
 
   async function loadCharityIpcStatus(activeSession: any) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
@@ -1267,7 +1267,7 @@ export default function App() {
   }
 
   async function loadDonorBadgeAcks(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('donor_badge_acks')
@@ -1278,7 +1278,7 @@ export default function App() {
   }
 
   async function loadAllDonorTags(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('donor_tags')
@@ -1294,7 +1294,7 @@ export default function App() {
   }
 
   async function loadAllDonorLastContact(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('donor_notes')
@@ -1351,7 +1351,7 @@ export default function App() {
   const [pledgesLoaded, setPledgesLoaded] = useState<any>(false)
 
   async function loadPledges(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) { setPledgesLoaded(true); return }
     const { data, error } = await supabase
       .from('pledges')
@@ -1525,7 +1525,7 @@ export default function App() {
   }
 
   async function loadGrantExpenses() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_expenses').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen)
     if (error) { console.error('Could not load grant expenses:', error); return }
@@ -1533,7 +1533,7 @@ export default function App() {
   }
 
   async function loadCampaignExpenses() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('campaign_expenses').select('*, causes!inner(charity_uen)').eq('causes.charity_uen', uen)
     if (error) { console.error('Could not load campaign expenses:', error); return }
@@ -1596,7 +1596,7 @@ export default function App() {
   }
 
   async function loadGrantNotes() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_notes').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('created_at', { ascending: false })
     if (error) { console.error('Could not load grant notes:', error); return }
@@ -1625,7 +1625,7 @@ export default function App() {
   }
 
   async function loadGrantReports() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_reports').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('due_date', { ascending: true })
     if (error) { console.error('Could not load grant reports:', error); return }
@@ -1694,7 +1694,7 @@ export default function App() {
   }
 
   async function loadGrantTranches() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_tranches').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('expected_date', { ascending: true })
     if (error) { console.error('Could not load grant tranches:', error); return }
@@ -1773,7 +1773,7 @@ export default function App() {
   }
 
   async function loadGrantMatchClaims() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grant_match_claims').select('*, grants!inner(charity_uen)').eq('grants.charity_uen', uen).order('claim_date', { ascending: false })
     if (error) { console.error('Could not load grant match claims:', error); return }
@@ -1893,7 +1893,7 @@ export default function App() {
   }
 
   async function loadRefunds() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('refunds').select('*').eq('charity_uen', uen)
     if (error) { console.error('Could not load refunds:', error); return }
@@ -2047,7 +2047,7 @@ export default function App() {
   }
 
   async function loadRecurringExpenses() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('recurring_expenses').select('*').eq('charity_uen', uen).order('amount', { ascending: false })
     if (error) { console.error('Could not load recurring expenses:', error); return }
@@ -2088,7 +2088,7 @@ export default function App() {
   }
 
   async function loadGrants() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase.from('grants').select('*').eq('charity_uen', uen).order('created_at', { ascending: false })
     if (error) { console.error('Could not load grants:', error); return }
@@ -2239,7 +2239,7 @@ export default function App() {
   }
 
   async function loadPledgeInstalments() {
-    const uen = session?.user?.user_metadata?.charity_uen
+    const uen = session?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data } = await supabase.from('pledge_instalments').select('*, pledges!inner(charity_uen)').eq('pledges.charity_uen', uen)
     setPledgeInstalments(data || [])
@@ -2624,7 +2624,7 @@ export default function App() {
   }
 
   async function loadRecurringGifts(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('recurring_gifts')
@@ -3374,7 +3374,7 @@ export default function App() {
   }
 
   async function loadMassAppeals(activeSession = session) {
-    const uen = activeSession?.user?.user_metadata?.charity_uen
+    const uen = activeSession?.user?.app_metadata?.charity_uen
     if (!uen) return
     const { data, error } = await supabase
       .from('mass_appeals')
@@ -3407,7 +3407,7 @@ export default function App() {
   }
 
   function charityUenFromSession() {
-    return session?.user?.user_metadata?.charity_uen || ''
+    return session?.user?.app_metadata?.charity_uen || ''
   }
 
   function deleteCause(id: any) {
@@ -4341,7 +4341,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('donations')
       .select('*')
-      .eq('charity_uen', activeSession.user.user_metadata.charity_uen)  
+      .eq('charity_uen', activeSession.user.app_metadata.charity_uen)
       .not('status', 'in', '(cancelled_by_donor,deleted_by_charity)')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); return }
@@ -5526,7 +5526,7 @@ export default function App() {
     return c ? c.title : null
   }
 
-  const charityUen   = session?.user?.user_metadata?.charity_uen  || ''
+  const charityUen   = session?.user?.app_metadata?.charity_uen  || ''
 
   useEffect(() => {
     if (!selectedDonor || !session?.user?.email) return
