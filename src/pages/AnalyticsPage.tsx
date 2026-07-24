@@ -2918,23 +2918,6 @@ export function AnalyticsPage({
               })()}
               </div>
 
-              <div style={{ ...s.card, marginBottom: 24 }}>
-                <div style={s.analyticsCardTitle}>Donation Size Breakdown — {filterYear}</div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>How many confirmed donations fall into each amount range, and what share of total volume each range represents.</div>
-                <div style={{ display: 'grid', gridTemplateColumns: (isMobile || isTablet) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 10 : 12 }}>
-                  {donationSizeBreakdownStats.map((bucket: any, i: any) => (
-                      <div key={i} style={{ background: C.ivory, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{bucket.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: bucket.color, marginBottom: 4 }}>{bucket.count}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>{bucket.pct}% of donations · ${bucket.total.toLocaleString()}</div>
-                        <div style={{ background: C.border, borderRadius: 6, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${bucket.pct}%`, height: '100%', background: bucket.color, borderRadius: 6 }} />
-                        </div>
-                      </div>
-                  ))}
-                </div>
-              </div>
-
               <div style={{ ...s.analyticsSubTitle, color: C.red, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Needs Attention</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
               {(() => {
