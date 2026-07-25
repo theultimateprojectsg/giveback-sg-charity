@@ -3090,9 +3090,39 @@ export function AnalyticsPage({
               <div style={{ ...s.analyticsSubTitle, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Donor Composition & Analysis</div>
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors <InfoTip text="Your top 5 donors by total lifetime giving, across all time — not scoped to the year filter above." /></div>
+                  <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors & Lifetime Value <InfoTip text="Your top 5 donors by total lifetime giving, plus average lifetime value across all donors — not scoped to the year filter above." /></div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
                 </div>
+                {donorLTVStats && (() => {
+                  const { avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 } = donorLTVStats
+                  return (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+                        <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
+                        </div>
+                        <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
+                        </div>
+                        <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
+                          <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${donorList[0]?.total.toLocaleString() || 0}</div>
+                        </div>
+                      </div>
+                      <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 16 }}>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
+                <div style={{ fontSize: 10.5, color: C.muted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Top 5, all-time</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {donorList.slice(0, 5).map((d, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -3107,39 +3137,6 @@ export function AnalyticsPage({
                   {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
                 </div>
               </div>
-
-              {donorLTVStats && (() => {
-                const { sorted, avgLTV, avgGifts, under1yr59, oneToTwo59, twoPlus59, avgOf59 } = donorLTVStats
-                return (
-                  <div style={{ ...s.card, marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Donor Lifetime Value <InfoTip text="Total giving per donor across all time. Shows your average and top donors by cumulative amount given." /></div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg LTV</div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>${avgLTV.toLocaleString()}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
-                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Avg gifts per donor</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>{avgGifts}</div>
-                      </div>
-                      <div style={{ background: C.ivory, borderRadius: 4, padding: '9px 12px', border: `1px solid ${C.border}` }}>
-                        <div style={{ fontSize: 10.5, color: C.muted }}>Top donor LTV</div>
-                        <div style={{ fontFamily: C.fontMono, fontSize: 16, fontWeight: 500, color: C.forest }}>${sorted[0]?.total.toLocaleString() || 0}</div>
-                      </div>
-                    </div>
-                    <div style={{ background: C.ivory, borderRadius: 4, padding: '10px 12px', border: `1px solid ${C.border}` }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 6 }}>Average lifetime value by tenure</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>Under 1 year ({under1yr59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(under1yr59) !== null ? `$${avgOf59(under1yr59).toLocaleString()}` : '—'}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>1–2 years ({oneToTwo59.length})</span><span style={{ fontWeight: 500, color: C.forest }}>{avgOf59(oneToTwo59) !== null ? `$${avgOf59(oneToTwo59).toLocaleString()}` : '—'}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: C.muted }}>2+ years ({twoPlus59.length})</span><span style={{ fontWeight: 500, color: C.sage }}>{avgOf59(twoPlus59) !== null ? `$${avgOf59(twoPlus59).toLocaleString()}` : '—'}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
 
               {(() => {
                 const rows78 = topConnectorsStats
