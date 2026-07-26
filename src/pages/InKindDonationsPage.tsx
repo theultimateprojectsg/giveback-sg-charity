@@ -26,6 +26,10 @@ interface InKindDonation {
   voided_by?: string | null
   void_reason?: string | null
   reissued_from?: string | null
+  impact_note?: string | null
+  valuation_basis?: string | null
+  condition?: string | null
+  photo_url?: string | null
 }
 
 interface InKindDonationsPageProps {
@@ -57,6 +61,10 @@ interface InKindDonationsPageProps {
   bulkInKindCancelRef: RefObject<boolean>
   voidAndReissueInKindReceipt: (item: InKindDonation, reason: string) => void
   voidingInKindReceipt: boolean
+  updateInKindImpactNote: (item: InKindDonation, note: string) => void
+  uploadInKindPhoto: (item: InKindDonation, file: File) => void
+  removeInKindPhoto: (item: InKindDonation) => void
+  uploadingInKindPhotoId: number | null
 }
 
 const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
@@ -84,9 +92,12 @@ export function InKindDonationsPage({
   updateInKindNotes, issueInKindReceipt, exportInKindReceiptPDF, issuingInKindReceiptId,
   issueAllInKindReceipts, bulkInKindActionInProgress, bulkInKindProgress, bulkInKindCancelRef,
   voidAndReissueInKindReceipt, voidingInKindReceipt,
+  updateInKindImpactNote, uploadInKindPhoto, removeInKindPhoto, uploadingInKindPhotoId,
 }: InKindDonationsPageProps) {
   const [showVoidModal, setShowVoidModal] = useState(false)
   const [voidReason, setVoidReason] = useState('')
+  const [editingImpactNoteId, setEditingImpactNoteId] = useState<number | null>(null)
+  const [impactNoteText, setImpactNoteText] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
@@ -157,7 +168,7 @@ export function InKindDonationsPage({
   const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterReceipt('All'); setFilterThankYou('All') }
 
   useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterReceipt, filterThankYou, sortBy, sortDir])
-  useEffect(() => { setEditingNotesId(null); setShowVoidModal(false); setVoidReason('') }, [selectedGiftId])
+  useEffect(() => { setEditingNotesId(null); setShowVoidModal(false); setVoidReason(''); setEditingImpactNoteId(null) }, [selectedGiftId])
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
 
@@ -239,6 +250,22 @@ export function InKindDonationsPage({
                 <option value="">None — general use</option>
                 {myCauses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={s.formLabel}>Condition</div>
+                <select style={s.formInput} value={inKindForm.condition} onChange={e => setInKindForm((f: any) => ({ ...f, condition: e.target.value }))}>
+                  <option value="">Not specified</option>
+                  <option value="New">New</option>
+                  <option value="Used - Good Condition">Used - Good Condition</option>
+                  <option value="Used - Fair Condition">Used - Fair Condition</option>
+                </select>
+              </div>
+              <div>
+                <div style={s.formLabel}>Valuation Basis</div>
+                <input style={s.formInput} placeholder="e.g. Retail price, donor-quoted" value={inKindForm.valuation_basis} onChange={e => setInKindForm((f: any) => ({ ...f, valuation_basis: e.target.value }))} />
+              </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
@@ -494,25 +521,43 @@ export function InKindDonationsPage({
                     <div style={{ overflowY: 'auto', flex: 1 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Gift Details</div>
                       <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                          <span style={{ fontSize: 13, color: C.muted }}>Item</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: C.text, textAlign: 'right', maxWidth: 280 }}>{item.item_description}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: item.receipt_issued ? `1px solid ${C.ivoryDark}` : undefined }}>
-                          <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{cause || 'General'}</span>
-                        </div>
-                        {item.receipt_issued && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: item.reissued_from ? `1px solid ${C.ivoryDark}` : undefined }}>
-                            <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{item.receipt_number}</span>
+                        {([
+                          ['Item', item.item_description, false],
+                          ['Cause', cause || 'General', false],
+                          ...(item.condition ? [['Condition', item.condition, false]] : []),
+                          ...(item.valuation_basis ? [['Valuation Basis', item.valuation_basis, false]] : []),
+                          ...(item.receipt_issued ? [['Receipt No.', item.receipt_number, true]] : []),
+                          ...(item.reissued_from ? [['Reissued from', item.reissued_from, false]] : []),
+                        ] as [string, string, boolean][]).map(([label, value, emphasize], i, arr) => (
+                          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.ivoryDark}` : undefined }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>{label}</span>
+                            <span style={{ fontSize: 13, fontWeight: emphasize ? 700 : 500, color: emphasize ? C.forest : C.text, textAlign: 'right', maxWidth: 280, fontFamily: label === 'Reissued from' ? 'monospace' : undefined }}>{value}</span>
                           </div>
-                        )}
-                        {item.reissued_from && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                            <span style={{ fontSize: 13, color: C.muted }}>Reissued from</span>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: 'monospace' }}>{item.reissued_from}</span>
+                        ))}
+                      </div>
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Photo</div>
+                      <div style={{ marginBottom: 16 }}>
+                        {item.photo_url ? (
+                          <div>
+                            <img src={item.photo_url} alt="Gift-in-kind" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8 }} />
+                            {canEdit && (
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <label style={{ ...s.viewBtn, flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                                  {uploadingInKindPhotoId === item.id ? 'Uploading...' : 'Replace Photo'}
+                                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
+                                </label>
+                                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, flex: 1 }} onClick={() => removeInKindPhoto(item)}>Remove</button>
+                              </div>
+                            )}
                           </div>
+                        ) : canEdit ? (
+                          <label style={{ ...s.viewBtn, display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                            {uploadingInKindPhotoId === item.id ? 'Uploading...' : '📷 Add Photo'}
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
+                          </label>
+                        ) : (
+                          <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No photo on file.</div>
                         )}
                       </div>
 
@@ -548,6 +593,26 @@ export function InKindDonationsPage({
                           {item.notes
                             ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
                             : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to add a note...' : 'No notes recorded.'}</div>
+                          }
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Impact Note</div>
+                      {canEdit && editingImpactNoteId === item.id ? (
+                        <div style={{ marginBottom: 20 }}>
+                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.gold}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 60 }}
+                            value={impactNoteText} onChange={e => setImpactNoteText(e.target.value)} placeholder="e.g. These meals fed 40 families in patient housing this month." autoFocus />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindImpactNote(item, impactNoteText); setEditingImpactNoteId(null) }}>Save</button>
+                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingImpactNoteId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={canEdit ? { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.warningBorder}`, minHeight: 20, marginBottom: 20 }}
+                          onClick={canEdit ? () => { setEditingImpactNoteId(item.id); setImpactNoteText(item.impact_note || '') } : undefined}>
+                          {item.impact_note
+                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {item.impact_note}</div>
+                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to describe what this gift funded...' : 'No impact note recorded.'}</div>
                           }
                         </div>
                       )}

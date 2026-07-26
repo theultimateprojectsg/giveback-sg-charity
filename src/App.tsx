@@ -456,7 +456,7 @@ export default function App() {
   const [inKindDonations, setInKindDonations] = useState<any[]>([])
   const [showInKindForm, setShowInKindForm] = useState<any>(false)
   const [editingInKindId, setEditingInKindId] = useState<any>(null)
-  const [inKindForm, setInKindForm] = useState<any>({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false })
+  const [inKindForm, setInKindForm] = useState<any>({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false, valuation_basis: '', condition: '' })
   const [savingInKind, setSavingInKind] = useState<any>(false)
   const [inKindError, setInKindError] = useState<any>('')
   const [inKindThankYouModal, setInKindThankYouModal] = useState<any>(null)
@@ -1925,7 +1925,7 @@ export default function App() {
     setShowInKindForm(false)
     setEditingInKindId(null)
     setInKindError('')
-    setInKindForm({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false })
+    setInKindForm({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false, valuation_basis: '', condition: '' })
   }
 
   function startEditingInKind(item: any) {
@@ -1942,6 +1942,8 @@ export default function App() {
       cause_id: item.cause_id || '',
       notes: item.notes || '',
       is_anonymous: item.is_anonymous || false,
+      valuation_basis: item.valuation_basis || '',
+      condition: item.condition || '',
     })
     setShowInKindForm(true)
   }
@@ -1968,6 +1970,8 @@ export default function App() {
       cause_id: inKindForm.cause_id || null,
       notes: inKindForm.notes?.trim() || null,
       is_anonymous: inKindForm.is_anonymous,
+      valuation_basis: inKindForm.valuation_basis?.trim() || null,
+      condition: inKindForm.condition || null,
       charity_uen: charityUen,
       created_by: session.user.email,
     }
@@ -2029,6 +2033,38 @@ export default function App() {
   async function updateInKindNotes(item: any, notes: string) {
     const { data, error } = await supabase.from('in_kind_donations').update({ notes }).eq('id', item.id).select().single()
     if (error) { showToast('Error saving note', 'error'); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+  }
+
+  async function updateInKindImpactNote(item: any, impact_note: string) {
+    const { data, error } = await supabase.from('in_kind_donations').update({ impact_note }).eq('id', item.id).select().single()
+    if (error) { showToast('Error saving impact note', 'error'); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+  }
+
+  const [uploadingInKindPhotoId, setUploadingInKindPhotoId] = useState<any>(null)
+
+  async function uploadInKindPhoto(item: any, file: any) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { showToast('Please choose an image file', 'error'); return }
+    if (file.size > 5 * 1024 * 1024) { showToast('Photo must be under 5MB', 'error'); return }
+    setUploadingInKindPhotoId(item.id)
+    const ext = file.name.split('.').pop().toLowerCase()
+    const path = `${charityUen}/inkind/${item.id}.${ext}`
+    const { error: uploadError } = await supabase.storage.from('charity-assets').upload(path, file, { upsert: true, cacheControl: '3600' })
+    if (uploadError) { showToast(`Error uploading photo: ${uploadError.message}`, 'error'); setUploadingInKindPhotoId(null); return }
+    const { data: urlData } = supabase.storage.from('charity-assets').getPublicUrl(path)
+    const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`
+    const { data, error: dbError } = await supabase.from('in_kind_donations').update({ photo_url: publicUrl }).eq('id', item.id).select().single()
+    if (dbError) { showToast(`Error saving photo: ${dbError.message}`, 'error'); setUploadingInKindPhotoId(null); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    setUploadingInKindPhotoId(null)
+    showToast('Photo uploaded ✓')
+  }
+
+  async function removeInKindPhoto(item: any) {
+    const { data, error } = await supabase.from('in_kind_donations').update({ photo_url: null }).eq('id', item.id).select().single()
+    if (error) { showToast('Error removing photo', 'error'); return }
     setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
   }
 
@@ -2253,6 +2289,8 @@ export default function App() {
     ]
     const causeTitle = item.cause_id ? myCauses.find(c => c.id === item.cause_id)?.title : null
     if (causeTitle) facts.push(['Designated to', causeTitle])
+    if (item.condition) facts.push(['Condition', item.condition])
+    if (item.valuation_basis) facts.push(['Valuation basis', item.valuation_basis])
     if (item.reissued_from) facts.push(['Reissued from receipt', item.reissued_from])
     if (item.receipt_voided) facts.push(['Status', 'VOIDED'])
 
@@ -2285,6 +2323,22 @@ export default function App() {
     doc.text(disclaimerLines, margin + 5, y + 11)
     doc.setFont('helvetica', 'normal')
     y += disclaimerLines.length * 5.5 + 14
+
+    if (item.impact_note?.trim()) {
+      y += 8
+      doc.setFillColor(...gold)
+      const impactLines = doc.splitTextToSize(`"${item.impact_note.trim()}"`, contentWidth - 10)
+      doc.rect(margin, y, 0.8, impactLines.length * 5.5 + 6, 'F')
+      doc.setFontSize(8.5)
+      doc.setTextColor(...gold)
+      microLabel('THE DIFFERENCE YOUR GIFT MADE', margin + 5, y + 4.5)
+      doc.setFontSize(11)
+      doc.setFont('times', 'italic')
+      doc.setTextColor(...forest)
+      doc.text(impactLines, margin + 5, y + 11)
+      doc.setFont('helvetica', 'normal')
+      y += impactLines.length * 5.5 + 12
+    }
 
     y += 10
     doc.setDrawColor(...hairline)
@@ -7800,15 +7854,19 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Estimated Value (SGD)': item.estimated_value,
       'Date Received': new Date(item.received_date).toLocaleDateString('en-SG'),
       'Programme': item.cause_id ? (myCauses.find(c => c.id === item.cause_id)?.title || '') : 'General',
+      'Condition': item.condition || '',
+      'Valuation Basis': item.valuation_basis || '',
       'Receipt No.': item.receipt_number || '',
       'Receipt Issued': item.receipt_issued ? 'Yes' : 'No',
       'Thank You Sent': item.thank_you_sent ? 'Yes' : 'No',
+      'Impact Note': item.impact_note || '',
+      'Photo on File': item.photo_url ? 'Yes' : 'No',
       'Notes': item.notes || '',
       'Recorded By': item.created_by || '',
     }))
     if (rows.length === 0) { showToast('No in-kind gifts to export', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 36 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 24 }]
+    ws['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 36 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 16 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 30 }, { wch: 24 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'In-Kind Gifts')
     XLSX.writeFile(wb, `GivingTree-InKindGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -11105,6 +11163,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             issuingInKindReceiptId={issuingInKindReceiptId} issueAllInKindReceipts={issueAllInKindReceipts}
             bulkInKindActionInProgress={bulkInKindActionInProgress} bulkInKindProgress={bulkInKindProgress} bulkInKindCancelRef={bulkInKindCancelRef}
             voidAndReissueInKindReceipt={voidAndReissueInKindReceipt} voidingInKindReceipt={voidingInKindReceipt}
+            updateInKindImpactNote={updateInKindImpactNote} uploadInKindPhoto={uploadInKindPhoto} removeInKindPhoto={removeInKindPhoto}
+            uploadingInKindPhotoId={uploadingInKindPhotoId}
           />
         )}
 
