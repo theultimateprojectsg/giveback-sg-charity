@@ -803,8 +803,9 @@ export default function App() {
   const [deletingId, setDeletingId] = useState<any>(null)
   const [selectedDonation, setSelectedDonation] = useState<any>(null)
   const [donationPledgeLink, setDonationPledgeLink] = useState<any>(null)
-  // Snoozed action items: { [itemKey]: untilTimestampMs }. An item stays hidden from the dashboard
-  // Action Items list until its snooze expires. Expired entries are pruned on load.
+  // Snoozed action items: { [itemKey]: { until: timestampMs, reason?: string } }. An item stays
+  // hidden from the dashboard Action Items list until its snooze expires. Expired entries are
+  // pruned on load. Also accepts the older plain-number-timestamp shape for backward compat.
   const [snoozedItems, setSnoozedItems] = useState<any>(() => {
     const saved = localStorage.getItem('gt_snoozed_action_items')
     if (!saved) return {}
@@ -812,7 +813,11 @@ export default function App() {
       const parsed = JSON.parse(saved)
       const now = Date.now()
       const active: Record<string, any> = {}
-      Object.entries(parsed).forEach(([k, until]) => { if (typeof until === 'number' && until > now) active[k] = until })
+      Object.entries(parsed).forEach(([k, v]: [string, any]) => {
+        const until = typeof v === 'number' ? v : v?.until
+        const reason = typeof v === 'object' ? v?.reason : undefined
+        if (typeof until === 'number' && until > now) active[k] = { until, reason }
+      })
       return active
     } catch {
       return {}
@@ -822,9 +827,9 @@ export default function App() {
 
   const [showSnoozedItems, setShowSnoozedItems] = useState<any>(false)
 
-  function snoozeActionItem(itemKey: any, days: any) {
+  function snoozeActionItem(itemKey: any, days: any, reason?: string) {
     setSnoozedItems((prev: any) => {
-      const next = { ...prev, [itemKey]: Date.now() + days * 24 * 60 * 60 * 1000 }
+      const next = { ...prev, [itemKey]: { until: Date.now() + days * 24 * 60 * 60 * 1000, reason: reason?.trim() || undefined } }
       localStorage.setItem('gt_snoozed_action_items', JSON.stringify(next))
       return next
     })
@@ -9456,7 +9461,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const notSuppressed = (key: any) => !suppressedKeys.has(key)
 
     const unconfirmed = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-    if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
+    if (unconfirmed > 0) items.push({ key: 'unconfirmed_payments', icon: '⚡', label: `${unconfirmed} payment${unconfirmed > 1 ? 's' : ''} awaiting confirmation`, priority: 'high', severity: 'critical', urgency: unconfirmed, jump: () => { clearDonationFilters({ keepYear: false }); setFilterType('Awaiting Payment'); setActiveTab('donations') } })
 
     const wasRecentlyReminded = (p: any) => {
       const history = pledgeReminderHistory[p.id]
@@ -9466,26 +9471,32 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
     const overduePledges = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < today && !wasRecentlyReminded(p)) : []
     const dueSoonPledges = pledgesLoaded ? pledges.filter(p => { if (p.status !== 'pending' || wasRecentlyReminded(p)) return false; const days = Math.ceil((new Date(p.expected_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)); return days >= 0 && days <= pledgeDueSoonDays }) : []
-    if (overduePledges.length > 0) items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
-    if (dueSoonPledges.length > 0) items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within ${pledgeDueSoonDays} days and may need a gentle reminder`, priority: 'medium', jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+    if (overduePledges.length > 0) {
+      const maxOverdueDays = Math.max(...overduePledges.map(p => Math.ceil((today.getTime() - new Date(p.expected_date).getTime()) / (1000 * 60 * 60 * 24))))
+      items.push({ key: 'pledges_overdue', icon: '🤝', label: `${overduePledges.length} pledge${overduePledges.length > 1 ? 's' : ''} overdue and need${overduePledges.length > 1 ? '' : 's'} a reminder — ${overduePledges.slice(0, 2).map(p => p.donor_name).join(', ')}${overduePledges.length > 2 ? ` +${overduePledges.length - 2} more` : ''}`, priority: 'high', urgency: maxOverdueDays, jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Overdue'); setActiveTab('pledges') } })
+    }
+    if (dueSoonPledges.length > 0) {
+      const minDaysUntil = Math.min(...dueSoonPledges.map(p => Math.ceil((new Date(p.expected_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))))
+      items.push({ key: 'pledges_due_soon', icon: '🤝', label: `${dueSoonPledges.length} pledge${dueSoonPledges.length > 1 ? 's' : ''} due within ${pledgeDueSoonDays} days and may need a gentle reminder`, priority: 'medium', group: 'housekeeping', urgency: 50 - minDaysUntil, jump: () => { setPledgeSearchTerm(''); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setPledgeUrgencyFilter('Due Soon'); setActiveTab('pledges') } })
+    }
 
     const singleMissGiro = giroMissedCycles.filter(g => g.missedCycles < 2)
     const escalatedGiro = giroMissedCycles.filter(g => g.missedCycles >= 2)
-    if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
-    if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Escalated'); setActiveTab('recurring') } })
+    if (singleMissGiro.length > 0) items.push({ key: 'recurring_overdue', icon: '🔁', label: `${singleMissGiro.length} recurring gift${singleMissGiro.length > 1 ? 's' : ''} overdue — ${singleMissGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${singleMissGiro.length > 2 ? ` +${singleMissGiro.length - 2} more` : ''}`, priority: 'high', urgency: singleMissGiro.length, jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Late'); setActiveTab('recurring') } })
+    if (escalatedGiro.length > 0) items.push({ key: 'giro_possible_cancellation', icon: '⚠️', label: `Possible GIRO cancellation — ${escalatedGiro.slice(0, 2).map(g => g.donor_name).join(', ')}${escalatedGiro.length > 2 ? ` +${escalatedGiro.length - 2} more` : ''} missed 2+ cycles`, priority: 'high', severity: 'critical', urgency: escalatedGiro.length, jump: () => { setRecurringSearchTerm(''); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringUrgencyFilter('Escalated'); setActiveTab('recurring') } })
 
     const givingChangeFlags = allGivingChangeFlags.filter(f => notSuppressed(f.email?.trim() || f.name))
-    if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', jump: () => { setActiveTab('dashboard'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
+    if (givingChangeFlags.length > 0) items.push({ key: 'giving_changes', icon: '📊', label: `${givingChangeFlags.length} donor${givingChangeFlags.length > 1 ? 's' : ''} with a notable giving change`, priority: 'medium', group: 'trends', urgency: givingChangeFlags.length, jump: () => { setActiveTab('dashboard'); setTimeout(() => document.getElementById('giving-changes-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100) } })
 
     const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(donationDonorKey(d)))
-    if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed donation${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} pending thank you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
+    if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed donation${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} pending thank you`, priority: 'high', urgency: majorGiftsAwaitingPersonalThanks.length, jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
 
     if (enabledModules.inKind !== false) {
       const inKindThanksPending = inKindDonations.filter(d => !d.thank_you_sent && d.donor_email?.trim())
-      if (inKindThanksPending.length > 0) items.push({ key: 'inkind_thanks_pending', icon: '💌', label: `${inKindThanksPending.length} in-kind gift${inKindThanksPending.length > 1 ? 's' : ''} pending thank you`, priority: 'high', jump: () => setActiveTab('inkind') })
+      if (inKindThanksPending.length > 0) items.push({ key: 'inkind_thanks_pending', icon: '💌', label: `${inKindThanksPending.length} in-kind gift${inKindThanksPending.length > 1 ? 's' : ''} pending thank you`, priority: 'high', urgency: inKindThanksPending.length, jump: () => setActiveTab('inkind') })
 
       const inKindReceiptsPending = inKindDonations.filter(d => !d.receipt_issued)
-      if (inKindReceiptsPending.length > 0) items.push({ key: 'inkind_receipts_pending', icon: '🧾', label: `${inKindReceiptsPending.length} in-kind receipt${inKindReceiptsPending.length > 1 ? 's' : ''} pending`, priority: 'medium', jump: () => setActiveTab('inkind') })
+      if (inKindReceiptsPending.length > 0) items.push({ key: 'inkind_receipts_pending', icon: '🧾', label: `${inKindReceiptsPending.length} in-kind receipt${inKindReceiptsPending.length > 1 ? 's' : ''} pending`, priority: 'medium', group: 'housekeeping', urgency: inKindReceiptsPending.length, jump: () => setActiveTab('inkind') })
     }
 
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -9513,7 +9524,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     if (lapsedFiltered69.length > 0) {
       const lapsedCount = lapsedFiltered69.length
-      items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
+      items.push({ key: 'lapsed_donors', icon: '⏰', label: `${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} haven't given in ${lapsedMinDays}+ days`, priority: 'medium', group: 'trends', urgency: lapsedCount, jump: jumpToDonors69(lapsedFiltered69.map(d => d.key), `Showing ${lapsedCount} repeat donor${lapsedCount > 1 ? 's' : ''} who haven't given in ${lapsedMinDays}+ days`, 'lapsed_donors') })
     }
 
     const milestonesThisWeek = donations.filter(d => {
@@ -9523,8 +9534,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     const firstTimeToWelcome = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isFirstTime && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_first_time'))
     const biggestYetToThank = milestonesThisWeek.filter(d => donationBadgeInfo[d.id]?.isBiggestYet && !d.thank_you_sent && notSuppressed(donationKey(d)) && !contactedSince(donationKey(d), weekAgo.getTime()) && notDismissed69(donationKey(d), 'milestones_biggest_yet'))
-    if (firstTimeToWelcome.length > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week to welcome`, priority: 'medium', jump: jumpToDonors69(firstTimeToWelcome.map(d => donationKey(d)), `Showing ${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week`, 'milestones_first_time') })
-    if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', jump: jumpToDonors69(biggestYetToThank.map(d => donationKey(d)), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`, 'milestones_biggest_yet') })
+    if (firstTimeToWelcome.length > 0) items.push({ key: 'milestones_first_time', icon: '🆕', label: `${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week to welcome`, priority: 'medium', group: 'moments', urgency: firstTimeToWelcome.length, jump: jumpToDonors69(firstTimeToWelcome.map(d => donationKey(d)), `Showing ${firstTimeToWelcome.length} new donor${firstTimeToWelcome.length > 1 ? 's' : ''} this week`, 'milestones_first_time') })
+    if (biggestYetToThank.length > 0) items.push({ key: 'milestones_biggest_yet', icon: '📈', label: `${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} gave their biggest gift yet — thank them`, priority: 'medium', group: 'moments', urgency: biggestYetToThank.length, jump: jumpToDonors69(biggestYetToThank.map(d => donationKey(d)), `Showing ${biggestYetToThank.length} donor${biggestYetToThank.length > 1 ? 's' : ''} who gave their biggest gift yet`, 'milestones_biggest_yet') })
 
     // Anniversary + cumulative threshold + streak milestones
     const donorFirstGiftDate69: Record<string, any> = {}
@@ -9546,7 +9557,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     if (anniversariesThisWeek.length > 0) {
       const names = anniversariesThisWeek.map(([key]) => keyToName69[key])
-      items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`, 'donor_anniversaries') })
+      items.push({ key: 'donor_anniversaries', icon: '🎂', label: `${anniversariesThisWeek.length} donor${anniversariesThisWeek.length > 1 ? 's' : ''} celebrating a giving anniversary — send a note`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69(anniversariesThisWeek.map(([key]) => key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} celebrating a giving anniversary this week`, 'donor_anniversaries') })
     }
 
     const cumulativeThresholds69 = cumulativeThresholds
@@ -9557,7 +9568,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).map(([key]) => key)
     if (crossedThresholdKeys.length > 0) {
       const names = crossedThresholdKeys.map(key => keyToName69[key])
-      items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`, 'cumulative_thresholds') })
+      items.push({ key: 'cumulative_thresholds', icon: '🏆', label: `${names.length} donor${names.length > 1 ? 's' : ''} crossed a cumulative giving milestone this week`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69(crossedThresholdKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who crossed a cumulative giving milestone this week`, 'cumulative_thresholds') })
     }
 
     const streakMilestones69 = [12, 24, 36, 60]
@@ -9581,7 +9592,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).map(([key]) => key)
     if (streakHitKeys.length > 0) {
       const names = streakHitKeys.map(key => keyToName69[key])
-      items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`, 'streak_milestones') })
+      items.push({ key: 'streak_milestones', icon: '🔥', label: `${names.length} donor${names.length > 1 ? 's' : ''} hit a giving-streak milestone (12/24/36/60 months)`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69(streakHitKeys, `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who hit a giving-streak milestone`, 'streak_milestones') })
     }
 
     const grantReportsDue83 = grantsWithNextReport.filter(g => {
@@ -9591,7 +9602,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     grantReportsDue83.forEach(g => {
       const days = Math.ceil((new Date(g.report_due_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
+      items.push({ key: `grant_report_${g.id}`, icon: '🏛️', label: `Report due to ${g.funder_name} in ${days} day${days !== 1 ? 's' : ''}`, priority: days <= 30 ? 'high' : 'medium', urgency: Math.max(0, 30 - days), jump: () => { setHighlightedGrantId(g.id); setActiveTab('grants'); setTimeout(() => document.getElementById(`grant-card-${g.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100) } })
     })
 
     const majorDonorsNeedingVisit80 = donorList.filter(d => d.total >= (majorDonorThreshold || 1000) && !d.deactivated).map(d => {
@@ -9603,7 +9614,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }).filter(d => d.needsVisit && notSuppressed(contactDonorKey(d)) && !contactedSince(contactDonorKey(d), monthAgo.getTime()) && notDismissed69(contactDonorKey(d), 'major_donor_visits'))
     if (majorDonorsNeedingVisit80.length > 0) {
       const names = majorDonorsNeedingVisit80.map(d => d.name)
-      items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => contactDonorKey(d)), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
+      items.push({ key: 'major_donor_visits', icon: '🤝', label: `${names.length} major donor${names.length > 1 ? 's' : ''} (${majorDonorThreshold}+ lifetime) due a catch-up — not visited in 6+ months`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69(majorDonorsNeedingVisit80.map(d => contactDonorKey(d)), `Showing ${names.length} major donor${names.length > 1 ? 's' : ''} not visited in 6+ months`, 'major_donor_visits') })
     }
 
     // Reactive, not predictive: only flags a donor once their usual giving month is
@@ -9629,7 +9640,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })()
     if (seasonalPatternDonors71.length > 0) {
       const names = seasonalPatternDonors71.map(d => d.name)
-      items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} around this time — haven't yet this year`, priority: 'medium', jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give around this time and haven't yet`, 'seasonal_pattern') })
+      items.push({ key: 'seasonal_pattern', icon: '📅', label: `${names.length} donor${names.length > 1 ? 's' : ''} usually give${names.length === 1 ? 's' : ''} around this time — haven't yet this year`, priority: 'medium', group: 'trends', urgency: names.length, jump: jumpToDonors69(seasonalPatternDonors71.map(d => d.key), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} who usually give around this time and haven't yet`, 'seasonal_pattern') })
     }
 
     const birthdaysThisWeek70 = donorContacts.filter(c => {
@@ -9641,7 +9652,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     if (birthdaysThisWeek70.length > 0) {
       const names = birthdaysThisWeek70.map(c => c.full_name)
-      items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', jump: jumpToDonors69(birthdaysThisWeek70.map(c => contactDonorKey(c)), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
+      items.push({ key: 'donor_birthdays', icon: '🎂', label: `${names.length} donor birthday${names.length > 1 ? 's' : ''} this week — send a greeting to ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2} more` : ''}`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69(birthdaysThisWeek70.map(c => contactDonorKey(c)), `Showing ${names.length} donor${names.length > 1 ? 's' : ''} with a birthday this week`, 'donor_birthdays') })
     }
 
     const lapsedReturningKeys = new Set<string>()
@@ -9656,7 +9667,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     })
     if (lapsedReturningKeys.size > 0) {
       const names = [...lapsedReturningKeys].map(key => keyToName69[key])
-      items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', jump: jumpToDonors69([...lapsedReturningKeys], `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`, 'lapsed_returning') })
+      items.push({ key: 'lapsed_returning', icon: '🎉', label: `${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} came back this week — thank them`, priority: 'medium', group: 'moments', urgency: names.length, jump: jumpToDonors69([...lapsedReturningKeys], `Showing ${names.length} previously lapsed donor${names.length > 1 ? 's' : ''} who came back this week`, 'lapsed_returning') })
     }
 
     const obligationsDue = (() => {
@@ -9672,22 +9683,35 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }).filter(Boolean)
       return [...builtIn, ...custom]
     })()
-    obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
+    obligationsDue.forEach(o => items.push({ key: `obligation_${o.title}`, icon: '📅', label: `${o.title} due in ${o.days} day${o.days !== 1 ? 's' : ''}`, priority: o.days <= 7 ? 'high' : 'medium', urgency: Math.max(0, 7 - o.days), jump: () => document.getElementById('upcoming-obligations-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }))
 
     const nowMs = Date.now()
     // Obligations with a real "done" state stay in Needs Action; everything else (donor
     // moments, trends, soft opportunities) is informational → Worth Knowing.
     const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'inkind_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
     const isActionItem = (i: any) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
-    const notSnoozed = (i: any) => !i.key || !(snoozedItems[i.key] > nowMs)
+    const notSnoozed = (i: any) => !i.key || !(snoozedItems[i.key]?.until > nowMs)
 
+    // Within a priority tier, items are ordered by their own urgency (days overdue, deadline
+    // proximity, backlog size -- whatever's meaningful for that trigger type), not by which
+    // `if` block happened to run first when the list was built.
     const actionItemsVisible = items.filter(i => isActionItem(i) && notSnoozed(i))
-      .sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1))
+      .sort((a, b) => {
+        const aCrit = a.severity === 'critical' ? 0 : 1
+        const bCrit = b.severity === 'critical' ? 0 : 1
+        if (aCrit !== bCrit) return aCrit - bCrit
+        const aHigh = a.priority === 'high' ? 0 : 1
+        const bHigh = b.priority === 'high' ? 0 : 1
+        if (aHigh !== bHigh) return aHigh - bHigh
+        return (b.urgency || 0) - (a.urgency || 0)
+      })
     const fyiItemsVisible = items.filter(i => !isActionItem(i) && notSnoozed(i))
+      .sort((a, b) => (b.urgency || 0) - (a.urgency || 0))
     const highItems = actionItemsVisible.filter(i => i.priority === 'high')
-    const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key] > nowMs)
+    const criticalCount = actionItemsVisible.filter(i => i.severity === 'critical').length
+    const snoozedActiveItems = items.filter(i => i.key && snoozedItems[i.key]?.until > nowMs)
 
-    return { items, actionItemsVisible, fyiItemsVisible, highItems, snoozedActiveItems, nowMs }
+    return { items, actionItemsVisible, fyiItemsVisible, highItems, criticalCount, snoozedActiveItems, nowMs }
   }, [
     donations, confirmedDonations, pledgesLoaded, pledges, pledgeReminderHistory, pledgeDueSoonDays,
     giroMissedCycles, allGivingChangeFlags, donorLastContactMap,

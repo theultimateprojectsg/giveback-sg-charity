@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from '../supabase'
 import { C } from '../theme'
@@ -229,6 +230,9 @@ export function AnalyticsPage({
   showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
   showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
+  const [showAllActionItems, setShowAllActionItems] = useState(false)
+  const [showAllFyiItems, setShowAllFyiItems] = useState(false)
+  const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
   return (
           <div style={s.content}>
             <div style={s.pageHeader}>
@@ -379,25 +383,34 @@ export function AnalyticsPage({
 
             {/* ── ACTION ITEMS ── */}
             {(() => {
-              const { actionItemsVisible, fyiItemsVisible, highItems, snoozedActiveItems, nowMs } = dashboardActionItemsData
+              const { actionItemsVisible, fyiItemsVisible, highItems, criticalCount, snoozedActiveItems, nowMs } = dashboardActionItemsData
+              const ITEM_CAP = 6
+              const GROUP_LABELS: Record<string, string> = { moments: 'Donor Moments', trends: 'Trends & Patterns', housekeeping: 'Housekeeping' }
 
               const snoozeControl = (item: any) => item.key && (
                 snoozeMenuOpen === item.key ? (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>Snooze for</span>
+                    <input
+                      type="text"
+                      placeholder="Reason (optional)"
+                      value={snoozeReasonDraft}
+                      onChange={e => setSnoozeReasonDraft(e.target.value)}
+                      style={{ fontSize: 11.5, padding: '5px 8px', border: `1px solid ${C.border}`, borderRadius: 6, width: 130, fontFamily: 'inherit', outline: 'none' }}
+                    />
+                    <span style={{ fontSize: 11.5, color: C.muted, marginRight: 2 }}>for</span>
                     {[1, 3, 7].map(d => (
                       <span key={d} style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, cursor: 'pointer', padding: '6px 12px', background: C.ivory, border: `1px solid ${C.borderStrong}`, borderRadius: 6, lineHeight: 1 }}
                         onMouseEnter={e => { e.currentTarget.style.background = C.forest; e.currentTarget.style.color = 'white' }}
                         onMouseLeave={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.color = C.forest }}
-                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d) }}>{d} day{d > 1 ? 's' : ''}</span>
+                        onClick={(e) => { e.stopPropagation(); snoozeActionItem(item.key, d, snoozeReasonDraft); setSnoozeReasonDraft('') }}>{d} day{d > 1 ? 's' : ''}</span>
                     ))}
-                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null) }} title="Cancel">✕</span>
+                    <span style={{ fontSize: 15, color: C.muted, cursor: 'pointer', padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(null); setSnoozeReasonDraft('') }} title="Cancel">✕</span>
                   </span>
                 ) : (
                   <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 500, cursor: 'pointer', flexShrink: 0, padding: '5px 12px', border: `1px solid ${C.border}`, borderRadius: 6, lineHeight: 1, whiteSpace: 'nowrap' }}
                     onMouseEnter={e => { e.currentTarget.style.background = C.ivory; e.currentTarget.style.borderColor = C.borderStrong }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = C.border }}
-                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key) }} title="Snooze this item">💤 Snooze</span>
+                    onClick={(e) => { e.stopPropagation(); setSnoozeMenuOpen(item.key); setSnoozeReasonDraft('') }} title="Snooze this item">💤 Snooze</span>
                 )
               )
 
@@ -409,10 +422,11 @@ export function AnalyticsPage({
                   {showSnoozedItems && (
                     <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
                       {snoozedActiveItems.map((item: any, i: any) => {
-                        const daysLeft = Math.max(1, Math.ceil((snoozedItems[item.key] - nowMs) / (1000 * 60 * 60 * 24)))
+                        const entry = snoozedItems[item.key] || {}
+                        const daysLeft = Math.max(1, Math.ceil((entry.until - nowMs) / (1000 * 60 * 60 * 24)))
                         return (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', fontSize: 12.5 }}>
-                            <span style={{ flex: 1, color: C.muted }}>{item.label}</span>
+                            <span style={{ flex: 1, color: C.muted }}>{item.label}{entry.reason && <span style={{ fontStyle: 'italic' }}> — "{entry.reason}"</span>}</span>
                             <span style={{ fontSize: 11, color: C.muted, flexShrink: 0 }}>{daysLeft}d left</span>
                             <span style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }} onClick={() => unsnoozeActionItem(item.key)}>Un-snooze</span>
                           </div>
@@ -435,24 +449,60 @@ export function AnalyticsPage({
                 )
               }
 
+              const visibleActionItems = showAllActionItems ? actionItemsVisible : actionItemsVisible.slice(0, ITEM_CAP)
+              const visibleFyiItems = showAllFyiItems ? fyiItemsVisible : fyiItemsVisible.slice(0, ITEM_CAP)
+
+              const renderGroupedFyi = (list: any[]) => {
+                const out: any[] = []
+                let lastGroup: string | undefined = undefined
+                list.forEach((item: any, i: number) => {
+                  const isNewGroup = !!item.group && item.group !== lastGroup
+                  if (isNewGroup) {
+                    out.push(
+                      <div key={`hdr-${i}`} style={{ padding: '8px 16px 4px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6, background: C.ivory, borderTop: i > 0 ? `1px solid ${C.border}` : 'none' }}>
+                        {GROUP_LABELS[item.group] || item.group}
+                      </div>
+                    )
+                    lastGroup = item.group
+                  }
+                  out.push(
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: (!isNewGroup && i > 0) ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                      onMouseLeave={e => e.currentTarget.style.background = C.white}
+                    >
+                      <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                      <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                      {snoozeControl(item)}
+                    </div>
+                  )
+                })
+                return out
+              }
+
               return (
                 <>
                 {actionItemsVisible.length > 0 && (
                   <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
                     <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention{criticalCount > 0 ? ` — ${criticalCount} urgent` : ''}</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {actionItemsVisible.map((item: any, i: any) => (
+                      {visibleActionItems.map((item: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
                           onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                           onMouseLeave={e => e.currentTarget.style.background = C.white}
                         >
+                          {item.severity === 'critical' && <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.red, flexShrink: 0 }} title="Urgent" />}
                           <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
                           <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
                           {snoozeControl(item)}
                         </div>
                       ))}
+                      {actionItemsVisible.length > ITEM_CAP && (
+                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${C.border}`, fontSize: 12.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowAllActionItems(v => !v)}>
+                          {showAllActionItems ? '▾ Show fewer' : `▸ Show ${actionItemsVisible.length - ITEM_CAP} more`}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -463,16 +513,12 @@ export function AnalyticsPage({
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {fyiItemsVisible.map((item: any, i: any) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
-                          onMouseEnter={e => e.currentTarget.style.background = C.ivory}
-                          onMouseLeave={e => e.currentTarget.style.background = C.white}
-                        >
-                          <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
-                          <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                          {snoozeControl(item)}
+                      {renderGroupedFyi(visibleFyiItems)}
+                      {fyiItemsVisible.length > ITEM_CAP && (
+                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${C.border}`, fontSize: 12.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowAllFyiItems(v => !v)}>
+                          {showAllFyiItems ? '▾ Show fewer' : `▸ Show ${fyiItemsVisible.length - ITEM_CAP} more`}
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
