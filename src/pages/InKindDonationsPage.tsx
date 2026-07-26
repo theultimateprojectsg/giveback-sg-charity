@@ -57,6 +57,7 @@ export function InKindDonationsPage({
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
   const [selectedGiftId, setSelectedGiftId] = useState<number | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const totalValue = inKindDonations.reduce((sum, d) => sum + Number(d.estimated_value), 0)
   const canEdit = userRole === 'staff' || userRole === 'ed'
@@ -95,7 +96,6 @@ export function InKindDonationsPage({
           <div style={s.pageSub}>{inKindDonations.length} logged · ${totalValue.toLocaleString()} estimated value — not counted in cash revenue totals</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          {inKindDonations.length > 0 && <button style={s.exportSmallBtn} onClick={exportInKindExcel}>⬇️ Export to Excel</button>}
           {canEdit && <button style={s.btnGold} onClick={() => setShowInKindForm(true)}>+ Log In-Kind Gift</button>}
         </div>
       </div>
@@ -180,18 +180,12 @@ export function InKindDonationsPage({
         </div>
       )}
 
-      {inKindDonations.length === 0 ? (
-        <EmptyState
-          icon="🎁"
-          title="No in-kind gifts logged yet"
-          description="Donated goods, services, or venue space you've received will show up here — tracked separately from cash donations."
-          ctaLabel={canEdit ? '+ Log In-Kind Gift' : undefined}
-          onCta={canEdit ? () => setShowInKindForm(true) : undefined}
-        />
-      ) : (
-        <>
-          <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={isMobile ? { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 } : { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             <input style={isMobile ? s.searchBox : { ...s.searchBox, flex: 'none', width: 280 }} placeholder="🔍 Search donor, item, cause, or notes..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            {isMobile && (
+              <button style={{ ...s.viewBtn, width: '100%', justifyContent: 'center' }} onClick={() => setShowFilters(v => !v)}>{showFilters ? '▾ Hide Filters' : '▸ Filters & Export'}</button>
+            )}
+            {(!isMobile || showFilters) && (<>
             <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="All">All Categories</option>
               {Object.entries(CATEGORY_LABELS).map(([key, v]) => <option key={key} value={key}>{v.icon} {v.label}</option>)}
@@ -202,18 +196,28 @@ export function InKindDonationsPage({
               <option value="Not Sent">Not Sent (has email)</option>
               <option value="No Email">No Email on File</option>
             </select>
+            <button style={isMobile ? { ...s.exportSmallBtn, width: '100%' } : s.exportSmallBtn} onClick={exportInKindExcel}>⬇️ Export to Excel</button>
             {activeFilterCount > 0 && (
               <button style={{ ...s.viewBtn, whiteSpace: 'nowrap' }} onClick={clearFilters}>✕ Clear Filters ({activeFilterCount})</button>
             )}
+            </>)}
           </div>
 
           <div style={s.tableCard}>
             <div style={s.tableHeader}>
               <div style={s.tableTitle}>All In-Kind Gifts</div>
-              <div style={s.tableCount}>{filtered.length} of {inKindDonations.length} records</div>
+              <div style={s.tableCount}>{filtered.length} records</div>
             </div>
 
-            {filtered.length === 0 ? (
+            {inKindDonations.length === 0 && activeFilterCount === 0 ? (
+              <EmptyState
+                icon="🎁"
+                title="No in-kind gifts logged yet"
+                description="Donated goods, services, or venue space you've received will show up here — tracked separately from cash donations."
+                ctaLabel={canEdit ? '+ Log In-Kind Gift' : undefined}
+                onCta={canEdit ? () => setShowInKindForm(true) : undefined}
+              />
+            ) : filtered.length === 0 ? (
               <div style={s.empty}>
                 No in-kind gifts found matching your filters.
                 <div style={{ marginTop: 10 }}>
@@ -304,8 +308,6 @@ export function InKindDonationsPage({
               </table>
             )}
           </div>
-        </>
-      )}
 
       {selectedGift && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => setSelectedGiftId(null)}>
