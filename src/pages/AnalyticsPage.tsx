@@ -302,14 +302,6 @@ export function AnalyticsPage({
               const newDonorsThisWeek = [...weekDonorKeys].filter(k => new Date(donorFirstGiftW[k]) >= weekAgo).length
               const biggestGiftThisWeek = thisWeekDonations.sort((a, b) => b.amount - a.amount)[0]
 
-              const unconfirmedW = donations.filter(d => d.payment_status !== 'confirmed' && d.payment_status !== 'cancelled' && d.payment_status !== 'refunded' && d.status !== 'deleted_by_charity' && d.status !== 'cancelled_by_donor').length
-              const overduePledgesW = pledgesLoaded ? pledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < now).length : 0
-              const escalatedGiroW = giroMissedCycles.filter((g: any) => g.missedCycles >= 2).length
-              const attentionCount = unconfirmedW + overduePledgesW + escalatedGiroW
-
-              const monthlyExpensesSet = monthlyExpenses > 0
-              const coverageOk = monthlyExpensesSet && thisMonthTotal >= monthlyExpenses
-
               const recurringThisWeek = thisWeekDonations.filter(d => d.recurring_gift_id)
               const recurringGiftsThisWeekCount = recurringThisWeek.length
               const recurringGiftsThisWeekTotal = recurringThisWeek.reduce((s, d) => s + d.amount, 0)
@@ -329,10 +321,6 @@ export function AnalyticsPage({
               sentences.push(`This week, ${weekDonorKeys.size} donor${weekDonorKeys.size !== 1 ? 's' : ''} gave $${weekTotal.toLocaleString()}${weekGrowthPct !== null ? ` — ${weekGrowthPct >= 0 ? 'up' : 'down'} ${Math.abs(weekGrowthPct)}% from last week` : ''}.`)
               if (newDonorsThisWeek > 0) sentences.push(`${newDonorsThisWeek} of those were first-time donors.`)
               if (biggestGiftThisWeek) sentences.push(`Your biggest gift this week was $${Number(biggestGiftThisWeek.amount).toLocaleString()} from ${biggestGiftThisWeek.donor_name}.`)
-              sentences.push(attentionCount > 0
-                ? `${attentionCount} item${attentionCount > 1 ? 's need' : ' needs'} your attention — see below.`
-                : `Nothing urgent needs your attention right now.`)
-              if (monthlyExpensesSet) sentences.push(coverageOk ? `You're on pace to cover this month's expenses.` : `This month's donations aren't yet covering your expenses — worth a look at Coverage below.`)
 
               const weekStats = {
                 charity_name: charityName,
@@ -341,9 +329,6 @@ export function AnalyticsPage({
                 weekGrowthPct,
                 newDonorsThisWeek,
                 biggestGiftAmount: biggestGiftThisWeek ? biggestGiftThisWeek.amount : null,
-                attentionCount,
-                monthlyExpensesSet,
-                coverageOk,
                 recurringGiftsThisWeekCount,
                 recurringGiftsThisWeekTotal,
                 lapsedReturningCount: lapsedReturningThisWeek.length,
