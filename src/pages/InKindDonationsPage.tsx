@@ -385,9 +385,13 @@ export function InKindDonationsPage({
 
                       {canEdit && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {!noThankYouExpected && (
+                          {item.donor_email?.trim() ? (
                             <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
-                              {item.thank_you_sent ? '↺ Unmark as Thanked' : '💌 Send Thank You'}
+                              {item.thank_you_sent ? '💌 Resend Thank You' : '💌 Send Thank You'}
+                            </button>
+                          ) : (
+                            <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
+                              {item.thank_you_sent ? '↺ Unmark as Thanked' : '✓ Mark as Thanked'}
                             </button>
                           )}
                           <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); startEditingInKind(item) }}>✏️ Edit Entry</button>

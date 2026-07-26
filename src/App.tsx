@@ -2009,19 +2009,17 @@ export default function App() {
   }
 
   async function toggleInKindThankYou(item: any) {
-    if (item.thank_you_sent) {
-      const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: false }).eq('id', item.id).select().single()
-      if (error) { showToast('Error updating thank-you status', 'error'); return }
-      setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
-      return
-    }
     if (!item.donor_email?.trim()) {
-      const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: true }).eq('id', item.id).select().single()
+      // No email on file -- this is a manual bookkeeping flag with no send capability
+      // at all, so (unlike Donations) toggling it back off is a legitimate action here.
+      const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: !item.thank_you_sent }).eq('id', item.id).select().single()
       if (error) { showToast('Error updating thank-you status', 'error'); return }
       setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
-      showToast('Marked as thanked — no email on file, so no email was sent')
+      if (!item.thank_you_sent) showToast('Marked as thanked — no email on file, so no email was sent')
       return
     }
+    // Has an email on file -- always go through send/resend, matching Donations
+    // (which never offers an "unmark" once a thank-you has been sent).
     setInKindThankYouModal(item)
     setInKindThankYouSubject(`Thank you for your generous gift, ${item.donor_name}!`)
     setInKindThankYouMessage(`Thank you so much for your donation of ${item.item_description} to ${charityName}. Your generosity means a great deal to us and the people we serve.`)
