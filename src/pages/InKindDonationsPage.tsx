@@ -17,6 +17,9 @@ interface InKindDonation {
   notes?: string | null
   is_anonymous?: boolean
   thank_you_sent?: boolean
+  receipt_number?: string | null
+  receipt_issued?: boolean
+  receipt_issued_at?: string | null
 }
 
 interface InKindDonationsPageProps {
@@ -39,6 +42,9 @@ interface InKindDonationsPageProps {
   toggleInKindThankYou: (item: InKindDonation) => void
   exportInKindExcel: () => void
   updateInKindNotes: (item: InKindDonation, notes: string) => void
+  issueInKindReceipt: (item: InKindDonation) => void
+  exportInKindReceiptPDF: (item: InKindDonation) => void
+  issuingInKindReceiptId: number | null
 }
 
 const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
@@ -53,7 +59,7 @@ export function InKindDonationsPage({
   isMobile, isTablet, userRole, inKindDonations, myCauses,
   showInKindForm, setShowInKindForm, editingInKindId, inKindForm, setInKindForm, inKindError, savingInKind,
   saveInKindDonation, closeInKindForm, startEditingInKind, deleteInKindDonation, toggleInKindThankYou, exportInKindExcel,
-  updateInKindNotes,
+  updateInKindNotes, issueInKindReceipt, exportInKindReceiptPDF, issuingInKindReceiptId,
 }: InKindDonationsPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
@@ -260,6 +266,7 @@ export function InKindDonationsPage({
                           <div style={{ fontSize: 12.5, color: C.text, marginBottom: 6 }}>{item.item_description}</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                             {cause ? <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>🎯 {cause}</span> : <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>General</span>}
+                            {item.receipt_issued ? <span style={s.badgeIssued}>🧾 {item.receipt_number}</span> : <span style={s.badgePending}>Receipt pending</span>}
                             {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Thanked</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email on file</span> : <span style={s.badgePending}>Not thanked</span>}
                           </div>
                         </div>
@@ -278,6 +285,7 @@ export function InKindDonationsPage({
                     <th style={s.th}>Cause</th>
                     <th style={s.th}>Date</th>
                     <th style={s.th}>Est. Value</th>
+                    <th style={s.th}>Receipt</th>
                     <th style={s.th}>Thank You</th>
                   </tr>
                 </thead>
@@ -309,6 +317,7 @@ export function InKindDonationsPage({
                         </td>
                         <td style={s.td}><span style={s.dateText}>{new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
                         <td style={s.td}><span style={s.amountText}>${Number(item.estimated_value).toLocaleString()}</span></td>
+                        <td style={s.td}>{item.receipt_issued ? <span style={s.badgeIssued}>✓ {item.receipt_number}</span> : <span style={s.badgePending}>Pending</span>}</td>
                         <td style={s.td}>
                           {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email</span> : <span style={s.badgePending}>Not sent</span>}
                         </td>
@@ -371,6 +380,11 @@ export function InKindDonationsPage({
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                         <span style={{ fontSize: 11, fontWeight: 500, color: 'white', background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 20 }}>{cat.icon} {cat.label}</span>
+                        {item.receipt_issued ? (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>Receipted</span>
+                        ) : (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '4px 10px', borderRadius: 20 }}>Receipt pending</span>
+                        )}
                         {item.thank_you_sent ? (
                           <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>💌 Thanked</span>
                         ) : noThankYouExpected ? (
@@ -388,10 +402,16 @@ export function InKindDonationsPage({
                           <span style={{ fontSize: 13, color: C.muted }}>Item</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.text, textAlign: 'right', maxWidth: 280 }}>{item.item_description}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: item.receipt_issued ? `1px solid ${C.ivoryDark}` : undefined }}>
                           <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{cause || 'General'}</span>
                         </div>
+                        {item.receipt_issued && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{item.receipt_number}</span>
+                          </div>
+                        )}
                       </div>
 
                       {!item.is_anonymous && (
@@ -432,6 +452,11 @@ export function InKindDonationsPage({
 
                       {canEdit && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {item.receipt_issued ? (
+                            <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportInKindReceiptPDF(item)}>⬇️ Download Receipt PDF</button>
+                          ) : (
+                            <button style={{ ...s.btnForest, justifyContent: 'center' }} disabled={issuingInKindReceiptId === item.id} onClick={() => issueInKindReceipt(item)}>{issuingInKindReceiptId === item.id ? '⏳ Issuing...' : '🧾 Issue Receipt'}</button>
+                          )}
                           {item.donor_email?.trim() ? (
                             <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
                               {item.thank_you_sent ? '💌 Resend Thank You' : '💌 Send Thank You'}

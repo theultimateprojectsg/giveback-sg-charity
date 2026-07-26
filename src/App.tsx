@@ -2032,6 +2032,210 @@ export default function App() {
     setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
   }
 
+  const [issuingInKindReceiptId, setIssuingInKindReceiptId] = useState<any>(null)
+
+  async function issueInKindReceipt(item: any) {
+    if (issuingInKindReceiptId === item.id) return
+    setIssuingInKindReceiptId(item.id)
+    // Acknowledgement receipt, not a tax receipt -- IRAS doesn't grant tax deductions for
+    // non-cash gifts under the standard scheme, so this uses its own IK-prefixed sequence
+    // entirely separate from the cash-donation MR- receipt numbers.
+    const entryYear = new Date(item.received_date).getFullYear()
+    const { data: receiptNumber, error: seqError } = await supabase.rpc('next_inkind_receipt_number', { p_charity_uen: charityUen, p_year: entryYear })
+    if (seqError) { showToast('Error generating receipt number', 'error'); setIssuingInKindReceiptId(null); return }
+    const { data, error } = await supabase.from('in_kind_donations').update({
+      receipt_number: receiptNumber,
+      receipt_issued: true,
+      receipt_issued_at: new Date().toISOString(),
+    }).eq('id', item.id).select().single()
+    if (error) { showToast('Error issuing receipt', 'error'); setIssuingInKindReceiptId(null); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'inkind_receipt_issued',
+      details: { donor_name: item.donor_name, item_description: item.item_description, receipt_number: receiptNumber },
+    })
+    setIssuingInKindReceiptId(null)
+    showToast(`Receipt ${receiptNumber} issued`)
+  }
+
+  function generateInKindReceiptPDFDoc(item: any) {
+    const doc = new jsPDF()
+    const pageWidth = 210
+    const pageHeight = 297
+    const margin = 22
+    const contentWidth = pageWidth - margin * 2
+    const forest = [27, 67, 50] as [number, number, number]
+    const gold = [180, 135, 14] as [number, number, number]
+    const mutedText = [130, 122, 112] as [number, number, number]
+    const faintText = [178, 172, 162] as [number, number, number]
+    const darkText = [35, 35, 35] as [number, number, number]
+    const hairline = [232, 226, 216] as [number, number, number]
+    const microLabel = (text: any, x: any, ty: any, opts: any = {}) => {
+      if (opts.align === 'center' || opts.align === 'right') { doc.text(text, x, ty, opts); return }
+      doc.setCharSpace(0.6)
+      doc.text(text, x, ty, opts)
+      doc.setCharSpace(0)
+    }
+
+    try {
+      doc.saveGraphicsState()
+      doc.setGState(new (doc as any).GState({ opacity: 0.045 }))
+      if (charityLogoDataUrl) {
+        const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
+        const size = 130
+        doc.addImage(charityLogoDataUrl, fmt, (pageWidth - size) / 2, (pageHeight - size) / 2, size, size)
+      } else {
+        doc.setFont('times', 'bold')
+        doc.setFontSize(260)
+        doc.setTextColor(...forest)
+        doc.text((charityName || 'C').trim().charAt(0).toUpperCase(), pageWidth / 2, pageHeight / 2 + 60, { align: 'center' })
+      }
+      doc.restoreGraphicsState()
+    } catch (e) { console.error('Could not render receipt watermark:', e) }
+
+    const headerHeight = 46
+    doc.setFillColor(...forest)
+    doc.rect(0, 0, pageWidth, headerHeight, 'F')
+    doc.setFillColor(...gold)
+    doc.rect(0, headerHeight, pageWidth, 0.9, 'F')
+
+    const hasLogo = !!charityLogoDataUrl
+    let textX = margin
+    if (hasLogo) {
+      try {
+        const fmt = charityLogoDataUrl.startsWith('data:image/png') ? 'PNG' : charityLogoDataUrl.startsWith('data:image/webp') ? 'WEBP' : 'JPEG'
+        const logoSize = 25, badgePad = 3.5, badgeSize = logoSize + badgePad * 2
+        const badgeY = (headerHeight - badgeSize) / 2
+        doc.setFillColor(255, 255, 255)
+        doc.roundedRect(margin, badgeY, badgeSize, badgeSize, 2.5, 2.5, 'F')
+        doc.addImage(charityLogoDataUrl, fmt, margin + badgePad, badgeY + badgePad, logoSize, logoSize)
+        textX = margin + badgeSize + 10
+      } catch (e) { console.error('Could not embed logo in receipt:', e) }
+    }
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(255, 255, 255)
+    microLabel('ACKNOWLEDGEMENT OF GIFT-IN-KIND', textX, 17)
+    doc.setFontSize(19)
+    doc.setFont('times', 'bold')
+    doc.text(charityName || 'Charity', textX, 27.5)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9.5)
+    doc.setTextColor(220, 227, 223)
+    doc.text(`UEN ${charityUen || ''}  ·  Registered Charity`, textX, 35.5)
+
+    let y = 62
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    microLabel('RECEIVED FROM', margin, y)
+    microLabel('RECEIPT NO.', pageWidth - margin, y, { align: 'right' })
+    y += 7
+    doc.setFontSize(16)
+    doc.setFont('times', 'bold')
+    doc.setTextColor(...darkText)
+    doc.text(item.is_anonymous ? 'Anonymous' : (item.donor_name || ''), margin, y)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10.5)
+    doc.setTextColor(...forest)
+    doc.text(item.receipt_number || 'N/A', pageWidth - margin, y, { align: 'right' })
+    doc.setFont('helvetica', 'normal')
+
+    y += 16
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 13
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    microLabel('GIFT DESCRIPTION', margin, y)
+    y += 7
+    doc.setFontSize(13)
+    doc.setFont('times', 'bold')
+    doc.setTextColor(...darkText)
+    const descLines = doc.splitTextToSize(item.item_description || '', contentWidth)
+    doc.text(descLines, margin, y)
+    doc.setFont('helvetica', 'normal')
+    y += descLines.length * 7 + 6
+
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 7
+    const facts: [string, string][] = [
+      ['Estimated value', `SGD $${Number(item.estimated_value).toLocaleString()}.00 (est.)`],
+      ['Date received', new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })],
+    ]
+    const causeTitle = item.cause_id ? myCauses.find(c => c.id === item.cause_id)?.title : null
+    if (causeTitle) facts.push(['Designated to', causeTitle])
+
+    facts.forEach(([label, value], i) => {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      doc.setTextColor(...mutedText)
+      doc.text(label, margin, y)
+      doc.setFont('times', 'normal')
+      doc.setFontSize(11)
+      doc.setTextColor(...darkText)
+      doc.text(String(value), pageWidth - margin, y, { align: 'right' })
+      y += 9
+      if (i < facts.length - 1) {
+        doc.setDrawColor(...hairline)
+        doc.line(margin, y - 4.5, pageWidth - margin, y - 4.5)
+      }
+    })
+
+    y += 4
+    doc.setFillColor(...gold)
+    const disclaimerLines = doc.splitTextToSize('This acknowledges receipt of a non-cash gift-in-kind. It is not a cash donation receipt and does not qualify for a tax deduction under Singapore tax law, regardless of IPC status.', contentWidth - 10)
+    doc.rect(margin, y, 0.8, disclaimerLines.length * 5.5 + 6, 'F')
+    doc.setFontSize(8.5)
+    doc.setTextColor(...gold)
+    microLabel('PLEASE NOTE', margin + 5, y + 4.5)
+    doc.setFontSize(10)
+    doc.setFont('times', 'italic')
+    doc.setTextColor(...darkText)
+    doc.text(disclaimerLines, margin + 5, y + 11)
+    doc.setFont('helvetica', 'normal')
+    y += disclaimerLines.length * 5.5 + 14
+
+    y += 10
+    doc.setDrawColor(...hairline)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 12
+    doc.setFontSize(12)
+    doc.setFont('times', 'italic')
+    doc.setTextColor(...forest)
+    doc.text('With heartfelt thanks for your generosity,', pageWidth - margin, y, { align: 'right' })
+    y += 8.5
+    doc.setFont('times', 'bolditalic')
+    doc.setFontSize(13)
+    doc.text(`The ${charityName || 'team'}`, pageWidth - margin, y, { align: 'right' })
+    doc.setFont('helvetica', 'normal')
+
+    const footerY = Math.max(pageHeight - 26, y + 18)
+    doc.setDrawColor(...hairline)
+    doc.setLineWidth(0.4)
+    doc.roundedRect(margin - 6, 52, contentWidth + 12, footerY - 58, 2, 2, 'S')
+    doc.setLineWidth(0.2)
+
+    doc.setDrawColor(...hairline)
+    doc.line(margin, footerY, pageWidth - margin, footerY)
+    doc.setFontSize(9)
+    doc.setTextColor(...mutedText)
+    doc.text('Issued via Giving Tree, a donation platform for Singapore charities', pageWidth / 2, footerY + 7.5, { align: 'center' })
+    doc.setFontSize(8.5)
+    doc.setTextColor(...faintText)
+    doc.text('This is an acknowledgement of a gift-in-kind, not a tax-deductible cash donation receipt.', pageWidth / 2, footerY + 15, { align: 'center', maxWidth: contentWidth })
+
+    return doc
+  }
+
+  function exportInKindReceiptPDF(item: any) {
+    const doc = generateInKindReceiptPDFDoc(item)
+    doc.save(`InKindReceipt-${item.receipt_number || item.id}.pdf`)
+    logExport('inkind_receipt_pdf', { in_kind_id: item.id, donor_name: item.donor_name })
+  }
+
   function buildInKindThankYouPreviewHtml(item: any, customMessage: any) {
     const safeDonorName = escapeHtml(item.donor_name)
     const safeCharityName = escapeHtml(charityName)
@@ -7508,13 +7712,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       'Estimated Value (SGD)': item.estimated_value,
       'Date Received': new Date(item.received_date).toLocaleDateString('en-SG'),
       'Programme': item.cause_id ? (myCauses.find(c => c.id === item.cause_id)?.title || '') : 'General',
+      'Receipt No.': item.receipt_number || '',
+      'Receipt Issued': item.receipt_issued ? 'Yes' : 'No',
       'Thank You Sent': item.thank_you_sent ? 'Yes' : 'No',
       'Notes': item.notes || '',
       'Recorded By': item.created_by || '',
     }))
     if (rows.length === 0) { showToast('No in-kind gifts to export', 'error'); return }
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 36 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 14 }, { wch: 30 }, { wch: 24 }]
+    ws['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 36 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 30 }, { wch: 24 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'In-Kind Gifts')
     XLSX.writeFile(wb, `GivingTree-InKindGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -10807,7 +11013,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             inKindForm={inKindForm} setInKindForm={setInKindForm} inKindError={inKindError} savingInKind={savingInKind}
             saveInKindDonation={saveInKindDonation} closeInKindForm={closeInKindForm} startEditingInKind={startEditingInKind}
             deleteInKindDonation={deleteInKindDonation} toggleInKindThankYou={toggleInKindThankYou} exportInKindExcel={exportInKindExcel}
-            updateInKindNotes={updateInKindNotes}
+            updateInKindNotes={updateInKindNotes} issueInKindReceipt={issueInKindReceipt} exportInKindReceiptPDF={exportInKindReceiptPDF}
+            issuingInKindReceiptId={issuingInKindReceiptId}
           />
         )}
 
