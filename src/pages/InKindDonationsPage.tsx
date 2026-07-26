@@ -1,3 +1,4 @@
+import type { ReactNode, RefObject } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
@@ -45,6 +46,10 @@ interface InKindDonationsPageProps {
   issueInKindReceipt: (item: InKindDonation) => void
   exportInKindReceiptPDF: (item: InKindDonation) => void
   issuingInKindReceiptId: number | null
+  issueAllInKindReceipts: () => void
+  bulkInKindActionInProgress: boolean
+  bulkInKindProgress: { done: number, total: number } | null
+  bulkInKindCancelRef: RefObject<boolean>
 }
 
 const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
@@ -55,11 +60,22 @@ const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
   other: { icon: '🎁', label: 'Other' },
 }
 
+const COLUMN_OPTIONS = [
+  { key: 'category', label: 'Category' },
+  { key: 'item', label: 'Item' },
+  { key: 'cause', label: 'Cause' },
+  { key: 'date', label: 'Date' },
+  { key: 'value', label: 'Est. Value' },
+  { key: 'receipt', label: 'Receipt' },
+  { key: 'thankYou', label: 'Thank You' },
+]
+
 export function InKindDonationsPage({
   isMobile, isTablet, userRole, inKindDonations, myCauses,
   showInKindForm, setShowInKindForm, editingInKindId, inKindForm, setInKindForm, inKindError, savingInKind,
   saveInKindDonation, closeInKindForm, startEditingInKind, deleteInKindDonation, toggleInKindThankYou, exportInKindExcel,
   updateInKindNotes, issueInKindReceipt, exportInKindReceiptPDF, issuingInKindReceiptId,
+  issueAllInKindReceipts, bulkInKindActionInProgress, bulkInKindProgress, bulkInKindCancelRef,
 }: InKindDonationsPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
@@ -71,6 +87,22 @@ export function InKindDonationsPage({
   const [noteText, setNoteText] = useState('')
   const [perPage, setPerPage] = useState(25)
   const [page, setPage] = useState(0)
+  const [columnOrder, setColumnOrder] = useState(COLUMN_OPTIONS.map(o => o.key))
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const orderedColumns = columnOrder.map(k => COLUMN_OPTIONS.find(o => o.key === k)).filter(Boolean) as { key: string, label: string }[]
+  const reorderColumn = (fromKey: string | null, toKey: string) => {
+    if (!fromKey || fromKey === toKey) return
+    setColumnOrder(prev => {
+      const next = prev.filter(k => k !== fromKey)
+      const toIndex = next.indexOf(toKey)
+      next.splice(toIndex, 0, fromKey)
+      return next
+    })
+  }
+  const pendingReceiptCount = inKindDonations.filter(d => !d.receipt_issued).length
 
   const totalValue = inKindDonations.reduce((sum, d) => sum + Number(d.estimated_value), 0)
   const canEdit = userRole === 'staff' || userRole === 'ed'
@@ -96,13 +128,25 @@ export function InKindDonationsPage({
         return true
       })
       .filter(d => !term || [d.donor_name, d.item_description, d.notes, d.receipt_number, causeNameFor(d)].filter(Boolean).some(v => String(v).toLowerCase().includes(term)))
-      .sort((a, b) => new Date(b.received_date).getTime() - new Date(a.received_date).getTime())
-  }, [inKindDonations, searchTerm, filterCategory, filterReceipt, filterThankYou, myCauses])
+      .sort((a, b) => {
+        if (!sortBy) return new Date(b.received_date).getTime() - new Date(a.received_date).getTime()
+        let cmp = 0
+        if (sortBy === 'donor') cmp = (a.donor_name || '').localeCompare(b.donor_name || '')
+        if (sortBy === 'category') cmp = (a.category || '').localeCompare(b.category || '')
+        if (sortBy === 'item') cmp = (a.item_description || '').localeCompare(b.item_description || '')
+        if (sortBy === 'cause') cmp = (causeNameFor(a) || '').localeCompare(causeNameFor(b) || '')
+        if (sortBy === 'date') cmp = new Date(a.received_date).getTime() - new Date(b.received_date).getTime()
+        if (sortBy === 'value') cmp = Number(a.estimated_value) - Number(b.estimated_value)
+        if (sortBy === 'receipt') cmp = (a.receipt_issued ? 1 : 0) - (b.receipt_issued ? 1 : 0)
+        if (sortBy === 'thankYou') cmp = (a.thank_you_sent ? 1 : 0) - (b.thank_you_sent ? 1 : 0)
+        return sortDir === 'asc' ? cmp : -cmp
+      })
+  }, [inKindDonations, searchTerm, filterCategory, filterReceipt, filterThankYou, myCauses, sortBy, sortDir])
 
   const activeFilterCount = (filterCategory !== 'All' ? 1 : 0) + (filterReceipt !== 'All' ? 1 : 0) + (filterThankYou !== 'All' ? 1 : 0) + (searchTerm.trim() ? 1 : 0)
   const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterReceipt('All'); setFilterThankYou('All') }
 
-  useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterReceipt, filterThankYou])
+  useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterReceipt, filterThankYou, sortBy, sortDir])
   useEffect(() => { setEditingNotesId(null) }, [selectedGiftId])
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
@@ -115,6 +159,7 @@ export function InKindDonationsPage({
           <div style={s.pageSub}>{inKindDonations.length} logged · ${totalValue.toLocaleString()} estimated value — not counted in cash revenue totals</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          {canEdit && pendingReceiptCount > 0 && <button style={s.btnForest} onClick={issueAllInKindReceipts} disabled={bulkInKindActionInProgress}>{bulkInKindActionInProgress ? '⏳ Issuing...' : `🧾 Issue All Pending (${pendingReceiptCount})`}</button>}
           {canEdit && <button style={s.btnGold} onClick={() => setShowInKindForm(true)}>+ Log In-Kind Gift</button>}
         </div>
       </div>
@@ -196,6 +241,21 @@ export function InKindDonationsPage({
               <button style={s.viewBtn} onClick={closeInKindForm}>Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {bulkInKindProgress && (
+        <div style={{ background: C.forest, borderRadius: 4, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'white', flexShrink: 0 }}>
+            Issuing {bulkInKindProgress.done} of {bulkInKindProgress.total}...
+          </span>
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.2)', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+            <div style={{ width: `${(bulkInKindProgress.done / bulkInKindProgress.total) * 100}%`, height: '100%', background: C.gold, borderRadius: 3, transition: 'width 0.2s' }} />
+          </div>
+          <button
+            style={{ ...s.bannerBtn, background: 'white', color: C.red, flexShrink: 0 }}
+            onClick={() => { bulkInKindCancelRef.current = true }}
+          >✕ Cancel</button>
         </div>
       )}
 
@@ -286,14 +346,25 @@ export function InKindDonationsPage({
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={{ ...s.th, width: 220 }}>Donor</th>
-                    <th style={s.th}>Category</th>
-                    <th style={s.th}>Item</th>
-                    <th style={s.th}>Cause</th>
-                    <th style={s.th}>Date</th>
-                    <th style={s.th}>Est. Value</th>
-                    <th style={s.th}>Receipt</th>
-                    <th style={s.th}>Thank You</th>
+                    {[{ key: 'name', label: 'Donor' }, ...orderedColumns].map(h => (
+                      <th
+                        key={h.key}
+                        draggable={h.key !== 'name'}
+                        onDragStart={() => setDraggedColumn(h.key)}
+                        onDragOver={e => { if (h.key !== 'name') e.preventDefault() }}
+                        onDrop={e => { e.preventDefault(); reorderColumn(draggedColumn, h.key); setDraggedColumn(null) }}
+                        onDragEnd={() => setDraggedColumn(null)}
+                        style={{ ...s.th, cursor: h.key === 'name' ? 'pointer' : 'grab', userSelect: 'none', width: h.key === 'name' ? 220 : undefined, opacity: draggedColumn === h.key ? 0.4 : 1 }}
+                        onClick={() => {
+                          const sortKey = h.key === 'name' ? 'donor' : h.key
+                          if (sortBy === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+                          else { setSortBy(sortKey); setSortDir('desc') }
+                        }}
+                        title={h.key !== 'name' ? 'Drag to reorder · click to sort' : undefined}
+                      >
+                        {h.label}{sortBy === (h.key === 'name' ? 'donor' : h.key) ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -303,6 +374,27 @@ export function InKindDonationsPage({
                     const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
                     const railColor = (noThankYouExpected || item.thank_you_sent) ? C.sage : C.gold
                     const rowBg = selectedGiftId === item.id ? C.successBg : 'transparent'
+                    const cellRenderers: Record<string, ReactNode> = {
+                      category: <td key="category" style={s.td}><span style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivoryDark, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{cat.icon} {cat.label}</span></td>,
+                      item: <td key="item" style={s.td}><span style={{ fontSize: 12.5, color: C.text, display: 'block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.item_description}>{item.item_description}</span></td>,
+                      cause: (
+                        <td key="cause" style={s.td}>
+                          {cause ? (
+                            <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cause}>🎯 {cause}</span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: C.muted }}>General</span>
+                          )}
+                        </td>
+                      ),
+                      date: <td key="date" style={s.td}><span style={s.dateText}>{new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>,
+                      value: <td key="value" style={s.td}><span style={s.amountText}>${Number(item.estimated_value).toLocaleString()}</span></td>,
+                      receipt: <td key="receipt" style={s.td}>{item.receipt_issued ? <span style={s.badgeIssued}>✓ {item.receipt_number}</span> : <span style={s.badgePending}>Pending</span>}</td>,
+                      thankYou: (
+                        <td key="thankYou" style={s.td}>
+                          {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email</span> : <span style={s.badgePending}>Not sent</span>}
+                        </td>
+                      ),
+                    }
                     return (
                       <tr key={item.id} style={{ ...s.tr, background: rowBg, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => setSelectedGiftId(item.id)}>
                         <td style={s.td}>
@@ -314,21 +406,7 @@ export function InKindDonationsPage({
                             </div>
                           </div>
                         </td>
-                        <td style={s.td}><span style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivoryDark, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{cat.icon} {cat.label}</span></td>
-                        <td style={s.td}><span style={{ fontSize: 12.5, color: C.text, display: 'block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.item_description}>{item.item_description}</span></td>
-                        <td style={s.td}>
-                          {cause ? (
-                            <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cause}>🎯 {cause}</span>
-                          ) : (
-                            <span style={{ fontSize: 11, color: C.muted }}>General</span>
-                          )}
-                        </td>
-                        <td style={s.td}><span style={s.dateText}>{new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></td>
-                        <td style={s.td}><span style={s.amountText}>${Number(item.estimated_value).toLocaleString()}</span></td>
-                        <td style={s.td}>{item.receipt_issued ? <span style={s.badgeIssued}>✓ {item.receipt_number}</span> : <span style={s.badgePending}>Pending</span>}</td>
-                        <td style={s.td}>
-                          {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email</span> : <span style={s.badgePending}>Not sent</span>}
-                        </td>
+                        {orderedColumns.map(o => cellRenderers[o.key])}
                       </tr>
                     )
                   })}

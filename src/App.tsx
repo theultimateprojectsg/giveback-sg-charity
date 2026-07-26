@@ -2033,23 +2033,34 @@ export default function App() {
   }
 
   const [issuingInKindReceiptId, setIssuingInKindReceiptId] = useState<any>(null)
+  const [bulkInKindActionInProgress, setBulkInKindActionInProgress] = useState<any>(false)
+  const [bulkInKindProgress, setBulkInKindProgress] = useState<any>(null)
+  const bulkInKindCancelRef = useRef<boolean>(false)
 
-  async function issueInKindReceipt(item: any) {
-    if (issuingInKindReceiptId === item.id) return
-    setIssuingInKindReceiptId(item.id)
-    // Acknowledgement receipt, not a tax receipt -- IRAS doesn't grant tax deductions for
-    // non-cash gifts under the standard scheme, so this uses its own IK-prefixed sequence
-    // entirely separate from the cash-donation MR- receipt numbers.
+  // Acknowledgement receipt, not a tax receipt -- IRAS doesn't grant tax deductions for
+  // non-cash gifts under the standard scheme, so this uses its own IK-prefixed sequence
+  // entirely separate from the cash-donation MR- receipt numbers. Returns the new receipt
+  // number on success, or null on failure -- shared by the single-issue and bulk-issue paths
+  // so only one of them needs to log the audit entry / show a toast.
+  async function issueInKindReceiptCore(item: any): Promise<string | null> {
     const entryYear = new Date(item.received_date).getFullYear()
     const { data: receiptNumber, error: seqError } = await supabase.rpc('next_inkind_receipt_number', { p_charity_uen: charityUen, p_year: entryYear })
-    if (seqError) { showToast('Error generating receipt number', 'error'); setIssuingInKindReceiptId(null); return }
+    if (seqError) return null
     const { data, error } = await supabase.from('in_kind_donations').update({
       receipt_number: receiptNumber,
       receipt_issued: true,
       receipt_issued_at: new Date().toISOString(),
     }).eq('id', item.id).select().single()
-    if (error) { showToast('Error issuing receipt', 'error'); setIssuingInKindReceiptId(null); return }
+    if (error) return null
     setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    return receiptNumber
+  }
+
+  async function issueInKindReceipt(item: any) {
+    if (issuingInKindReceiptId === item.id) return
+    setIssuingInKindReceiptId(item.id)
+    const receiptNumber = await issueInKindReceiptCore(item)
+    if (!receiptNumber) { showToast('Error issuing receipt', 'error'); setIssuingInKindReceiptId(null); return }
     await supabase.from('audit_log').insert({
       actor_type: 'charity',
       actor_email: session.user.email,
@@ -2058,6 +2069,37 @@ export default function App() {
     })
     setIssuingInKindReceiptId(null)
     showToast(`Receipt ${receiptNumber} issued`)
+  }
+
+  async function issueAllInKindReceipts() {
+    if (bulkInKindActionInProgress) return
+    const pending = inKindDonations.filter(d => !d.receipt_issued)
+    if (pending.length === 0) { showToast('No in-kind receipts pending'); return }
+    setBulkInKindActionInProgress(true)
+    bulkInKindCancelRef.current = false
+    setBulkInKindProgress({ done: 0, total: pending.length })
+    let issuedCount = 0
+    for (const item of pending) {
+      if (bulkInKindCancelRef.current) break
+      const receiptNumber = await issueInKindReceiptCore(item)
+      if (receiptNumber) issuedCount++
+      setBulkInKindProgress({ done: issuedCount, total: pending.length })
+    }
+    if (issuedCount > 0) {
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'bulk_inkind_receipts_issued',
+        details: { count: issuedCount },
+      })
+    }
+    setBulkInKindActionInProgress(false)
+    setBulkInKindProgress(null)
+    if (bulkInKindCancelRef.current) {
+      showToast(`Cancelled — ${issuedCount} of ${pending.length} receipts issued before stopping`)
+    } else {
+      showToast(`${issuedCount} receipt${issuedCount > 1 ? 's' : ''} issued`)
+    }
   }
 
   function generateInKindReceiptPDFDoc(item: any) {
@@ -11014,7 +11056,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             saveInKindDonation={saveInKindDonation} closeInKindForm={closeInKindForm} startEditingInKind={startEditingInKind}
             deleteInKindDonation={deleteInKindDonation} toggleInKindThankYou={toggleInKindThankYou} exportInKindExcel={exportInKindExcel}
             updateInKindNotes={updateInKindNotes} issueInKindReceipt={issueInKindReceipt} exportInKindReceiptPDF={exportInKindReceiptPDF}
-            issuingInKindReceiptId={issuingInKindReceiptId}
+            issuingInKindReceiptId={issuingInKindReceiptId} issueAllInKindReceipts={issueAllInKindReceipts}
+            bulkInKindActionInProgress={bulkInKindActionInProgress} bulkInKindProgress={bulkInKindProgress} bulkInKindCancelRef={bulkInKindCancelRef}
           />
         )}
 
