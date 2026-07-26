@@ -459,6 +459,11 @@ export default function App() {
   const [inKindForm, setInKindForm] = useState<any>({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false })
   const [savingInKind, setSavingInKind] = useState<any>(false)
   const [inKindError, setInKindError] = useState<any>('')
+  const [inKindThankYouModal, setInKindThankYouModal] = useState<any>(null)
+  const [inKindThankYouPreviewing, setInKindThankYouPreviewing] = useState<any>(false)
+  const [inKindThankYouSubject, setInKindThankYouSubject] = useState<any>('')
+  const [inKindThankYouMessage, setInKindThankYouMessage] = useState<any>('')
+  const [sendingInKindThankYouId, setSendingInKindThankYouId] = useState<any>(null)
   const [showDonationMoreActions, setShowDonationMoreActions] = useState<any>(false)
   const [refundForm, setRefundForm] = useState<any>({ reason: '' })
   const [savingRefund, setSavingRefund] = useState<any>(false)
@@ -2004,9 +2009,81 @@ export default function App() {
   }
 
   async function toggleInKindThankYou(item: any) {
-    const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: !item.thank_you_sent }).eq('id', item.id).select().single()
-    if (error) { showToast('Error updating thank-you status', 'error'); return }
-    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    if (item.thank_you_sent) {
+      const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: false }).eq('id', item.id).select().single()
+      if (error) { showToast('Error updating thank-you status', 'error'); return }
+      setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+      return
+    }
+    if (!item.donor_email?.trim()) {
+      const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: true }).eq('id', item.id).select().single()
+      if (error) { showToast('Error updating thank-you status', 'error'); return }
+      setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+      showToast('Marked as thanked — no email on file, so no email was sent')
+      return
+    }
+    setInKindThankYouModal(item)
+    setInKindThankYouSubject(`Thank you for your generous gift, ${item.donor_name}!`)
+    setInKindThankYouMessage(`Thank you so much for your donation of ${item.item_description} to ${charityName}. Your generosity means a great deal to us and the people we serve.`)
+    setInKindThankYouPreviewing(false)
+  }
+
+  function buildInKindThankYouPreviewHtml(item: any, customMessage: any) {
+    const safeDonorName = escapeHtml(item.donor_name)
+    const safeCharityName = escapeHtml(charityName)
+    const safeItemDescription = escapeHtml(item.item_description)
+    const cause = item.cause_id ? myCauses.find(c => c.id === item.cause_id) : null
+    const safeCauseTitle = cause ? escapeHtml(cause.title) : null
+    const dateStr = new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })
+    const customBlock = customMessage?.trim()
+      ? `<p style="font-size:13px;color:${C.text};line-height:1.6;margin:10px 0;">${escapeHtml(customMessage.trim())}</p>`
+      : ''
+    return `
+      <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${safeDonorName}!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your gift-in-kind makes a real difference</div>
+      </div>
+      ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid ${C.border};margin-bottom:12px;">${customBlock}</div>` : ''}
+      <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
+        <div style="font-size:11px;color:${C.emailMuted};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600;">Gift Details</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Charity</span><span style="font-weight:700;color:${C.forest};">${safeCharityName}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Item</span><span style="font-weight:700;color:${C.forest};">${safeItemDescription}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;"><span style="color:${C.emailMuted};">Date Received</span><span style="font-weight:700;color:${C.forest};">${dateStr}</span></div>
+        ${safeCauseTitle ? `<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${safeCauseTitle}</span></div>` : ''}
+      </div>
+      <div style="font-size:11px;color:${C.emailMuted};margin-top:10px;line-height:1.5;">This is a gift-in-kind acknowledgement, not a cash donation receipt — it does not carry a tax deduction.</div>`
+  }
+
+  async function sendInKindThankYouEmail(item: any) {
+    if (sendingInKindThankYouId === item.id) return
+    setSendingInKindThankYouId(item.id)
+    const cause = item.cause_id ? myCauses.find(c => c.id === item.cause_id) : null
+    const { error } = await sendCharityEmail({
+      donor_name: item.donor_name,
+      donor_email: item.donor_email,
+      charity_name: charityName,
+      charity_uen: charityUen,
+      type: 'in_kind_thank_you',
+      item_description: item.item_description,
+      estimated_value: item.estimated_value,
+      cause_title: cause?.title || null,
+      date: new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
+      subject_override: inKindThankYouSubject?.trim() || undefined,
+      custom_message: inKindThankYouMessage?.trim() || null,
+    })
+    if (error) { showToast('Failed to send email', 'error'); setSendingInKindThankYouId(null); return }
+    setInKindThankYouSubject('')
+    setInKindThankYouMessage('')
+    const { data, error: updateError } = await supabase.from('in_kind_donations').update({ thank_you_sent: true }).eq('id', item.id).select().single()
+    if (!updateError) setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'in_kind_thank_you_sent',
+      details: { donor_name: item.donor_name, donor_email: item.donor_email, item_description: item.item_description },
+    })
+    setSendingInKindThankYouId(null)
+    showToast(`Email sent to ${item.donor_email}`)
   }
 
   async function saveRefund(donation: any) {
@@ -11880,6 +11957,72 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   {sendingThankYouId === d.id ? 'Sending...' : (d.thank_you_sent ? '✓ Send again' : '✓ Send email')}
                 </button>
                 <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setThankYouPreviewing(false)}>
+                  ← Back to edit
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {inKindThankYouModal && !inKindThankYouPreviewing && (() => {
+        const d = inKindThankYouModal
+        return (
+          <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setInKindThankYouModal(null)}>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>Send thank-you email</div>
+                <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setInKindThankYouModal(null)}>✕</button>
+              </div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>This acknowledges a gift-in-kind — it will not include a cash receipt or tax deduction.</div>
+              <SenderIdentityLine recipientName={d.donor_name} recipientEmail={d.donor_email} {...senderIdentity} />
+              <label style={{ display: 'block', marginBottom: 12 }}>
+                <div style={s.formLabel}>Subject</div>
+                <input style={s.formInput} value={inKindThankYouSubject} onChange={e => setInKindThankYouSubject(e.target.value)} />
+              </label>
+              <label style={{ display: 'block', marginBottom: 16 }}>
+                <div style={s.formLabel}>Message</div>
+                <textarea
+                  style={{ ...s.formInput, minHeight: 180, resize: 'vertical' }}
+                  value={inKindThankYouMessage}
+                  onChange={e => setInKindThankYouMessage(e.target.value)}
+                />
+              </label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} onClick={() => setInKindThankYouPreviewing(true)}>
+                  Preview email →
+                </button>
+                <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setInKindThankYouModal(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {inKindThankYouModal && inKindThankYouPreviewing && (() => {
+        const d = inKindThankYouModal
+        const previewBodyHtml = buildInKindThankYouPreviewHtml(d, inKindThankYouMessage)
+        const fullPreviewHtml = `<div style="font-family:'Segoe UI',sans-serif;padding:16px;background:${C.ivory};">${previewBodyHtml}</div>`
+        return (
+          <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => { setInKindThankYouModal(null); setInKindThankYouPreviewing(false) }}>
+            <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: C.forest }}>Preview email</div>
+                <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => { setInKindThankYouModal(null); setInKindThankYouPreviewing(false) }}>✕</button>
+              </div>
+              <SenderIdentityLine recipientName={d.donor_name} recipientEmail={d.donor_email} {...senderIdentity} />
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+                <iframe
+                  srcDoc={fullPreviewHtml}
+                  style={{ width: '100%', height: 420, border: 'none', display: 'block' }}
+                  title="Email preview"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button style={{ ...s.btnForest, flex: 1, justifyContent: 'center' }} disabled={sendingInKindThankYouId === d.id} onClick={async () => { setInKindThankYouModal(null); setInKindThankYouPreviewing(false); await sendInKindThankYouEmail(d) }}>
+                  {sendingInKindThankYouId === d.id ? 'Sending...' : '✓ Send email'}
+                </button>
+                <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} onClick={() => setInKindThankYouPreviewing(false)}>
                   ← Back to edit
                 </button>
               </div>
