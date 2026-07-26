@@ -64,6 +64,7 @@ export function InKindDonationsPage({
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
+  const [filterReceipt, setFilterReceipt] = useState('All')
   const [selectedGiftId, setSelectedGiftId] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [editingNotesId, setEditingNotesId] = useState<number | null>(null)
@@ -85,6 +86,7 @@ export function InKindDonationsPage({
     const term = searchTerm.trim().toLowerCase()
     return inKindDonations
       .filter(d => filterCategory === 'All' || d.category === filterCategory)
+      .filter(d => filterReceipt === 'All' || (filterReceipt === 'Issued' ? d.receipt_issued : !d.receipt_issued))
       .filter(d => {
         if (filterThankYou === 'All') return true
         const noThankYouExpected = d.is_anonymous || !d.donor_email?.trim()
@@ -93,14 +95,14 @@ export function InKindDonationsPage({
         if (filterThankYou === 'No Email') return noThankYouExpected
         return true
       })
-      .filter(d => !term || [d.donor_name, d.item_description, d.notes, causeNameFor(d)].filter(Boolean).some(v => String(v).toLowerCase().includes(term)))
+      .filter(d => !term || [d.donor_name, d.item_description, d.notes, d.receipt_number, causeNameFor(d)].filter(Boolean).some(v => String(v).toLowerCase().includes(term)))
       .sort((a, b) => new Date(b.received_date).getTime() - new Date(a.received_date).getTime())
-  }, [inKindDonations, searchTerm, filterCategory, filterThankYou, myCauses])
+  }, [inKindDonations, searchTerm, filterCategory, filterReceipt, filterThankYou, myCauses])
 
-  const activeFilterCount = (filterCategory !== 'All' ? 1 : 0) + (filterThankYou !== 'All' ? 1 : 0) + (searchTerm.trim() ? 1 : 0)
-  const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterThankYou('All') }
+  const activeFilterCount = (filterCategory !== 'All' ? 1 : 0) + (filterReceipt !== 'All' ? 1 : 0) + (filterThankYou !== 'All' ? 1 : 0) + (searchTerm.trim() ? 1 : 0)
+  const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterReceipt('All'); setFilterThankYou('All') }
 
-  useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterThankYou])
+  useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterReceipt, filterThankYou])
   useEffect(() => { setEditingNotesId(null) }, [selectedGiftId])
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
@@ -207,6 +209,11 @@ export function InKindDonationsPage({
               <option value="All">All Categories</option>
               {Object.entries(CATEGORY_LABELS).map(([key, v]) => <option key={key} value={key}>{v.icon} {v.label}</option>)}
             </select>
+            <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterReceipt} onChange={e => setFilterReceipt(e.target.value)}>
+              <option value="All">Receipt: All</option>
+              <option value="Issued">✓ Issued</option>
+              <option value="Pending">Pending</option>
+            </select>
             <select style={isMobile ? { ...s.filterSelect, flex: 1, minWidth: 100 } : s.filterSelect} value={filterThankYou} onChange={e => setFilterThankYou(e.target.value)}>
               <option value="All">Thank You: All</option>
               <option value="Sent">💌 Sent</option>
@@ -295,8 +302,9 @@ export function InKindDonationsPage({
                     const cause = causeNameFor(item)
                     const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
                     const railColor = (noThankYouExpected || item.thank_you_sent) ? C.sage : C.gold
+                    const rowBg = selectedGiftId === item.id ? C.successBg : 'transparent'
                     return (
-                      <tr key={item.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => setSelectedGiftId(item.id)}>
+                      <tr key={item.id} style={{ ...s.tr, background: rowBg, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => setSelectedGiftId(item.id)}>
                         <td style={s.td}>
                           <div style={s.donorCell}>
                             <div style={{ ...s.donorAvatar, background: C.gold }}>{cat.icon}</div>
@@ -307,7 +315,7 @@ export function InKindDonationsPage({
                           </div>
                         </td>
                         <td style={s.td}><span style={{ fontSize: 10, fontWeight: 500, color: C.forest, background: C.ivoryDark, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{cat.icon} {cat.label}</span></td>
-                        <td style={s.td}><span style={{ fontSize: 12.5, color: C.text }} title={item.item_description}>{item.item_description}</span></td>
+                        <td style={s.td}><span style={{ fontSize: 12.5, color: C.text, display: 'block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.item_description}>{item.item_description}</span></td>
                         <td style={s.td}>
                           {cause ? (
                             <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 10px', borderRadius: 20, display: 'inline-block', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cause}>🎯 {cause}</span>
