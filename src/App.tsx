@@ -2026,6 +2026,12 @@ export default function App() {
     setInKindThankYouPreviewing(false)
   }
 
+  async function updateInKindNotes(item: any, notes: string) {
+    const { data, error } = await supabase.from('in_kind_donations').update({ notes }).eq('id', item.id).select().single()
+    if (error) { showToast('Error saving note', 'error'); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+  }
+
   function buildInKindThankYouPreviewHtml(item: any, customMessage: any) {
     const safeDonorName = escapeHtml(item.donor_name)
     const safeCharityName = escapeHtml(charityName)
@@ -10801,6 +10807,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             inKindForm={inKindForm} setInKindForm={setInKindForm} inKindError={inKindError} savingInKind={savingInKind}
             saveInKindDonation={saveInKindDonation} closeInKindForm={closeInKindForm} startEditingInKind={startEditingInKind}
             deleteInKindDonation={deleteInKindDonation} toggleInKindThankYou={toggleInKindThankYou} exportInKindExcel={exportInKindExcel}
+            updateInKindNotes={updateInKindNotes}
           />
         )}
 

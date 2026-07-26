@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { C } from '../theme'
 import { s } from '../styles'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -38,6 +38,7 @@ interface InKindDonationsPageProps {
   deleteInKindDonation: (item: InKindDonation) => void
   toggleInKindThankYou: (item: InKindDonation) => void
   exportInKindExcel: () => void
+  updateInKindNotes: (item: InKindDonation, notes: string) => void
 }
 
 const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
@@ -52,12 +53,17 @@ export function InKindDonationsPage({
   isMobile, isTablet, userRole, inKindDonations, myCauses,
   showInKindForm, setShowInKindForm, editingInKindId, inKindForm, setInKindForm, inKindError, savingInKind,
   saveInKindDonation, closeInKindForm, startEditingInKind, deleteInKindDonation, toggleInKindThankYou, exportInKindExcel,
+  updateInKindNotes,
 }: InKindDonationsPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
   const [selectedGiftId, setSelectedGiftId] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [editingNotesId, setEditingNotesId] = useState<number | null>(null)
+  const [noteText, setNoteText] = useState('')
+  const [perPage, setPerPage] = useState(25)
+  const [page, setPage] = useState(0)
 
   const totalValue = inKindDonations.reduce((sum, d) => sum + Number(d.estimated_value), 0)
   const canEdit = userRole === 'staff' || userRole === 'ed'
@@ -87,6 +93,11 @@ export function InKindDonationsPage({
 
   const activeFilterCount = (filterCategory !== 'All' ? 1 : 0) + (filterThankYou !== 'All' ? 1 : 0) + (searchTerm.trim() ? 1 : 0)
   const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterThankYou('All') }
+
+  useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterThankYou])
+  useEffect(() => { setEditingNotesId(null) }, [selectedGiftId])
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
 
   return (
     <div style={s.content}>
@@ -206,7 +217,7 @@ export function InKindDonationsPage({
           <div style={s.tableCard}>
             <div style={s.tableHeader}>
               <div style={s.tableTitle}>All In-Kind Gifts</div>
-              <div style={s.tableCount}>{filtered.length} records</div>
+              <div style={s.tableCount}>{filtered.length > perPage ? `${paginated.length} of ${filtered.length} records` : `${filtered.length} records`}</div>
             </div>
 
             {inKindDonations.length === 0 && activeFilterCount === 0 ? (
@@ -226,7 +237,7 @@ export function InKindDonationsPage({
               </div>
             ) : (isMobile || isTablet) ? (
               <div>
-                {filtered.map(item => {
+                {paginated.map(item => {
                   const cat = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.other
                   const cause = causeNameFor(item)
                   const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
@@ -271,7 +282,7 @@ export function InKindDonationsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(item => {
+                  {paginated.map(item => {
                     const cat = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.other
                     const cause = causeNameFor(item)
                     const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
@@ -306,6 +317,28 @@ export function InKindDonationsPage({
                   })}
                 </tbody>
               </table>
+            )}
+            {filtered.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: `1px solid ${C.border}`, flexWrap: 'wrap', gap: 10 }}>
+                <select style={{ ...s.filterSelect, padding: '6px 10px', fontSize: 12 }} value={perPage} onChange={e => { setPerPage(parseInt(e.target.value)); setPage(0) }}>
+                  <option value={25}>25 / page</option>
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    style={{ ...s.viewBtn, opacity: page === 0 ? 0.4 : 1, cursor: page === 0 ? 'not-allowed' : 'pointer' }}
+                    disabled={page === 0}
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                  >← Previous</button>
+                  <span style={{ fontSize: 12, color: C.muted }}>Page {page + 1} of {totalPages}</span>
+                  <button
+                    style={{ ...s.viewBtn, opacity: page >= totalPages - 1 ? 0.4 : 1, cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  >Next →</button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -378,12 +411,24 @@ export function InKindDonationsPage({
                       )}
 
                       <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
-                      <div style={{ background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, minHeight: 20, marginBottom: 20 }}>
-                        {item.notes
-                          ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
-                          : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No notes recorded.</div>
-                        }
-                      </div>
+                      {canEdit && editingNotesId === item.id ? (
+                        <div style={{ marginBottom: 20 }}>
+                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
+                            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindNotes(item, noteText); setEditingNotesId(null) }}>Save</button>
+                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNotesId(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={canEdit ? { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, minHeight: 20, marginBottom: 20 }}
+                          onClick={canEdit ? () => { setEditingNotesId(item.id); setNoteText(item.notes || '') } : undefined}>
+                          {item.notes
+                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
+                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to add a note...' : 'No notes recorded.'}</div>
+                          }
+                        </div>
+                      )}
 
                       {canEdit && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
