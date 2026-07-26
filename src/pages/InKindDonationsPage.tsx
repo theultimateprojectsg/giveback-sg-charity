@@ -56,9 +56,11 @@ export function InKindDonationsPage({
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
+  const [selectedGiftId, setSelectedGiftId] = useState<number | null>(null)
 
   const totalValue = inKindDonations.reduce((sum, d) => sum + Number(d.estimated_value), 0)
   const canEdit = userRole === 'staff' || userRole === 'ed'
+  const selectedGift = selectedGiftId != null ? inKindDonations.find(d => d.id === selectedGiftId) || null : null
 
   const causeNameFor = (item: InKindDonation) => {
     if (!item.cause_id) return null
@@ -226,7 +228,7 @@ export function InKindDonationsPage({
                   const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
                   const railColor = (noThankYouExpected || item.thank_you_sent) ? C.sage : C.gold
                   return (
-                    <div key={item.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                    <div key={item.id} style={{ display: 'flex', gap: 8, padding: '12px 16px 12px 10px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: 'pointer' }} onClick={() => setSelectedGiftId(item.id)}>
                       <div style={{ width: 4, borderRadius: 4, background: railColor, alignSelf: 'stretch', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -245,13 +247,6 @@ export function InKindDonationsPage({
                             {cause ? <span style={{ fontSize: 10, fontWeight: 500, color: C.gold, background: C.warningBg, padding: '3px 9px', borderRadius: 20 }}>🎯 {cause}</span> : <span style={{ fontSize: 10, color: C.muted, background: C.ivoryDark, padding: '3px 9px', borderRadius: 20 }}>General</span>}
                             {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Thanked</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email on file</span> : <span style={s.badgePending}>Not thanked</span>}
                           </div>
-                          {canEdit && (
-                            <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => toggleInKindThankYou(item)}>{item.thank_you_sent ? '↺ Unmark' : '💌 Thanked'}</button>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => startEditingInKind(item)}>✏️ Edit</button>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px', color: C.red, borderColor: C.red }} onClick={() => deleteInKindDonation(item)}>✕</button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -269,7 +264,6 @@ export function InKindDonationsPage({
                     <th style={s.th}>Date</th>
                     <th style={s.th}>Est. Value</th>
                     <th style={s.th}>Thank You</th>
-                    {canEdit && <th style={{ ...s.th, width: 170 }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -279,7 +273,7 @@ export function InKindDonationsPage({
                     const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
                     const railColor = (noThankYouExpected || item.thank_you_sent) ? C.sage : C.gold
                     return (
-                      <tr key={item.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}` }}>
+                      <tr key={item.id} style={{ ...s.tr, borderLeft: `3px solid ${railColor}`, cursor: 'pointer' }} onClick={() => setSelectedGiftId(item.id)}>
                         <td style={s.td}>
                           <div style={s.donorCell}>
                             <div style={{ ...s.donorAvatar, background: C.gold }}>{cat.icon}</div>
@@ -303,15 +297,6 @@ export function InKindDonationsPage({
                         <td style={s.td}>
                           {item.thank_you_sent ? <span style={s.badgeIssued}>💌 Sent</span> : noThankYouExpected ? <span style={{ fontSize: 10, color: C.muted, fontStyle: 'italic' }}>No email</span> : <span style={s.badgePending}>Not sent</span>}
                         </td>
-                        {canEdit && (
-                          <td style={s.td}>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 9px' }} title={item.thank_you_sent ? 'Unmark as thanked' : 'Send / mark as thanked'} onClick={() => toggleInKindThankYou(item)}>{item.thank_you_sent ? '↺' : '💌'}</button>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 9px' }} title="Edit" onClick={() => startEditingInKind(item)}>✏️</button>
-                              <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 9px', color: C.red, borderColor: C.red }} title="Delete" onClick={() => deleteInKindDonation(item)}>✕</button>
-                            </div>
-                          </td>
-                        )}
                       </tr>
                     )
                   })}
@@ -320,6 +305,102 @@ export function InKindDonationsPage({
             )}
           </div>
         </>
+      )}
+
+      {selectedGift && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => setSelectedGiftId(null)}>
+          <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 560, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
+            <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.white, borderRadius: 8, overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 24 }}>
+              {(() => {
+                const item = selectedGift
+                const cat = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.other
+                const cause = causeNameFor(item)
+                const noThankYouExpected = item.is_anonymous || !item.donor_email?.trim()
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{cat.icon}</div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>In-Kind Gift</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{item.donor_name}</div>
+                        </div>
+                      </div>
+                      <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setSelectedGiftId(null)}>✕</button>
+                    </div>
+
+                    <div style={{ background: C.forest, borderRadius: 14, padding: '20px 22px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                      <div>
+                        <div style={{ fontSize: 34, fontWeight: 800, color: 'white', lineHeight: 1 }}>${Number(item.estimated_value).toLocaleString()}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>{new Date(item.received_date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })} · Est. value, not counted as cash</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: 'white', background: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 20 }}>{cat.icon} {cat.label}</span>
+                        {item.thank_you_sent ? (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 20 }}>💌 Thanked</span>
+                        ) : noThankYouExpected ? (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: 20 }}>No email on file</span>
+                        ) : (
+                          <span style={{ fontSize: 11, fontWeight: 500, color: C.warning, background: C.warningBg, padding: '4px 10px', borderRadius: 20 }}>Not thanked</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ overflowY: 'auto', flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Gift Details</div>
+                      <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Item</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.text, textAlign: 'right', maxWidth: 280 }}>{item.item_description}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                          <span style={{ fontSize: 13, color: C.muted }}>Cause</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{cause || 'General'}</span>
+                        </div>
+                      </div>
+
+                      {!item.is_anonymous && (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Donor</div>
+                          <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                              <span style={{ fontSize: 13, color: C.muted }}>Email</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_email || '—'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                              <span style={{ fontSize: 13, color: C.muted }}>Phone</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_phone || '—'}</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
+                      <div style={{ background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, minHeight: 20, marginBottom: 20 }}>
+                        {item.notes
+                          ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
+                          : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No notes recorded.</div>
+                        }
+                      </div>
+
+                      {canEdit && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {!noThankYouExpected && (
+                            <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
+                              {item.thank_you_sent ? '↺ Unmark as Thanked' : '💌 Send Thank You'}
+                            </button>
+                          )}
+                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); startEditingInKind(item) }}>✏️ Edit Entry</button>
+                          <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); deleteInKindDonation(item) }}>🗑️ Delete Entry</button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
