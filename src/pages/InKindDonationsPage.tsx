@@ -21,6 +21,11 @@ interface InKindDonation {
   receipt_number?: string | null
   receipt_issued?: boolean
   receipt_issued_at?: string | null
+  receipt_voided?: boolean
+  voided_at?: string | null
+  voided_by?: string | null
+  void_reason?: string | null
+  reissued_from?: string | null
 }
 
 interface InKindDonationsPageProps {
@@ -50,6 +55,8 @@ interface InKindDonationsPageProps {
   bulkInKindActionInProgress: boolean
   bulkInKindProgress: { done: number, total: number } | null
   bulkInKindCancelRef: RefObject<boolean>
+  voidAndReissueInKindReceipt: (item: InKindDonation, reason: string) => void
+  voidingInKindReceipt: boolean
 }
 
 const CATEGORY_LABELS: Record<string, { icon: string, label: string }> = {
@@ -76,7 +83,10 @@ export function InKindDonationsPage({
   saveInKindDonation, closeInKindForm, startEditingInKind, deleteInKindDonation, toggleInKindThankYou, exportInKindExcel,
   updateInKindNotes, issueInKindReceipt, exportInKindReceiptPDF, issuingInKindReceiptId,
   issueAllInKindReceipts, bulkInKindActionInProgress, bulkInKindProgress, bulkInKindCancelRef,
+  voidAndReissueInKindReceipt, voidingInKindReceipt,
 }: InKindDonationsPageProps) {
+  const [showVoidModal, setShowVoidModal] = useState(false)
+  const [voidReason, setVoidReason] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('All')
   const [filterThankYou, setFilterThankYou] = useState('All')
@@ -147,7 +157,7 @@ export function InKindDonationsPage({
   const clearFilters = () => { setSearchTerm(''); setFilterCategory('All'); setFilterReceipt('All'); setFilterThankYou('All') }
 
   useEffect(() => { setPage(0) }, [searchTerm, filterCategory, filterReceipt, filterThankYou, sortBy, sortDir])
-  useEffect(() => { setEditingNotesId(null) }, [selectedGiftId])
+  useEffect(() => { setEditingNotesId(null); setShowVoidModal(false); setVoidReason('') }, [selectedGiftId])
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
   const paginated = filtered.slice(page * perPage, (page + 1) * perPage)
 
@@ -493,9 +503,15 @@ export function InKindDonationsPage({
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{cause || 'General'}</span>
                         </div>
                         {item.receipt_issued && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: item.reissued_from ? `1px solid ${C.ivoryDark}` : undefined }}>
                             <span style={{ fontSize: 13, color: C.muted }}>Receipt No.</span>
                             <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{item.receipt_number}</span>
+                          </div>
+                        )}
+                        {item.reissued_from && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                            <span style={{ fontSize: 13, color: C.muted }}>Reissued from</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: 'monospace' }}>{item.reissued_from}</span>
                           </div>
                         )}
                       </div>
@@ -539,7 +555,10 @@ export function InKindDonationsPage({
                       {canEdit && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {item.receipt_issued ? (
-                            <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportInKindReceiptPDF(item)}>⬇️ Download Receipt PDF</button>
+                            <>
+                              <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportInKindReceiptPDF(item)}>⬇️ Download Receipt PDF</button>
+                              <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
+                            </>
                           ) : (
                             <button style={{ ...s.btnForest, justifyContent: 'center' }} disabled={issuingInKindReceiptId === item.id} onClick={() => issueInKindReceipt(item)}>{issuingInKindReceiptId === item.id ? '⏳ Issuing...' : '🧾 Issue Receipt'}</button>
                           )}
@@ -560,6 +579,52 @@ export function InKindDonationsPage({
                   </>
                 )
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showVoidModal && selectedGift && (
+        <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setShowVoidModal(false)}>
+          <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 420, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.red, marginBottom: 4 }}>Void & Reissue Receipt</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+              The original receipt number <strong style={{ fontFamily: 'monospace' }}>{selectedGift.receipt_number}</strong> will be marked as voided and kept on record. A new corrected receipt will be issued with the next sequential number.
+            </div>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Donor</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>{selectedGift.donor_name}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Estimated Value</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${Number(selectedGift.estimated_value).toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: C.muted }}>Current Receipt No.</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: C.forest, fontFamily: 'monospace' }}>{selectedGift.receipt_number}</span>
+              </div>
+            </div>
+            <label style={{ display: 'block' }}>
+              <div style={s.formLabel}>Reason for voiding *</div>
+              <input
+                style={{ ...s.formInput, marginBottom: 16 }}
+                placeholder="e.g. Wrong value entered, donor name misspelled"
+                value={voidReason}
+                onChange={e => setVoidReason(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <div style={{ background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: C.warning }}>
+              ⚠️ This action is logged and cannot be undone. The void reason will appear on the audit trail.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={{ flex: 1, background: C.ivoryDark, color: C.forest, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => { setShowVoidModal(false); setVoidReason('') }}>Cancel</button>
+              <button
+                style={{ flex: 1, background: C.red, color: 'white', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: voidReason.trim() ? 1 : 0.5 }}
+                disabled={!voidReason.trim() || voidingInKindReceipt}
+                onClick={async () => { await voidAndReissueInKindReceipt(selectedGift, voidReason); setShowVoidModal(false); setVoidReason('') }}
+              >{voidingInKindReceipt ? '⏳ Processing...' : 'Void & Reissue'}</button>
             </div>
           </div>
         </div>

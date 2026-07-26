@@ -2102,6 +2102,50 @@ export default function App() {
     }
   }
 
+  const [voidingInKindReceipt, setVoidingInKindReceipt] = useState<any>(false)
+
+  async function voidAndReissueInKindReceipt(item: any, reason: string) {
+    if (!reason.trim()) { showToast('Please enter a reason for voiding', 'error'); return }
+    setVoidingInKindReceipt(true)
+
+    const { error: voidError } = await supabase.from('in_kind_donations').update({
+      receipt_voided: true,
+      voided_at: new Date().toISOString(),
+      voided_by: session.user.email,
+      void_reason: reason.trim(),
+      receipt_issued: false,
+    }).eq('id', item.id)
+    if (voidError) { showToast('Error voiding receipt', 'error'); setVoidingInKindReceipt(false); return }
+
+    const entryYear = new Date(item.received_date).getFullYear()
+    const { data: newReceiptNumber, error: countError } = await supabase.rpc('next_inkind_receipt_number', { p_charity_uen: charityUen, p_year: entryYear })
+    if (countError) { showToast('Error generating new receipt number', 'error'); setVoidingInKindReceipt(false); return }
+
+    const { data, error: reissueError } = await supabase.from('in_kind_donations').update({
+      receipt_issued: true,
+      receipt_number: newReceiptNumber,
+      reissued_from: item.receipt_number,
+      thank_you_sent: false,
+    }).eq('id', item.id).select().single()
+    if (reissueError) { showToast('Error reissuing receipt', 'error'); setVoidingInKindReceipt(false); return }
+
+    await supabase.from('audit_log').insert({
+      actor_type: 'charity',
+      actor_email: session.user.email,
+      action: 'inkind_receipt_voided_and_reissued',
+      details: {
+        donor_name: item.donor_name,
+        old_receipt_number: item.receipt_number,
+        new_receipt_number: newReceiptNumber,
+        void_reason: reason.trim(),
+      },
+    })
+
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
+    setVoidingInKindReceipt(false)
+    showToast(`Receipt voided ✓ — new receipt issued as ${newReceiptNumber}`)
+  }
+
   function generateInKindReceiptPDFDoc(item: any) {
     const doc = new jsPDF()
     const pageWidth = 210
@@ -2209,6 +2253,8 @@ export default function App() {
     ]
     const causeTitle = item.cause_id ? myCauses.find(c => c.id === item.cause_id)?.title : null
     if (causeTitle) facts.push(['Designated to', causeTitle])
+    if (item.reissued_from) facts.push(['Reissued from receipt', item.reissued_from])
+    if (item.receipt_voided) facts.push(['Status', 'VOIDED'])
 
     facts.forEach(([label, value], i) => {
       doc.setFont('helvetica', 'normal')
@@ -11058,6 +11104,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             updateInKindNotes={updateInKindNotes} issueInKindReceipt={issueInKindReceipt} exportInKindReceiptPDF={exportInKindReceiptPDF}
             issuingInKindReceiptId={issuingInKindReceiptId} issueAllInKindReceipts={issueAllInKindReceipts}
             bulkInKindActionInProgress={bulkInKindActionInProgress} bulkInKindProgress={bulkInKindProgress} bulkInKindCancelRef={bulkInKindCancelRef}
+            voidAndReissueInKindReceipt={voidAndReissueInKindReceipt} voidingInKindReceipt={voidingInKindReceipt}
           />
         )}
 
