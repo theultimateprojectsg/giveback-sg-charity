@@ -10798,7 +10798,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         {/* ── IN-KIND GIFTS ── */}
         {activeTab === 'inkind' && enabledModules.inKind !== false && (
           <InKindDonationsPage
-            isMobile={isMobile} userRole={userRole} inKindDonations={inKindDonations} myCauses={myCauses}
+            isMobile={isMobile} isTablet={isTablet} userRole={userRole} inKindDonations={inKindDonations} myCauses={myCauses}
             showInKindForm={showInKindForm} setShowInKindForm={setShowInKindForm} editingInKindId={editingInKindId}
             inKindForm={inKindForm} setInKindForm={setInKindForm} inKindError={inKindError} savingInKind={savingInKind}
             saveInKindDonation={saveInKindDonation} closeInKindForm={closeInKindForm} startEditingInKind={startEditingInKind}
