@@ -9480,6 +9480,14 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const majorGiftsAwaitingPersonalThanks = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && notSuppressed(donationDonorKey(d)))
     if (majorGiftsAwaitingPersonalThanks.length > 0) items.push({ key: 'major_thanks_pending', icon: '💌', label: `${majorGiftsAwaitingPersonalThanks.length} confirmed donation${majorGiftsAwaitingPersonalThanks.length > 1 ? 's' : ''} pending thank you`, priority: 'high', jump: () => { clearDonationFilters({ keepYear: false }); setFilterThankYou('Not Sent'); setDonationFilterLabel('Showing gifts awaiting a thank-you'); setActiveTab('donations') } })
 
+    if (enabledModules.inKind !== false) {
+      const inKindThanksPending = inKindDonations.filter(d => !d.thank_you_sent && d.donor_email?.trim())
+      if (inKindThanksPending.length > 0) items.push({ key: 'inkind_thanks_pending', icon: '💌', label: `${inKindThanksPending.length} in-kind gift${inKindThanksPending.length > 1 ? 's' : ''} pending thank you`, priority: 'high', jump: () => setActiveTab('inkind') })
+
+      const inKindReceiptsPending = inKindDonations.filter(d => !d.receipt_issued)
+      if (inKindReceiptsPending.length > 0) items.push({ key: 'inkind_receipts_pending', icon: '🧾', label: `${inKindReceiptsPending.length} in-kind receipt${inKindReceiptsPending.length > 1 ? 's' : ''} pending`, priority: 'medium', jump: () => setActiveTab('inkind') })
+    }
+
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
     // Model B: a Worth-knowing donor is "handled" once you've logged a communication with
     // them since `sinceMs` (reuses donorLastContactMap from the warmth feature). Gift-driven
@@ -9669,7 +9677,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const nowMs = Date.now()
     // Obligations with a real "done" state stay in Needs Action; everything else (donor
     // moments, trends, soft opportunities) is informational → Worth Knowing.
-    const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
+    const ACTION_KEYS = new Set(['unconfirmed_payments', 'major_thanks_pending', 'inkind_thanks_pending', 'pledges_overdue', 'recurring_overdue', 'giro_possible_cancellation'])
     const isActionItem = (i: any) => !i.key || ACTION_KEYS.has(i.key) || i.key.startsWith('grant_report_') || i.key.startsWith('obligation_')
     const notSnoozed = (i: any) => !i.key || !(snoozedItems[i.key] > nowMs)
 
@@ -9685,7 +9693,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     giroMissedCycles, allGivingChangeFlags, donorLastContactMap,
     insightDismissals, lapsedMinGifts, lapsedMinDays, lapsedDismissals, donationBadgeInfo, cumulativeThresholds,
     grantsWithNextReport, donorList, majorDonorThreshold, donorContacts, customObligations, charityIsIpc,
-    daysToDeadline, snoozedItems, setActiveTab,
+    daysToDeadline, snoozedItems, setActiveTab, inKindDonations, enabledModules,
   ])
 
   if (authLoading) return (
