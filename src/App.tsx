@@ -22,6 +22,7 @@ import { SenderIdentityLine } from './components/ui/SenderIdentityLine'
 import { CampaignExpensePanel } from './components/panels/CampaignExpensePanel'
 import { ReportsPage } from './pages/ReportsPage'
 import { GrantsPage } from './pages/GrantsPage'
+import { InKindDonationsPage } from './pages/InKindDonationsPage'
 import { MassAppealModal } from './components/modals/MassAppealModal'
 import { RecurringPage } from './pages/RecurringPage'
 import { PledgesPage } from './pages/PledgesPage'
@@ -178,7 +179,7 @@ const CAMPAIGN_CATEGORIES = ['Community Development', 'Education', 'Health', 'So
 
 const EMPTY_CAUSE_FORM = { title: '', description: '', target_amount: '', start_date: '', end_date: '', cost: '', category: '', tax_deductible: true, benefit_value: '', permit_number: '', permit_status: 'not_required', permit_expiry: '' }
 
-const VALID_TABS = ['donors', 'donations', 'dashboard', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'grants', 'reports', 'settings']
+const VALID_TABS = ['donors', 'donations', 'dashboard', 'iras', 'activity', 'promotions', 'recurring', 'pledges', 'grants', 'inkind', 'reports', 'settings']
 const MODULE_TAB_IDS: Record<string, string> = { campaigns: 'promotions', pledges: 'pledges', recurring: 'recurring', grants: 'grants' }
 const VOLUNTEER_ALLOWED_TABS = ['donations', 'settings']
 const BOARD_ALLOWED_TABS = ['dashboard', 'settings']
@@ -452,6 +453,12 @@ export default function App() {
   const [newExpenseForm, setNewExpenseForm] = useState<any>({ name: '', amount: '' })
   const [refunds, setRefunds] = useState<any[]>([])
   const [showRefundForm, setShowRefundForm] = useState<any>(false)
+  const [inKindDonations, setInKindDonations] = useState<any[]>([])
+  const [showInKindForm, setShowInKindForm] = useState<any>(false)
+  const [editingInKindId, setEditingInKindId] = useState<any>(null)
+  const [inKindForm, setInKindForm] = useState<any>({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false })
+  const [savingInKind, setSavingInKind] = useState<any>(false)
+  const [inKindError, setInKindError] = useState<any>('')
   const [showDonationMoreActions, setShowDonationMoreActions] = useState<any>(false)
   const [refundForm, setRefundForm] = useState<any>({ reason: '' })
   const [savingRefund, setSavingRefund] = useState<any>(false)
@@ -899,7 +906,7 @@ export default function App() {
   const [goalInput, setGoalInput] = useState<any>('')
   const DEFAULT_VISIBLE_METRICS = ['total_raised', 'donor_retention', 'avg_gift', 'campaign_performance', 'monthly_trend', 'donor_highlights']
   const [, setVisibleMetrics] = useState<any>(DEFAULT_VISIBLE_METRICS)
-  const DEFAULT_ENABLED_MODULES = { campaigns: false, pledges: false, recurring: false, grants: false }
+  const DEFAULT_ENABLED_MODULES = { campaigns: false, pledges: false, recurring: false, grants: false, inKind: true }
   const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
@@ -1067,6 +1074,7 @@ export default function App() {
       loadGrantTranches()
       loadGrantMatchClaims()
       loadGivingChangeAcks(session)
+      loadInKindDonations(session)
     }
     // intentionally fires only on session change (login) -- the load* functions are plain
     // functions recreated every render, so including them would refetch everything on every render.
@@ -1898,6 +1906,107 @@ export default function App() {
     const { data, error } = await supabase.from('refunds').select('*').eq('charity_uen', uen)
     if (error) { console.error('Could not load refunds:', error); return }
     setRefunds(data || [])
+  }
+
+  async function loadInKindDonations(activeSession = session) {
+    const uen = activeSession?.user?.app_metadata?.charity_uen
+    if (!uen) return
+    const { data, error } = await supabase.from('in_kind_donations').select('*').eq('charity_uen', uen).order('received_date', { ascending: false })
+    if (error) { console.error('Could not load in-kind donations:', error); return }
+    setInKindDonations(data || [])
+  }
+
+  function closeInKindForm() {
+    setShowInKindForm(false)
+    setEditingInKindId(null)
+    setInKindError('')
+    setInKindForm({ donor_name: '', donor_email: '', donor_nric: '', donor_phone: '', category: 'goods', item_description: '', estimated_value: '', received_date: new Date().toISOString().split('T')[0], cause_id: '', notes: '', is_anonymous: false })
+  }
+
+  function startEditingInKind(item: any) {
+    setEditingInKindId(item.id)
+    setInKindForm({
+      donor_name: item.donor_name || '',
+      donor_email: item.donor_email || '',
+      donor_nric: item.donor_nric || '',
+      donor_phone: item.donor_phone || '',
+      category: item.category,
+      item_description: item.item_description,
+      estimated_value: item.estimated_value?.toString() || '',
+      received_date: item.received_date,
+      cause_id: item.cause_id || '',
+      notes: item.notes || '',
+      is_anonymous: item.is_anonymous || false,
+    })
+    setShowInKindForm(true)
+  }
+
+  async function saveInKindDonation() {
+    if (savingInKind) return
+    if (!inKindForm.is_anonymous && !inKindForm.donor_name.trim()) { setInKindError('Donor name is required (or mark as anonymous)'); return }
+    if (!inKindForm.item_description.trim()) { setInKindError('A description of the item or service is required'); return }
+    const val = parseFloat(inKindForm.estimated_value)
+    if (!inKindForm.estimated_value || isNaN(val) || val <= 0) { setInKindError('Estimated value must be a positive number'); return }
+    if (!inKindForm.received_date) { setInKindError('Date received is required'); return }
+    setInKindError('')
+    setSavingInKind(true)
+
+    const payload = {
+      donor_name: inKindForm.is_anonymous ? 'Anonymous' : inKindForm.donor_name.trim(),
+      donor_email: inKindForm.is_anonymous ? null : (inKindForm.donor_email?.trim().toLowerCase() || null),
+      donor_nric: inKindForm.is_anonymous ? null : (inKindForm.donor_nric?.trim().toUpperCase() || null),
+      donor_phone: inKindForm.is_anonymous ? null : (inKindForm.donor_phone?.trim() || null),
+      category: inKindForm.category,
+      item_description: inKindForm.item_description.trim(),
+      estimated_value: val,
+      received_date: inKindForm.received_date,
+      cause_id: inKindForm.cause_id || null,
+      notes: inKindForm.notes?.trim() || null,
+      is_anonymous: inKindForm.is_anonymous,
+      charity_uen: charityUen,
+      created_by: session.user.email,
+    }
+
+    if (editingInKindId) {
+      const { data, error } = await supabase.from('in_kind_donations').update(payload).eq('id', editingInKindId).select().single()
+      setSavingInKind(false)
+      if (error) { setInKindError('Error saving changes'); return }
+      setInKindDonations(prev => prev.map(d => d.id === editingInKindId ? data : d).sort((a, b) => new Date(b.received_date).getTime() - new Date(a.received_date).getTime()))
+      showToast('In-kind gift updated ✓')
+    } else {
+      const { data, error } = await supabase.from('in_kind_donations').insert(payload).select().single()
+      setSavingInKind(false)
+      if (error) { setInKindError('Error saving in-kind gift'); return }
+      setInKindDonations(prev => [data, ...prev].sort((a, b) => new Date(b.received_date).getTime() - new Date(a.received_date).getTime()))
+      await supabase.from('audit_log').insert({
+        actor_type: 'charity',
+        actor_email: session.user.email,
+        action: 'in_kind_donation_logged',
+        details: { donor_name: payload.donor_name, item_description: payload.item_description, estimated_value: val, charity_uen: charityUen },
+      })
+      showToast('In-kind gift logged ✓')
+    }
+    closeInKindForm()
+  }
+
+  async function deleteInKindDonation(item: any) {
+    setConfirmModal({
+      title: 'Delete this in-kind gift?',
+      description: `"${item.item_description}" from ${item.donor_name} will be permanently removed. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        const { error } = await supabase.from('in_kind_donations').delete().eq('id', item.id)
+        if (error) { showToast('Error deleting in-kind gift', 'error'); return }
+        setInKindDonations(prev => prev.filter(d => d.id !== item.id))
+        showToast('In-kind gift deleted')
+      },
+    })
+  }
+
+  async function toggleInKindThankYou(item: any) {
+    const { data, error } = await supabase.from('in_kind_donations').update({ thank_you_sent: !item.thank_you_sent }).eq('id', item.id).select().single()
+    if (error) { showToast('Error updating thank-you status', 'error'); return }
+    setInKindDonations(prev => prev.map(d => d.id === item.id ? data : d))
   }
 
   async function saveRefund(donation: any) {
@@ -7310,6 +7419,27 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     logExport('grants_excel', { row_count: rows.length })
   }
 
+  function exportInKindExcel() {
+    const rows = inKindDonations.map(item => ({
+      'Donor Name': item.donor_name,
+      'Category': item.category.replace(/_/g, ' '),
+      'Item / Service': item.item_description,
+      'Estimated Value (SGD)': item.estimated_value,
+      'Date Received': new Date(item.received_date).toLocaleDateString('en-SG'),
+      'Programme': item.cause_id ? (myCauses.find(c => c.id === item.cause_id)?.title || '') : 'General',
+      'Thank You Sent': item.thank_you_sent ? 'Yes' : 'No',
+      'Notes': item.notes || '',
+      'Recorded By': item.created_by || '',
+    }))
+    if (rows.length === 0) { showToast('No in-kind gifts to export', 'error'); return }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 36 }, { wch: 18 }, { wch: 16 }, { wch: 24 }, { wch: 14 }, { wch: 30 }, { wch: 24 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'In-Kind Gifts')
+    XLSX.writeFile(wb, `GivingTree-InKindGifts-${charityName}-${new Date().toISOString().split('T')[0]}.xlsx`)
+    logExport('in_kind_excel', { row_count: rows.length })
+  }
+
   function exportRecurringExcel(filteredGifts: any) {
     const rows = filteredGifts.map((g: any) => ({
       'Donor Name': g.donor_name,
@@ -7616,6 +7746,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         pledges: pledges.length,
         recurring: recurringGifts.length,
         grants: grants.length,
+        inKind: inKindDonations.length,
       }
       const count = recordCounts[key] || 0
       if (count > 0) {
@@ -9199,6 +9330,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 { id: 'pledges',     icon: '🤝', label: 'Pledges', module: 'pledges' },
                 { id: 'recurring',   icon: '🔁', label: 'Recurring', module: 'recurring' },
                 { id: 'grants',      icon: '💰', label: 'Grants', module: 'grants' },
+                { id: 'inkind',      icon: '🎁', label: 'In-Kind Gifts', module: 'inKind' },
               ].filter(item => enabledModules[item.module] !== false).map(item => (
                 <div key={item.id}
                   title={item.label}
@@ -9274,6 +9406,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 {enabledModules.pledges !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('pledges'); setSelectedDonor(null); setShowMobileMenu(false) }}>🤝 Pledges</div>}
                 {enabledModules.recurring !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('recurring'); setSelectedDonor(null); setShowMobileMenu(false) }}>🔁 Recurring</div>}
                 {enabledModules.grants !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('grants'); setSelectedDonor(null); setShowMobileMenu(false) }}>💰 Grants</div>}
+                {enabledModules.inKind !== false && <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('inkind'); setSelectedDonor(null); setShowMobileMenu(false) }}>🎁 In-Kind Gifts</div>}
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Compliance</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('reports'); setSelectedDonor(null); setShowMobileMenu(false) }}>📋 Reports</div>
                 <div style={s.mobileOverflowItem} onClick={() => { setActiveTab('activity'); setSelectedDonor(null); setShowMobileMenu(false) }}>🗒️ Audit Log</div>
@@ -10585,6 +10718,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
           />
         )}
 
+        {/* ── IN-KIND GIFTS ── */}
+        {activeTab === 'inkind' && enabledModules.inKind !== false && (
+          <InKindDonationsPage
+            isMobile={isMobile} userRole={userRole} inKindDonations={inKindDonations} myCauses={myCauses}
+            showInKindForm={showInKindForm} setShowInKindForm={setShowInKindForm} editingInKindId={editingInKindId}
+            inKindForm={inKindForm} setInKindForm={setInKindForm} inKindError={inKindError} savingInKind={savingInKind}
+            saveInKindDonation={saveInKindDonation} closeInKindForm={closeInKindForm} startEditingInKind={startEditingInKind}
+            deleteInKindDonation={deleteInKindDonation} toggleInKindThankYou={toggleInKindThankYou} exportInKindExcel={exportInKindExcel}
+          />
+        )}
+
         {/* ── REPORTS ── */}
         {activeTab === 'reports' && (
           <ReportsPage
@@ -10610,7 +10754,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             settingsSection={settingsSection} setSettingsSection={setSettingsSection}
             localEds={localEds} localStaff={localStaff} localBoardMembers={localBoardMembers} localVolunteers={localVolunteers}
             setVolunteerInput={setVolunteerInput} setNewTeamMemberRole={setNewTeamMemberRole} setShowAddTeamMemberModal={setShowAddTeamMemberModal} removeTeamMember={removeTeamMember}
-            myCauses={myCauses} pledges={pledges} recurringGifts={recurringGifts} grants={grants} massAppeals={massAppeals} enabledModules={enabledModules} toggleEnabledModule={toggleEnabledModule}
+            myCauses={myCauses} pledges={pledges} recurringGifts={recurringGifts} grants={grants} massAppeals={massAppeals} inKindDonations={inKindDonations} enabledModules={enabledModules} toggleEnabledModule={toggleEnabledModule}
             editingDonorThresholds={editingDonorThresholds} setThankYouThresholdInput={setThankYouThresholdInput} setMajorDonorThresholdInput={setMajorDonorThresholdInput} setEditingDonorThresholds={setEditingDonorThresholds}
             thankYouThreshold={thankYouThreshold} majorDonorThreshold={majorDonorThreshold} thankYouThresholdInput={thankYouThresholdInput} majorDonorThresholdInput={majorDonorThresholdInput} saveDonorThresholds={saveDonorThresholds}
             editingCumulativeThresholds={editingCumulativeThresholds} cumulativeThresholdsInput={cumulativeThresholdsInput} setCumulativeThresholdsInput={setCumulativeThresholdsInput} setEditingCumulativeThresholds={setEditingCumulativeThresholds}

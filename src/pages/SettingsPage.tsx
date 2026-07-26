@@ -43,6 +43,7 @@ interface SettingsPageProps {
   recurringGifts: RecurringGift[]
   grants: Grant[]
   massAppeals: any[]
+  inKindDonations: any[]
   enabledModules: Record<string, boolean>
   toggleEnabledModule: (key: string) => void
   editingDonorThresholds: boolean
@@ -122,7 +123,7 @@ export function SettingsPage({
   settingsSection, setSettingsSection,
   localEds, localStaff, localBoardMembers, localVolunteers,
   setVolunteerInput, setNewTeamMemberRole, setShowAddTeamMemberModal, removeTeamMember,
-  myCauses, pledges, recurringGifts, grants, massAppeals, enabledModules, toggleEnabledModule,
+  myCauses, pledges, recurringGifts, grants, massAppeals, inKindDonations, enabledModules, toggleEnabledModule,
   editingDonorThresholds, setThankYouThresholdInput, setMajorDonorThresholdInput, setEditingDonorThresholds,
   thankYouThreshold, majorDonorThreshold, thankYouThresholdInput, majorDonorThresholdInput, saveDonorThresholds,
   editingCumulativeThresholds, cumulativeThresholdsInput, setCumulativeThresholdsInput, setEditingCumulativeThresholds,
@@ -345,6 +346,7 @@ export function SettingsPage({
               { key: 'pledges', icon: '🤝', label: 'Pledges', desc: 'Promised future gifts and instalments', count: pledges.length },
               { key: 'recurring', icon: '🔁', label: 'Recurring Giving', desc: 'GIRO and habitual PayNow donors', count: recurringGifts.length },
               { key: 'grants', icon: '💰', label: 'Grants', desc: 'Restricted funds, tranches, and compliance reporting', count: grants.length },
+              { key: 'inKind', icon: '🎁', label: 'In-Kind Gifts', desc: 'Donated goods, services, or venue space instead of cash', count: inKindDonations.length },
             ].map(m => {
               const isOn = enabledModules[m.key] !== false
               const locked = isOn && m.count > 0
