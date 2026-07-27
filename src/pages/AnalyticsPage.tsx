@@ -55,8 +55,17 @@ function DraggableCard({ sectionId, cardKey, order, flexBasis, defaultOrder, das
 }) {
   const [isDragOver, setIsDragOver] = useState(false)
   const existingStyle = isValidElement(children) ? ((children.props as any).style || {}) : {}
+  const hasOwnLayout = !!existingStyle.display
   const styledChild = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<any>, { style: { ...existingStyle, flex: 1, height: '100%', boxSizing: 'border-box' } })
+    ? cloneElement(children as React.ReactElement<any>, {
+        style: {
+          ...existingStyle,
+          flex: 1,
+          height: '100%',
+          boxSizing: 'border-box',
+          ...(hasOwnLayout ? {} : { display: 'flex', flexDirection: 'column', justifyContent: 'center' }),
+        },
+      })
     : children
   return (
     <div
