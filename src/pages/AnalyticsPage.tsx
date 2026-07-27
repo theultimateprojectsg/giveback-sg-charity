@@ -2702,10 +2702,13 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="gr" cards={GRANTS_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('gr_snapshot') && (() => {
                 const { yr, tiles } = grantSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="gr" cardKey="gr_snapshot" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_snapshot')} flexBasis="100%" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -2722,14 +2725,16 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
               {(() => {
                 const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct } = grantOverviewStats
                 return (
-                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                  <>
                     {!hidden('gr_trend') && trendData.length >= 2 && (
+                      <DraggableCard sectionId="gr" cardKey="gr_trend" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_trend')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Grants Trend — Last {trendData.length} Years <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -2744,9 +2749,11 @@ export function AnalyticsPage({
                           </ResponsiveContainer>
                         </div>
                       </div>
+                      </DraggableCard>
                     )}
 
                     {!hidden('gr_spendingByCategory') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_spendingByCategory" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_spendingByCategory')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
                       {expenseByCategory.length === 0 ? (
@@ -2776,9 +2783,11 @@ export function AnalyticsPage({
                         </div>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
 
                     {!hidden('gr_fundingComposition') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_fundingComposition" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_fundingComposition')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
                       <div style={s.analyticsSubTitle}>By funder type</div>
@@ -2811,8 +2820,9 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
-                  </div>
+                  </>
                 )
               })()}
 
@@ -2821,8 +2831,9 @@ export function AnalyticsPage({
                 const today = new Date()
 
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <>
                     {!hidden('gr_grantFunding') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_grantFunding" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_grantFunding')} flexBasis="460px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
@@ -2887,10 +2898,12 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
 
                     {!hidden('gr_grantConcentration') && (() => {
                       return (
+                    <DraggableCard sectionId="gr" cardKey="gr_grantConcentration" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_grantConcentration')} flexBasis="460px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
 
@@ -2947,17 +2960,19 @@ export function AnalyticsPage({
                       <ActionBanner tone="success" text="Well diversified" sub="No single funder dominates your active grants" />
                     ))}
                   </div>
+                  </DraggableCard>
                       )
                     })()}
-                  </div>
+                  </>
                 )
               })()}
 
               {(() => {
                 const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportCompliance } = grantOverviewStats
                 return (
-                  <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                  <>
                     {!hidden('gr_matchingClaims') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_matchingClaims" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_matchingClaims')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Matching Grant Claims <InfoTip text="How much matched funding has been claimed against the cap across all active matching grants, and which ones are ending within 6 months with unclaimed match still on the table." /></div>
                       {totalMatchCap === 0 ? (
@@ -2993,9 +3008,11 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
 
                     {!hidden('gr_disbursementTranches') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_disbursementTranches" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_disbursementTranches')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
                       {totalCommitted === 0 ? (
@@ -3032,9 +3049,11 @@ export function AnalyticsPage({
                         )
                       })()}
                     </div>
+                    </DraggableCard>
                     )}
 
                     {!hidden('gr_reportCompliance') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_reportCompliance" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_reportCompliance')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year." /></div>
                       {reportCompliance.total === 0 ? (
@@ -3077,10 +3096,12 @@ export function AnalyticsPage({
                         <ActionBanner tone="success" text="No overdue reports" sub="All reports are up to date" />
                       ) : null}
                     </div>
+                    </DraggableCard>
                     )}
-                  </div>
+                  </>
                 )
               })()}
+              </div>
             </div>
 
             <div id="analytics-section-donorbehavior" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
