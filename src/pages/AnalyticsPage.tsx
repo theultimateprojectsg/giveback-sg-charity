@@ -2320,10 +2320,13 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="rc" cards={RECURRING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('rc_snapshot') && (() => {
                 const { yr, tiles } = recurringSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="rc" cardKey="rc_snapshot" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_snapshot')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -2338,6 +2341,7 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -2346,7 +2350,8 @@ export function AnalyticsPage({
                 const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
 
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="rc" cardKey="rc_healthTiles" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_healthTiles')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                       <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
@@ -2381,6 +2386,7 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 11, color: atRiskCount > 0 ? C.forest : C.muted, fontWeight: atRiskCount > 0 ? 500 : 400, textDecoration: atRiskCount > 0 ? 'underline' : 'none' }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk — see who ↓` : 'gifts flagged at risk'}</div>
                     </div>
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -2389,8 +2395,9 @@ export function AnalyticsPage({
                 const { byProgrammeRows, byTypeRows } = recurringCompositionStats
 
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <>
                     {!hidden('rc_revenueTrend') && trendData.length >= 2 && (
+                      <DraggableCard sectionId="rc" cardKey="rc_revenueTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_revenueTrend')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
                         <ResponsiveContainer width="100%" height={140}>
@@ -2404,9 +2411,11 @@ export function AnalyticsPage({
                         </ResponsiveContainer>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
                       </div>
+                      </DraggableCard>
                     )}
 
                     {!hidden('rc_composition') && (
+                    <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
                       <div style={s.analyticsSubTitleDivider}>By programme</div>
@@ -2438,16 +2447,17 @@ export function AnalyticsPage({
                         </div>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
-                  </div>
+                  </>
                 )
               })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {!hidden('rc_newVsChurned') && (() => {
                   const { yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
 
                   return (
+                    <DraggableCard sectionId="rc" cardKey="rc_newVsChurned" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_newVsChurned')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
@@ -2470,6 +2480,7 @@ export function AnalyticsPage({
                         <ActionBanner tone="danger" text="Net MRR shrinking" sub="Churn is outpacing new recurring gifts — worth investigating why donors are cancelling" />
                       )}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
 
@@ -2477,6 +2488,7 @@ export function AnalyticsPage({
                   const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
                   return (
+                    <DraggableCard sectionId="rc" cardKey="rc_givingTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_givingTrend')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div id="giving-trend-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
                       <div style={s.analyticsCardTitle}>Giving Trend <InfoTip text="Donors whose recurring giving has consistently increased or decreased over recent cycles." /></div>
 
@@ -2511,15 +2523,15 @@ export function AnalyticsPage({
                         <ActionBanner tone="success" text="No sustained downgrades" sub={upgrades.length > 0 ? `${upgrades.length} donor${upgrades.length !== 1 ? 's' : ''} trending up instead` : 'Recurring giving is holding steady'} />
                       )}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
-              </div>
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {!hidden('rc_authRisk') && (() => {
                   const { pendingCount, authorizedCount, terminatedCount, terminatedGifts, terminatedMrr } = recurringAuthStats
 
                   return (
+                    <DraggableCard sectionId="rc" cardKey="rc_authRisk" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_authRisk')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Authorization & Mandate Risk <InfoTip text="GIRO and Standing Order gifts by bank authorization status. A terminated mandate means the bank has cut off the deduction — the donor needs to be contacted to re-authorize, or the gift will keep silently failing." /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
@@ -2555,6 +2567,7 @@ export function AnalyticsPage({
                         <ActionBanner tone="success" text="All bank mandates in good standing" sub="No terminated authorizations right now" />
                       )}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
 
@@ -2563,6 +2576,7 @@ export function AnalyticsPage({
                   const today = new Date()
 
                   return (
+                    <DraggableCard sectionId="rc" cardKey="rc_giftRisk" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_giftRisk')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div id="recurring-gift-risk-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
                       <div style={s.analyticsCardTitle}>Recurring Gift Risk <InfoTip text="Everything that needs a human decision: missed payments, gifts ending soon, currently paused gifts, donors who frequently skip, and manual gifts that look recurring but aren't tagged as one." /></div>
 
@@ -2675,6 +2689,7 @@ export function AnalyticsPage({
                         <ActionBanner tone="success" text="No risk signals right now" sub="No missed payments, expiring gifts, or frequent skippers" />
                       )}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
               </div>
