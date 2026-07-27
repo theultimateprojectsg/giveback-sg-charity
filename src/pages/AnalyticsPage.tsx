@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction, ReactNode } from 'react'
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from '../supabase'
@@ -32,6 +32,45 @@ function CustomizeSectionButton({ cards, hiddenDashboardCards, toggleDashboardCa
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function getCardOrderIndex(dashboardCardOrder: Record<string, string[]>, sectionId: string, defaultOrder: string[], cardKey: string) {
+  const saved = dashboardCardOrder[sectionId]
+  const list = saved && saved.length ? saved : defaultOrder
+  const idx = list.indexOf(cardKey)
+  return idx === -1 ? defaultOrder.indexOf(cardKey) : idx
+}
+
+function DraggableCard({ sectionId, cardKey, order, flexBasis, defaultOrder, dashboardCardOrder, reorderDashboardCard, children }: {
+  sectionId: string
+  cardKey: string
+  order: number
+  flexBasis: string
+  defaultOrder: string[]
+  dashboardCardOrder: Record<string, string[]>
+  reorderDashboardCard: (sectionId: string, defaultOrder: string[], draggedKey: string, targetKey: string) => void
+  children: ReactNode
+}) {
+  const [isDragOver, setIsDragOver] = useState(false)
+  return (
+    <div
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', cardKey) }}
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+      onDragEnter={() => setIsDragOver(true)}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={e => {
+        e.preventDefault()
+        setIsDragOver(false)
+        const draggedKey = e.dataTransfer.getData('text/plain')
+        if (draggedKey && draggedKey !== cardKey) reorderDashboardCard(sectionId, defaultOrder, draggedKey, cardKey)
+      }}
+      style={{ order, flex: `1 1 ${flexBasis}`, minWidth: 0, cursor: 'grab', position: 'relative', outline: isDragOver ? `2px dashed ${C.forest}` : 'none', outlineOffset: 2, borderRadius: 6 }}
+    >
+      <span style={{ position: 'absolute', top: 6, right: 8, fontSize: 13, color: C.border, letterSpacing: -1, zIndex: 1, userSelect: 'none' }} title="Drag to reorder">⠿</span>
+      {children}
     </div>
   )
 }
@@ -81,6 +120,8 @@ interface AnalyticsPageProps {
   fundingConcentrationStats: any
   hiddenDashboardCards: string[]
   toggleDashboardCard: (cardKey: string) => void
+  dashboardCardOrder: Record<string, string[]>
+  reorderDashboardCard: (sectionId: string, defaultOrder: string[], draggedKey: string, targetKey: string) => void
   fundraisingSnapshotStats: any
   fyEndDay: number
   fyEndMonth: number
@@ -230,7 +271,7 @@ export function AnalyticsPage({
   charityIsIpc, charityName, charityUen, clearDonationFilters, concentrationTopN, customObligations, customTasks, dashboardActionItemsData, daysToDeadline, donationSizeBreakdownStats, donations, donorHighlightsStats,
   donorLTVStats, donorList, donorRetentionSnapshotStats, enabledModules, filterYear,
   findDonorRecord, fundingConcentrationStats, fundraisingSnapshotStats, fyEndDay, fyEndMonth,
-  hiddenDashboardCards, toggleDashboardCard,
+  hiddenDashboardCards, toggleDashboardCard, dashboardCardOrder, reorderDashboardCard,
   fyOf, generateThankYouNote, giroMissedCycles, givingChangeMinGifts, givingChangeMinPct,
   givingStreaksStats, grantExpensesByGrant, grantMatchClaims, grantOverviewStats,
   grantSnapshotStats, grantsWithNextReport, isMobile, isTablet, lapsedDismissals,
@@ -264,6 +305,7 @@ export function AnalyticsPage({
   const [showAllFyiItems, setShowAllFyiItems] = useState(false)
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
   const hidden = (cardKey: string) => hiddenDashboardCards.includes(cardKey)
+  const cardOrd = (sectionId: string, defaultCards: { key: string }[], cardKey: string) => getCardOrderIndex(dashboardCardOrder, sectionId, defaultCards.map(c => c.key), cardKey)
   const FINANCIAL_OVERVIEW_CARDS = [
     { key: 'fo_goal', label: 'Annual Fundraising Goal' },
     { key: 'fo_keyMetrics', label: 'Key Metrics (Coverage, Runway, Unrestricted Funding, Fixed-Cost Coverage)' },
@@ -844,12 +886,15 @@ export function AnalyticsPage({
                 <CustomizeSectionButton cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+
             {/* ── ANNUAL FUNDRAISING GOAL (moved up from Fundraising Performance) ── */}
             {!hidden('fo_goal') && analyticsGoalStats.hasGoal && (() => {
               const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
               const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
               return (
+              <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
               <div style={{ ...s.card, marginBottom: 20 }}>
                 <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
@@ -862,6 +907,7 @@ export function AnalyticsPage({
                     : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
                 </div>
               </div>
+              </DraggableCard>
               )
             })()}
 
@@ -881,6 +927,7 @@ export function AnalyticsPage({
               const runwayMonthsFH = monthlyExpenses > 0 ? (trailingAvgMonthlyFH / monthlyExpenses) : null
 
               return (
+                <DraggableCard sectionId="fo" cardKey="fo_keyMetrics" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_keyMetrics')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   {/* Coverage ratio */}
                   <div style={{ ...s.card, marginBottom: 0, ...(coverageRatio !== null && coverageRatio < 0.75 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
@@ -955,6 +1002,7 @@ export function AnalyticsPage({
                   </div>
 
                 </div>
+                </DraggableCard>
               )
             })()}
 
@@ -1018,6 +1066,7 @@ export function AnalyticsPage({
               const shareOfTip = "Share of this mix, not of overall confirmed revenue — this blends all-time/active totals (active grants, all-time fulfilled pledges) with a single month of recurring income, so it won't match the fiscal-year percentages on the Revenue by Channel chart below."
 
               return (
+                <DraggableCard sectionId="fo" cardKey="fo_fundingMix" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_fundingMix')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={s.statTileLabel}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
@@ -1105,9 +1154,11 @@ export function AnalyticsPage({
                     </div>
                   </div>
                 </div>
+                </DraggableCard>
               )
             })()}
 
+            </div>
             </div>
             </div>
 
@@ -1118,10 +1169,13 @@ export function AnalyticsPage({
                 <CustomizeSectionButton cards={FUNDRAISING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('fp_snapshot') && (() => {
                 const { yr, tiles } = fundraisingSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="fp" cardKey="fp_snapshot" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_snapshot')} flexBasis="100%" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1143,14 +1197,14 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
-              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
-              {(() => {
-                if (hidden('fp_revenueTrend') || !revenueTrendStats) return <div />
+              {!hidden('fp_revenueTrend') && revenueTrendStats && (() => {
                 const { trendData, firstYr, lastYr, cagr } = revenueTrendStats
                 return (
+                  <DraggableCard sectionId="fp" cardKey="fp_revenueTrend" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueTrend')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
                     <ResponsiveContainer width="100%" height={130}>
@@ -1168,12 +1222,14 @@ export function AnalyticsPage({
                       </div>
                     )}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
               {!hidden('fp_revenueByChannel') && (() => {
                 const { yr, channelRows } = revenueByChannelStats
                 return (
+                  <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
                     {channelRows.length === 0 ? (
@@ -1196,12 +1252,14 @@ export function AnalyticsPage({
                       </>
                     )}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
               {!hidden('fp_predictableVsOneOff') && (() => {
                 const { yr, totalRevenue, predictablePct, predictableAmt, oneOffAmt } = predictableVsOneOffStats
                 return (
+                  <DraggableCard sectionId="fp" cardKey="fp_predictableVsOneOff" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_predictableVsOneOff')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
                     {totalRevenue === 0 ? (
@@ -1226,14 +1284,14 @@ export function AnalyticsPage({
                       </>
                     )}
                   </div>
+                  </DraggableCard>
                 )
               })()}
-              </div>
 
-              <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {!hidden('fp_newDonorAcquisition') && (() => {
                 const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
                 return (
+                  <DraggableCard sectionId="fp" cardKey="fp_newDonorAcquisition" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_newDonorAcquisition')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr}{filterYear !== 'All' && ` vs ${yr - 1}`} <InfoTip text="First-time donors by the month of their very first confirmed gift, compared against the same months last year. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
                     <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
@@ -1259,10 +1317,12 @@ export function AnalyticsPage({
                       </ResponsiveContainer>
                     )}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
                 {!hidden('fp_donationsPerMonth') && (
+                <DraggableCard sectionId="fp" cardKey="fp_donationsPerMonth" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_donationsPerMonth')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                 <div style={s.card}>
                   <div style={s.analyticsCardTitle}>Number of Donations per Month — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(String(filterYear)) - 1}`} <InfoTip text="Count of individual confirmed donations received each month, regardless of amount, compared against the same months last year." /></div>
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
@@ -1284,16 +1344,18 @@ export function AnalyticsPage({
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                </DraggableCard>
                 )}
-              {(() => {
-                if (hidden('fp_seasonality')) return null
+              {!hidden('fp_seasonality') && (() => {
                 const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
                 const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
                 if (years58.length < 2) return (
+                  <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Seasonality Trend</div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
                   </div>
+                  </DraggableCard>
                 )
                 const byMonth58 = monthNames58.map((name, i) => {
                   const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
@@ -1304,6 +1366,7 @@ export function AnalyticsPage({
                 const overallAvg58 = byMonth58.reduce((s, m) => s + m.avg, 0) / 12
                 const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
                 return (
+                  <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Seasonality Trend</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
@@ -1322,6 +1385,7 @@ export function AnalyticsPage({
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
                     </div>
                   </div>
+                  </DraggableCard>
                 )
               })()}
               </div>

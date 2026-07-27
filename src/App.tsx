@@ -919,6 +919,7 @@ export default function App() {
   const DEFAULT_ENABLED_MODULES = { campaigns: false, pledges: false, recurring: false, grants: false, inKind: true }
   const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
   const [hiddenDashboardCards, setHiddenDashboardCards] = useState<string[]>([])
+  const [dashboardCardOrder, setDashboardCardOrder] = useState<Record<string, string[]>>({})
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
@@ -1142,7 +1143,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, dashboard_hidden_cards, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url, email_templates')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, dashboard_hidden_cards, dashboard_card_order, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url, email_templates')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1152,6 +1153,7 @@ export default function App() {
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
     setEnabledModules({ ...DEFAULT_ENABLED_MODULES, ...(data?.enabled_modules || {}) })
     setHiddenDashboardCards(Array.isArray(data?.dashboard_hidden_cards) ? data.dashboard_hidden_cards : [])
+    setDashboardCardOrder(data?.dashboard_card_order && typeof data.dashboard_card_order === 'object' ? data.dashboard_card_order : {})
     setEmailTemplates(data?.email_templates || {})
     const month = data?.fy_end_month || 12
     const day = data?.fy_end_day || 31
@@ -8220,6 +8222,22 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setHiddenDashboardCards(updated)
   }
 
+  async function reorderDashboardCard(sectionId: string, defaultOrder: string[], draggedKey: string, targetKey: string) {
+    if (draggedKey === targetKey) return
+    const { error, next: updated } = await updateCharityJsonField(charityUen, 'dashboard_card_order', (current: any) => {
+      const existing = current && Array.isArray(current[sectionId]) ? current[sectionId] : defaultOrder
+      const base = defaultOrder.filter(k => !existing.includes(k)).length > 0
+        ? [...existing, ...defaultOrder.filter(k => !existing.includes(k))]
+        : existing
+      const next = base.filter((k: string) => k !== draggedKey)
+      const targetIdx = next.indexOf(targetKey)
+      next.splice(targetIdx === -1 ? next.length : targetIdx, 0, draggedKey)
+      return { ...(current || {}), [sectionId]: next }
+    })
+    if (error) { showToast('Could not save your preferences', 'error'); return }
+    setDashboardCardOrder(updated)
+  }
+
   function removeTeamMember(role: any, email: any) {
     const proceed = async () => {
       const columnMap: Record<string, string> = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
@@ -9984,6 +10002,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             donorHighlightsStats={donorHighlightsStats} donorLTVStats={donorLTVStats} donorList={donorList}
             donorRetentionSnapshotStats={donorRetentionSnapshotStats} enabledModules={enabledModules} filterYear={filterYear} findDonorRecord={findDonorRecord}
             hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard}
+            dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}
             fundingConcentrationStats={fundingConcentrationStats}
             fundraisingSnapshotStats={fundraisingSnapshotStats} fyEndDay={fyEndDay} fyEndMonth={fyEndMonth} fyOf={fyOf}
             generateThankYouNote={generateThankYouNote} giroMissedCycles={giroMissedCycles}
