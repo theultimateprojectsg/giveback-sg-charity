@@ -2019,6 +2019,8 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="pp" cards={PLEDGE_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('pp_snapshot') && (() => {
                 const { yr, tiles } = pledgeSnapshotStats
                 const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
@@ -2037,7 +2039,8 @@ export function AnalyticsPage({
                   </div>
                 )
                 return (
-                  <>
+                  <DraggableCard sectionId="pp" cardKey="pp_snapshot" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_snapshot')} flexBasis="100%" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div>
                     <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                       {genericTile(pledgesMadeTile)}
                       {genericTile(amountPledgedTile)}
@@ -2076,7 +2079,8 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
                     </div>
-                  </>
+                  </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -2084,8 +2088,9 @@ export function AnalyticsPage({
                 const { yr, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue } = pledgeStatsAndTrend
 
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <>
                     {!hidden('pp_fulfillmentTrend') && trendData.length >= 2 && (
+                      <DraggableCard sectionId="pp" cardKey="pp_fulfillmentTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_fulfillmentTrend')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend — Last {trendData.length} Years <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
                         <ResponsiveContainer width="100%" height={140}>
@@ -2103,9 +2108,11 @@ export function AnalyticsPage({
                           <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />Pledged</span>
                         </div>
                       </div>
+                      </DraggableCard>
                     )}
 
                     {!hidden('pp_newVsCancelled') && (
+                    <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
@@ -2128,17 +2135,18 @@ export function AnalyticsPage({
                         <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
                       )}
                     </div>
+                    </DraggableCard>
                     )}
-                  </div>
+                  </>
                 )
               })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
               {!hidden('pp_reliability') && (() => {
                 const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
 
                 return (
+                  <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
 
@@ -2226,6 +2234,7 @@ export function AnalyticsPage({
                       <ActionBanner tone="success" text="No donors flagged" sub="No one currently meets your broken-pledge threshold" />
                     )}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -2233,6 +2242,7 @@ export function AnalyticsPage({
                 const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth } = pledgeConcentrationStats
 
                 return (
+                  <DraggableCard sectionId="pp" cardKey="pp_concentration" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_concentration')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
@@ -2296,6 +2306,7 @@ export function AnalyticsPage({
                       <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
               </div>
