@@ -6356,9 +6356,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   const newDonorAcquisitionStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
     const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+    const { start: lastFyStart } = fiscalYearBounds(yr - 1, fyEndMonth, fyEndDay)
     const buckets = Array.from({ length: 12 }, (_, i) => {
       const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
-      return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-SG', { month: 'short' }), count: 0 }
+      const lastYearD = new Date(lastFyStart.getFullYear(), lastFyStart.getMonth() + i, 1)
+      return { year: d.getFullYear(), month: d.getMonth(), lastYearYear: lastYearD.getFullYear(), lastYearMonth: lastYearD.getMonth(), label: d.toLocaleDateString('en-SG', { month: 'short' }), count: 0, lastYearCount: 0 }
     })
     const donorFirstDate: Record<string, any> = {}
     ;[...donations].filter(d => d.payment_status === 'confirmed').sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).forEach(d => {
@@ -6369,8 +6371,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       const dt = new Date(dateStr)
       const bucket = buckets.find(b => b.year === dt.getFullYear() && b.month === dt.getMonth())
       if (bucket) bucket.count++
+      const lastYearBucket = buckets.find(b => b.lastYearYear === dt.getFullYear() && b.lastYearMonth === dt.getMonth())
+      if (lastYearBucket) lastYearBucket.lastYearCount++
     })
-    const newDonorChartData = buckets.map(b => ({ month: b.label, count: b.count }))
+    const newDonorChartData = buckets.map(b => ({ month: b.label, count: b.count, lastYearCount: b.lastYearCount }))
     const totalNew = buckets.reduce((s, b) => s + b.count, 0)
     return { yr, newDonorChartData, totalNew }
   }, [filterYear, donations, fyOf, fyEndMonth, fyEndDay])

@@ -1130,19 +1130,27 @@ export function AnalyticsPage({
                 const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
                 return (
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr} <InfoTip text="First-time donors by the month of their very first confirmed gift. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
-                    <div style={{ minHeight: 22 }} />
+                    <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr}{filterYear !== 'All' && ` vs ${yr - 1}`} <InfoTip text="First-time donors by the month of their very first confirmed gift, compared against the same months last year. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
+                    <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
+                      {filterYear !== 'All' && (
+                        <>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.teal, borderRadius: 2, marginRight: 5 }} />{yr}</span>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{yr - 1}</span>
+                        </>
+                      )}
+                    </div>
                     {totalNew === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height={180}>
-                        <BarChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <LineChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                           <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                          <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [value, 'New donors']} />
-                          <Bar dataKey="count" fill={C.teal} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                        </BarChart>
+                          <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [value, name === 'count' ? `New donors, ${yr}` : `New donors, ${yr - 1}`]} />
+                          {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.border} strokeWidth={2.5} dot={{ fill: C.border, r: 3.5 }} isAnimationActive={false} />}
+                          <Line type="monotone" dataKey="count" stroke={C.teal} strokeWidth={2.5} dot={{ fill: C.teal, r: 4 }} isAnimationActive={false} />
+                        </LineChart>
                       </ResponsiveContainer>
                     )}
                   </div>
