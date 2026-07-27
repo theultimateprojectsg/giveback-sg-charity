@@ -1196,16 +1196,18 @@ export function AnalyticsPage({
                 const overallAvg58 = byMonth58.reduce((s, m) => s + m.avg, 0) / 12
                 const maxAvg58 = Math.max(...byMonth58.map(m => m.avg), 1)
                 return (
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Seasonality Trend</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100, marginBottom: 8 }}>
-                      {byMonth58.map((m, i) => (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
-                          <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
-                        </div>
-                      ))}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 100, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100 }}>
+                        {byMonth58.map((m, i) => (
+                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
+                            <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
