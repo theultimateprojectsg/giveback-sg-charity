@@ -1666,10 +1666,13 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="ma" cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('ma_snapshot') && (() => {
                 const { yr, tiles } = appealSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="ma" cardKey="ma_snapshot" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_snapshot')} flexBasis="100%" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1684,13 +1687,15 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
               {!hidden('ma_listStrip') && (() => {
                 const { yr, strip } = appealListStrip
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="ma" cardKey="ma_listStrip" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_listStrip')} flexBasis="100%" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1709,6 +1714,7 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -1716,8 +1722,9 @@ export function AnalyticsPage({
                 const { trendData, yr, medianResponseDays, respBuckets, respTotal, within24h, within7d } = appealTrendStats
 
                 return (
-                  <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                  <>
                     {!hidden('ma_appealsTrend') && trendData.length >= 2 && (
+                      <DraggableCard sectionId="ma" cardKey="ma_appealsTrend" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_appealsTrend')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Appeals Trend — Last {trendData.length} Years <InfoTip text="Total raised from mass appeals per year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
                         <ResponsiveContainer width="100%" height={130}>
@@ -1735,9 +1742,11 @@ export function AnalyticsPage({
                           <span style={{ fontSize: 11, color: C.text }}>{trendData.map((d: any) => d.conversionRate !== null ? `${d.conversionRate}%` : '—').join(' → ')}</span>
                         </div>
                       </div>
+                      </DraggableCard>
                     )}
 
                     {!hidden('ma_responseSpeed') && (
+                    <DraggableCard sectionId="ma" cardKey="ma_responseSpeed" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_responseSpeed')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Response Speed — {yr} <InfoTip text="How long after a mass appeal is sent donors typically respond, measured from the appeal recipient's send time to their matched confirmed donation." /></div>
                       {medianResponseDays === null ? (
@@ -1770,16 +1779,17 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    </DraggableCard>
                     )}
-                  </div>
+                  </>
                 )
               })()}
 
-              <div style={isMobile ? s.twoColMobile : s.twoCol}>
                 {!hidden('ma_conversion') && (() => {
                   const { yearNum, scopedAppeals, lastYearAppeals, scopedAnalyzed, totalRaised, overallConversion, appealCountDiff, conversionDiff, lastYearRaised, lastYearConversion, causeSpecificAvg, generalAvg, distinctAmounts } = appealConversionStats
 
                   return (
+                    <DraggableCard sectionId="ma" cardKey="ma_conversion" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_conversion')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
 
@@ -1873,6 +1883,7 @@ export function AnalyticsPage({
                         )
                       )}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
 
@@ -1881,6 +1892,7 @@ export function AnalyticsPage({
                   const ptDelta = (c: any, p: any) => prevDelivery.total === 0 ? null : c - p
 
                   return (
+                    <DraggableCard sectionId="ma" cardKey="ma_listHealth" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_listHealth')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Appeal List Health <InfoTip text="Bounces are bad contact data — the message couldn't be delivered. Opt-outs are donors who actively blocked appeals — a stewardship signal, not a data problem." /></div>
 
@@ -1994,6 +2006,7 @@ export function AnalyticsPage({
                         )
                       })()}
                     </div>
+                    </DraggableCard>
                   )
                 })()}
               </div>
