@@ -935,7 +935,7 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="fo" cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
 
             {/* ── ANNUAL FUNDRAISING GOAL (moved up from Fundraising Performance) ── */}
             {!hidden('fo_goal') && analyticsGoalStats.hasGoal && (() => {
@@ -944,7 +944,7 @@ export function AnalyticsPage({
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
               return (
               <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-              <div style={{ ...s.card, marginBottom: 20 }}>
+              <div style={s.card}>
                 <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
                   <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
@@ -977,7 +977,7 @@ export function AnalyticsPage({
 
               return (
                 <DraggableCard sectionId="fo" cardKey="fo_keyMetrics" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_keyMetrics')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
                   {/* Coverage ratio */}
                   <div style={{ ...s.card, marginBottom: 0, ...(coverageRatio !== null && coverageRatio < 0.75 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
                     <div style={s.statTileLabel}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
@@ -1116,7 +1116,7 @@ export function AnalyticsPage({
 
               return (
                 <DraggableCard sectionId="fo" cardKey="fo_fundingMix" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_fundingMix')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '18px 20px', cursor: 'pointer' }} onClick={() => setActiveTab('promotions')}>
                     <div style={s.statTileLabel}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{liveCampaignsList.length}</div>
