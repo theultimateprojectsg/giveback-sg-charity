@@ -1134,8 +1134,8 @@ export function AnalyticsPage({
                     <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                       {filterYear !== 'All' && (
                         <>
-                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.teal, borderRadius: 2, marginRight: 5 }} />{yr}</span>
-                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{yr - 1}</span>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.forest, borderRadius: 2, marginRight: 5 }} />{yr}</span>
+                          <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.gold, borderRadius: 2, marginRight: 5 }} />{yr - 1}</span>
                         </>
                       )}
                     </div>
@@ -1148,8 +1148,8 @@ export function AnalyticsPage({
                           <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                           <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [value, name === 'count' ? `New donors, ${yr}` : `New donors, ${yr - 1}`]} />
-                          {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.border} strokeWidth={2.5} dot={{ fill: C.border, r: 3.5 }} isAnimationActive={false} />}
-                          <Line type="monotone" dataKey="count" stroke={C.teal} strokeWidth={2.5} dot={{ fill: C.teal, r: 4 }} isAnimationActive={false} />
+                          {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 3.5 }} isAnimationActive={false} />}
+                          <Line type="monotone" dataKey="count" stroke={C.forest} strokeWidth={2.5} dot={{ fill: C.forest, r: 4 }} isAnimationActive={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     )}
@@ -1162,8 +1162,8 @@ export function AnalyticsPage({
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                     {filterYear !== 'All' && (
                       <>
-                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.gold, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
-                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.border, borderRadius: 2, marginRight: 5 }} />{parseInt(String(filterYear)) - 1}</span>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.forest, borderRadius: 2, marginRight: 5 }} />{filterYear}</span>
+                        <span><span style={{ display: 'inline-block', width: 10, height: 10, background: C.gold, borderRadius: 2, marginRight: 5 }} />{parseInt(String(filterYear)) - 1}</span>
                       </>
                     )}
                   </div>
@@ -1173,8 +1173,8 @@ export function AnalyticsPage({
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [value, name === 'count' ? filterYear : (filterYear !== 'All' ? `${parseInt(String(filterYear)) - 1}` : 'Previous year')]} />
-                      {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.border} strokeWidth={2.5} dot={{ fill: C.border, r: 3.5 }} isAnimationActive={false} />}
-                      <Line type="monotone" dataKey="count" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 4 }} isAnimationActive={false} />
+                      {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 3.5 }} isAnimationActive={false} />}
+                      <Line type="monotone" dataKey="count" stroke={C.forest} strokeWidth={2.5} dot={{ fill: C.forest, r: 4 }} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
