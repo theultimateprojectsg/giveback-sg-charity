@@ -1447,10 +1447,13 @@ export function AnalyticsPage({
                 <CustomizeSectionButton sectionId="cp" cards={CAMPAIGN_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+
               {!hidden('cp_snapshot') && (() => {
                 const { yr, tiles } = campaignSnapshotStats
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="cp" cardKey="cp_snapshot" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_snapshot')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1466,13 +1469,15 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
               {!hidden('cp_goalStrip') && (() => {
                 const { yr, strip } = campaignGoalStrip
                 return (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <DraggableCard sectionId="cp" cardKey="cp_goalStrip" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_goalStrip')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1488,6 +1493,7 @@ export function AnalyticsPage({
                       </div>
                     ))}
                   </div>
+                  </DraggableCard>
                 )
               })()}
 
@@ -1497,13 +1503,13 @@ export function AnalyticsPage({
                 return (
                   <>
                     {!hidden('cp_leaderboard') && endingSoon.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
+                      <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px' }}>
                         <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map((r: any) => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
                       </div>
                     )}
 
-                    <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                      {!hidden('cp_leaderboard') && (
+                    {!hidden('cp_leaderboard') && (
+                      <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                         {campaignRows.length === 0 ? (
@@ -1567,11 +1573,12 @@ export function AnalyticsPage({
                           )
                         })()}
                       </div>
+                      </DraggableCard>
                       )}
 
-                      <div>
                         {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
-                          <div style={{ ...s.card, marginBottom: 16 }}>
+                          <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <div style={s.card}>
                             <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
                             <ResponsiveContainer width="100%" height={140}>
                               <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -1584,12 +1591,14 @@ export function AnalyticsPage({
                             </ResponsiveContainer>
                             <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
                           </div>
+                          </DraggableCard>
                         )}
 
                         {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
                           const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
 
                           return (
+                          <DraggableCard sectionId="cp" cardKey="cp_donorGrowth" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorGrowth')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                           <div style={s.card}>
                             <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
 
@@ -1641,13 +1650,13 @@ export function AnalyticsPage({
                               )}
                             </div>
                           </div>
+                          </DraggableCard>
                           )
                         })()}
-                      </div>
-                    </div>
                   </>
                 )
               })()}
+              </div>
             </div>
 
             <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
