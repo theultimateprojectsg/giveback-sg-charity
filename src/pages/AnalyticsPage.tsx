@@ -741,6 +741,27 @@ export function AnalyticsPage({
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
               </div>
 
+            {/* ── ANNUAL FUNDRAISING GOAL (moved up from Fundraising Performance) ── */}
+            {analyticsGoalStats.hasGoal && (() => {
+              const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
+              const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
+              const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+              return (
+              <div style={{ ...s.card, marginBottom: 20 }}>
+                <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                  <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                  <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
+                  {onTrack
+                    ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
+                    : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                </div>
+              </div>
+              )
+            })()}
+
             {/* ── KEY METRICS ── */}
             {(() => {
               const now = new Date()
@@ -830,40 +851,6 @@ export function AnalyticsPage({
                     )}
                   </div>
 
-                  <div style={{ ...s.card, marginBottom: 0 }}>
-                    <div style={s.statTileLabel}>Year-End Projection <InfoTip text="Extrapolates this fiscal year's giving pace so far (total confirmed donations divided by days elapsed) out across the full fiscal year, to estimate where it will land. Only shown once at least 75% of the fiscal year has elapsed." /></div>
-                    {(() => {
-                      const { start: yearStartYE, end: yearEndYE } = fiscalYearBounds(fyOf(now), fyEndMonth, fyEndDay)
-                      const totalDaysYE = Math.ceil((yearEndYE.getTime() - yearStartYE.getTime()) / (1000 * 60 * 60 * 24))
-                      const daysElapsedYE = Math.max(1, Math.ceil((now.getTime() - yearStartYE.getTime()) / (1000 * 60 * 60 * 24)))
-                      if (daysElapsedYE / totalDaysYE < 0.75) return <div style={{ fontSize: 12.5, color: C.muted }}>Available in the last quarter of the fiscal year</div>
-                      const ytdYE = confirmedDonations.filter(d => new Date(d.created_at) >= yearStartYE).reduce((s, d) => s + d.amount, 0)
-                      const projectedYE = Math.round((ytdYE / daysElapsedYE) * totalDaysYE)
-                      const goalPct = annualGoal ? projectedYE / annualGoal : null
-                      return (
-                        <>
-                          <div style={{ ...s.analyticsStatNumber, color: goalPct === null ? C.forest : goalPct >= 1 ? C.forest : goalPct >= 0.9 ? C.gold : C.red }}>${projectedYE.toLocaleString()}</div>
-                          {goalPct !== null && (
-                            <div style={{ fontSize: 11.5, color: goalPct >= 1 ? C.sage : goalPct >= 0.9 ? C.gold : C.red, marginTop: 6, fontWeight: 500 }}>
-                              {goalPct >= 1 ? '✓ On track for goal' : goalPct >= 0.9 ? '⚠ Slightly behind goal pace' : '⚠ Behind goal pace'}
-                            </div>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
-
-                  <div style={{ ...s.card, marginBottom: 0 }}>
-                    <div style={s.statTileLabel}>Monthly Forecast <InfoTip text="Typical range for this specific calendar month, based on what you raised in this same month in prior years. Needs at least one prior year of data for this month to show." /></div>
-                    {(() => {
-                      const cm = now.getMonth()
-                      const priorYears = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].filter(y => y < now.getFullYear())
-                      const histTotals = priorYears.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === cm }).reduce((s, d) => s + d.amount, 0)).filter(t => t > 0)
-                      if (histTotals.length === 0) return <div style={{ fontSize: 12.5, color: C.muted }}>Needs prior year data</div>
-                      const avg = histTotals.reduce((s, t) => s + t, 0) / histTotals.length
-                      return <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1.3 }}>${Math.round(avg * 0.85).toLocaleString()}–${Math.round(avg * 1.15).toLocaleString()}</div>
-                    })()}
-                  </div>
                 </div>
               )
             })()}
@@ -1026,26 +1013,6 @@ export function AnalyticsPage({
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
               </div>
-
-              {analyticsGoalStats.hasGoal && (() => {
-                const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
-                const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
-                const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-                return (
-                <div style={{ ...s.card, marginBottom: 24 }}>
-                  <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                    <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                    <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                    {onTrack
-                      ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
-                      : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
-                  </div>
-                </div>
-                )
-              })()}
 
               {(() => {
                 const { yr, tiles } = fundraisingSnapshotStats
