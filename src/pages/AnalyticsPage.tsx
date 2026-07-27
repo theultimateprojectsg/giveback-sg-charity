@@ -8,6 +8,34 @@ import { InfoTip } from '../components/ui/InfoTip'
 import { ActionBanner } from '../components/ui/ActionBanner'
 import { fiscalYearBounds } from '../lib/fiscalYear'
 
+function CustomizeSectionButton({ cards, hiddenDashboardCards, toggleDashboardCard }: { cards: { key: string, label: string }[], hiddenDashboardCards: string[], toggleDashboardCard: (cardKey: string) => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}
+        onClick={() => setOpen(v => !v)}
+      >⚙ Customize</button>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 20, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12, width: 280, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show in this section</div>
+          {cards.map(c => (
+            <label key={c.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', fontSize: 12.5, color: C.text, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!hiddenDashboardCards.includes(c.key)}
+                onChange={() => toggleDashboardCard(c.key)}
+                style={{ marginTop: 2 }}
+              />
+              <span>{c.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface AnalyticsPageProps {
   ANALYTICS_NAV_OFFSET: number
   acquisitionSourceStats: any
@@ -235,11 +263,77 @@ export function AnalyticsPage({
   const [showAllActionItems, setShowAllActionItems] = useState(false)
   const [showAllFyiItems, setShowAllFyiItems] = useState(false)
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
-  const [showCustomizeFinancialOverview, setShowCustomizeFinancialOverview] = useState(false)
+  const hidden = (cardKey: string) => hiddenDashboardCards.includes(cardKey)
   const FINANCIAL_OVERVIEW_CARDS = [
     { key: 'fo_goal', label: 'Annual Fundraising Goal' },
     { key: 'fo_keyMetrics', label: 'Key Metrics (Coverage, Runway, Unrestricted Funding, Fixed-Cost Coverage)' },
     { key: 'fo_fundingMix', label: 'Funding Mix Snapshot (Campaigns, Grants, Pledges, Appeals, Recurring)' },
+  ]
+  const FUNDRAISING_PERFORMANCE_CARDS = [
+    { key: 'fp_snapshot', label: 'Snapshot Tiles (Total Raised, Donations, Donors, Avg Gift)' },
+    { key: 'fp_revenueTrend', label: 'Revenue Trend' },
+    { key: 'fp_revenueByChannel', label: 'Revenue by Channel' },
+    { key: 'fp_predictableVsOneOff', label: 'Predictable vs One-Off Revenue' },
+    { key: 'fp_newDonorAcquisition', label: 'New Donor Acquisition' },
+    { key: 'fp_donationsPerMonth', label: 'Number of Donations per Month' },
+    { key: 'fp_seasonality', label: 'Seasonality Trend' },
+  ]
+  const CAMPAIGN_PERFORMANCE_CARDS = [
+    { key: 'cp_snapshot', label: 'Snapshot Tiles' },
+    { key: 'cp_goalStrip', label: 'Goal Strip Tiles' },
+    { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
+    { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
+    { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
+  ]
+  const MASS_APPEALS_CARDS = [
+    { key: 'ma_snapshot', label: 'Snapshot Tiles' },
+    { key: 'ma_listStrip', label: 'List Strip Tiles' },
+    { key: 'ma_appealsTrend', label: 'Appeals Trend' },
+    { key: 'ma_responseSpeed', label: 'Response Speed' },
+    { key: 'ma_conversion', label: 'Mass Appeal Conversion' },
+    { key: 'ma_listHealth', label: 'Appeal List Health' },
+  ]
+  const PLEDGE_PERFORMANCE_CARDS = [
+    { key: 'pp_snapshot', label: 'Snapshot Tiles' },
+    { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Trend' },
+    { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
+    { key: 'pp_reliability', label: 'Pledge Reliability' },
+    { key: 'pp_concentration', label: 'Pledge Concentration & Timing' },
+  ]
+  const RECURRING_PERFORMANCE_CARDS = [
+    { key: 'rc_snapshot', label: 'Snapshot Tiles' },
+    { key: 'rc_healthTiles', label: 'Health Tiles (MRR, Retention, Reliability, Lifespan, At Risk)' },
+    { key: 'rc_revenueTrend', label: 'Recurring Revenue Trend' },
+    { key: 'rc_composition', label: 'Revenue Composition' },
+    { key: 'rc_newVsChurned', label: 'New vs Churned MRR' },
+    { key: 'rc_givingTrend', label: 'Giving Trend (Upgrades & Downgrades)' },
+    { key: 'rc_authRisk', label: 'Authorization & Mandate Risk' },
+    { key: 'rc_giftRisk', label: 'Recurring Gift Risk' },
+  ]
+  const GRANTS_OVERVIEW_CARDS = [
+    { key: 'gr_snapshot', label: 'Snapshot Tiles' },
+    { key: 'gr_trend', label: 'Grants Trend' },
+    { key: 'gr_spendingByCategory', label: 'Spending by Category' },
+    { key: 'gr_fundingComposition', label: 'Funding Composition' },
+    { key: 'gr_grantFunding', label: 'Grant Funding (Pace vs Report Deadline)' },
+    { key: 'gr_grantConcentration', label: 'Grant Funding Concentration' },
+    { key: 'gr_matchingClaims', label: 'Matching Grant Claims' },
+    { key: 'gr_disbursementTranches', label: 'Disbursement Tranches' },
+    { key: 'gr_reportCompliance', label: 'Report Compliance' },
+  ]
+  const DONOR_BEHAVIOR_CARDS = [
+    { key: 'db_retentionTiles', label: 'Retention Snapshot Tiles' },
+    { key: 'db_highlights', label: 'Donor Highlights' },
+    { key: 'db_paymentMix', label: 'How Donors Are Paying' },
+    { key: 'db_fundingConcentration', label: 'Funding Concentration' },
+    { key: 'db_slowingDown', label: 'Slowing Down' },
+    { key: 'db_quietlyPaying', label: 'Paying, But No Contact' },
+    { key: 'db_givingChanges', label: 'Giving Changes' },
+    { key: 'db_thankYouDebt', label: 'Silent Thank-You Debt' },
+    { key: 'db_givingStreaks', label: 'Giving Streaks' },
+    { key: 'db_topDonorsLTV', label: 'Top Donors & Lifetime Value' },
+    { key: 'db_topConnectors', label: 'Top Connectors' },
+    { key: 'db_acquisitionSources', label: 'Donor Acquisition Sources' },
   ]
   return (
           <div style={s.content}>
@@ -747,32 +841,11 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
-                <div style={{ position: 'relative' }}>
-                  <button
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}
-                    onClick={() => setShowCustomizeFinancialOverview(v => !v)}
-                  >⚙ Customize</button>
-                  {showCustomizeFinancialOverview && (
-                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 20, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12, width: 260, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show in this section</div>
-                      {FINANCIAL_OVERVIEW_CARDS.map(c => (
-                        <label key={c.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', fontSize: 12.5, color: C.text, cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={!hiddenDashboardCards.includes(c.key)}
-                            onChange={() => toggleDashboardCard(c.key)}
-                            style={{ marginTop: 2 }}
-                          />
-                          <span>{c.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomizeSectionButton cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
             {/* ── ANNUAL FUNDRAISING GOAL (moved up from Fundraising Performance) ── */}
-            {!hiddenDashboardCards.includes('fo_goal') && analyticsGoalStats.hasGoal && (() => {
+            {!hidden('fo_goal') && analyticsGoalStats.hasGoal && (() => {
               const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
               const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
@@ -793,7 +866,7 @@ export function AnalyticsPage({
             })()}
 
             {/* ── KEY METRICS ── */}
-            {!hiddenDashboardCards.includes('fo_keyMetrics') && (() => {
+            {!hidden('fo_keyMetrics') && (() => {
               const now = new Date()
               const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
               const activeRecurring = recurringGifts.filter(g => g.status === 'active')
@@ -885,7 +958,7 @@ export function AnalyticsPage({
               )
             })()}
 
-            {!hiddenDashboardCards.includes('fo_fundingMix') && (() => {
+            {!hidden('fo_fundingMix') && (() => {
               const now03 = new Date()
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
               const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
@@ -1040,11 +1113,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
+                <CustomizeSectionButton cards={FUNDRAISING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('fp_snapshot') && (() => {
                 const { yr, tiles } = fundraisingSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1074,7 +1148,7 @@ export function AnalyticsPage({
 
               <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
               {(() => {
-                if (!revenueTrendStats) return <div />
+                if (hidden('fp_revenueTrend') || !revenueTrendStats) return <div />
                 const { trendData, firstYr, lastYr, cagr } = revenueTrendStats
                 return (
                   <div style={s.card}>
@@ -1097,7 +1171,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('fp_revenueByChannel') && (() => {
                 const { yr, channelRows } = revenueByChannelStats
                 return (
                   <div style={s.card}>
@@ -1125,7 +1199,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('fp_predictableVsOneOff') && (() => {
                 const { yr, totalRevenue, predictablePct, predictableAmt, oneOffAmt } = predictableVsOneOffStats
                 return (
                   <div style={s.card}>
@@ -1157,7 +1231,7 @@ export function AnalyticsPage({
               </div>
 
               <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
-              {(() => {
+              {!hidden('fp_newDonorAcquisition') && (() => {
                 const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
                 return (
                   <div style={s.card}>
@@ -1188,6 +1262,7 @@ export function AnalyticsPage({
                 )
               })()}
 
+                {!hidden('fp_donationsPerMonth') && (
                 <div style={s.card}>
                   <div style={s.analyticsCardTitle}>Number of Donations per Month — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(String(filterYear)) - 1}`} <InfoTip text="Count of individual confirmed donations received each month, regardless of amount, compared against the same months last year." /></div>
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
@@ -1209,7 +1284,9 @@ export function AnalyticsPage({
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                )}
               {(() => {
+                if (hidden('fp_seasonality')) return null
                 const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
                 const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
                 if (years58.length < 2) return (
@@ -1252,11 +1329,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.campaigns === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
+                <CustomizeSectionButton cards={CAMPAIGN_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('cp_snapshot') && (() => {
                 const { yr, tiles } = campaignSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1278,7 +1356,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('cp_goalStrip') && (() => {
                 const { yr, strip } = campaignGoalStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1305,13 +1383,14 @@ export function AnalyticsPage({
 
                 return (
                   <>
-                    {endingSoon.length > 0 && (
+                    {!hidden('cp_leaderboard') && endingSoon.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.warningBg, border: `1px solid ${C.warningBorder}`, borderRadius: 4, padding: '10px 14px', marginBottom: 16 }}>
                         <span style={{ fontSize: 12.5, color: C.warning }}>⏰ {endingSoon.length} campaign{endingSoon.length !== 1 ? 's' : ''} end{endingSoon.length === 1 ? 's' : ''} this week — {endingSoon.map((r: any) => `${r.title} (${r.daysToEnd}d)`).join(', ')}</span>
                       </div>
                     )}
 
                     <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                      {!hidden('cp_leaderboard') && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                         {campaignRows.length === 0 ? (
@@ -1375,9 +1454,10 @@ export function AnalyticsPage({
                           )
                         })()}
                       </div>
+                      )}
 
                       <div>
-                        {trendData.length >= 2 && (
+                        {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
                           <div style={{ ...s.card, marginBottom: 16 }}>
                             <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
                             <ResponsiveContainer width="100%" height={140}>
@@ -1393,7 +1473,7 @@ export function AnalyticsPage({
                           </div>
                         )}
 
-                        {donorGrowthAgg && (() => {
+                        {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
                           const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
 
                           return (
@@ -1459,11 +1539,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
+                <CustomizeSectionButton cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('ma_snapshot') && (() => {
                 const { yr, tiles } = appealSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1484,7 +1565,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('ma_listStrip') && (() => {
                 const { yr, strip } = appealListStrip
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -1514,7 +1595,7 @@ export function AnalyticsPage({
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                    {trendData.length >= 2 && (
+                    {!hidden('ma_appealsTrend') && trendData.length >= 2 && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Appeals Trend — Last {trendData.length} Years <InfoTip text="Total raised from mass appeals per year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
                         <ResponsiveContainer width="100%" height={130}>
@@ -1534,6 +1615,7 @@ export function AnalyticsPage({
                       </div>
                     )}
 
+                    {!hidden('ma_responseSpeed') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Response Speed — {yr} <InfoTip text="How long after a mass appeal is sent donors typically respond, measured from the appeal recipient's send time to their matched confirmed donation." /></div>
                       {medianResponseDays === null ? (
@@ -1566,12 +1648,13 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    )}
                   </div>
                 )
               })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                {(() => {
+                {!hidden('ma_conversion') && (() => {
                   const { yearNum, scopedAppeals, lastYearAppeals, scopedAnalyzed, totalRaised, overallConversion, appealCountDiff, conversionDiff, lastYearRaised, lastYearConversion, causeSpecificAvg, generalAvg, distinctAmounts } = appealConversionStats
 
                   return (
@@ -1671,7 +1754,7 @@ export function AnalyticsPage({
                   )
                 })()}
 
-                {(() => {
+                {!hidden('ma_listHealth') && (() => {
                   const { curDelivery, prevDelivery, bounceReasons, repeatRecipients, fatigueList, overGivers, fatiguedCount } = appealListHealthStats
                   const ptDelta = (c: any, p: any) => prevDelivery.total === 0 ? null : c - p
 
@@ -1796,11 +1879,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.pledges === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
+                <CustomizeSectionButton cards={PLEDGE_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('pp_snapshot') && (() => {
                 const { yr, tiles } = pledgeSnapshotStats
                 const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
                 const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
@@ -1866,7 +1950,7 @@ export function AnalyticsPage({
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                    {trendData.length >= 2 && (
+                    {!hidden('pp_fulfillmentTrend') && trendData.length >= 2 && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Pledge Fulfillment Trend — Last {trendData.length} Years <InfoTip text="Total pledged vs total fulfilled, by year the pledge was expected. The current year is still in progress, so its fulfillment rate will look lower until it closes out." /></div>
                         <ResponsiveContainer width="100%" height={140}>
@@ -1886,6 +1970,7 @@ export function AnalyticsPage({
                       </div>
                     )}
 
+                    {!hidden('pp_newVsCancelled') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
@@ -1908,12 +1993,13 @@ export function AnalyticsPage({
                         <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
                       )}
                     </div>
+                    )}
                   </div>
                 )
               })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
-              {(() => {
+              {!hidden('pp_reliability') && (() => {
                 const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
 
@@ -2008,7 +2094,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('pp_concentration') && (() => {
                 const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth } = pledgeConcentrationStats
 
                 return (
@@ -2083,11 +2169,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.recurring === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
+                <CustomizeSectionButton cards={RECURRING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('rc_snapshot') && (() => {
                 const { yr, tiles } = recurringSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -2108,7 +2195,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('rc_healthTiles') && (() => {
                 const { mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
                 const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
 
@@ -2157,7 +2244,7 @@ export function AnalyticsPage({
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                    {trendData.length >= 2 && (
+                    {!hidden('rc_revenueTrend') && trendData.length >= 2 && (
                       <div style={s.card}>
                         <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
                         <ResponsiveContainer width="100%" height={140}>
@@ -2173,6 +2260,7 @@ export function AnalyticsPage({
                       </div>
                     )}
 
+                    {!hidden('rc_composition') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
                       <div style={s.analyticsSubTitleDivider}>By programme</div>
@@ -2204,12 +2292,13 @@ export function AnalyticsPage({
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                 )
               })()}
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                {(() => {
+                {!hidden('rc_newVsChurned') && (() => {
                   const { yr, newMrr, churnedMrr, netMrr } = recurringMrrStats
 
                   return (
@@ -2238,7 +2327,7 @@ export function AnalyticsPage({
                   )
                 })()}
 
-                {(() => {
+                {!hidden('rc_givingTrend') && (() => {
                   const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
 
                   return (
@@ -2281,7 +2370,7 @@ export function AnalyticsPage({
               </div>
 
               <div style={isMobile ? s.twoColMobile : s.twoCol}>
-                {(() => {
+                {!hidden('rc_authRisk') && (() => {
                   const { pendingCount, authorizedCount, terminatedCount, terminatedGifts, terminatedMrr } = recurringAuthStats
 
                   return (
@@ -2323,7 +2412,7 @@ export function AnalyticsPage({
                   )
                 })()}
 
-                {(() => {
+                {!hidden('rc_giftRisk') && (() => {
                   const { missedFiltered, frequentSkippers, endingSoon, pausedGifts } = recurringRiskStats
                   const today = new Date()
 
@@ -2447,11 +2536,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.grants === false ? 'none' : undefined }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
+                <CustomizeSectionButton cards={GRANTS_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('gr_snapshot') && (() => {
                 const { yr, tiles } = grantSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -2478,7 +2568,7 @@ export function AnalyticsPage({
                 const { trendData, funderTypeBreakdown, expenseByCategory, restrictedTotal, unrestrictedTotal, restrictedPct } = grantOverviewStats
                 return (
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
-                    {trendData.length >= 2 && (
+                    {!hidden('gr_trend') && trendData.length >= 2 && (
                       <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Grants Trend — Last {trendData.length} Years <InfoTip text="Total grant funding secured per year, based on the grant's start date. Shows the long-term trajectory of your grant funding, not just this year vs last." /></div>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -2495,6 +2585,7 @@ export function AnalyticsPage({
                       </div>
                     )}
 
+                    {!hidden('gr_spendingByCategory') && (
                     <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Spending by Category <InfoTip text="How grant expenses logged against active grants break down by category — useful for showing funders and auditors how much went to programme delivery versus overhead." /></div>
                       {expenseByCategory.length === 0 ? (
@@ -2524,7 +2615,9 @@ export function AnalyticsPage({
                         </div>
                       )}
                     </div>
+                    )}
 
+                    {!hidden('gr_fundingComposition') && (
                     <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type and by restricted vs unrestricted use." /></div>
                       <div style={s.analyticsSubTitle}>By funder type</div>
@@ -2557,6 +2650,7 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    )}
                   </div>
                 )
               })()}
@@ -2567,6 +2661,7 @@ export function AnalyticsPage({
 
                 return (
                   <div style={isMobile ? s.twoColMobile : s.twoCol}>
+                    {!hidden('gr_grantFunding') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
@@ -2631,8 +2726,9 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    )}
 
-                    {(() => {
+                    {!hidden('gr_grantConcentration') && (() => {
                       return (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
@@ -2700,6 +2796,7 @@ export function AnalyticsPage({
                 const { totalMatchCap, totalMatchClaimed, matchClaimedPct, matchingAtRisk, totalCommitted, totalReceived, pendingTranches, reportCompliance } = grantOverviewStats
                 return (
                   <div style={isMobile ? s.threeColMobile : isTablet ? s.threeColTablet : s.threeCol}>
+                    {!hidden('gr_matchingClaims') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Matching Grant Claims <InfoTip text="How much matched funding has been claimed against the cap across all active matching grants, and which ones are ending within 6 months with unclaimed match still on the table." /></div>
                       {totalMatchCap === 0 ? (
@@ -2735,7 +2832,9 @@ export function AnalyticsPage({
                         </>
                       )}
                     </div>
+                    )}
 
+                    {!hidden('gr_disbursementTranches') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
                       {totalCommitted === 0 ? (
@@ -2772,7 +2871,9 @@ export function AnalyticsPage({
                         )
                       })()}
                     </div>
+                    )}
 
+                    {!hidden('gr_reportCompliance') && (
                     <div style={s.card}>
                       <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year." /></div>
                       {reportCompliance.total === 0 ? (
@@ -2815,6 +2916,7 @@ export function AnalyticsPage({
                         <ActionBanner tone="success" text="No overdue reports" sub="All reports are up to date" />
                       ) : null}
                     </div>
+                    )}
                   </div>
                 )
               })()}
@@ -2822,11 +2924,12 @@ export function AnalyticsPage({
 
             <div id="analytics-section-donorbehavior" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
+                <CustomizeSectionButton cards={DONOR_BEHAVIOR_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} />
               </div>
 
-              {(() => {
+              {!hidden('db_retentionTiles') && (() => {
                 const { yr, repeatDonorRate, avgLTV, retentionRate, activeCount, lapsedCount } = donorRetentionSnapshotStats
                 return (
                   <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
@@ -2855,6 +2958,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
+                if (hidden('db_highlights')) return null
                 const cards = donorHighlightsStats
                 if (cards.length === 0) return null
 
@@ -2885,7 +2989,7 @@ export function AnalyticsPage({
               })()}
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
-              {paymentMixStats && (() => {
+              {!hidden('db_paymentMix') && paymentMixStats && (() => {
                 const { rows, allYears61, allMethods61, yearlyMix61 } = paymentMixStats
                 const colors = [C.forest, C.gold, C.red, C.bucket1, C.muted, C.borderStrong]
 
@@ -2930,7 +3034,7 @@ export function AnalyticsPage({
                   </div>
                 )
               })()}
-              {(() => {
+              {!hidden('db_fundingConcentration') && (() => {
                 const { sorted, grandTotal, concentrationPct, tooFewDonors, highRisk, medRisk, topDonorNames, concentrationTrend } = fundingConcentrationStats
 
                 return (
@@ -2981,7 +3085,7 @@ export function AnalyticsPage({
 
               <div style={{ ...s.analyticsSubTitle, color: C.red, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Needs Attention</div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 24, alignItems: 'start' }}>
-              {(() => {
+              {!hidden('db_slowingDown') && (() => {
                 const quiet = quietDonorsStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3006,7 +3110,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('db_quietlyPaying') && (() => {
                 const quietlyPaying75 = quietlyPayingStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3031,7 +3135,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('db_givingChanges') && (() => {
                 const allFlags = allGivingChangeFlags
                 const flags = showAllGivingChanges ? allFlags : allFlags.slice(0, 5)
                 return (
@@ -3071,6 +3175,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
+                if (hidden('db_thankYouDebt')) return null
                 const owedDonations = donations.filter(d => d.payment_status === 'confirmed' && !d.thank_you_sent && d.donor_email?.trim() && !d.donor_deceased && !d.donor_do_not_contact)
                 const owedTotal = owedDonations.reduce((s, d) => s + d.amount, 0)
                 if (owedDonations.length === 0) return null
@@ -3086,7 +3191,7 @@ export function AnalyticsPage({
               </div>
 
               <div style={{ ...s.analyticsSubTitle, color: C.sage, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Recognition & Stewardship</div>
-              {(() => {
+              {!hidden('db_givingStreaks') && (() => {
                 const streaks = givingStreaksStats
                 return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3113,6 +3218,7 @@ export function AnalyticsPage({
               })()}
 
               <div style={{ ...s.analyticsSubTitle, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8 }}>Donor Composition & Analysis</div>
+              {!hidden('db_topDonorsLTV') && (
               <div style={{ ...s.card, marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors & Lifetime Value <InfoTip text="Your top 5 donors by total lifetime giving, plus average lifetime value across all donors — not scoped to the year filter above." /></div>
@@ -3162,8 +3268,9 @@ export function AnalyticsPage({
                   {donorList.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', padding: 20 }}>No donors yet</div>}
                 </div>
               </div>
+              )}
 
-              {(() => {
+              {!hidden('db_topConnectors') && (() => {
                 const rows78 = topConnectorsStats
                 if (rows78.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
@@ -3190,7 +3297,7 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {(() => {
+              {!hidden('db_acquisitionSources') && (() => {
                 const rows57 = acquisitionSourceStats
                 if (rows57.length === 0) return (
                   <div style={{ ...s.card, marginBottom: 24 }}>
