@@ -51,6 +51,8 @@ interface AnalyticsPageProps {
   filterYear: string | number
   findDonorRecord: (email: string | null | undefined, name?: string) => any
   fundingConcentrationStats: any
+  hiddenDashboardCards: string[]
+  toggleDashboardCard: (cardKey: string) => void
   fundraisingSnapshotStats: any
   fyEndDay: number
   fyEndMonth: number
@@ -200,6 +202,7 @@ export function AnalyticsPage({
   charityIsIpc, charityName, charityUen, clearDonationFilters, concentrationTopN, customObligations, customTasks, dashboardActionItemsData, daysToDeadline, donationSizeBreakdownStats, donations, donorHighlightsStats,
   donorLTVStats, donorList, donorRetentionSnapshotStats, enabledModules, filterYear,
   findDonorRecord, fundingConcentrationStats, fundraisingSnapshotStats, fyEndDay, fyEndMonth,
+  hiddenDashboardCards, toggleDashboardCard,
   fyOf, generateThankYouNote, giroMissedCycles, givingChangeMinGifts, givingChangeMinPct,
   givingStreaksStats, grantExpensesByGrant, grantMatchClaims, grantOverviewStats,
   grantSnapshotStats, grantsWithNextReport, isMobile, isTablet, lapsedDismissals,
@@ -232,6 +235,12 @@ export function AnalyticsPage({
   const [showAllActionItems, setShowAllActionItems] = useState(false)
   const [showAllFyiItems, setShowAllFyiItems] = useState(false)
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
+  const [showCustomizeFinancialOverview, setShowCustomizeFinancialOverview] = useState(false)
+  const FINANCIAL_OVERVIEW_CARDS = [
+    { key: 'fo_goal', label: 'Annual Fundraising Goal' },
+    { key: 'fo_keyMetrics', label: 'Key Metrics (Coverage, Runway, Unrestricted Funding, Fixed-Cost Coverage)' },
+    { key: 'fo_fundingMix', label: 'Funding Mix Snapshot (Campaigns, Grants, Pledges, Appeals, Recurring)' },
+  ]
   return (
           <div style={s.content}>
             <div style={s.pageHeader}>
@@ -736,12 +745,34 @@ export function AnalyticsPage({
 
             <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}
+                    onClick={() => setShowCustomizeFinancialOverview(v => !v)}
+                  >⚙ Customize</button>
+                  {showCustomizeFinancialOverview && (
+                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 20, background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12, width: 260, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Show in this section</div>
+                      {FINANCIAL_OVERVIEW_CARDS.map(c => (
+                        <label key={c.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', fontSize: 12.5, color: C.text, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!hiddenDashboardCards.includes(c.key)}
+                            onChange={() => toggleDashboardCard(c.key)}
+                            style={{ marginTop: 2 }}
+                          />
+                          <span>{c.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
             {/* ── ANNUAL FUNDRAISING GOAL (moved up from Fundraising Performance) ── */}
-            {analyticsGoalStats.hasGoal && (() => {
+            {!hiddenDashboardCards.includes('fo_goal') && analyticsGoalStats.hasGoal && (() => {
               const { goalYear, totalThisGoalYear, pct, onTrack, projectedTotal, gap } = analyticsGoalStats
               const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
@@ -762,7 +793,7 @@ export function AnalyticsPage({
             })()}
 
             {/* ── KEY METRICS ── */}
-            {(() => {
+            {!hiddenDashboardCards.includes('fo_keyMetrics') && (() => {
               const now = new Date()
               const coverageRatio = monthlyExpenses > 0 ? (thisMonthTotal / monthlyExpenses) : null
               const activeRecurring = recurringGifts.filter(g => g.status === 'active')
@@ -854,7 +885,7 @@ export function AnalyticsPage({
               )
             })()}
 
-            {(() => {
+            {!hiddenDashboardCards.includes('fo_fundingMix') && (() => {
               const now03 = new Date()
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
               const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)

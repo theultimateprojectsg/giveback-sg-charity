@@ -918,6 +918,7 @@ export default function App() {
   const [, setVisibleMetrics] = useState<any>(DEFAULT_VISIBLE_METRICS)
   const DEFAULT_ENABLED_MODULES = { campaigns: false, pledges: false, recurring: false, grants: false, inKind: true }
   const [enabledModules, setEnabledModules] = useState<any>(DEFAULT_ENABLED_MODULES)
+  const [hiddenDashboardCards, setHiddenDashboardCards] = useState<string[]>([])
   useEffect(() => {
     const disabledTabIds = Object.entries(enabledModules).filter(([, v]) => v === false).map(([k]) => MODULE_TAB_IDS[k])
     if (disabledTabIds.includes(activeTab)) setActiveTab('dashboard')
@@ -1141,7 +1142,7 @@ export default function App() {
     if (!uen) return
     const { data, error } = await supabase
       .from('charity_contacts')
-      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url, email_templates')
+      .select('ipc, annual_goal, fy_end_month, fy_end_day, visible_metrics, enabled_modules, dashboard_hidden_cards, staff_emails, volunteer_emails, ed_emails, board_emails, monthly_expenses, custom_obligations, custom_tasks, giving_change_min_gifts, giving_change_min_pct, concentration_top_n, lapsed_min_gifts, lapsed_min_days, pledge_watch_threshold, pledge_due_soon_days, recurring_trend_cycles, recurring_missed_threshold, major_gift_threshold, major_donor_threshold, cumulative_milestone_thresholds, logo_url, email_templates')
       .eq('charity_uen', uen)
       .single()
     if (error) { console.error('Could not load charity IPC status:', error); setCharityIpcLoaded(true); setRoleLoaded(true); return }
@@ -1150,6 +1151,7 @@ export default function App() {
     setAnnualGoal(data?.annual_goal || null)
     if (Array.isArray(data?.visible_metrics)) setVisibleMetrics(data.visible_metrics)
     setEnabledModules({ ...DEFAULT_ENABLED_MODULES, ...(data?.enabled_modules || {}) })
+    setHiddenDashboardCards(Array.isArray(data?.dashboard_hidden_cards) ? data.dashboard_hidden_cards : [])
     setEmailTemplates(data?.email_templates || {})
     const month = data?.fy_end_month || 12
     const day = data?.fy_end_day || 31
@@ -8209,6 +8211,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     showToast(`${key.charAt(0).toUpperCase() + key.slice(1)} ${updated[key] ? 'enabled' : 'hidden'} ✓`)
   }
 
+  async function toggleDashboardCard(cardKey: string) {
+    const { error, next: updated } = await updateCharityJsonField(charityUen, 'dashboard_hidden_cards', (current: any) => {
+      const list: string[] = Array.isArray(current) ? current : []
+      return list.includes(cardKey) ? list.filter(k => k !== cardKey) : [...list, cardKey]
+    })
+    if (error) { showToast('Could not save your preferences', 'error'); return }
+    setHiddenDashboardCards(updated)
+  }
+
   function removeTeamMember(role: any, email: any) {
     const proceed = async () => {
       const columnMap: Record<string, string> = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
@@ -9972,6 +9983,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             donationSizeBreakdownStats={donationSizeBreakdownStats} donations={donations}
             donorHighlightsStats={donorHighlightsStats} donorLTVStats={donorLTVStats} donorList={donorList}
             donorRetentionSnapshotStats={donorRetentionSnapshotStats} enabledModules={enabledModules} filterYear={filterYear} findDonorRecord={findDonorRecord}
+            hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard}
             fundingConcentrationStats={fundingConcentrationStats}
             fundraisingSnapshotStats={fundraisingSnapshotStats} fyEndDay={fyEndDay} fyEndMonth={fyEndMonth} fyOf={fyOf}
             generateThankYouNote={generateThankYouNote} giroMissedCycles={giroMissedCycles}
