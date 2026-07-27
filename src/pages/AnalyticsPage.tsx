@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction, ReactNode } from 'react'
-import { useState, isValidElement, cloneElement } from 'react'
+import { useState, useEffect, useRef, isValidElement, cloneElement } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { supabase } from '../supabase'
 import { C } from '../theme'
@@ -27,10 +27,19 @@ function CustomCheckbox({ checked, onChange }: { checked: boolean, onChange: () 
   )
 }
 
-function CustomizeSectionButton({ sectionId, cards, hiddenDashboardCards, toggleDashboardCard, resetDashboardSection }: { sectionId: string, cards: { key: string, label: string }[], hiddenDashboardCards: string[], toggleDashboardCard: (cardKey: string) => void, resetDashboardSection: (sectionId: string, cardKeys: string[]) => void }) {
+function CustomizeSectionButton({ sectionId, cards, hiddenDashboardCards, toggleDashboardCard, resetDashboardSection, setConfirmModal }: { sectionId: string, cards: { key: string, label: string }[], hiddenDashboardCards: string[], toggleDashboardCard: (cardKey: string) => void, resetDashboardSection: (sectionId: string, cardKeys: string[]) => void, setConfirmModal: (v: any) => void }) {
   const [open, setOpen] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={wrapperRef} style={{ position: 'relative' }}>
       <button
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}
         onClick={() => setOpen(v => !v)}
@@ -45,8 +54,13 @@ function CustomizeSectionButton({ sectionId, cards, hiddenDashboardCards, toggle
             </label>
           ))}
           <button
-            style={{ marginTop: 8, paddingTop: 10, borderTop: `1px solid ${C.ivoryDark}`, width: '100%', textAlign: 'left', background: 'none', cursor: 'pointer', fontSize: 11.5, color: C.muted, textDecoration: 'underline' }}
-            onClick={() => resetDashboardSection(sectionId, cards.map(c => c.key))}
+            style={{ marginTop: 8, paddingTop: 10, borderWidth: '1px 0 0 0', borderStyle: 'solid', borderColor: C.ivoryDark, width: '100%', textAlign: 'left', background: 'none', cursor: 'pointer', fontSize: 11.5, color: C.muted, textDecoration: 'underline' }}
+            onClick={() => setConfirmModal({
+              title: 'Reset this section to default?',
+              description: 'Any cards you\'ve hidden or reordered here will go back to how they started.',
+              confirmLabel: 'Reset',
+              onConfirm: () => { resetDashboardSection(sectionId, cards.map(c => c.key)); setOpen(false) },
+            })}
           >↺ Reset to default</button>
         </div>
       )}
@@ -915,7 +929,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
-                <CustomizeSectionButton sectionId="fo" cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="fo" cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0 }}>
@@ -1198,7 +1212,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
-                <CustomizeSectionButton sectionId="fp" cards={FUNDRAISING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="fp" cards={FUNDRAISING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
@@ -1427,7 +1441,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
-                <CustomizeSectionButton sectionId="cp" cards={CAMPAIGN_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="cp" cards={CAMPAIGN_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('cp_snapshot') && (() => {
@@ -1637,7 +1651,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
-                <CustomizeSectionButton sectionId="ma" cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="ma" cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('ma_snapshot') && (() => {
@@ -1977,7 +1991,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
-                <CustomizeSectionButton sectionId="pp" cards={PLEDGE_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="pp" cards={PLEDGE_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('pp_snapshot') && (() => {
@@ -2267,7 +2281,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
-                <CustomizeSectionButton sectionId="rc" cards={RECURRING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="rc" cards={RECURRING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('rc_snapshot') && (() => {
@@ -2634,7 +2648,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
-                <CustomizeSectionButton sectionId="gr" cards={GRANTS_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="gr" cards={GRANTS_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('gr_snapshot') && (() => {
@@ -3022,7 +3036,7 @@ export function AnalyticsPage({
               <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                 <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
-                <CustomizeSectionButton sectionId="db" cards={DONOR_BEHAVIOR_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} />
+                <CustomizeSectionButton sectionId="db" cards={DONOR_BEHAVIOR_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
               {!hidden('db_retentionTiles') && (() => {
