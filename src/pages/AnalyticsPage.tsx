@@ -101,8 +101,6 @@ function DraggableCard({ sectionId, cardKey, order, flexBasis, defaultOrder, das
     : children
   return (
     <div
-      draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', cardKey) }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
       onDragEnter={() => setIsDragOver(true)}
       onDragLeave={() => setIsDragOver(false)}
@@ -112,9 +110,14 @@ function DraggableCard({ sectionId, cardKey, order, flexBasis, defaultOrder, das
         const draggedKey = e.dataTransfer.getData('text/plain')
         if (draggedKey && draggedKey !== cardKey) reorderDashboardCard(sectionId, defaultOrder, draggedKey, cardKey)
       }}
-      style={{ order, flex: `1 1 ${flexBasis}`, minWidth: 0, display: 'flex', cursor: 'grab', position: 'relative', outline: isDragOver ? `2px dashed ${C.forest}` : 'none', outlineOffset: 2, borderRadius: 6 }}
+      style={{ order, flex: `1 1 ${flexBasis}`, minWidth: 0, display: 'flex', position: 'relative', outline: isDragOver ? `2px dashed ${C.forest}` : 'none', outlineOffset: 2, borderRadius: 6 }}
     >
-      <span style={{ position: 'absolute', top: 6, right: 8, fontSize: 13, color: C.border, letterSpacing: -1, zIndex: 1, userSelect: 'none' }} title="Drag to reorder">⠿</span>
+      <span
+        draggable
+        onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', cardKey) }}
+        style={{ position: 'absolute', top: 6, right: 8, fontSize: 14, color: C.border, letterSpacing: -1, zIndex: 1, userSelect: 'none', cursor: 'grab', padding: 4 }}
+        title="Drag to reorder"
+      >⠿</span>
       {styledChild}
     </div>
   )
