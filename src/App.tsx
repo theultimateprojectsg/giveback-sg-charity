@@ -9412,7 +9412,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setTimeout(() => { setShowResetPassword(false); setNewPassword(''); setConfirmPassword(''); setResetMsg('') }, 1500)
   }
 
-  const monthlyChartData = React.useMemo(() => {
+  const monthlyCountData = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
     const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
     const { start: lastFyStart } = fiscalYearBounds(yr - 1, fyEndMonth, fyEndDay)
@@ -9420,26 +9420,10 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return Array.from({ length: 12 }, (_, i) => {
       const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
       const lastYearD = new Date(lastFyStart.getFullYear(), lastFyStart.getMonth() + i, 1)
-      const thisMonthDonations = confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() })
-      const lastYearDonations = confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === lastYearD.getFullYear() && dt.getMonth() === lastYearD.getMonth() })
-      return {
-        month: d.toLocaleDateString('en-SG', { month: 'short' }),
-        amount: thisMonthDonations.reduce((sum, don) => sum + don.amount, 0),
-        lastYearAmount: lastYearDonations.reduce((sum, don) => sum + don.amount, 0),
-        count: thisMonthDonations.length,
-      }
-    })
-  }, [donations, filterYear, fyOf, fyEndMonth, fyEndDay])
-
-  const monthlyCountData = React.useMemo(() => {
-    const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const { start: fyStart } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
-    const confirmed = donations.filter(d => d.payment_status === 'confirmed')
-    return Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + i, 1)
       return {
         month: d.toLocaleDateString('en-SG', { month: 'short' }),
         count: confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() }).length,
+        lastYearCount: confirmed.filter(don => { const dt = new Date(don.created_at); return dt.getFullYear() === lastYearD.getFullYear() && dt.getMonth() === lastYearD.getMonth() }).length,
       }
     })
   }, [donations, filterYear, fyOf, fyEndMonth, fyEndDay])
@@ -9994,7 +9978,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             grantsWithNextReport={grantsWithNextReport} isMobile={isMobile}
             isTablet={isTablet} lapsedDismissals={lapsedDismissals} lapsedDonorsStats={lapsedDonorsStats}
             lapsedMinDays={lapsedMinDays} lapsedMinGifts={lapsedMinGifts} lapsedReminderHistory={lapsedReminderHistory}
-            majorDonorThreshold={majorDonorThreshold} monthlyChartData={monthlyChartData}
+            majorDonorThreshold={majorDonorThreshold}
             monthlyCountData={monthlyCountData} monthlyEquivalentAmount={monthlyEquivalentAmount}
             monthlyExpenses={monthlyExpenses} myCauses={myCauses} newDonorAcquisitionStats={newDonorAcquisitionStats} obligationForm={obligationForm}
             paymentMixStats={paymentMixStats} pledgeConcentrationStats={pledgeConcentrationStats}
