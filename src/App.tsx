@@ -8238,6 +8238,24 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     setDashboardCardOrder(updated)
   }
 
+  async function resetDashboardSection(sectionId: string, cardKeys: string[]) {
+    const [hiddenResult, orderResult] = await Promise.all([
+      updateCharityJsonField(charityUen, 'dashboard_hidden_cards', (current: any) => {
+        const list: string[] = Array.isArray(current) ? current : []
+        return list.filter(k => !cardKeys.includes(k))
+      }),
+      updateCharityJsonField(charityUen, 'dashboard_card_order', (current: any) => {
+        const next = { ...(current || {}) }
+        delete next[sectionId]
+        return next
+      }),
+    ])
+    if (hiddenResult.error || orderResult.error) { showToast('Could not reset this section', 'error'); return }
+    setHiddenDashboardCards(hiddenResult.next)
+    setDashboardCardOrder(orderResult.next)
+    showToast('Section reset to default ✓')
+  }
+
   function removeTeamMember(role: any, email: any) {
     const proceed = async () => {
       const columnMap: Record<string, string> = { ed: 'ed_emails', staff: 'staff_emails', board: 'board_emails', volunteer: 'volunteer_emails' }
@@ -10002,7 +10020,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             donorHighlightsStats={donorHighlightsStats} donorLTVStats={donorLTVStats} donorList={donorList}
             donorRetentionSnapshotStats={donorRetentionSnapshotStats} enabledModules={enabledModules} filterYear={filterYear} findDonorRecord={findDonorRecord}
             hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard}
-            dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}
+            dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard} resetDashboardSection={resetDashboardSection}
             fundingConcentrationStats={fundingConcentrationStats}
             fundraisingSnapshotStats={fundraisingSnapshotStats} fyEndDay={fyEndDay} fyEndMonth={fyEndMonth} fyOf={fyOf}
             generateThankYouNote={generateThankYouNote} giroMissedCycles={giroMissedCycles}
