@@ -8214,27 +8214,37 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
   }
 
   async function toggleDashboardCard(cardKey: string) {
+    const prev = hiddenDashboardCards
+    const optimistic = prev.includes(cardKey) ? prev.filter(k => k !== cardKey) : [...prev, cardKey]
+    setHiddenDashboardCards(optimistic)
     const { error, next: updated } = await updateCharityJsonField(charityUen, 'dashboard_hidden_cards', (current: any) => {
       const list: string[] = Array.isArray(current) ? current : []
       return list.includes(cardKey) ? list.filter(k => k !== cardKey) : [...list, cardKey]
     })
-    if (error) { showToast('Could not save your preferences', 'error'); return }
+    if (error) { showToast('Could not save your preferences', 'error'); setHiddenDashboardCards(prev); return }
     setHiddenDashboardCards(updated)
+  }
+
+  function computeReorderedList(existing: string[], defaultOrder: string[], draggedKey: string, targetKey: string) {
+    const base = defaultOrder.filter(k => !existing.includes(k)).length > 0
+      ? [...existing, ...defaultOrder.filter(k => !existing.includes(k))]
+      : existing
+    const next = base.filter((k: string) => k !== draggedKey)
+    const targetIdx = next.indexOf(targetKey)
+    next.splice(targetIdx === -1 ? next.length : targetIdx, 0, draggedKey)
+    return next
   }
 
   async function reorderDashboardCard(sectionId: string, defaultOrder: string[], draggedKey: string, targetKey: string) {
     if (draggedKey === targetKey) return
+    const prev = dashboardCardOrder
+    const existingOptimistic = Array.isArray(prev[sectionId]) ? prev[sectionId] : defaultOrder
+    setDashboardCardOrder({ ...prev, [sectionId]: computeReorderedList(existingOptimistic, defaultOrder, draggedKey, targetKey) })
     const { error, next: updated } = await updateCharityJsonField(charityUen, 'dashboard_card_order', (current: any) => {
       const existing = current && Array.isArray(current[sectionId]) ? current[sectionId] : defaultOrder
-      const base = defaultOrder.filter(k => !existing.includes(k)).length > 0
-        ? [...existing, ...defaultOrder.filter(k => !existing.includes(k))]
-        : existing
-      const next = base.filter((k: string) => k !== draggedKey)
-      const targetIdx = next.indexOf(targetKey)
-      next.splice(targetIdx === -1 ? next.length : targetIdx, 0, draggedKey)
-      return { ...(current || {}), [sectionId]: next }
+      return { ...(current || {}), [sectionId]: computeReorderedList(existing, defaultOrder, draggedKey, targetKey) }
     })
-    if (error) { showToast('Could not save your preferences', 'error'); return }
+    if (error) { showToast('Could not save your preferences', 'error'); setDashboardCardOrder(prev); return }
     setDashboardCardOrder(updated)
   }
 
