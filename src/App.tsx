@@ -935,7 +935,6 @@ export default function App() {
       ...(enabledModules.recurring !== false ? ['analytics-section-recurring'] : []),
       ...(enabledModules.grants !== false ? ['analytics-section-grants'] : []),
       'analytics-section-donorbehavior',
-      'analytics-section-forecasting',
     ]
     const stickyOffset = (isMobile ? 56 : 0) + ANALYTICS_NAV_OFFSET + 4
     function onScroll() {

@@ -455,7 +455,6 @@ export function AnalyticsPage({
                 ...(enabledModules.recurring !== false ? [{ id: 'analytics-section-recurring', label: 'Recurring' }] : []),
                 ...(enabledModules.grants !== false ? [{ id: 'analytics-section-grants', label: 'Grants' }] : []),
                 { id: 'analytics-section-donorbehavior', label: 'Donor Behavior' },
-                { id: 'analytics-section-forecasting', label: 'Forecasting' },
               ].map(section => (
                 <button
                   key={section.id}
