@@ -75,6 +75,15 @@ function getCardOrderIndex(dashboardCardOrder: Record<string, string[]>, section
   return idx === -1 ? defaultOrder.indexOf(cardKey) : idx
 }
 
+function AdjustInSettingsLink({ setActiveTab, setSettingsSection }: { setActiveTab: (tab: string) => void, setSettingsSection: (section: string) => void }) {
+  return (
+    <span
+      style={{ fontSize: 10.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }}
+      onClick={() => { setActiveTab('settings'); setSettingsSection('thresholds'); setTimeout(() => document.getElementById('dashboard-alert-sensitivity-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
+    >Adjust in Settings →</span>
+  )
+}
+
 function DraggableCard({ sectionId, cardKey, order, flexBasis, defaultOrder, dashboardCardOrder, reorderDashboardCard, children }: {
   sectionId: string
   cardKey: string
@@ -2167,12 +2176,8 @@ export function AnalyticsPage({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
-                        <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={pledgeWatchThreshold} onChange={async e => { const v = Number(e.target.value); setPledgeWatchThreshold(v); const { error } = await supabase.from('charity_contacts').update({ pledge_watch_threshold: v }).eq('charity_uen', charityUen); if (error) { console.error('Failed to save pledge watch threshold:', error); showToast('Could not save this setting — please try again', 'error') } }}>
-                          <option value={1}>1 broken pledge</option>
-                          <option value={2}>2 broken pledges</option>
-                          <option value={3}>3 broken pledges</option>
-                        </select>
+                        <span style={{ fontSize: 10.5, color: C.muted }}>Flagged after {pledgeWatchThreshold} broken pledge{pledgeWatchThreshold !== 1 ? 's' : ''}</span>
+                        <AdjustInSettingsLink setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} />
                       </div>
                     </div>
                     {watchList.length === 0 ? (
@@ -2461,11 +2466,8 @@ export function AnalyticsPage({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 2 }}>
                         <div style={s.analyticsSubTitle}>Sustained upgrades &amp; downgrades</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
-                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringTrendCycles} onChange={async e => { const v = Number(e.target.value); setRecurringTrendCycles(v); const { error } = await supabase.from('charity_contacts').update({ recurring_trend_cycles: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
-                            <option value={2}>2 cycles</option>
-                            <option value={3}>3 cycles</option>
-                          </select>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flagged after {recurringTrendCycles} cycles</span>
+                          <AdjustInSettingsLink setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} />
                         </div>
                       </div>
                       {trendFlagsFiltered.length === 0 ? (
@@ -2549,12 +2551,8 @@ export function AnalyticsPage({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div style={s.analyticsSubTitle}>Missed payments</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 10.5, color: C.muted }}>Flag after</span>
-                          <select style={{ fontSize: 10.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 5px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={recurringMissedThreshold} onChange={async e => { const v = Number(e.target.value); setRecurringMissedThreshold(v); const { error } = await supabase.from('charity_contacts').update({ recurring_missed_threshold: v }).eq('charity_uen', charityUen); if (error) showToast('Could not save this setting', 'error') }}>
-                            <option value={1}>1 cycle</option>
-                            <option value={2}>2 cycles</option>
-                            <option value={3}>3 cycles</option>
-                          </select>
+                          <span style={{ fontSize: 10.5, color: C.muted }}>Flagged after {recurringMissedThreshold} cycle{recurringMissedThreshold !== 1 ? 's' : ''}</span>
+                          <AdjustInSettingsLink setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} />
                         </div>
                       </div>
                       {missedFiltered.length === 0 ? (
