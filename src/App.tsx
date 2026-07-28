@@ -10054,7 +10054,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             recurringMrrStats={recurringMrrStats} recurringRiskStats={recurringRiskStats}
             recurringSnapshotStats={recurringSnapshotStats} recurringTrendCycles={recurringTrendCycles}
             revenueByChannelStats={revenueByChannelStats}
-            revenueTrendStats={revenueTrendStats} setActiveTab={setActiveTab} setAiWeekSummary={setAiWeekSummary} setAiWeekSummaryError={setAiWeekSummaryError}
+            revenueTrendStats={revenueTrendStats} setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} setAiWeekSummary={setAiWeekSummary} setAiWeekSummaryError={setAiWeekSummaryError}
             setAiWeekSummaryLoading={setAiWeekSummaryLoading} setCampaignSearchTerm={setCampaignSearchTerm}
             setCampaignYearFilter={setCampaignYearFilter} setConcentrationTopN={setConcentrationTopN}
             setConfirmModal={setConfirmModal} setCustomObligations={setCustomObligations} setCustomTasks={setCustomTasks}

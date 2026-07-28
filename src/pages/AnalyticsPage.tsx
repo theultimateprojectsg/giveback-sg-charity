@@ -222,6 +222,7 @@ interface AnalyticsPageProps {
   revenueByChannelStats: any
   revenueTrendStats: any
   setActiveTab: (tab: string) => void
+  setSettingsSection: (section: string) => void
   setAiWeekSummary: (v: any) => void
   setAiWeekSummaryError: (v: any) => void
   setAiWeekSummaryLoading: (v: any) => void
@@ -331,7 +332,7 @@ export function AnalyticsPage({
   quietlyPayingStats, recurringAuthStats, recurringCompositionStats,
   recurringGifts, recurringHealthStats, recurringMissedThreshold, recurringMrrStats, recurringRiskStats,
   recurringSnapshotStats, recurringTrendCycles, revenueByChannelStats,
-  revenueTrendStats, setActiveTab, setAiWeekSummary, setAiWeekSummaryError,
+  revenueTrendStats, setActiveTab, setSettingsSection, setAiWeekSummary, setAiWeekSummaryError,
   setAiWeekSummaryLoading, setCampaignSearchTerm, setCampaignYearFilter, setConcentrationTopN, setConfirmModal,
   setCustomObligations, setCustomTasks, setDonorFilterLabel, setFilterDonorKeys, setFilterThankYou,
   setFilterTopDonorNames, setFilterYear, setGivingChangeMinGifts, setGivingChangeMinPct, setGrantAmountFilter,
@@ -3300,13 +3301,13 @@ export function AnalyticsPage({
                 return (
                   <DraggableCard sectionId="db" cardKey="db_givingChanges" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_givingChanges')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div id="giving-changes-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
-                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Both are adjustable below." /></div>
+                    <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>Giving Changes <InfoTip text="Donors whose most recent gift differs from their historical average by at least this percentage, based on this many or more prior gifts. Adjust the threshold in Settings." /></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with</span>
-                      <input type="number" min={2} style={{ width: 40, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinGifts} onChange={e => { const v = Math.max(2, Number(e.target.value) || 2); setGivingChangeMinGifts(v); supabase.from('charity_contacts').update({ giving_change_min_gifts: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>+ gifts, changed by</span>
-                      <input type="number" min={1} style={{ width: 44, fontSize: 11.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 4px', color: C.forest, textAlign: 'center' }} value={givingChangeMinPct} onChange={e => { const v = Math.max(1, Number(e.target.value) || 1); setGivingChangeMinPct(v); supabase.from('charity_contacts').update({ giving_change_min_pct: v }).eq('charity_uen', charityUen) }} />
-                      <span style={{ fontSize: 11.5, color: C.muted }}>%+</span>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>Donors with {givingChangeMinGifts}+ gifts, changed by {givingChangeMinPct}%+</span>
+                      <span
+                        style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }}
+                        onClick={() => { setActiveTab('settings'); setSettingsSection('thresholds'); setTimeout(() => document.getElementById('dashboard-alert-sensitivity-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
+                      >Adjust in Settings →</span>
                     </div>
                     {flags.length === 0 ? (
                       <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No significant changes detected yet.</div>

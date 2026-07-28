@@ -455,7 +455,7 @@ export function SettingsPage({
           const nStyle: CSSProperties = { width: 52, fontSize: 12.5, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 6px', color: C.forest, textAlign: 'center' }
           const valueChipStyle: CSSProperties = { fontWeight: 700, color: C.forest, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 4, padding: '3px 8px' }
           return (
-            <div style={{ ...s.card, marginTop: 16 }}>
+            <div id="dashboard-alert-sensitivity-card" style={{ ...s.card, marginTop: 16, scrollMarginTop: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ ...s.cardTitle, marginBottom: 0 }}>Dashboard Alert Sensitivity</div>
                 {!editingAlertSensitivity && (
