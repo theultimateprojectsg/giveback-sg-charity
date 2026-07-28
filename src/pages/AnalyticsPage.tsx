@@ -661,7 +661,6 @@ export function AnalyticsPage({
                           onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                           onMouseLeave={e => e.currentTarget.style.background = C.white}
                         >
-                          {item.severity === 'critical' && <span style={{ width: 7, height: 7, borderRadius: '50%', background: C.red, flexShrink: 0 }} title="Urgent" />}
                           <span style={{ color: item.priority === 'high' ? C.red : C.text, fontWeight: item.priority === 'high' ? 500 : 400, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
                           <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
                           {snoozeControl(item)}
