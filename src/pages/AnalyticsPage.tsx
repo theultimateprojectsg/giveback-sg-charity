@@ -350,8 +350,6 @@ export function AnalyticsPage({
   showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
   showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
-  const [showAllActionItems, setShowAllActionItems] = useState(false)
-  const [showAllFyiItems, setShowAllFyiItems] = useState(false)
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
   const hidden = (cardKey: string) => hiddenDashboardCards.includes(cardKey)
   const cardOrd = (sectionId: string, defaultCards: { key: string }[], cardKey: string) => getCardOrderIndex(dashboardCardOrder, sectionId, defaultCards.map(c => c.key), cardKey)
@@ -576,8 +574,6 @@ export function AnalyticsPage({
             {/* ── ACTION ITEMS ── */}
             {(() => {
               const { actionItemsVisible, fyiItemsVisible, highItems, criticalCount, snoozedActiveItems, nowMs } = dashboardActionItemsData
-              const ITEM_CAP = 6
-              const GROUP_LABELS: Record<string, string> = { moments: 'Donor Moments', trends: 'Trends & Patterns', housekeeping: 'Housekeeping' }
 
               const snoozeControl = (item: any) => item.key && (
                 snoozeMenuOpen === item.key ? (
@@ -641,35 +637,16 @@ export function AnalyticsPage({
                 )
               }
 
-              const visibleActionItems = showAllActionItems ? actionItemsVisible : actionItemsVisible.slice(0, ITEM_CAP)
-              const visibleFyiItems = showAllFyiItems ? fyiItemsVisible : fyiItemsVisible.slice(0, ITEM_CAP)
-
-              const renderGroupedFyi = (list: any[]) => {
-                const out: any[] = []
-                let lastGroup: string | undefined = undefined
-                list.forEach((item: any, i: number) => {
-                  const isNewGroup = !!item.group && item.group !== lastGroup
-                  if (isNewGroup) {
-                    out.push(
-                      <div key={`hdr-${i}`} style={{ padding: '8px 16px 4px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6, background: C.ivory, borderTop: i > 0 ? `1px solid ${C.border}` : 'none' }}>
-                        {GROUP_LABELS[item.group] || item.group}
-                      </div>
-                    )
-                    lastGroup = item.group
-                  }
-                  out.push(
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: (!isNewGroup && i > 0) ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.ivory}
-                      onMouseLeave={e => e.currentTarget.style.background = C.white}
-                    >
-                      <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
-                      <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
-                      {snoozeControl(item)}
-                    </div>
-                  )
-                })
-                return out
-              }
+              const renderFlatFyi = (list: any[]) => list.map((item: any, i: number) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i > 0 ? `1px solid ${C.border}` : 'none', background: C.white, fontSize: 13 }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.ivory}
+                  onMouseLeave={e => e.currentTarget.style.background = C.white}
+                >
+                  <span style={{ color: C.text, flex: 1, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>{item.label}</span>
+                  <span style={{ fontSize: 12, color: C.sage, fontWeight: 500, fontFamily: C.fontMono, flexShrink: 0, cursor: 'pointer' }} onClick={() => item.jump ? item.jump() : setActiveTab(item.tab)}>→</span>
+                  {snoozeControl(item)}
+                </div>
+              ))
 
               return (
                 <>
@@ -679,7 +656,7 @@ export function AnalyticsPage({
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention{criticalCount > 0 ? ` — ${criticalCount} urgent` : ''}</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {visibleActionItems.map((item: any, i: any) => (
+                      {actionItemsVisible.map((item: any, i: any) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: `1px solid ${C.border}`, background: C.white, fontSize: 13 }}
                           onMouseEnter={e => e.currentTarget.style.background = C.ivory}
                           onMouseLeave={e => e.currentTarget.style.background = C.white}
@@ -690,11 +667,6 @@ export function AnalyticsPage({
                           {snoozeControl(item)}
                         </div>
                       ))}
-                      {actionItemsVisible.length > ITEM_CAP && (
-                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${C.border}`, fontSize: 12.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowAllActionItems(v => !v)}>
-                          {showAllActionItems ? '▾ Show fewer' : `▸ Show ${actionItemsVisible.length - ITEM_CAP} more`}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -705,12 +677,7 @@ export function AnalyticsPage({
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
                     </div>
                     <div style={{ background: C.white, display: 'flex', flexDirection: 'column' }}>
-                      {renderGroupedFyi(visibleFyiItems)}
-                      {fyiItemsVisible.length > ITEM_CAP && (
-                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${C.border}`, fontSize: 12.5, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowAllFyiItems(v => !v)}>
-                          {showAllFyiItems ? '▾ Show fewer' : `▸ Show ${fyiItemsVisible.length - ITEM_CAP} more`}
-                        </div>
-                      )}
+                      {renderFlatFyi(fyiItemsVisible)}
                     </div>
                   </div>
                 )}
