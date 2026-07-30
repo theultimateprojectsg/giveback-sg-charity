@@ -1985,7 +1985,28 @@ export default function App() {
     }
 
     if (editingInKindId) {
-      const { data, error } = await supabase.from('in_kind_donations').update(payload).eq('id', editingInKindId).select().single()
+      const original = inKindDonations.find(d => d.id === editingInKindId)
+      // Once a receipt has been issued, the acknowledged gift details are frozen -- correcting
+      // them silently here would let the receipt PDF (regenerated on demand from live fields)
+      // drift from what was actually issued. Void & Reissue is the only sanctioned way to
+      // correct an issued receipt, matching the cash-donation flow, so protected fields are
+      // pinned back to their original values regardless of what the form submitted.
+      const finalPayload = original?.receipt_issued ? {
+        ...payload,
+        donor_name: original.donor_name,
+        donor_email: original.donor_email,
+        donor_nric: original.donor_nric,
+        donor_phone: original.donor_phone,
+        is_anonymous: original.is_anonymous,
+        category: original.category,
+        item_description: original.item_description,
+        estimated_value: original.estimated_value,
+        received_date: original.received_date,
+        cause_id: original.cause_id,
+        condition: original.condition,
+        valuation_basis: original.valuation_basis,
+      } : payload
+      const { data, error } = await supabase.from('in_kind_donations').update(finalPayload).eq('id', editingInKindId).select().single()
       setSavingInKind(false)
       if (error) { setInKindError('Error saving changes'); return }
       setInKindDonations(prev => prev.map(d => d.id === editingInKindId ? data : d).sort((a, b) => new Date(b.received_date).getTime() - new Date(a.received_date).getTime()))
@@ -2009,11 +2030,19 @@ export default function App() {
   async function deleteInKindDonation(item: any) {
     setConfirmModal({
       title: 'Delete this in-kind gift?',
-      description: `"${item.item_description}" from ${item.donor_name} will be permanently removed. This cannot be undone.`,
+      description: item.receipt_issued
+        ? `⚠ A receipt (${item.receipt_number}) has already been issued for "${item.item_description}" from ${item.donor_name}. Deleting will permanently remove the record; the deletion itself is still logged in the audit trail. This cannot be undone.`
+        : `"${item.item_description}" from ${item.donor_name} will be permanently removed. This cannot be undone.`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
         const { error } = await supabase.from('in_kind_donations').delete().eq('id', item.id)
         if (error) { showToast('Error deleting in-kind gift', 'error'); return }
+        await supabase.from('audit_log').insert({
+          actor_type: 'charity',
+          actor_email: session.user.email,
+          action: 'in_kind_donation_deleted',
+          details: { donor_name: item.donor_name, item_description: item.item_description, estimated_value: item.estimated_value, receipt_number: item.receipt_number || null, charity_uen: charityUen },
+        })
         setInKindDonations(prev => prev.filter(d => d.id !== item.id))
         showToast('In-kind gift deleted')
       },

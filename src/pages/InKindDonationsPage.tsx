@@ -199,54 +199,64 @@ export function InKindDonationsPage({
 
             {inKindError && <div style={{ background: C.warningBg, color: C.warning, padding: '10px 14px', borderRadius: 4, fontSize: 13, marginBottom: 14 }}>{inKindError}</div>}
 
+            {(() => {
+              const editingItem = editingInKindId ? inKindDonations.find(d => d.id === editingInKindId) : null
+              const receiptLocked = !!editingItem?.receipt_issued
+              return <>
+              {receiptLocked && (
+                <div style={{ background: '#FBF3DE', color: C.gold, padding: '10px 14px', borderRadius: 4, fontSize: 12.5, marginBottom: 14, lineHeight: 1.5 }}>
+                  A receipt has already been issued for this gift, so the acknowledged details are locked. Only Notes can be edited here — use "Void &amp; Reissue Receipt" to correct the gift details.
+                </div>
+              )}
+
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: 'pointer', marginBottom: 8 }}>
-                <input type="checkbox" checked={inKindForm.is_anonymous} onChange={e => setInKindForm((f: any) => ({ ...f, is_anonymous: e.target.checked }))} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.forest, cursor: receiptLocked ? 'default' : 'pointer', marginBottom: 8, opacity: receiptLocked ? 0.6 : 1 }}>
+                <input type="checkbox" disabled={receiptLocked} checked={inKindForm.is_anonymous} onChange={e => setInKindForm((f: any) => ({ ...f, is_anonymous: e.target.checked }))} />
                 Anonymous donor
               </label>
               <div style={s.formLabel}>{inKindForm.is_anonymous ? 'Donor Name (not recorded)' : 'Donor Name *'}</div>
-              <input style={s.formInput} disabled={inKindForm.is_anonymous} placeholder="Full name or organisation" value={inKindForm.donor_name} onChange={e => setInKindForm((f: any) => ({ ...f, donor_name: e.target.value }))} />
+              <input style={s.formInput} disabled={inKindForm.is_anonymous || receiptLocked} placeholder="Full name or organisation" value={inKindForm.donor_name} onChange={e => setInKindForm((f: any) => ({ ...f, donor_name: e.target.value }))} />
             </div>
 
             {!inKindForm.is_anonymous && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <div style={s.formLabel}>Donor Email</div>
-                  <input style={s.formInput} type="email" value={inKindForm.donor_email} onChange={e => setInKindForm((f: any) => ({ ...f, donor_email: e.target.value }))} />
+                  <input style={s.formInput} type="email" disabled={receiptLocked} value={inKindForm.donor_email} onChange={e => setInKindForm((f: any) => ({ ...f, donor_email: e.target.value }))} />
                 </div>
                 <div>
                   <div style={s.formLabel}>Donor Phone</div>
-                  <input style={s.formInput} type="tel" placeholder="+65 9123 4567" value={inKindForm.donor_phone} onChange={e => setInKindForm((f: any) => ({ ...f, donor_phone: e.target.value }))} />
+                  <input style={s.formInput} type="tel" disabled={receiptLocked} placeholder="+65 9123 4567" value={inKindForm.donor_phone} onChange={e => setInKindForm((f: any) => ({ ...f, donor_phone: e.target.value }))} />
                 </div>
               </div>
             )}
 
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Category *</div>
-              <select style={s.formInput} value={inKindForm.category} onChange={e => setInKindForm((f: any) => ({ ...f, category: e.target.value }))}>
+              <select style={s.formInput} disabled={receiptLocked} value={inKindForm.category} onChange={e => setInKindForm((f: any) => ({ ...f, category: e.target.value }))}>
                 {Object.entries(CATEGORY_LABELS).map(([key, v]) => <option key={key} value={key}>{v.icon} {v.label}</option>)}
               </select>
             </div>
 
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>What was donated? *</div>
-              <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} placeholder="e.g. 200 packed meals for patient families" value={inKindForm.item_description} onChange={e => setInKindForm((f: any) => ({ ...f, item_description: e.target.value }))} />
+              <textarea style={{ ...s.formInput, minHeight: 60, resize: 'vertical' }} disabled={receiptLocked} placeholder="e.g. 200 packed meals for patient families" value={inKindForm.item_description} onChange={e => setInKindForm((f: any) => ({ ...f, item_description: e.target.value }))} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={s.formLabel}>Estimated Value (SGD) *</div>
-                <input style={s.formInput} type="number" placeholder="0.00" value={inKindForm.estimated_value} onChange={e => setInKindForm((f: any) => ({ ...f, estimated_value: e.target.value }))} />
+                <input style={s.formInput} type="number" disabled={receiptLocked} placeholder="0.00" value={inKindForm.estimated_value} onChange={e => setInKindForm((f: any) => ({ ...f, estimated_value: e.target.value }))} />
               </div>
               <div>
                 <div style={s.formLabel}>Date Received *</div>
-                <input style={s.formInput} type="date" max={new Date().toISOString().split('T')[0]} value={inKindForm.received_date} onChange={e => setInKindForm((f: any) => ({ ...f, received_date: e.target.value }))} />
+                <input style={s.formInput} type="date" disabled={receiptLocked} max={new Date().toISOString().split('T')[0]} value={inKindForm.received_date} onChange={e => setInKindForm((f: any) => ({ ...f, received_date: e.target.value }))} />
               </div>
             </div>
 
             <div style={{ marginBottom: 12 }}>
               <div style={s.formLabel}>Linked Programme / Campaign</div>
-              <select style={s.formInput} value={inKindForm.cause_id} onChange={e => setInKindForm((f: any) => ({ ...f, cause_id: e.target.value }))}>
+              <select style={s.formInput} disabled={receiptLocked} value={inKindForm.cause_id} onChange={e => setInKindForm((f: any) => ({ ...f, cause_id: e.target.value }))}>
                 <option value="">None — general use</option>
                 {myCauses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
@@ -255,7 +265,7 @@ export function InKindDonationsPage({
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={s.formLabel}>Condition</div>
-                <select style={s.formInput} value={inKindForm.condition} onChange={e => setInKindForm((f: any) => ({ ...f, condition: e.target.value }))}>
+                <select style={s.formInput} disabled={receiptLocked} value={inKindForm.condition} onChange={e => setInKindForm((f: any) => ({ ...f, condition: e.target.value }))}>
                   <option value="">Not specified</option>
                   <option value="New">New</option>
                   <option value="Used - Good Condition">Used - Good Condition</option>
@@ -264,9 +274,11 @@ export function InKindDonationsPage({
               </div>
               <div>
                 <div style={s.formLabel}>Valuation Basis</div>
-                <input style={s.formInput} placeholder="e.g. Retail price, donor-quoted" value={inKindForm.valuation_basis} onChange={e => setInKindForm((f: any) => ({ ...f, valuation_basis: e.target.value }))} />
+                <input style={s.formInput} disabled={receiptLocked} placeholder="e.g. Retail price, donor-quoted" value={inKindForm.valuation_basis} onChange={e => setInKindForm((f: any) => ({ ...f, valuation_basis: e.target.value }))} />
               </div>
             </div>
+              </>
+            })()}
 
             <div style={{ marginBottom: 16 }}>
               <div style={s.formLabel}>Notes</div>
