@@ -158,6 +158,9 @@ export function SettingsPage({
   const tokenFieldRefs = { banner_title: bannerTitleFieldRef, banner_subtitle: bannerSubtitleFieldRef, subject: subjectFieldRef, body: bodyFieldRef }
   const tokenFieldValues = { banner_title: emailTemplateBannerTitleInput, banner_subtitle: emailTemplateBannerSubtitleInput, subject: emailTemplateSubjectInput, body: emailTemplateBodyInput }
   const tokenFieldSetters = { banner_title: setEmailTemplateBannerTitleInput, banner_subtitle: setEmailTemplateBannerSubtitleInput, subject: setEmailTemplateSubjectInput, body: setEmailTemplateBodyInput }
+  // The generic preview vars use a placeholder charity name -- swap in the real one so the
+  // preview shows exactly what a donor would actually see, not a stand-in.
+  const templatePreviewVars = { ...EMAIL_TEMPLATE_PREVIEW_VARS, charity_name: charityName || EMAIL_TEMPLATE_PREVIEW_VARS.charity_name }
   function insertTemplateToken(tok: string) {
     const token = `{{${tok}}}`
     const el = tokenFieldRefs[activeTokenField].current
@@ -712,16 +715,16 @@ export function SettingsPage({
                             {emailTemplateSubjectInput.trim() && (
                               <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: C.muted, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                                 <span style={{ fontWeight: 600, flexShrink: 0 }}>Subject:</span>
-                                <span>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</span>
+                                <span>{fillTemplate(emailTemplateSubjectInput, templatePreviewVars)}</span>
                               </div>
                             )}
                             {hasBanner && emailTemplateBannerTitleInput.trim() && (
                               <div style={{ background: C.forest, borderRadius: 6, padding: '10px 12px', marginBottom: 8, textAlign: 'center' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
-                                {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>}
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, templatePreviewVars)}</div>
+                                {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, templatePreviewVars)}</div>}
                               </div>
                             )}
-                            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, templatePreviewVars)}</div>
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
