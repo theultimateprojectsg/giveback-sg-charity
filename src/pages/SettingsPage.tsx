@@ -687,7 +687,7 @@ export function SettingsPage({
           const hasBanner = EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title !== undefined
           return (
             <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setEditingEmailTemplate(null)}>
-              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: isMobile ? 640 : 980, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{t.label}</div>
@@ -695,40 +695,42 @@ export function SettingsPage({
                   </div>
                   <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingEmailTemplate(null)}>✕</button>
                 </div>
-                <div style={{ marginTop: 14 }}>
-                  {t.tokens.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                      <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Insert into the field you clicked into:</span>
-                      {t.tokens.map(tok => (
-                        <button key={tok} type="button" style={{ fontSize: 11, color: C.forest, background: C.ivoryDark, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }} onClick={() => insertTemplateToken(tok)}>
-                          {tok.replace(/_/g, ' ')}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {hasBanner && (
-                    <>
-                      <label style={{ display: 'block', marginBottom: 10 }}>
-                        <div style={s.formLabel}>Banner Headline</div>
-                        <input ref={bannerTitleFieldRef} style={s.formInput} value={emailTemplateBannerTitleInput} onFocus={() => setActiveTokenField('banner_title')} onChange={e => setEmailTemplateBannerTitleInput(e.target.value)} />
-                      </label>
-                      <label style={{ display: 'block', marginBottom: 10 }}>
-                        <div style={s.formLabel}>Banner Subtitle (optional)</div>
-                        <input ref={bannerSubtitleFieldRef} style={s.formInput} value={emailTemplateBannerSubtitleInput} onFocus={() => setActiveTokenField('banner_subtitle')} onChange={e => setEmailTemplateBannerSubtitleInput(e.target.value)} />
-                      </label>
-                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Shown in the bold header of the email, above your message below.</div>
-                    </>
-                  )}
-                  <label style={{ display: 'block', marginBottom: 10 }}>
-                    <div style={s.formLabel}>Subject</div>
-                    <input ref={subjectFieldRef} style={s.formInput} value={emailTemplateSubjectInput} onFocus={() => setActiveTokenField('subject')} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
-                  </label>
-                  <label style={{ display: 'block', marginBottom: 12 }}>
-                    <div style={s.formLabel}>Body</div>
-                    <textarea ref={bodyFieldRef} style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onFocus={() => setActiveTokenField('body')} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
-                  </label>
+                {t.tokens.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Insert into the field you clicked into:</span>
+                    {t.tokens.map(tok => (
+                      <button key={tok} type="button" style={{ fontSize: 11, color: C.forest, background: C.ivoryDark, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }} onClick={() => insertTemplateToken(tok)}>
+                        {tok.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 20, flexDirection: isMobile ? 'column' : 'row', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
+                    {hasBanner && (
+                      <>
+                        <label style={{ display: 'block', marginBottom: 10 }}>
+                          <div style={s.formLabel}>Banner Headline</div>
+                          <input ref={bannerTitleFieldRef} style={s.formInput} value={emailTemplateBannerTitleInput} onFocus={() => setActiveTokenField('banner_title')} onChange={e => setEmailTemplateBannerTitleInput(e.target.value)} />
+                        </label>
+                        <label style={{ display: 'block', marginBottom: 10 }}>
+                          <div style={s.formLabel}>Banner Subtitle (optional)</div>
+                          <input ref={bannerSubtitleFieldRef} style={s.formInput} value={emailTemplateBannerSubtitleInput} onFocus={() => setActiveTokenField('banner_subtitle')} onChange={e => setEmailTemplateBannerSubtitleInput(e.target.value)} />
+                        </label>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Shown in the bold header of the email, above your message below.</div>
+                      </>
+                    )}
+                    <label style={{ display: 'block', marginBottom: 10 }}>
+                      <div style={s.formLabel}>Subject</div>
+                      <input ref={subjectFieldRef} style={s.formInput} value={emailTemplateSubjectInput} onFocus={() => setActiveTokenField('subject')} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
+                    </label>
+                    <label style={{ display: 'block', marginBottom: 12 }}>
+                      <div style={s.formLabel}>Body</div>
+                      <textarea ref={bodyFieldRef} style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onFocus={() => setActiveTokenField('body')} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
+                    </label>
+                  </div>
                   {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim() || emailTemplateBannerTitleInput.trim()) && (
-                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0, width: '100%', background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, position: isMobile ? 'static' : 'sticky', top: 0 }}>
                       <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
                       {emailTemplateSubjectInput.trim() && (
                         <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: C.muted, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
@@ -745,6 +747,8 @@ export function SettingsPage({
                       <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, templatePreviewVars)}</div>
                     </div>
                   )}
+                </div>
+                <div style={{ marginTop: 14 }}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button style={s.issueBtn} onClick={() => {
                       const trimmedSubject = emailTemplateSubjectInput.trim()
