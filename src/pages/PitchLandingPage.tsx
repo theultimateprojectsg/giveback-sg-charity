@@ -28,6 +28,35 @@ const STEPS = [
 
 const ROTATE_WORDS = ['donations.', 'receipts.', 'donors.', 'pledges.', 'IRAS export.']
 
+// Hand-placed points within the canopy silhouette below — deliberately
+// organic (not a grid) so leaves read as grown, not generated.
+const LEAF_NODES = [
+  { x: 160, y: 88, r: 9 }, { x: 118, y: 104, r: 8 }, { x: 204, y: 100, r: 8 },
+  { x: 88, y: 138, r: 9 }, { x: 234, y: 132, r: 8 }, { x: 150, y: 128, r: 7 },
+  { x: 70, y: 176, r: 8 }, { x: 252, y: 170, r: 9 }, { x: 190, y: 150, r: 7 },
+  { x: 108, y: 176, r: 8 }, { x: 214, y: 190, r: 8 }, { x: 160, y: 172, r: 7 },
+  { x: 130, y: 202, r: 8 }, { x: 186, y: 208, r: 7 },
+]
+
+// The literal "Giving Tree" — grows a new leaf each time the hero demo
+// below generates a receipt, rather than illustrating the brand once and
+// leaving it static.
+function GrowingTree({ leafCount }: { leafCount: number }) {
+  const visible = LEAF_NODES.slice(0, Math.min(leafCount, LEAF_NODES.length))
+  return (
+    <svg viewBox="0 0 320 380" style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+      <ellipse cx="160" cy="150" rx="128" ry="96" fill="#1d4a35" opacity="0.9" />
+      <ellipse cx="108" cy="176" rx="76" ry="62" fill="#163B2A" opacity="0.85" />
+      <ellipse cx="216" cy="168" rx="82" ry="66" fill="#194832" opacity="0.85" />
+      <ellipse cx="160" cy="118" rx="90" ry="58" fill="#20573e" opacity="0.9" />
+      <path d="M148 380 L150 250 Q150 232 160 220 Q170 232 170 250 L172 380 Z" fill="#0F2A1F" />
+      {visible.map((n, i) => (
+        <circle key={i} cx={n.x} cy={n.y} r={n.r} fill="#E8A93B" stroke="#0F2A1F" strokeWidth="1.5" className="pitch-leaf-pop" />
+      ))}
+    </svg>
+  )
+}
+
 const TOUR_SLIDES = [
   { key: 'Dashboard', icon: '📊', title: 'One dashboard, the whole picture', desc: 'Total raised, unique donors, and what still needs a receipt — the moment you log in.' },
   { key: 'Donations', icon: '💳', title: 'Every donation, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — logged once, tracked forever.' },
@@ -333,6 +362,20 @@ export default function PitchLandingPage() {
   const [error, setError] = useState('')
   const [wordIndex, setWordIndex] = useState(0)
   const [wordsPaused, setWordsPaused] = useState(false)
+  const [demoAmount, setDemoAmount] = useState('')
+  const [leafCount, setLeafCount] = useState(4)
+  const [receiptSeq, setReceiptSeq] = useState(417)
+  const [lastReceipt, setLastReceipt] = useState<{ amount: string, number: string } | null>(null)
+
+  function growTree() {
+    const amt = parseFloat(demoAmount)
+    if (!amt || amt <= 0) return
+    const nextSeq = receiptSeq + 1
+    setReceiptSeq(nextSeq)
+    setLastReceipt({ amount: amt.toLocaleString(undefined, { maximumFractionDigits: 0 }), number: `GT-2026-0${nextSeq}` })
+    setLeafCount(c => Math.min(c + 1, LEAF_NODES.length))
+    setDemoAmount('')
+  }
 
   useEffect(() => {
     if (wordsPaused) return
@@ -378,13 +421,15 @@ export default function PitchLandingPage() {
   return (
     <div className="pitch-page">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Manrope:wght@400;500;600;700;800&display=swap');
         .pitch-page *,.pitch-page *::before,.pitch-page *::after{box-sizing:border-box}
         .pitch-page{
           --forest:#163B2A;--forest-deep:#0F2A1F;--amber:#E8A93B;--amber-deep:#8a5a10;
           --cream:#FBF8F0;--ink:#14201A;--muted:#6b6259;--border:#E5E0D0;
-          font-family:-apple-system,'Segoe UI','Helvetica Neue',sans-serif;background:var(--cream);color:var(--ink);overflow-x:hidden;
+          --font-display:'Fraunces',Georgia,serif;--font-body:'Manrope',-apple-system,'Segoe UI',sans-serif;--font-mono:'IBM Plex Mono',ui-monospace,monospace;
+          font-family:var(--font-body);background:var(--cream);color:var(--ink);overflow-x:hidden;
         }
-        .pitch-page h1,.pitch-page h2{font-weight:800;letter-spacing:-0.5px;line-height:1.05}
+        .pitch-page h1,.pitch-page h2{font-family:var(--font-display);font-weight:600;letter-spacing:-0.5px;line-height:1.03}
         .pitch-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(20,32,26,0.92);backdrop-filter:blur(16px)}
         .pitch-nav-link{color:rgba(255,255,255,0.65);font-size:13.5px;font-weight:600;text-decoration:none}
         .pitch-nav-link:hover{color:white}
@@ -408,7 +453,16 @@ export default function PitchLandingPage() {
         .pitch-pause-btn:hover{background:rgba(255,255,255,0.2)}
         .pitch-hero-note{font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:16px;font-weight:600;animation:pitchFadeUp .6s .3s ease both}
         @keyframes pitchFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .pitch-hero-preview{flex:0 0 340px;min-width:280px}
+        .pitch-hero-preview{flex:0 0 320px;min-width:260px}
+        .pitch-demo-box{background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:16px;padding:18px 20px;max-width:420px;animation:pitchFadeUp .6s .2s ease both}
+        .pitch-demo-inputwrap{flex:1;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);border-radius:12px;padding:0 14px}
+        .pitch-demo-inputwrap span{color:rgba(255,255,255,0.6);font-family:var(--font-mono);font-size:15px}
+        .pitch-demo-inputwrap input{flex:1;background:none;border:none;outline:none;color:white;font-family:var(--font-mono);font-size:15px;padding:13px 0;min-width:0}
+        .pitch-demo-inputwrap input::placeholder{color:rgba(255,255,255,0.35)}
+        .pitch-demo-receipt{margin-top:12px;display:flex;justify-content:space-between;gap:10px;background:rgba(232,169,59,0.16);border:1px solid rgba(232,169,59,0.4);border-radius:10px;padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--amber);animation:pitchFadeUp .35s ease both}
+        .pitch-leaf-pop{animation:pitchLeafPop .5s cubic-bezier(.2,1.4,.4,1) both}
+        @keyframes pitchLeafPop{from{transform:scale(0);opacity:0}60%{opacity:1}to{transform:scale(1);opacity:1}}
+        .pitch-leaf-pop{transform-origin:center;transform-box:fill-box}
         @keyframes pitchConfetti{from{transform:translate(-50%,-50%) rotate(0deg);opacity:1}to{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) rotate(var(--rot));opacity:0}}
         .pitch-progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--forest),var(--amber));z-index:200;transition:width .1s linear}
         .pitch-trust-bar{padding:16px 32px;display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;background:var(--cream);border-bottom:1px solid var(--border)}
@@ -469,10 +523,33 @@ export default function PitchLandingPage() {
               Run your charity's<br />
               <span className="pitch-rotate-wrap"><span key={wordIndex} className="pitch-rotate-word">{ROTATE_WORDS[wordIndex]}</span></span>
             </h1>
-            <p className="pitch-hero-sub">A complete donation platform for IPC-registered Singapore charities — manual and online donations, auto receipts, IRAS export, donor analytics.</p>
-            <div className="pitch-hero-actions">
-              <MagneticButton href="#contact" className="pitch-btn-primary">Request a demo →</MagneticButton>
-              <a href="#features" className="pitch-btn-ghost">See what it does</a>
+            <p className="pitch-hero-sub">Type an amount below and watch it happen — a real receipt, generated instantly, and a new leaf on the tree.</p>
+
+            <div className="pitch-demo-box">
+              <div className="pitch-lbl" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Try it — log a donation</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div className="pitch-demo-inputwrap">
+                  <span>$</span>
+                  <input
+                    value={demoAmount}
+                    onChange={e => setDemoAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                    onKeyDown={e => { if (e.key === 'Enter') growTree() }}
+                    placeholder="150"
+                    inputMode="decimal"
+                  />
+                </div>
+                <MagneticButton onClick={growTree} className="pitch-btn-primary" style={{ whiteSpace: 'nowrap' }}>Log donation</MagneticButton>
+              </div>
+              {lastReceipt && (
+                <div key={lastReceipt.number} className="pitch-demo-receipt">
+                  <span>✓ Receipt {lastReceipt.number}</span>
+                  <span>${lastReceipt.amount} · leaf grown 🌱</span>
+                </div>
+              )}
+            </div>
+
+            <div className="pitch-hero-actions" style={{ marginTop: 22 }}>
+              <MagneticButton href="#contact" className="pitch-btn-ghost">Request a demo →</MagneticButton>
               <button onClick={() => setWordsPaused(p => !p)} className="pitch-pause-btn" aria-label={wordsPaused ? 'Resume animation' : 'Pause animation'}>
                 {wordsPaused ? '▶' : '⏸'}
               </button>
@@ -481,33 +558,10 @@ export default function PitchLandingPage() {
           </div>
 
           <div className="pitch-hero-preview">
-            <TiltCard baseRotate={4} style={{ background: '#14201A', borderRadius: 18, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,0.4)' }}>
-              <div style={{ background: '#1c2c22', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E27D60' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E8C547' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#6FCF97' }} />
-                <div style={{ marginLeft: 8, fontSize: 10.5, color: 'rgba(255,255,255,0.5)' }}>charity.givingtree.sg</div>
-              </div>
-              <div style={{ padding: 18 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
-                  {[{ l: 'Raised', t: 48200, prefix: '$' }, { l: 'Donors', t: 312 }, { l: 'Pending', t: 3 }].map((s, i) => (
-                    <div key={i} className="pitch-stat-tile" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '9px 8px' }}>
-                      <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>{s.l}</div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--amber)' }}><CountUp target={s.t} prefix={s.prefix} /></div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' }}>
-                  {[['Tan Wei Ming', '$150', 'GIRO'], ['Cold Storage Supermarket', '$2,200', 'In-kind'], ['Marcus Ng', '$500', 'PayNow']].map((r, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 12px', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : undefined, fontSize: 11.5 }}>
-                      <span style={{ color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r[0]}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{r[2]}</span>
-                      <span style={{ color: 'var(--amber)', fontWeight: 800, flexShrink: 0 }}>{r[1]}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TiltCard>
+            <GrowingTree leafCount={leafCount} />
+            <div style={{ textAlign: 'center', marginTop: 10, fontSize: 12.5, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
+              {leafCount} leaves grown so far — every one, a real donation
+            </div>
           </div>
         </div>
       </section>
@@ -594,7 +648,7 @@ export default function PitchLandingPage() {
       {/* ── TESTIMONIAL ── */}
       <section style={{ background: 'var(--forest-deep)', padding: '76px 24px', textAlign: 'center' }}>
         <div className="pitch-container pitch-reveal" style={{ maxWidth: 660, margin: '0 auto' }}>
-          <blockquote style={{ fontSize: 'clamp(19px,3vw,28px)', color: 'white', lineHeight: 1.5, margin: '0 auto 20px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <blockquote style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(20px,3.2vw,30px)', color: 'white', lineHeight: 1.45, margin: '0 auto 20px', letterSpacing: '-0.3px' }}>
             "The charities doing the most <span style={{ color: 'var(--amber)' }}>important</span> work in Singapore are often the ones with the least support. We built Giving Tree to change that."
           </blockquote>
           <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>— The Giving Tree Team</div>
