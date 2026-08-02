@@ -558,25 +558,7 @@ export function AnalyticsPage({
                 <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
                   <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
-                  {aiWeekSummary && (
-                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>✨ AI Summary</div>
-                      <div style={{ fontSize: 15, color: 'white', lineHeight: 1.7, fontStyle: 'italic' }}>{aiWeekSummary}</div>
-                    </div>
-                  )}
-                  {aiWeekSummaryError && (
-                    <div style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' }}>{aiWeekSummaryError}</div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-                    <button
-                      style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '7px 14px', fontSize: 12.5, fontWeight: 500, cursor: aiWeekSummaryLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: aiWeekSummaryLoading ? 0.6 : 1 }}
-                      disabled={aiWeekSummaryLoading}
-                      onClick={generateAiSummary}
-                    >
-                      {aiWeekSummaryLoading ? 'Writing...' : aiWeekSummary ? '↻ Regenerate AI summary' : '✨ Generate AI summary'}
-                    </button>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>Rewrites the summary above in a more natural voice, as an extra paragraph below it — sends only aggregate totals (amounts, counts) to Anthropic's Claude API, never donor names, emails, NRICs, or any other personal data.</span>
-                  </div>
+                  {/* "Generate AI summary" button hidden for now (feature flagged off, not removed) — see generateAiSummary above and aiWeekSummary/aiWeekSummaryError state. */}
                 </div>
               )
             })()}
