@@ -117,7 +117,7 @@ const EMAIL_TEMPLATE_DEFS = [
 const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
-    body: "Dear {{donor_name}},\n\nThank you so much for your generous gift to {{charity_name}}. Your support makes a real difference to the people and causes we serve.\n\nWith gratitude,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nThank you so much for your gift of ${{amount}} on {{date}}. Support like yours is what allows {{charity_name}} to keep doing what we do, and we're grateful to have you with us.\n\nWith gratitude,\n{{charity_name}}",
     banner_title: 'Thank You, {{donor_name}}!',
     banner_subtitle: 'Your generosity makes a difference',
   },
@@ -129,13 +129,13 @@ const EMAIL_TEMPLATE_DEFAULTS = {
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nThank you for your very first gift to {{charity_name}} — we're so glad to have you with us. It's donors like you who make our work possible, and we hope this is the start of a long relationship.\n\nWith gratitude,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nThank you for your very first gift of ${{amount}} to {{charity_name}} — we're so glad to have you with us. It's donors like you who make our work possible, and we hope this is the start of a long relationship.\n\nWith gratitude,\n{{charity_name}}",
     banner_title: 'Welcome, {{donor_name}}!',
     banner_subtitle: 'Thank you for your first gift to {{charity_name}}',
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nThank you once again for your continued support of {{charity_name}}. Your ongoing generosity gives us the stability to plan ahead and make a lasting difference.\n\nWith gratitude,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nThank you once again for your gift of ${{amount}} — your continued, reliable support gives {{charity_name}} the stability to plan ahead and make a lasting difference.\n\nWith gratitude,\n{{charity_name}}",
     banner_title: 'Thank You for Your Continued Support',
     banner_subtitle: '{{donor_name}}, your steady giving makes a real difference',
   },
@@ -153,7 +153,7 @@ const EMAIL_TEMPLATE_DEFAULTS = {
   },
   pledge_thank_you: {
     subject: 'Thank you for fulfilling your pledge, {{donor_name}}!',
-    body: "Dear {{donor_name}},\n\nYour pledge just came through — thank you for following through on it. Promises like this are easy to make and easy to forget, so the fact that you didn't means a great deal to us.\n\nWith gratitude,\n{{charity_name}}",
+    body: "Dear {{donor_name}},\n\nYour pledge of ${{pledge_amount}} just came through — thank you for following through on it. Promises like this are easy to make and easy to forget, so the fact that you didn't means a great deal to us.\n\nWith gratitude,\n{{charity_name}}",
     banner_title: '🎉 Pledge Fulfilled!',
     banner_subtitle: 'Thank you, {{donor_name}}',
   },
