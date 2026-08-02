@@ -28,6 +28,18 @@ const STEPS = [
 
 const LEAVES = ['🌿', '🍃', '🌿', '🍃', '🌿', '🍃', '🌿']
 
+// Cycled in the hero headline — "Run your charity's ___" — mirroring the
+// rotating-word pattern (Codecademy's "Develop your /skills") rather than a
+// static line.
+const ROTATE_WORDS = ['donations.', 'receipts.', 'donors.', 'pledges.', 'IRAS export.']
+
+const TOUR_SLIDES = [
+  { key: 'Dashboard', icon: '📊', title: 'One dashboard, the whole picture', desc: 'Total raised, unique donors, and what still needs a receipt — the moment you log in.' },
+  { key: 'Donations', icon: '💳', title: 'Every donation, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — logged once, tracked forever.' },
+  { key: 'Analytics', icon: '📈', title: 'Analytics that actually explain your year', desc: 'Retention, campaign performance, and giving trends — built for a small team, not a data analyst.' },
+  { key: 'IRAS Export', icon: '🏛️', title: 'IRAS export, one click away', desc: 'A fully formatted file for myTax Portal. No more scrambling every 31 January.' },
+]
+
 const CONFETTI_COLORS = ['#D4A017', '#F0C84A', '#74C69D', '#40916C', '#FAF7F2']
 
 // Counts up from 0 to `target` once its wrapper scrolls into view. Kept as
@@ -140,6 +152,198 @@ function MagneticButton({ children, onClick, href, style }: { children: ReactNod
   return <button onClick={onClick} {...props}>{children}</button>
 }
 
+// The dashboard "sidebar" shell shared by every tour slide — only the
+// content pane and the highlighted nav item change between slides.
+function TourSidebar({ activeKey }: { activeKey: string }) {
+  return (
+    <div style={{ width: 190, background: '#1B4332', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div style={{ padding: '18px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 22, height: 22, background: 'rgba(255,255,255,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>🌳</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'white' }}>Giving Tree</div>
+        </div>
+        <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 30, marginTop: 2 }}>Charity Portal</div>
+      </div>
+      <div style={{ padding: '8px 10px' }}>
+        {TOUR_SLIDES.map(s => (
+          <div key={s.key} style={{ background: s.key === activeKey ? '#40916C' : 'transparent', borderRadius: 8, padding: '7px 9px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, transition: 'background .3s ease' }}>
+            <span style={{ fontSize: 12.5 }}>{s.icon}</span>
+            <span style={{ fontSize: 11.5, fontWeight: s.key === activeKey ? 600 : 400, color: s.key === activeKey ? 'white' : 'rgba(255,255,255,0.55)' }}>{s.key}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TourDashboardPane() {
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#1B4332' }}>Good afternoon 👋</div>
+          <div style={{ fontSize: 10.5, color: '#7A6E62', marginTop: 2 }}>Here's your donation overview for 2026</div>
+        </div>
+        <div style={{ background: '#1B4332', color: 'white', borderRadius: 20, padding: '5px 12px', fontSize: 10.5, fontWeight: 700 }}>2026</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9, marginBottom: 12 }}>
+        {[{ l: 'Total received', t: 48200, prefix: '$', dark: true }, { l: 'Unique donors', t: 312 }, { l: 'Avg. donation', t: 154, prefix: '$' }, { l: 'Receipts pending', t: 3, warn: true }].map((s, i) => (
+          <div key={i} className="pitch-stat-tile" style={{ background: s.dark ? '#1B4332' : s.warn ? '#FDF3DC' : 'white', border: s.dark ? undefined : `1.5px solid ${s.warn ? '#E8CC7A' : '#E2D9CC'}`, borderRadius: 10, padding: 11 }}>
+            <div style={{ fontSize: 8.5, color: s.dark ? 'rgba(255,255,255,0.6)' : s.warn ? '#A07010' : '#7A6E62', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{s.l}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: s.dark ? 'white' : s.warn ? '#A07010' : '#1B4332' }}><CountUp target={s.t} prefix={s.prefix} /></div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: 'white', borderRadius: 10, border: '1.5px solid #E2D9CC', overflow: 'hidden' }}>
+        <div style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#1B4332', borderBottom: '1px solid #E2D9CC' }}>Recent Donations</div>
+        {[['A', 'Alicia Lim', '$500', '✓ Issued', true], ['J', 'James Tan', '$250', 'Pending', false], ['P', 'Priya Nair', '$100', '✓ Issued', true]].map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: i < 2 ? '1px solid #F0EBE1' : undefined }}>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#40916C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0 }}>{r[0]}</div>
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: '#1B4332', flex: 1 }}>{r[1]}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#1B4332' }}>{r[2]}</span>
+            <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: r[4] ? '#EEF6F1' : '#FDF3DC', color: r[4] ? '#40916C' : '#A07010' }}>{r[3]}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function TourDonationsPane() {
+  const rows: [string, string, string, string, boolean][] = [
+    ['A', 'Alicia Lim', '$500', 'PayNow', true],
+    ['J', 'James Tan', '$250', 'Bank Wire', false],
+    ['C', 'Cold Storage Supermarket', '$2,200', 'In-kind', true],
+    ['M', 'Marcus Ng', '$150', 'GIRO', true],
+    ['S', 'Sarah Chen', '$200', 'Cash', false],
+  ]
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#1B4332' }}>Donations</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ background: 'white', border: '1.5px solid #E2D9CC', borderRadius: 8, padding: '5px 10px', fontSize: 10, color: '#7A6E62' }}>🔍 Search</div>
+          <div style={{ background: '#1B4332', color: 'white', borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 700 }}>+ New Entry</div>
+        </div>
+      </div>
+      <div style={{ background: 'white', borderRadius: 10, border: '1.5px solid #E2D9CC', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', padding: '8px 14px', background: '#FAF7F2', borderBottom: '1px solid #E2D9CC', fontSize: 9, fontWeight: 700, color: '#7A6E62', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ flex: 1 }}>Donor</div><div style={{ width: 70 }}>Amount</div><div style={{ width: 70 }}>Method</div><div style={{ width: 60 }}>Receipt</div>
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', borderBottom: i < rows.length - 1 ? '1px solid #F0EBE1' : undefined }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#40916C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: 'white', flexShrink: 0 }}>{r[0]}</div>
+              <span style={{ fontSize: 10.5, fontWeight: 600, color: '#1B4332', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r[1]}</span>
+            </div>
+            <div style={{ width: 70, fontSize: 10.5, fontWeight: 700, color: '#1B4332' }}>{r[2]}</div>
+            <div style={{ width: 70, fontSize: 10, color: '#7A6E62' }}>{r[3]}</div>
+            <div style={{ width: 60 }}><span style={{ fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: r[4] ? '#EEF6F1' : '#FDF3DC', color: r[4] ? '#40916C' : '#A07010' }}>{r[4] ? '✓ Issued' : 'Pending'}</span></div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function TourAnalyticsPane() {
+  const bars = [40, 65, 50, 80, 60, 95, 72]
+  return (
+    <>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#1B4332', marginBottom: 2 }}>Fundraising performance</div>
+      <div style={{ fontSize: 10.5, color: '#7A6E62', marginBottom: 14 }}>Last 7 months</div>
+      <div style={{ background: 'white', border: '1.5px solid #E2D9CC', borderRadius: 10, padding: 16, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 110 }}>
+          {bars.map((h, i) => (
+            <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 5 ? '#D4A017' : '#40916C', borderRadius: '4px 4px 0 0' }} />
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
+        {[{ l: 'Donor retention', t: 68, suffix: '%' }, { l: 'Repeat donors', t: 142 }, { l: 'Avg. gift growth', t: 12, suffix: '%' }].map((s, i) => (
+          <div key={i} className="pitch-stat-tile" style={{ background: 'white', border: '1.5px solid #E2D9CC', borderRadius: 10, padding: 11 }}>
+            <div style={{ fontSize: 8.5, color: '#7A6E62', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{s.l}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#1B4332' }}><CountUp target={s.t} suffix={s.suffix} /></div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function TourIrasPane() {
+  return (
+    <>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#1B4332', marginBottom: 2 }}>IRAS Export — YA2027</div>
+      <div style={{ fontSize: 10.5, color: '#7A6E62', marginBottom: 14 }}>Formatted and ready for myTax Portal</div>
+      <div style={{ background: 'white', border: '1.5px solid #E2D9CC', borderRadius: 10, padding: 18, marginBottom: 12, textAlign: 'center' }}>
+        <div style={{ fontSize: 30, marginBottom: 8 }}>🏛️</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1B4332', marginBottom: 4 }}>312 donors · $48,200 tax-deductible</div>
+        <div style={{ fontSize: 10, color: '#7A6E62', marginBottom: 14 }}>All NRICs verified, no gaps flagged</div>
+        <div style={{ display: 'inline-block', background: '#1B4332', color: 'white', borderRadius: 8, padding: '8px 20px', fontSize: 11, fontWeight: 700 }}>⬇ Download IRAS File</div>
+      </div>
+      <div style={{ background: '#EEF6F1', border: '1px solid #74C69D', borderRadius: 10, padding: '10px 14px', fontSize: 10.5, color: '#40916C', fontWeight: 600 }}>✓ 0 donors missing an NRIC this year</div>
+    </>
+  )
+}
+
+const TOUR_PANES = [TourDashboardPane, TourDonationsPane, TourAnalyticsPane, TourIrasPane]
+
+// Rotates through TOUR_SLIDES automatically (pausing while hovered), each
+// with dot navigation — mirroring the "Learn by doing" slide tour pattern.
+function ProductTour() {
+  const [active, setActive] = useState(0)
+  const [hovered, setHovered] = useState(false)
+  useEffect(() => {
+    if (hovered) return
+    const id = setInterval(() => setActive(a => (a + 1) % TOUR_SLIDES.length), 4500)
+    return () => clearInterval(id)
+  }, [hovered])
+  const Pane = TOUR_PANES[active]
+  const slide = TOUR_SLIDES[active]
+  return (
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div className="pitch-reveal" style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div key={slide.key} className="pitch-tour-caption" style={{ fontSize: 16, fontWeight: 700, color: 'var(--forest)', marginBottom: 4 }}>{slide.title}</div>
+        <div key={slide.key + '-d'} className="pitch-tour-caption" style={{ fontSize: 12.5, color: 'var(--muted)' }}>{slide.desc}</div>
+      </div>
+
+      <TiltCard style={{ marginBottom: 16 }}>
+        <div className="pitch-dashboard-mock pitch-reveal" style={{ background: '#1e1e1e', borderRadius: 16, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.25)' }}>
+          <div style={{ background: '#2d2d2d', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FF5F57' }} />
+              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FFBD2E' }} />
+              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#28C840' }} />
+            </div>
+            <div style={{ flex: 1, background: '#1e1e1e', borderRadius: 6, padding: '5px 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>charity.givingtree.sg</div>
+          </div>
+          <div style={{ display: 'flex', height: 460, fontFamily: "'Segoe UI',sans-serif", fontSize: 13 }}>
+            <TourSidebar activeKey={slide.key} />
+            <div key={slide.key + '-pane'} className="pitch-tour-pane" style={{ flex: 1, background: '#FAF7F2', overflow: 'hidden', padding: 18 }}>
+              <Pane />
+            </div>
+          </div>
+        </div>
+      </TiltCard>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+        {TOUR_SLIDES.map((s, i) => (
+          <button
+            key={s.key}
+            aria-label={`Show ${s.key}`}
+            onClick={() => setActive(i)}
+            style={{
+              width: i === active ? 22 : 8, height: 8, borderRadius: 100, border: 'none', cursor: 'pointer',
+              background: i === active ? 'var(--gold)' : 'var(--border)', transition: 'width .3s ease,background .3s ease',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function PitchLandingPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ charity_name: '', contact_name: '', email: '', phone: '', message: '' })
@@ -148,6 +352,14 @@ export default function PitchLandingPage() {
   const [error, setError] = useState('')
   const heroRef = useRef<HTMLElement>(null)
   const glowRef = useRef<HTMLDivElement>(null)
+  const [wordIndex, setWordIndex] = useState(0)
+  const [wordsPaused, setWordsPaused] = useState(false)
+
+  useEffect(() => {
+    if (wordsPaused) return
+    const id = setInterval(() => setWordIndex(i => (i + 1) % ROTATE_WORDS.length), 2200)
+    return () => clearInterval(id)
+  }, [wordsPaused])
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
@@ -227,8 +439,14 @@ export default function PitchLandingPage() {
         }
         .pitch-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(116,198,157,0.2);border-radius:100px;padding:8px 18px;font-size:13px;color:var(--sage-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;animation:pitchFadeUp .7s ease both}
         .pitch-hero-title{font-size:clamp(32px,6vw,44px);font-weight:600;color:white;line-height:1.25;margin-bottom:24px;animation:pitchFadeUp .7s .1s ease both}
-        .pitch-hero-title em{font-style:italic;background:linear-gradient(90deg,var(--gold-light),#fff6d8,var(--gold-light));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:pitchShimmer 4s linear infinite}
+        .pitch-rotate-wrap{display:inline-block;overflow:hidden;vertical-align:top}
+        .pitch-rotate-word{display:inline-block;font-style:italic;background:linear-gradient(90deg,var(--gold-light),#fff6d8,var(--gold-light));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:pitchShimmer 4s linear infinite,pitchWordIn .5s cubic-bezier(.2,.9,.3,1) both}
         @keyframes pitchShimmer{to{background-position:200% center}}
+        @keyframes pitchWordIn{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+        .pitch-pause-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
+        .pitch-pause-btn:hover{background:rgba(255,255,255,0.14);color:white}
+        .pitch-tour-caption{animation:pitchFadeUp .4s ease both}
+        .pitch-tour-pane{animation:pitchFadeUp .4s ease both}
         .pitch-hero-sub{font-size:clamp(14px,1.8vw,17px);color:rgba(255,255,255,0.5);line-height:1.85;max-width:460px;font-weight:300;animation:pitchFadeUp .7s .2s ease both}
         .pitch-hero-sub strong{color:rgba(255,255,255,0.85);font-weight:600}
         .pitch-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:32px;animation:pitchFadeUp .7s .3s ease both}
@@ -309,11 +527,17 @@ export default function PitchLandingPage() {
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 56, alignItems: 'center', maxWidth: 1040, width: '100%', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 460px', minWidth: 300, textAlign: 'left' }}>
             <div className="pitch-badge">✦ Free for Singapore charities</div>
-            <h1 className="pitch-hero-title">The big charities have entire teams for this.<br /><em>Now you do too.</em></h1>
+            <h1 className="pitch-hero-title">
+              Run your charity's<br />
+              <span className="pitch-rotate-wrap"><em key={wordIndex} className="pitch-rotate-word">{ROTATE_WORDS[wordIndex]}</em></span>
+            </h1>
             <p className="pitch-hero-sub">A complete donation platform for IPC-registered Singapore charities — <strong>manual & online donations</strong>, <strong>auto receipts</strong>, <strong>IRAS export</strong>, <strong>donor analytics</strong>.</p>
             <div className="pitch-hero-actions">
               <MagneticButton href="#contact">Request a demo →</MagneticButton>
               <a href="#features" className="pitch-btn-ghost">See what it does</a>
+              <button onClick={() => setWordsPaused(p => !p)} className="pitch-pause-btn" aria-label={wordsPaused ? 'Resume animation' : 'Pause animation'}>
+                {wordsPaused ? '▶' : '⏸'}
+              </button>
             </div>
             <p className="pitch-hero-note">Zero contracts. Zero setup fees. We onboard you personally.</p>
           </div>
@@ -393,67 +617,8 @@ export default function PitchLandingPage() {
             <p style={{ fontSize: 14.5, color: 'var(--muted)', lineHeight: 1.85, fontWeight: 300, maxWidth: 480, margin: '0 auto' }}>Capture every donation on your dashboard — every donor recognised, every receipt issued, every thank-you sent.</p>
           </div>
 
-          {/* Fake "browser window" dashboard mockup, tilts toward the cursor */}
-          <TiltCard style={{ marginBottom: 12 }}>
-            <div className="pitch-dashboard-mock pitch-reveal" style={{ background: '#1e1e1e', borderRadius: 16, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.25)' }}>
-              <div style={{ background: '#2d2d2d', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FF5F57' }} />
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FFBD2E' }} />
-                  <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#28C840' }} />
-                </div>
-                <div style={{ flex: 1, background: '#1e1e1e', borderRadius: 6, padding: '5px 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>charity.givingtree.sg</div>
-              </div>
-              <div style={{ display: 'flex', height: 460, fontFamily: "'Segoe UI',sans-serif", fontSize: 13 }}>
-                <div style={{ width: 190, background: '#1B4332', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-                  <div style={{ padding: '18px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 22, height: 22, background: 'rgba(255,255,255,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>🌳</div>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'white' }}>Giving Tree</div>
-                    </div>
-                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 30, marginTop: 2 }}>Charity Portal</div>
-                  </div>
-                  <div style={{ padding: '8px 10px' }}>
-                    {[['📊', 'Dashboard', true], ['💳', 'Donations'], ['📈', 'Analytics'], ['👥', 'Donors'], ['🏛️', 'IRAS Export']].map(([icon, label, active], i) => (
-                      <div key={i} style={{ background: active ? '#40916C' : 'transparent', borderRadius: 8, padding: '7px 9px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                        <span style={{ fontSize: 12.5 }}>{icon}</span>
-                        <span style={{ fontSize: 11.5, fontWeight: active ? 600 : 400, color: active ? 'white' : 'rgba(255,255,255,0.55)' }}>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ flex: 1, background: '#FAF7F2', overflow: 'hidden', padding: 18 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#1B4332' }}>Good afternoon 👋</div>
-                      <div style={{ fontSize: 10.5, color: '#7A6E62', marginTop: 2 }}>Here's your donation overview for 2026</div>
-                    </div>
-                    <div style={{ background: '#1B4332', color: 'white', borderRadius: 20, padding: '5px 12px', fontSize: 10.5, fontWeight: 700 }}>2026</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9, marginBottom: 12 }}>
-                    {[{ l: 'Total received', t: 48200, prefix: '$', dark: true }, { l: 'Unique donors', t: 312 }, { l: 'Avg. donation', t: 154, prefix: '$' }, { l: 'Receipts pending', t: 3, warn: true }].map((s, i) => (
-                      <div key={i} className="pitch-stat-tile" style={{ background: s.dark ? '#1B4332' : s.warn ? '#FDF3DC' : 'white', border: s.dark ? undefined : `1.5px solid ${s.warn ? '#E8CC7A' : '#E2D9CC'}`, borderRadius: 10, padding: 11 }}>
-                        <div style={{ fontSize: 8.5, color: s.dark ? 'rgba(255,255,255,0.6)' : s.warn ? '#A07010' : '#7A6E62', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{s.l}</div>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: s.dark ? 'white' : s.warn ? '#A07010' : '#1B4332' }}><CountUp target={s.t} prefix={s.prefix} /></div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ background: 'white', borderRadius: 10, border: '1.5px solid #E2D9CC', overflow: 'hidden' }}>
-                    <div style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#1B4332', borderBottom: '1px solid #E2D9CC' }}>Recent Donations</div>
-                    {[['A', 'Alicia Lim', '$500', '✓ Issued', true], ['J', 'James Tan', '$250', 'Pending', false], ['P', 'Priya Nair', '$100', '✓ Issued', true]].map((r, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: i < 2 ? '1px solid #F0EBE1' : undefined }}>
-                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#40916C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0 }}>{r[0]}</div>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#1B4332', flex: 1 }}>{r[1]}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#1B4332' }}>{r[2]}</span>
-                        <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: r[4] ? '#EEF6F1' : '#FDF3DC', color: r[4] ? '#40916C' : '#A07010' }}>{r[3]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TiltCard>
-          <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginBottom: 32 }}>Illustrative preview — not a live screenshot.</div>
+          <ProductTour />
+          <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', margin: '10px 0 32px' }}>Illustrative preview — not a live screenshot. Auto-advances, or click a dot.</div>
 
           <div className="pitch-feature-grid">
             {FEATURE_CARDS.map((f, i) => (
