@@ -10442,6 +10442,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 <EmptyState icon="🗒️" title="No activity recorded yet" description="Every donation, receipt, edit, and deletion made by your team will show up here automatically as an audit trail." />
               ) : (
                 <div>
+                  {!isMobile && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 1.6fr 1.1fr 1.8fr', gap: 12, padding: '8px 20px', background: C.ivory, borderBottom: `1px solid ${C.border}`, fontSize: 10.5, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <div />
+                      <div>Action</div>
+                      <div>Actor</div>
+                      <div>Time</div>
+                      <div>Details</div>
+                    </div>
+                  )}
                   {auditLog.filter(entry => {
                     const q = auditSearchTerm.toLowerCase().trim()
                     const matchAction = auditActionFilter === 'All' || entry.action === auditActionFilter
@@ -10585,22 +10594,57 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     }
                     const detailsText = renderDetails()
                     const linkedDonation = entry.donation_id ? donations.find(d => d.id === entry.donation_id) : null
+                    // Best-effort deep link: donations resolve to an exact record via
+                    // donation_id, everything else routes to the relevant tab pre-filtered by
+                    // whatever identifying name we logged at the time (no separate entity id
+                    // columns exist for grants/pledges/campaigns/etc, so a name-based filter is
+                    // the closest we can get without a schema change).
+                    const goTo = (() => {
+                      if (linkedDonation) return () => { setSelectedDonation(linkedDonation); setActiveTab('donations') }
+                      const d = entry.details || {}
+                      if (entry.action.startsWith('grant_') && d.funder_name) return () => { setGrantSearchTerm(d.funder_name); setActiveTab('grants') }
+                      if (entry.action.startsWith('pledge_') && d.donor_name) return () => { setPledgeSearchTerm(d.donor_name); setActiveTab('pledges') }
+                      if (entry.action.startsWith('recurring_gift_') && d.donor_name) return () => { setRecurringSearchTerm(d.donor_name); setActiveTab('recurring') }
+                      if ((entry.action.startsWith('cause_') || entry.action === 'sponsored_requested') && d.title) return () => { setCampaignSearchTerm(d.title); setActiveTab('promotions') }
+                      if (entry.action.startsWith('campaign_expense_') && d.campaign_title) return () => { setCampaignSearchTerm(d.campaign_title); setActiveTab('promotions') }
+                      if (/^(donor_|lapsed_donor_|giving_change_)/.test(entry.action) && (d.donor_name || d.donor_email)) {
+                        return () => { const rec = findDonorRecord(d.donor_email, d.donor_name); if (rec) { setSelectedDonor(rec); setActiveTab('donors') } }
+                      }
+                      if ((entry.action.startsWith('in_kind_') || entry.action.startsWith('inkind_')) && enabledModules.inKind !== false) return () => setActiveTab('inkind')
+                      return null
+                    })()
+                    const actorLabel = `${entry.actor_type === 'donor' ? 'Donor' : 'Charity staff'} (${entry.actor_email})`
+                    const timeLabel = new Date(entry.created_at).toLocaleString('en-SG', isMobile ? undefined : { day: '2-digit', month: '2-digit', hour: 'numeric', minute: '2-digit' })
+                    if (isMobile) {
+                      return (
+                        <div
+                          key={entry.id}
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: goTo ? 'pointer' : 'default' }}
+                          onClick={goTo || undefined}
+                        >
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: C.ivory, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{info.icon}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: info.color }}>{info.label}{goTo && <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}> · view →</span>}</div>
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{actorLabel} · {new Date(entry.created_at).toLocaleString('en-SG')}</div>
+                            {detailsText && (
+                              <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>{detailsText}</div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
                     return (
                       <div
                         key={entry.id}
-                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: linkedDonation ? 'pointer' : 'default' }}
-                        onClick={linkedDonation ? () => { setSelectedDonation(linkedDonation); setActiveTab('donations') } : undefined}
+                        style={{ display: 'grid', gridTemplateColumns: '28px 1.4fr 1.6fr 1.1fr 1.8fr', gap: 12, alignItems: 'center', padding: '10px 20px', borderBottom: `1px solid ${C.ivoryDark}`, cursor: goTo ? 'pointer' : 'default' }}
+                        onClick={goTo || undefined}
+                        title={detailsText || undefined}
                       >
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: C.ivory, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{info.icon}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: info.color }}>{info.label}{linkedDonation && <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}> · view donation →</span>}</div>
-                          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                            {entry.actor_type === 'donor' ? 'Donor' : 'Charity staff'} ({entry.actor_email}) · {new Date(entry.created_at).toLocaleString('en-SG')}
-                          </div>
-                          {detailsText && (
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 4, fontStyle: 'italic' }}>{detailsText}</div>
-                          )}
-                        </div>
+                        <div style={{ fontSize: 14 }}>{info.icon}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: info.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{info.label}{goTo && <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}> · view →</span>}</div>
+                        <div style={{ fontSize: 12, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actorLabel}</div>
+                        <div style={{ fontSize: 12, color: C.muted, whiteSpace: 'nowrap' }}>{timeLabel}</div>
+                        <div style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{detailsText || '—'}</div>
                       </div>
                     )
                   })}
