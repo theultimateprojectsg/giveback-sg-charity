@@ -709,13 +709,18 @@ export function SettingsPage({
                         {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim() || emailTemplateBannerTitleInput.trim()) && (
                           <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
                             <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
+                            {emailTemplateSubjectInput.trim() && (
+                              <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: C.muted, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
+                                <span style={{ fontWeight: 600, flexShrink: 0 }}>Subject:</span>
+                                <span>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</span>
+                              </div>
+                            )}
                             {hasBanner && emailTemplateBannerTitleInput.trim() && (
                               <div style={{ background: C.forest, borderRadius: 6, padding: '10px 12px', marginBottom: 8, textAlign: 'center' }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
                                 {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>}
                               </div>
                             )}
-                            <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8 }}>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
                             <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
                           </div>
                         )}
