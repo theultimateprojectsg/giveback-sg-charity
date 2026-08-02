@@ -488,7 +488,7 @@ export function InKindDonationsPage({
 
       {selectedGift && (
         <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }} onClick={() => setSelectedGiftId(null)}>
-          <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 560, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
+          <div style={isMobile ? { background: C.white, width: '100%', height: '100%', overflowY: 'auto' } : { width: 900, maxWidth: '100%', borderRadius: 8 }} onClick={e => e.stopPropagation()}>
             <div style={isMobile ? { background: C.white, minHeight: '100%', padding: 20 } : { background: C.white, borderRadius: 8, overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 24 }}>
               {(() => {
                 const item = selectedGift
@@ -530,128 +530,132 @@ export function InKindDonationsPage({
                       </div>
                     </div>
 
-                    <div style={{ overflowY: 'auto', flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Gift Details</div>
-                      <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
-                        {([
-                          ['Item', item.item_description, false],
-                          ['Cause', cause || 'General', false],
-                          ...(item.condition ? [['Condition', item.condition, false]] : []),
-                          ...(item.valuation_basis ? [['Valuation Basis', item.valuation_basis, false]] : []),
-                          ...(item.receipt_issued ? [['Receipt No.', item.receipt_number, true]] : []),
-                          ...(item.reissued_from ? [['Reissued from', item.reissued_from, false]] : []),
-                        ] as [string, string, boolean][]).map(([label, value, emphasize], i, arr) => (
-                          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.ivoryDark}` : undefined }}>
-                            <span style={{ fontSize: 13, color: C.muted }}>{label}</span>
-                            <span style={{ fontSize: 13, fontWeight: emphasize ? 700 : 500, color: emphasize ? C.forest : C.text, textAlign: 'right', maxWidth: 280, fontFamily: label === 'Reissued from' ? 'monospace' : undefined }}>{value}</span>
-                          </div>
-                        ))}
+                    <div style={{ overflowY: 'auto', flex: 1, display: 'flex', gap: 24, flexDirection: isMobile ? 'column' : 'row' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Gift Details</div>
+                        <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                          {([
+                            ['Item', item.item_description, false],
+                            ['Cause', cause || 'General', false],
+                            ...(item.condition ? [['Condition', item.condition, false]] : []),
+                            ...(item.valuation_basis ? [['Valuation Basis', item.valuation_basis, false]] : []),
+                            ...(item.receipt_issued ? [['Receipt No.', item.receipt_number, true]] : []),
+                            ...(item.reissued_from ? [['Reissued from', item.reissued_from, false]] : []),
+                          ] as [string, string, boolean][]).map(([label, value, emphasize], i, arr) => (
+                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.ivoryDark}` : undefined }}>
+                              <span style={{ fontSize: 13, color: C.muted }}>{label}</span>
+                              <span style={{ fontSize: 13, fontWeight: emphasize ? 700 : 500, color: emphasize ? C.forest : C.text, textAlign: 'right', maxWidth: 280, fontFamily: label === 'Reissued from' ? 'monospace' : undefined }}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {!item.is_anonymous && (
+                          <>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Donor</div>
+                            <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
+                                <span style={{ fontSize: 13, color: C.muted }}>Email</span>
+                                <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_email || '—'}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                                <span style={{ fontSize: 13, color: C.muted }}>Phone</span>
+                                <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_phone || '—'}</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Photo</div>
+                        <div style={{ marginBottom: 16 }}>
+                          {item.photo_url ? (
+                            <div>
+                              <img src={item.photo_url} alt="Gift-in-kind" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8 }} />
+                              {canEdit && (
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <label style={{ ...s.viewBtn, flex: 1, textAlign: 'center', cursor: 'pointer' }}>
+                                    {uploadingInKindPhotoId === item.id ? 'Uploading...' : 'Replace Photo'}
+                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
+                                  </label>
+                                  <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, flex: 1 }} onClick={() => removeInKindPhoto(item)}>Remove</button>
+                                </div>
+                              )}
+                            </div>
+                          ) : canEdit ? (
+                            <label style={{ ...s.viewBtn, display: 'block', textAlign: 'center', cursor: 'pointer' }}>
+                              {uploadingInKindPhotoId === item.id ? 'Uploading...' : '📷 Add Photo'}
+                              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
+                            </label>
+                          ) : (
+                            <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No photo on file.</div>
+                          )}
+                        </div>
                       </div>
 
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Photo</div>
-                      <div style={{ marginBottom: 16 }}>
-                        {item.photo_url ? (
-                          <div>
-                            <img src={item.photo_url} alt="Gift-in-kind" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8 }} />
-                            {canEdit && (
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <label style={{ ...s.viewBtn, flex: 1, textAlign: 'center', cursor: 'pointer' }}>
-                                  {uploadingInKindPhotoId === item.id ? 'Uploading...' : 'Replace Photo'}
-                                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
-                                </label>
-                                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, flex: 1 }} onClick={() => removeInKindPhoto(item)}>Remove</button>
-                              </div>
-                            )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
+                        {canEdit && editingNotesId === item.id ? (
+                          <div style={{ marginBottom: 20 }}>
+                            <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
+                              value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                              <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindNotes(item, noteText); setEditingNotesId(null) }}>Save</button>
+                              <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNotesId(null)}>Cancel</button>
+                            </div>
                           </div>
-                        ) : canEdit ? (
-                          <label style={{ ...s.viewBtn, display: 'block', textAlign: 'center', cursor: 'pointer' }}>
-                            {uploadingInKindPhotoId === item.id ? 'Uploading...' : '📷 Add Photo'}
-                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadInKindPhoto(item, f) }} />
-                          </label>
                         ) : (
-                          <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No photo on file.</div>
+                          <div style={canEdit ? { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, minHeight: 20, marginBottom: 20 }}
+                            onClick={canEdit ? () => { setEditingNotesId(item.id); setNoteText(item.notes || '') } : undefined}>
+                            {item.notes
+                              ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
+                              : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to add a note...' : 'No notes recorded.'}</div>
+                            }
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Impact Note</div>
+                        {canEdit && editingImpactNoteId === item.id ? (
+                          <div style={{ marginBottom: 20 }}>
+                            <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.gold}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 60 }}
+                              value={impactNoteText} onChange={e => setImpactNoteText(e.target.value)} placeholder="e.g. These meals fed 40 families in patient housing this month." autoFocus />
+                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                              <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindImpactNote(item, impactNoteText); setEditingImpactNoteId(null) }}>Save</button>
+                              <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingImpactNoteId(null)}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={canEdit ? { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.warningBorder}`, minHeight: 20, marginBottom: 20 }}
+                            onClick={canEdit ? () => { setEditingImpactNoteId(item.id); setImpactNoteText(item.impact_note || '') } : undefined}>
+                            {item.impact_note
+                              ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {item.impact_note}</div>
+                              : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to describe what this gift funded...' : 'No impact note recorded.'}</div>
+                            }
+                          </div>
+                        )}
+
+                        {canEdit && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {item.receipt_issued ? (
+                              <>
+                                <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportInKindReceiptPDF(item)}>⬇️ Download Receipt PDF</button>
+                                <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
+                              </>
+                            ) : (
+                              <button style={{ ...s.btnForest, justifyContent: 'center' }} disabled={issuingInKindReceiptId === item.id} onClick={() => issueInKindReceipt(item)}>{issuingInKindReceiptId === item.id ? '⏳ Issuing...' : '🧾 Issue Receipt'}</button>
+                            )}
+                            {item.donor_email?.trim() ? (
+                              <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
+                                {item.thank_you_sent ? '💌 Resend Thank You' : '💌 Send Thank You'}
+                              </button>
+                            ) : (
+                              <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
+                                {item.thank_you_sent ? '↺ Unmark as Thanked' : '✓ Mark as Thanked'}
+                              </button>
+                            )}
+                            <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); startEditingInKind(item) }}>✏️ Edit Entry</button>
+                            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); deleteInKindDonation(item) }}>🗑️ Delete Entry</button>
+                          </div>
                         )}
                       </div>
-
-                      {!item.is_anonymous && (
-                        <>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Donor</div>
-                          <div style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: '4px 16px', marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.ivoryDark}` }}>
-                              <span style={{ fontSize: 13, color: C.muted }}>Email</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_email || '—'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                              <span style={{ fontSize: 13, color: C.muted }}>Phone</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{item.donor_phone || '—'}</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Notes</div>
-                      {canEdit && editingNotesId === item.id ? (
-                        <div style={{ marginBottom: 20 }}>
-                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.sage}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 80 }}
-                            value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." autoFocus />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindNotes(item, noteText); setEditingNotesId(null) }}>Save</button>
-                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingNotesId(null)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={canEdit ? { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.border}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.white, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.border}`, minHeight: 20, marginBottom: 20 }}
-                          onClick={canEdit ? () => { setEditingNotesId(item.id); setNoteText(item.notes || '') } : undefined}>
-                          {item.notes
-                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{item.notes}</div>
-                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to add a note...' : 'No notes recorded.'}</div>
-                          }
-                        </div>
-                      )}
-
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Impact Note</div>
-                      {canEdit && editingImpactNoteId === item.id ? (
-                        <div style={{ marginBottom: 20 }}>
-                          <textarea style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.gold}`, borderRadius: 10, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.white, color: C.text, boxSizing: 'border-box', resize: 'vertical', minHeight: 60 }}
-                            value={impactNoteText} onChange={e => setImpactNoteText(e.target.value)} placeholder="e.g. These meals fed 40 families in patient housing this month." autoFocus />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button style={{ ...s.issueBtn, flex: 1 }} onClick={() => { updateInKindImpactNote(item, impactNoteText); setEditingImpactNoteId(null) }}>Save</button>
-                            <button style={{ ...s.viewBtn, flex: 1 }} onClick={() => setEditingImpactNoteId(null)}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={canEdit ? { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px dashed ${C.warningBorder}`, cursor: 'pointer', minHeight: 20, marginBottom: 20 } : { background: C.warningBg, borderRadius: 12, padding: '14px 16px', border: `1px solid ${C.warningBorder}`, minHeight: 20, marginBottom: 20 }}
-                          onClick={canEdit ? () => { setEditingImpactNoteId(item.id); setImpactNoteText(item.impact_note || '') } : undefined}>
-                          {item.impact_note
-                            ? <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>🎯 {item.impact_note}</div>
-                            : <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>{canEdit ? 'Click to describe what this gift funded...' : 'No impact note recorded.'}</div>
-                          }
-                        </div>
-                      )}
-
-                      {canEdit && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {item.receipt_issued ? (
-                            <>
-                              <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => exportInKindReceiptPDF(item)}>⬇️ Download Receipt PDF</button>
-                              <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
-                            </>
-                          ) : (
-                            <button style={{ ...s.btnForest, justifyContent: 'center' }} disabled={issuingInKindReceiptId === item.id} onClick={() => issueInKindReceipt(item)}>{issuingInKindReceiptId === item.id ? '⏳ Issuing...' : '🧾 Issue Receipt'}</button>
-                          )}
-                          {item.donor_email?.trim() ? (
-                            <button style={{ ...s.btnGold, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
-                              {item.thank_you_sent ? '💌 Resend Thank You' : '💌 Send Thank You'}
-                            </button>
-                          ) : (
-                            <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => toggleInKindThankYou(item)}>
-                              {item.thank_you_sent ? '↺ Unmark as Thanked' : '✓ Mark as Thanked'}
-                            </button>
-                          )}
-                          <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); startEditingInKind(item) }}>✏️ Edit Entry</button>
-                          <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setSelectedGiftId(null); deleteInKindDonation(item) }}>🗑️ Delete Entry</button>
-                        </div>
-                      )}
                     </div>
                   </>
                 )
