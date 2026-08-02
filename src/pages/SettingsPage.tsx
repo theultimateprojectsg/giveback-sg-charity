@@ -653,9 +653,8 @@ export function SettingsPage({
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               {group.items.map(t => {
                 const saved = emailTemplates[t.key]
-                const isEditing = editingEmailTemplate === t.key
                 return (
-                  <div key={t.key} style={{ ...s.card, gridColumn: isEditing ? '1 / -1' : 'auto' }}>
+                  <div key={t.key} style={s.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.forest }}>
@@ -664,89 +663,14 @@ export function SettingsPage({
                         </div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{t.description}</div>
                       </div>
-                      {!isEditing && (
-                        <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
-                          setEditingEmailTemplate(t.key)
-                          setEmailTemplateSubjectInput(saved?.subject ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.subject ?? '')
-                          setEmailTemplateBodyInput(saved?.body ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.body ?? '')
-                          setEmailTemplateBannerTitleInput(saved?.banner_title ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title ?? '')
-                          setEmailTemplateBannerSubtitleInput(saved?.banner_subtitle ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_subtitle ?? '')
-                        }}>{saved ? 'Edit' : 'Customize'}</button>
-                      )}
+                      <button style={{ ...s.viewBtn, fontSize: 11, padding: '4px 10px', flexShrink: 0 }} onClick={() => {
+                        setEditingEmailTemplate(t.key)
+                        setEmailTemplateSubjectInput(saved?.subject ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.subject ?? '')
+                        setEmailTemplateBodyInput(saved?.body ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.body ?? '')
+                        setEmailTemplateBannerTitleInput(saved?.banner_title ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title ?? '')
+                        setEmailTemplateBannerSubtitleInput(saved?.banner_subtitle ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_subtitle ?? '')
+                      }}>{saved ? 'Edit' : 'Customize'}</button>
                     </div>
-                    {isEditing && (() => {
-                      const hasBanner = EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title !== undefined
-                      return (
-                      <div style={{ marginTop: 14 }}>
-                        {t.tokens.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                            <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Insert into the field you clicked into:</span>
-                            {t.tokens.map(tok => (
-                              <button key={tok} type="button" style={{ fontSize: 11, color: C.forest, background: C.ivoryDark, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }} onClick={() => insertTemplateToken(tok)}>
-                                {tok.replace(/_/g, ' ')}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {hasBanner && (
-                          <>
-                            <label style={{ display: 'block', marginBottom: 10 }}>
-                              <div style={s.formLabel}>Banner Headline</div>
-                              <input ref={bannerTitleFieldRef} style={s.formInput} value={emailTemplateBannerTitleInput} onFocus={() => setActiveTokenField('banner_title')} onChange={e => setEmailTemplateBannerTitleInput(e.target.value)} />
-                            </label>
-                            <label style={{ display: 'block', marginBottom: 10 }}>
-                              <div style={s.formLabel}>Banner Subtitle (optional)</div>
-                              <input ref={bannerSubtitleFieldRef} style={s.formInput} value={emailTemplateBannerSubtitleInput} onFocus={() => setActiveTokenField('banner_subtitle')} onChange={e => setEmailTemplateBannerSubtitleInput(e.target.value)} />
-                            </label>
-                            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Shown in the bold header of the email, above your message below.</div>
-                          </>
-                        )}
-                        <label style={{ display: 'block', marginBottom: 10 }}>
-                          <div style={s.formLabel}>Subject</div>
-                          <input ref={subjectFieldRef} style={s.formInput} value={emailTemplateSubjectInput} onFocus={() => setActiveTokenField('subject')} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
-                        </label>
-                        <label style={{ display: 'block', marginBottom: 12 }}>
-                          <div style={s.formLabel}>Body</div>
-                          <textarea ref={bodyFieldRef} style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onFocus={() => setActiveTokenField('body')} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
-                        </label>
-                        {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim() || emailTemplateBannerTitleInput.trim()) && (
-                          <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
-                            <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
-                            {emailTemplateSubjectInput.trim() && (
-                              <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: C.muted, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
-                                <span style={{ fontWeight: 600, flexShrink: 0 }}>Subject:</span>
-                                <span>{fillTemplate(emailTemplateSubjectInput, templatePreviewVars)}</span>
-                              </div>
-                            )}
-                            {hasBanner && emailTemplateBannerTitleInput.trim() && (
-                              <div style={{ background: C.forest, borderRadius: 6, padding: '10px 12px', marginBottom: 8, textAlign: 'center' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, templatePreviewVars)}</div>
-                                {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, templatePreviewVars)}</div>}
-                              </div>
-                            )}
-                            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, templatePreviewVars)}</div>
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <button style={s.issueBtn} onClick={() => {
-                            const trimmedSubject = emailTemplateSubjectInput.trim()
-                            const trimmedBody = emailTemplateBodyInput.trim()
-                            const trimmedBannerTitle = emailTemplateBannerTitleInput.trim()
-                            const trimmedBannerSubtitle = emailTemplateBannerSubtitleInput.trim()
-                            const def = EMAIL_TEMPLATE_DEFAULTS[t.key]
-                            const matchesDefault = trimmedSubject === (def?.subject || '') && trimmedBody === (def?.body || '')
-                              && trimmedBannerTitle === (def?.banner_title || '') && trimmedBannerSubtitle === (def?.banner_subtitle || '')
-                            saveEmailTemplate(t.key, matchesDefault ? null : { subject: trimmedSubject, body: trimmedBody, ...(hasBanner ? { banner_title: trimmedBannerTitle, banner_subtitle: trimmedBannerSubtitle } : {}) })
-                            setEditingEmailTemplate(null)
-                          }}>Save</button>
-                          <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
-                          {saved && (
-                            <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { saveEmailTemplate(t.key, null); setEditingEmailTemplate(null) }}>Reset to default</button>
-                          )}
-                        </div>
-                      </div>
-                      )
-                    })()}
                   </div>
                 )
               })}
@@ -755,6 +679,94 @@ export function SettingsPage({
           ))}
         </div>
         )}
+
+        {editingEmailTemplate && (() => {
+          const t = EMAIL_TEMPLATE_DEFS.flatMap(g => g.items).find(i => i.key === editingEmailTemplate)
+          if (!t) return null
+          const saved = emailTemplates[t.key]
+          const hasBanner = EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title !== undefined
+          return (
+            <div data-modal-overlay="true" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setEditingEmailTemplate(null)}>
+              <div style={{ background: C.white, borderRadius: 8, padding: 24, maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 4 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.forest }}>{t.label}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{t.description}</div>
+                  </div>
+                  <button aria-label="Close" style={{ background: C.ivoryDark, border: 'none', color: C.forest, borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', flexShrink: 0 }} onClick={() => setEditingEmailTemplate(null)}>✕</button>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  {t.tokens.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, color: C.muted, marginRight: 2 }}>Insert into the field you clicked into:</span>
+                      {t.tokens.map(tok => (
+                        <button key={tok} type="button" style={{ fontSize: 11, color: C.forest, background: C.ivoryDark, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }} onClick={() => insertTemplateToken(tok)}>
+                          {tok.replace(/_/g, ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {hasBanner && (
+                    <>
+                      <label style={{ display: 'block', marginBottom: 10 }}>
+                        <div style={s.formLabel}>Banner Headline</div>
+                        <input ref={bannerTitleFieldRef} style={s.formInput} value={emailTemplateBannerTitleInput} onFocus={() => setActiveTokenField('banner_title')} onChange={e => setEmailTemplateBannerTitleInput(e.target.value)} />
+                      </label>
+                      <label style={{ display: 'block', marginBottom: 10 }}>
+                        <div style={s.formLabel}>Banner Subtitle (optional)</div>
+                        <input ref={bannerSubtitleFieldRef} style={s.formInput} value={emailTemplateBannerSubtitleInput} onFocus={() => setActiveTokenField('banner_subtitle')} onChange={e => setEmailTemplateBannerSubtitleInput(e.target.value)} />
+                      </label>
+                      <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Shown in the bold header of the email, above your message below.</div>
+                    </>
+                  )}
+                  <label style={{ display: 'block', marginBottom: 10 }}>
+                    <div style={s.formLabel}>Subject</div>
+                    <input ref={subjectFieldRef} style={s.formInput} value={emailTemplateSubjectInput} onFocus={() => setActiveTokenField('subject')} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
+                  </label>
+                  <label style={{ display: 'block', marginBottom: 12 }}>
+                    <div style={s.formLabel}>Body</div>
+                    <textarea ref={bodyFieldRef} style={{ ...s.formInput, minHeight: 180, resize: 'vertical', fontFamily: 'inherit' }} value={emailTemplateBodyInput} onFocus={() => setActiveTokenField('body')} onChange={e => setEmailTemplateBodyInput(e.target.value)} />
+                  </label>
+                  {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim() || emailTemplateBannerTitleInput.trim()) && (
+                    <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
+                      {emailTemplateSubjectInput.trim() && (
+                        <div style={{ display: 'flex', gap: 6, fontSize: 11.5, color: C.muted, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
+                          <span style={{ fontWeight: 600, flexShrink: 0 }}>Subject:</span>
+                          <span>{fillTemplate(emailTemplateSubjectInput, templatePreviewVars)}</span>
+                        </div>
+                      )}
+                      {hasBanner && emailTemplateBannerTitleInput.trim() && (
+                        <div style={{ background: C.forest, borderRadius: 6, padding: '10px 12px', marginBottom: 8, textAlign: 'center' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, templatePreviewVars)}</div>
+                          {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, templatePreviewVars)}</div>}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, templatePreviewVars)}</div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button style={s.issueBtn} onClick={() => {
+                      const trimmedSubject = emailTemplateSubjectInput.trim()
+                      const trimmedBody = emailTemplateBodyInput.trim()
+                      const trimmedBannerTitle = emailTemplateBannerTitleInput.trim()
+                      const trimmedBannerSubtitle = emailTemplateBannerSubtitleInput.trim()
+                      const def = EMAIL_TEMPLATE_DEFAULTS[t.key]
+                      const matchesDefault = trimmedSubject === (def?.subject || '') && trimmedBody === (def?.body || '')
+                        && trimmedBannerTitle === (def?.banner_title || '') && trimmedBannerSubtitle === (def?.banner_subtitle || '')
+                      saveEmailTemplate(t.key, matchesDefault ? null : { subject: trimmedSubject, body: trimmedBody, ...(hasBanner ? { banner_title: trimmedBannerTitle, banner_subtitle: trimmedBannerSubtitle } : {}) })
+                      setEditingEmailTemplate(null)
+                    }}>Save</button>
+                    <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
+                    {saved && (
+                      <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red }} onClick={() => { saveEmailTemplate(t.key, null); setEditingEmailTemplate(null) }}>Reset to default</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         </div>
       )}
