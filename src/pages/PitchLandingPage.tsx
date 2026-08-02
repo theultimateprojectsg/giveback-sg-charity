@@ -1,721 +1,436 @@
-import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
-import logo from '../assets/logo.png'
 
-const PAIN_QUOTES = [
-  { q: '"I\'m a volunteer. Doing this admin was never part of the job."', tag: 'Volunteer treasurer' },
-  { q: '"Our cash donations are in an envelope. I don\'t know how to issue receipts for 200 donors."', tag: 'Programme lead' },
-  { q: '"We do incredible work in our community. Nobody outside our circle knows we exist."', tag: 'Founder' },
+const NAV_CARDS = [
+  { icon: 'card', bg: '#E6F2EA', fg: '#1f7a48', title: 'Log donations', sub: 'Cash, cheque, PayNow, GIRO' },
+  { icon: 'receipt', bg: '#FBF2DE', fg: '#8a5a10', title: 'Issue receipts', sub: 'One click, IRAS-ready' },
+  { icon: 'bank', bg: '#EAE6F5', fg: '#534AB7', title: 'File IRAS export', sub: 'myTax Portal formatted' },
+  { icon: 'users', bg: '#FBEAE9', fg: '#A32D2D', title: 'Track donors', sub: 'Full giving history' },
+  { icon: 'coins', bg: '#E6F0FA', fg: '#185FA5', title: 'Manage grants', sub: 'Reports, tranches, claims' },
+  { icon: 'chart', bg: '#F0F5E6', fg: '#3B6D11', title: 'See analytics', sub: 'Retention, trends, impact' },
 ]
 
-const FEATURE_CARDS = [
-  { title: 'Receipts & IRAS in one click', desc: 'Download a fully formatted IRAS export for myTax Portal in seconds. Never miss the 31 January deadline again.' },
-  { title: 'Thank every donor automatically', desc: 'Personalised thank-you emails sent the moment you confirm a donation. Every donor acknowledged, no one forgotten.' },
-  { title: 'Missing NRICs flagged for you', desc: 'Donors without an NRIC on file are highlighted automatically, with a one-click reminder so they can claim their tax deduction.' },
-  { title: 'Donor analytics that show your impact', desc: 'Retention, campaign performance, and giving trends — simple, honest analytics built for a small team, not a data analyst.' },
-  { title: 'Every donation captured, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — log it manually and it flows into the same dashboard and IRAS export.' },
-  { title: 'Full donor and grant management', desc: 'Every donor, pledge, recurring gift, and funder report in one place — no more spreadsheets scattered across inboxes.' },
+const LIB_TABS = ['Featured', 'Donations', 'Compliance', 'Donors', 'Analytics'] as const
+
+const LIB_CARDS: { cat: typeof LIB_TABS[number], tagBg: string, tagFg: string, tag: string, title: string, desc: string }[] = [
+  { cat: 'Featured', tagBg: '#FBF2DE', tagFg: '#8a5a10', tag: 'Most used', title: 'Receipts & IRAS in one click', desc: 'Download a fully formatted IRAS export for myTax Portal in seconds. Never miss the 31 January deadline again.' },
+  { cat: 'Featured', tagBg: '#E6F2EA', tagFg: '#1f7a48', tag: 'New', title: 'Thank every donor automatically', desc: 'Personalised thank-you emails sent the moment you confirm a donation. Every donor acknowledged, no one forgotten.' },
+  { cat: 'Featured', tagBg: '#FBEAE9', tagFg: '#A32D2D', tag: 'Popular', title: 'Missing NRICs flagged for you', desc: 'Donors without an NRIC on file are highlighted automatically, with a one-click reminder to claim their tax deduction.' },
+  { cat: 'Donations', tagBg: '#E6F2EA', tagFg: '#1f7a48', tag: 'Donations', title: 'Every donation, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — logged once, tracked forever, and flowing into the same IRAS export.' },
+  { cat: 'Donations', tagBg: '#E6F2EA', tagFg: '#1f7a48', tag: 'Donations', title: 'Recurring gifts & pledges', desc: 'Track GIRO commitments and multi-year pledges, with reminders when one lapses.' },
+  { cat: 'Donations', tagBg: '#E6F2EA', tagFg: '#1f7a48', tag: 'Donations', title: 'In-kind gifts', desc: 'Log goods and services donations with their own acknowledgement receipts, separate from cash totals.' },
+  { cat: 'Compliance', tagBg: '#FBF2DE', tagFg: '#8a5a10', tag: 'Compliance', title: 'IRAS-ready export', desc: 'NRIC handling and tax-deduction rules built in, so year-end submission is an export, not a scramble.' },
+  { cat: 'Compliance', tagBg: '#FBF2DE', tagFg: '#8a5a10', tag: 'Compliance', title: 'Audit log', desc: 'Every change your team makes is recorded automatically — who did what, and when.' },
+  { cat: 'Compliance', tagBg: '#FBF2DE', tagFg: '#8a5a10', tag: 'Compliance', title: 'Receipt voiding & reissue', desc: 'Made a mistake on a receipt? Void and reissue it properly, with a clean paper trail.' },
+  { cat: 'Donors', tagBg: '#FBEAE9', tagFg: '#A32D2D', tag: 'Donors', title: 'Full donor management', desc: "Every donor's giving history, receipt status, and contact details — no more spreadsheets scattered across inboxes." },
+  { cat: 'Donors', tagBg: '#FBEAE9', tagFg: '#A32D2D', tag: 'Donors', title: 'Grant tracking', desc: 'Funder reports, tranches, and matching claims in one place instead of a spreadsheet per grant.' },
+  { cat: 'Donors', tagBg: '#FBEAE9', tagFg: '#A32D2D', tag: 'Donors', title: 'Household linking', desc: 'Link donors as a household so gifts and reporting reflect how families actually give.' },
+  { cat: 'Analytics', tagBg: '#F0F5E6', tagFg: '#3B6D11', tag: 'Analytics', title: 'Donor analytics that show your impact', desc: 'Retention, campaign performance, and giving trends — simple, honest analytics built for a small team.' },
+  { cat: 'Analytics', tagBg: '#F0F5E6', tagFg: '#3B6D11', tag: 'Analytics', title: 'Fundraising performance', desc: "See what's working across campaigns and mass appeals, month over month." },
+  { cat: 'Analytics', tagBg: '#F0F5E6', tagFg: '#3B6D11', tag: 'Analytics', title: 'Audit-ready reporting', desc: 'Export clean records for your board or auditor without rebuilding a report from scratch.' },
 ]
 
-const STEPS = [
-  { n: 1, title: 'Reach out to us', desc: 'Email us at hello@givingtree.sg with your charity name and UEN. That\'s all we need.', tag: '5 minutes' },
-  { n: 2, title: 'We set you up', desc: 'Your dashboard is live within 24 hours, configured around how your team already works.', tag: '24 hours' },
-  { n: 3, title: 'Go live', desc: 'Log in and start logging donations, issuing receipts, and tracking donors straight away.', tag: 'You\'re live' },
-  { n: 4, title: 'Run your season', desc: 'Come tax time, your IRAS export is one click away — not a scramble through spreadsheets.', tag: 'Ready for IRAS' },
+const FAQS = [
+  { q: 'Is Giving Tree really free?', a: "Yes, for IPC-registered charities. There's no setup fee and no contract — we onboard you personally and get you live within 24 hours." },
+  { q: 'How does the IRAS export work?', a: 'Once your donations are logged with valid NRICs, you can download a fully formatted file for myTax Portal in one click — no manual formatting needed.' },
+  { q: 'Is donor NRIC data handled securely?', a: "Yes — NRICs are used only to generate IRAS tax-deduction records and are never shared or sold. Access is restricted to your own charity's staff." },
+  { q: 'Can more than one staff member use it?', a: 'Yes, you can add staff, board, and volunteer accounts with different levels of access — from full admin to read-only.' },
+  { q: 'What if we already have donation records elsewhere?', a: "We'll help you migrate your existing donor and donation history when you get set up — just bring your spreadsheet." },
 ]
 
-const ROTATE_WORDS = ['donations.', 'receipts.', 'donors.', 'pledges.', 'IRAS export.']
-
-const TOUR_SLIDES = [
-  { key: 'Dashboard', icon: '📊', title: 'One dashboard, the whole picture', desc: 'Total raised, unique donors, and what still needs a receipt — the moment you log in.' },
-  { key: 'Donations', icon: '💳', title: 'Every donation, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — logged once, tracked forever.' },
-  { key: 'Analytics', icon: '📈', title: 'Analytics that actually explain your year', desc: 'Retention, campaign performance, and giving trends — built for a small team, not a data analyst.' },
-  { key: 'IRAS Export', icon: '🏛️', title: 'IRAS export, one click away', desc: 'A fully formatted file for myTax Portal. No more scrambling every 31 January.' },
-]
-
-const CONFETTI_COLORS = ['#163B2A', '#E8A93B', '#F3D9A0', '#fff']
-
-function CountUp({ target, prefix = '', suffix = '', duration = 1200 }: { target: number, prefix?: string, suffix?: string, duration?: number }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    let started = false
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !started) {
-          started = true
-          const start = performance.now()
-          const tick = (now: number) => {
-            const progress = Math.min(1, (now - start) / duration)
-            const eased = 1 - Math.pow(1 - progress, 3)
-            setValue(Math.round(target * eased))
-            if (progress < 1) requestAnimationFrame(tick)
-          }
-          requestAnimationFrame(tick)
-          observer.disconnect()
-        }
-      })
-    }, { threshold: 0.4 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [target, duration])
-  return <span ref={ref}>{prefix}{value.toLocaleString()}{suffix}</span>
-}
-
-function ConfettiBurst() {
-  const particles = useRef(Array.from({ length: 26 }, (_, i) => ({
-    id: i,
-    angle: (Math.PI * 2 * i) / 26 + Math.random() * 0.4,
-    dist: 90 + Math.random() * 90,
-    size: 6 + Math.random() * 6,
-    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-    delay: Math.random() * 0.15,
-    rot: Math.random() * 360,
-  }))).current
-  return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }}>
-      {particles.map(p => (
-        <div
-          key={p.id}
-          className="pitch-confetti-piece"
-          style={{
-            position: 'absolute', top: '50%', left: '50%', width: p.size, height: p.size * 0.6,
-            background: p.color, borderRadius: 2,
-            // @ts-expect-error CSS custom properties aren't in the CSSProperties type
-            '--tx': `${Math.cos(p.angle) * p.dist}px`,
-            '--ty': `${Math.sin(p.angle) * p.dist}px`,
-            '--rot': `${p.rot}deg`,
-            animation: `pitchConfetti 900ms ease-out ${p.delay}s both`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-function TiltCard({ children, style, baseRotate = 0 }: { children: ReactNode, style?: React.CSSProperties, baseRotate?: number }) {
-  const ref = useRef<HTMLDivElement>(null)
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const px = (e.clientX - rect.left) / rect.width - 0.5
-    const py = (e.clientY - rect.top) / rect.height - 0.5
-    el.style.transform = `perspective(1200px) rotate(${baseRotate}deg) rotateY(${px * 6}deg) rotateX(${-py * 6}deg) scale3d(1.01,1.01,1.01)`
+function Icon({ name, className }: { name: string, className?: string }) {
+  const common = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className }
+  switch (name) {
+    case 'card': return <svg {...common}><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 9.5h19" /><path d="M6 14.5h4" /></svg>
+    case 'receipt': return <svg {...common}><path d="M6 3h12v18l-2.5-1.6L13 21l-1-1.6-1 1.6-2.5-1.6L6 21V3z" /><path d="M9 8h6M9 12h6M9 16h3" /></svg>
+    case 'bank': return <svg {...common}><path d="M3 10l9-6 9 6" /><path d="M5 10v9M9.5 10v9M14.5 10v9M19 10v9" /><path d="M3 19h18" /></svg>
+    case 'users': return <svg {...common}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19c0-3.3 2.5-5.8 5.5-5.8s5.5 2.5 5.5 5.8" /><circle cx="17.5" cy="9" r="2.4" /><path d="M15.5 13.5c2.4.2 4.4 2.3 4.4 5" /></svg>
+    case 'coins': return <svg {...common}><ellipse cx="9" cy="7" rx="6" ry="3.2" /><path d="M3 7v5c0 1.8 2.7 3.2 6 3.2s6-1.4 6-3.2V7" /><path d="M3 12v5c0 1.8 2.7 3.2 6 3.2 1 0 2-.1 2.8-.4" /><ellipse cx="17" cy="15" rx="4.3" ry="2.4" /><path d="M12.7 15v3c0 1.3 1.9 2.4 4.3 2.4s4.3-1.1 4.3-2.4v-3" /></svg>
+    case 'chart': return <svg {...common}><path d="M4 20V10M11 20V4M18 20v-7" /><path d="M2.5 20.5h19" /></svg>
+    case 'leaf': return <svg {...common}><path d="M4 20C4 10 11 4 20 4c0 9-6 16-16 16z" /><path d="M4 20c3-6 7.5-9.5 12-11.5" /></svg>
+    default: return null
   }
-  function onMouseLeave() {
-    const el = ref.current
-    if (!el) return
-    el.style.transform = `perspective(1200px) rotate(${baseRotate}deg) rotateY(0deg) rotateX(0deg) scale3d(1,1,1)`
+}
+
+function EmailCapture({ placeholder = 'you@charity.org.sg', cta = 'Get started', style }: { placeholder?: string, cta?: string, style?: React.CSSProperties }) {
+  const [email, setEmail] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit() {
+    if (sending) return
+    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email address.'); return }
+    setSending(true)
+    setError('')
+    const { error } = await supabase.from('demo_requests').insert({ email: email.trim() })
+    setSending(false)
+    if (error) { setError("Something went wrong. Try again, or email hello@givingtree.sg."); return }
+    setSent(true)
+    setEmail('')
   }
-  return (
-    <div ref={ref} onMouseMove={onMouseMove} onMouseLeave={onMouseLeave} style={{ transition: 'transform 0.15s ease-out', willChange: 'transform', transform: `rotate(${baseRotate}deg)`, ...style }}>
-      {children}
-    </div>
-  )
-}
 
-function MagneticButton({ children, onClick, href, className, style }: { children: ReactNode, onClick?: () => void, href?: string, className: string, style?: React.CSSProperties }) {
-  const ref = useRef<HTMLAnchorElement & HTMLButtonElement>(null)
-  function onMouseMove(e: React.MouseEvent) {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const mx = (e.clientX - rect.left - rect.width / 2) * 0.22
-    const my = (e.clientY - rect.top - rect.height / 2) * 0.22
-    el.style.transform = `translate(${mx}px, ${my}px)`
+  if (sent) {
+    return <div className="hs-note" style={{ color: 'var(--forest)', fontWeight: 700, ...style }}>Thanks — we'll be in touch shortly.</div>
   }
-  function onMouseLeave() {
-    if (ref.current) ref.current.style.transform = 'translate(0,0)'
-  }
-  const props = { ref, onMouseMove, onMouseLeave, className, style: { transition: 'transform 0.15s ease-out', ...style } }
-  if (href) return <a href={href} {...props}>{children}</a>
-  return <button onClick={onClick} {...props}>{children}</button>
-}
 
-function TourSidebar({ activeKey }: { activeKey: string }) {
   return (
-    <div style={{ width: 190, background: '#163B2A', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-      <div style={{ padding: '18px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 22, height: 22, background: 'rgba(255,255,255,0.1)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>🌳</div>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: 'white' }}>Giving Tree</div>
-        </div>
-        <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.35)', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 30, marginTop: 2 }}>Charity Portal</div>
+    <div style={style}>
+      <div className="hero-form">
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') submit() }} placeholder={placeholder} />
+        <button className="btn-pill btn-primary" onClick={submit} disabled={sending}>{sending ? 'Sending...' : cta}</button>
       </div>
-      <div style={{ padding: '8px 10px' }}>
-        {TOUR_SLIDES.map(s => (
-          <div key={s.key} style={{ background: s.key === activeKey ? '#E8A93B' : 'transparent', borderRadius: 8, padding: '7px 9px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, transition: 'background .3s ease' }}>
-            <span style={{ fontSize: 12.5 }}>{s.icon}</span>
-            <span style={{ fontSize: 11.5, fontWeight: s.key === activeKey ? 800 : 500, color: s.key === activeKey ? '#163B2A' : 'rgba(255,255,255,0.6)' }}>{s.key}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function TourDashboardPane() {
-  return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#14201A' }}>Good afternoon 👋</div>
-          <div style={{ fontSize: 10.5, color: '#6b6259', marginTop: 2 }}>Here's your donation overview for 2026</div>
-        </div>
-        <div style={{ background: '#163B2A', color: 'white', borderRadius: 20, padding: '5px 12px', fontSize: 10.5, fontWeight: 800 }}>2026</div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9, marginBottom: 12 }}>
-        {[{ l: 'Total received', t: 48200, prefix: '$', dark: true }, { l: 'Unique donors', t: 312 }, { l: 'Avg. donation', t: 154, prefix: '$' }, { l: 'Receipts pending', t: 3, warn: true }].map((s, i) => (
-          <div key={i} className="pitch-stat-tile" style={{ background: s.dark ? '#163B2A' : s.warn ? '#FBF0DA' : 'white', border: s.dark ? undefined : `1.5px solid ${s.warn ? '#E8A93B' : '#E5E0D0'}`, borderRadius: 10, padding: 11 }}>
-            <div style={{ fontSize: 8.5, color: s.dark ? 'rgba(255,255,255,0.6)' : s.warn ? '#8a5a10' : '#6b6259', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{s.l}</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: s.dark ? 'white' : s.warn ? '#8a5a10' : '#14201A' }}><CountUp target={s.t} prefix={s.prefix} /></div>
-          </div>
-        ))}
-      </div>
-      <div style={{ background: 'white', borderRadius: 10, border: '1.5px solid #E5E0D0', overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', fontSize: 11, fontWeight: 800, color: '#14201A', borderBottom: '1px solid #E5E0D0' }}>Recent Donations</div>
-        {[['A', 'Alicia Lim', '$500', '✓ Issued', true], ['J', 'James Tan', '$250', 'Pending', false], ['P', 'Priya Nair', '$100', '✓ Issued', true]].map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: i < 2 ? '1px solid #F0EDE0' : undefined }}>
-            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#163B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: 'white', flexShrink: 0 }}>{r[0]}</div>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#14201A', flex: 1 }}>{r[1]}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#14201A' }}>{r[2]}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: r[4] ? '#E6F2EA' : '#FBF0DA', color: r[4] ? '#1f7a48' : '#8a5a10' }}>{r[3]}</span>
-          </div>
-        ))}
-      </div>
-    </>
-  )
-}
-
-function TourDonationsPane() {
-  const rows: [string, string, string, string, boolean][] = [
-    ['A', 'Alicia Lim', '$500', 'PayNow', true],
-    ['J', 'James Tan', '$250', 'Bank Wire', false],
-    ['C', 'Cold Storage Supermarket', '$2,200', 'In-kind', true],
-    ['M', 'Marcus Ng', '$150', 'GIRO', true],
-    ['S', 'Sarah Chen', '$200', 'Cash', false],
-  ]
-  return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#14201A' }}>Donations</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <div style={{ background: 'white', border: '1.5px solid #E5E0D0', borderRadius: 8, padding: '5px 10px', fontSize: 10, color: '#6b6259' }}>🔍 Search</div>
-          <div style={{ background: '#163B2A', color: 'white', borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 800 }}>+ New Entry</div>
-        </div>
-      </div>
-      <div style={{ background: 'white', borderRadius: 10, border: '1.5px solid #E5E0D0', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', padding: '8px 14px', background: '#FBF8F0', borderBottom: '1px solid #E5E0D0', fontSize: 9, fontWeight: 800, color: '#6b6259', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          <div style={{ flex: 1 }}>Donor</div><div style={{ width: 70 }}>Amount</div><div style={{ width: 70 }}>Method</div><div style={{ width: 60 }}>Receipt</div>
-        </div>
-        {rows.map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', borderBottom: i < rows.length - 1 ? '1px solid #F0EDE0' : undefined }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#163B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: 'white', flexShrink: 0 }}>{r[0]}</div>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#14201A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r[1]}</span>
-            </div>
-            <div style={{ width: 70, fontSize: 10.5, fontWeight: 800, color: '#14201A' }}>{r[2]}</div>
-            <div style={{ width: 70, fontSize: 10, color: '#6b6259' }}>{r[3]}</div>
-            <div style={{ width: 60 }}><span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: r[4] ? '#E6F2EA' : '#FBF0DA', color: r[4] ? '#1f7a48' : '#8a5a10' }}>{r[4] ? '✓ Issued' : 'Pending'}</span></div>
-          </div>
-        ))}
-      </div>
-    </>
-  )
-}
-
-function TourAnalyticsPane() {
-  const bars = [40, 65, 50, 80, 60, 95, 72]
-  return (
-    <>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#14201A', marginBottom: 2 }}>Fundraising performance</div>
-      <div style={{ fontSize: 10.5, color: '#6b6259', marginBottom: 14 }}>Last 7 months</div>
-      <div style={{ background: 'white', border: '1.5px solid #E5E0D0', borderRadius: 10, padding: 16, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 110 }}>
-          {bars.map((h, i) => (
-            <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 5 ? '#E8A93B' : '#163B2A', borderRadius: '4px 4px 0 0' }} />
-          ))}
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
-        {[{ l: 'Donor retention', t: 68, suffix: '%' }, { l: 'Repeat donors', t: 142 }, { l: 'Avg. gift growth', t: 12, suffix: '%' }].map((s, i) => (
-          <div key={i} className="pitch-stat-tile" style={{ background: 'white', border: '1.5px solid #E5E0D0', borderRadius: 10, padding: 11 }}>
-            <div style={{ fontSize: 8.5, color: '#6b6259', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{s.l}</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#14201A' }}><CountUp target={s.t} suffix={s.suffix} /></div>
-          </div>
-        ))}
-      </div>
-    </>
-  )
-}
-
-function TourIrasPane() {
-  return (
-    <>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#14201A', marginBottom: 2 }}>IRAS Export — YA2027</div>
-      <div style={{ fontSize: 10.5, color: '#6b6259', marginBottom: 14 }}>Formatted and ready for myTax Portal</div>
-      <div style={{ background: 'white', border: '1.5px solid #E5E0D0', borderRadius: 10, padding: 18, marginBottom: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 30, marginBottom: 8 }}>🏛️</div>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#14201A', marginBottom: 4 }}>312 donors · $48,200 tax-deductible</div>
-        <div style={{ fontSize: 10, color: '#6b6259', marginBottom: 14 }}>All NRICs verified, no gaps flagged</div>
-        <div style={{ display: 'inline-block', background: '#163B2A', color: 'white', borderRadius: 8, padding: '8px 20px', fontSize: 11, fontWeight: 800 }}>⬇ Download IRAS File</div>
-      </div>
-      <div style={{ background: '#E6F2EA', border: '1px solid #74C69D', borderRadius: 10, padding: '10px 14px', fontSize: 10.5, color: '#1f7a48', fontWeight: 700 }}>✓ 0 donors missing an NRIC this year</div>
-    </>
-  )
-}
-
-const TOUR_PANES = [TourDashboardPane, TourDonationsPane, TourAnalyticsPane, TourIrasPane]
-
-function ProductTour() {
-  const [active, setActive] = useState(0)
-  const [hovered, setHovered] = useState(false)
-  useEffect(() => {
-    if (hovered) return
-    const id = setInterval(() => setActive(a => (a + 1) % TOUR_SLIDES.length), 4500)
-    return () => clearInterval(id)
-  }, [hovered])
-  const Pane = TOUR_PANES[active]
-  const slide = TOUR_SLIDES[active]
-  return (
-    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      <div className="pitch-reveal" style={{ textAlign: 'center', marginBottom: 20 }}>
-        <div key={slide.key} className="pitch-tour-caption" style={{ fontSize: 18, fontWeight: 800, color: '#14201A', marginBottom: 4, letterSpacing: '-0.3px' }}>{slide.title}</div>
-        <div key={slide.key + '-d'} className="pitch-tour-caption" style={{ fontSize: 13, color: '#6b6259' }}>{slide.desc}</div>
-      </div>
-
-      <TiltCard style={{ marginBottom: 16 }}>
-        <div className="pitch-dashboard-mock pitch-reveal" style={{ background: '#14201A', borderRadius: 16, overflow: 'hidden', boxShadow: '0 40px 100px rgba(20,32,26,0.22)' }}>
-          <div style={{ background: '#1c2c22', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FF5F57' }} />
-              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#FFBD2E' }} />
-              <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#28C840' }} />
-            </div>
-            <div style={{ flex: 1, background: '#14201A', borderRadius: 6, padding: '5px 12px', fontSize: 11, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>charity.givingtree.sg</div>
-          </div>
-          <div style={{ display: 'flex', height: 460, fontFamily: "-apple-system,'Segoe UI',sans-serif", fontSize: 13 }}>
-            <TourSidebar activeKey={slide.key} />
-            <div key={slide.key + '-pane'} className="pitch-tour-pane" style={{ flex: 1, background: '#FBF8F0', overflow: 'hidden', padding: 18 }}>
-              <Pane />
-            </div>
-          </div>
-        </div>
-      </TiltCard>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-        {TOUR_SLIDES.map((s, i) => (
-          <button
-            key={s.key}
-            aria-label={`Show ${s.key}`}
-            onClick={() => setActive(i)}
-            style={{
-              width: i === active ? 22 : 8, height: 8, borderRadius: 100, border: 'none', cursor: 'pointer',
-              background: i === active ? '#E8A93B' : '#DCD5BE', transition: 'width .3s ease,background .3s ease',
-            }}
-          />
-        ))}
-      </div>
+      {error && <div style={{ color: '#A32D2D', fontSize: 12.5, fontWeight: 600, marginTop: 6 }}>{error}</div>}
     </div>
   )
 }
 
 export default function PitchLandingPage() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ charity_name: '', contact_name: '', email: '', phone: '', message: '' })
-  const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState('')
-  const [wordIndex, setWordIndex] = useState(0)
-  const [wordsPaused, setWordsPaused] = useState(false)
-  const [demoAmount, setDemoAmount] = useState('')
-  const [receiptSeq, setReceiptSeq] = useState(417)
-  const [lastReceipt, setLastReceipt] = useState<{ amount: string, number: string } | null>(null)
-  const [totalRaised, setTotalRaised] = useState(48200)
-  const [donationCount, setDonationCount] = useState(312)
-  const [demoRows, setDemoRows] = useState<{ id: number, name: string, amount: string }[]>([
-    { id: -1, name: 'Cold Storage Supermarket', amount: '$2,200' },
-    { id: -2, name: 'Marcus Ng', amount: '$500' },
-    { id: -3, name: 'Tan Wei Ming', amount: '$150' },
-  ])
-
-  function logDemoDonation() {
-    const amt = parseFloat(demoAmount)
-    if (!amt || amt <= 0) return
-    const nextSeq = receiptSeq + 1
-    setReceiptSeq(nextSeq)
-    const formatted = amt.toLocaleString(undefined, { maximumFractionDigits: 0 })
-    setLastReceipt({ amount: formatted, number: `GT-2026-0${nextSeq}` })
-    setTotalRaised(t => t + amt)
-    setDonationCount(c => c + 1)
-    setDemoRows(rows => [{ id: nextSeq, name: 'You (just now)', amount: `$${formatted}` }, ...rows].slice(0, 4))
-    setDemoAmount('')
-  }
+  const [scrolled, setScrolled] = useState(false)
+  const [activeTab, setActiveTab] = useState<typeof LIB_TABS[number]>('Featured')
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   useEffect(() => {
-    if (wordsPaused) return
-    const id = setInterval(() => setWordIndex(i => (i + 1) % ROTATE_WORDS.length), 2200)
-    return () => clearInterval(id)
-  }, [wordsPaused])
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(el => { if (el.isIntersecting) el.target.classList.add('visible') })
-    }, { threshold: 0.08 })
-    document.querySelectorAll('.pitch-reveal').forEach(el => observer.observe(el))
-    const onScroll = () => {
-      const scrollTop = window.scrollY
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight
-      const bar = document.getElementById('pitch-progress')
-      if (bar) bar.style.width = `${docHeight > 0 ? (scrollTop / docHeight) * 100 : 0}%`
-    }
+    const onScroll = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', onScroll)
-    return () => { observer.disconnect(); window.removeEventListener('scroll', onScroll) }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('in'), i * 70)
+          observer.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.12 })
+    document.querySelectorAll('.hs-page .reveal').forEach(el => observer.observe(el))
+    return () => { window.removeEventListener('scroll', onScroll); observer.disconnect() }
   }, [])
 
-  async function submitDemoRequest() {
-    if (sending) return
-    if (!form.charity_name.trim() || !form.contact_name.trim() || !form.email.trim()) {
-      setError('Please fill in your charity name, your name, and email.')
-      return
-    }
-    setSending(true)
-    setError('')
-    const { error } = await supabase.from('demo_requests').insert({
-      charity_name: form.charity_name.trim(),
-      contact_name: form.contact_name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim() || null,
-      message: form.message.trim() || null,
-    })
-    setSending(false)
-    if (error) { setError('Something went wrong sending your request. Please try again, or email hello@givingtree.sg directly.'); return }
-    setSent(true)
-  }
-
   return (
-    <div className="pitch-page">
+    <div className="hs-page">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Manrope:wght@400;500;600;700;800&display=swap');
-        .pitch-page *,.pitch-page *::before,.pitch-page *::after{box-sizing:border-box}
-        .pitch-page{
-          --forest:#163B2A;--forest-deep:#0F2A1F;--amber:#E8A93B;--amber-deep:#8a5a10;
-          --cream:#FBF8F0;--ink:#14201A;--muted:#6b6259;--border:#E5E0D0;
-          --font-display:'Fraunces',Georgia,serif;--font-body:'Manrope',-apple-system,'Segoe UI',sans-serif;--font-mono:'IBM Plex Mono',ui-monospace,monospace;
-          font-family:var(--font-body);background:var(--cream);color:var(--ink);overflow-x:hidden;
+        .hs-page{
+          --cream:#FBF6ED; --cream-deep:#F3ECDA; --ink:#211F1B; --muted:#6B6259; --muted-soft:#8A8072;
+          --forest:#1B4332; --forest-deep:#0F2A1F; --sage:#3D7A5C; --gold:#B4870E; --gold-bg:#FBF2DE;
+          --card-border:#EAE1CB; --white:#FFFFFF;
+          --font:-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+          --ease:cubic-bezier(.16,1,.3,1);
+          --shadow-sm:0 1px 2px rgba(33,31,27,0.04),0 1px 1px rgba(33,31,27,0.03);
+          --shadow-md:0 1px 2px rgba(33,31,27,0.04),0 12px 28px rgba(27,67,50,0.08);
+          --shadow-lg:0 1px 3px rgba(33,31,27,0.05),0 30px 60px rgba(27,67,50,0.14);
         }
-        .pitch-page h1,.pitch-page h2{font-family:var(--font-display);font-weight:600;letter-spacing:-0.5px;line-height:1.03}
-        .pitch-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(20,32,26,0.92);backdrop-filter:blur(16px)}
-        .pitch-nav-link{color:rgba(255,255,255,0.65);font-size:13.5px;font-weight:600;text-decoration:none}
-        .pitch-nav-link:hover{color:white}
-        .pitch-nav-cta{background:white;color:var(--forest);padding:10px 20px;border-radius:100px;font-size:13.5px;font-weight:800;text-decoration:none;transition:transform .2s}
-        .pitch-nav-cta:hover{transform:translateY(-2px)}
-        .pitch-hero{position:relative;overflow:hidden;padding:112px 6vw 90px;background:linear-gradient(118deg,var(--forest) 0 44%,var(--amber) 44% 100%)}
-        .pitch-hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px);background-size:46px 46px}
-        .pitch-hero-inner{position:relative;z-index:1;display:flex;gap:48px;align-items:center;max-width:1180px;margin:0 auto;flex-wrap:wrap}
-        .pitch-eyebrow-pill{display:inline-block;background:var(--forest-deep);color:#F3D9A0;font-size:11.5px;font-weight:800;letter-spacing:0.5px;padding:7px 16px;border-radius:100px;margin-bottom:24px;animation:pitchFadeUp .6s ease both}
-        .pitch-hero-title{font-size:clamp(34px,4.6vw,52px);color:white;margin-bottom:22px;text-wrap:balance;animation:pitchFadeUp .6s .08s ease both}
-        .pitch-hero-title .fg{color:var(--forest)}
-        .pitch-rotate-wrap{display:inline-block;overflow:hidden;vertical-align:top}
-        .pitch-rotate-word{display:inline-block;background:var(--forest-deep);color:var(--amber);padding:2px 12px;border-radius:6px;animation:pitchWordIn .5s cubic-bezier(.2,.9,.3,1) both}
-        @keyframes pitchWordIn{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:translateY(0)}}
-        .pitch-hero-sub{font-size:16px;line-height:1.7;color:rgba(255,255,255,0.85);max-width:440px;font-weight:500;animation:pitchFadeUp .6s .16s ease both}
-        .pitch-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:30px;animation:pitchFadeUp .6s .24s ease both}
-        .pitch-btn-primary{background:white;color:var(--forest);padding:16px 30px;border-radius:100px;font-size:14.5px;font-weight:800;text-decoration:none;display:inline-block;cursor:pointer;border:none;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
-        .pitch-btn-ghost{background:transparent;color:white;padding:15px 28px;border-radius:100px;font-size:14.5px;font-weight:700;text-decoration:none;border:2px solid rgba(255,255,255,0.45);display:inline-block;cursor:pointer;transition:background .2s,border-color .2s}
-        .pitch-btn-ghost:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.7)}
-        .pitch-pause-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .2s}
-        .pitch-pause-btn:hover{background:rgba(255,255,255,0.2)}
-        .pitch-hero-note{font-size:12.5px;color:rgba(255,255,255,0.65);margin-top:16px;font-weight:600;animation:pitchFadeUp .6s .3s ease both}
-        @keyframes pitchFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .pitch-hero-preview{flex:0 0 320px;min-width:260px}
-        .pitch-demo-box{background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);border-radius:16px;padding:18px 20px;max-width:420px;animation:pitchFadeUp .6s .2s ease both}
-        .pitch-demo-inputwrap{flex:1;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);border-radius:12px;padding:0 14px}
-        .pitch-demo-inputwrap span{color:rgba(255,255,255,0.6);font-family:var(--font-mono);font-size:15px}
-        .pitch-demo-inputwrap input{flex:1;background:none;border:none;outline:none;color:white;font-family:var(--font-mono);font-size:15px;padding:13px 0;min-width:0}
-        .pitch-demo-inputwrap input::placeholder{color:rgba(255,255,255,0.35)}
-        .pitch-demo-receipt{margin-top:12px;display:flex;justify-content:space-between;gap:10px;background:rgba(232,169,59,0.16);border:1px solid rgba(232,169,59,0.4);border-radius:10px;padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--amber);animation:pitchFadeUp .35s ease both}
-        .pitch-stat-bump{animation:pitchStatBump .4s ease both}
-        @keyframes pitchStatBump{0%{transform:scale(1)}30%{transform:scale(1.06)}100%{transform:scale(1)}}
-        .pitch-row-pop{animation:pitchRowPop .5s cubic-bezier(.2,1.4,.4,1) both;background:rgba(232,169,59,0.14) !important}
-        @keyframes pitchRowPop{from{transform:translateX(-8px);opacity:0;background:rgba(232,169,59,0.35)}to{transform:translateX(0);opacity:1}}
-        @keyframes pitchConfetti{from{transform:translate(-50%,-50%) rotate(0deg);opacity:1}to{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) rotate(var(--rot));opacity:0}}
-        .pitch-progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--forest),var(--amber));z-index:200;transition:width .1s linear}
-        .pitch-trust-bar{padding:16px 32px;display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;background:var(--cream);border-bottom:1px solid var(--border)}
-        .pitch-trust-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}
-        .pitch-container{max-width:1080px;margin:0 auto;padding:0 24px}
-        .pitch-section-eyebrow{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:0.5px;padding:6px 14px;border-radius:100px;margin-bottom:18px}
-        .pitch-section-title{font-size:clamp(26px,3.6vw,38px);color:var(--ink);margin-bottom:16px;text-wrap:balance}
-        .pitch-reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
-        .pitch-reveal.visible{opacity:1;transform:translateY(0)}
-        .pitch-quote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:900px;margin:0 auto 32px}
-        .pitch-quote-card{transition:transform .3s ease,box-shadow .3s ease;background:rgba(255,255,255,0.06);border-radius:16px;padding:26px 22px;text-align:left}
-        .pitch-quote-card:hover{transform:translateY(-6px)}
-        .pitch-feature-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-        .pitch-feature-card{transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
-        .pitch-feature-card:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(20,32,26,0.1);border-color:var(--forest)}
-        .pitch-steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:960px;margin:0 auto}
-        .pitch-step-card{background:white;border-radius:16px;padding:24px 20px;text-align:left}
-        .pitch-step-num{width:38px;height:38px;border-radius:10px;background:var(--forest);color:white;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-        .pitch-input{width:100%;padding:13px 16px;background:white;border:2px solid var(--border);border-radius:12px;color:var(--ink);font-size:13.5px;font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s}
-        .pitch-input:focus{border-color:var(--forest)}
-        .pitch-lbl{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.5px;display:block;margin-bottom:6px}
-        .pitch-stat-tile{transition:transform .2s ease}
-        .pitch-stat-tile:hover{transform:translateY(-3px)}
-        .pitch-tour-caption{animation:pitchFadeUp .4s ease both}
-        .pitch-tour-pane{animation:pitchFadeUp .4s ease both}
-        @media (max-width: 900px) {
-          .pitch-quote-grid{grid-template-columns:1fr}
-          .pitch-feature-grid{grid-template-columns:1fr}
-          .pitch-steps-grid{grid-template-columns:repeat(2,1fr)}
-          .pitch-dashboard-mock{display:none !important}
-          .pitch-nav-link{display:none}
-          .pitch-hero{background:var(--forest)}
+        .hs-page *,.hs-page *::before,.hs-page *::after{box-sizing:border-box}
+        .hs-page{font-family:var(--font);background:var(--cream);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5}
+        .hs-page a{color:inherit}
+        .hs-page svg{display:block}
+        .hs-container{max-width:1160px;margin:0 auto;padding:0 32px}
+
+        .hs-promo{background:var(--forest-deep);color:#F3D9A0;text-align:center;font-size:13.5px;font-weight:600;padding:11px 16px}
+        .hs-promo a{text-decoration:underline;text-underline-offset:2px;margin-left:6px;color:#fff;cursor:pointer}
+
+        .hs-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;background:rgba(251,246,237,0.85);backdrop-filter:blur(10px);border-bottom:1px solid transparent;transition:border-color .3s ease}
+        .hs-nav.scrolled{border-color:var(--card-border)}
+        .hs-nav-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17.5px;letter-spacing:-0.2px}
+        .hs-nav-brand .dot{width:28px;height:28px;border-radius:9px;background:var(--forest);display:flex;align-items:center;justify-content:center}
+        .hs-nav-brand .dot svg{width:15px;height:15px;stroke:white;stroke-width:2}
+        .hs-nav-links{display:flex;align-items:center;gap:32px;font-size:14px;font-weight:600}
+        .hs-nav-links a{text-decoration:none;color:var(--muted);transition:color .2s ease;cursor:pointer}
+        .hs-nav-links a:hover{color:var(--ink)}
+
+        .btn-pill{display:inline-flex;align-items:center;gap:6px;border-radius:100px;font-weight:700;font-size:14px;padding:13px 24px;text-decoration:none;border:none;cursor:pointer;font-family:inherit;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .2s ease}
+        .btn-primary{background:var(--forest);color:white;box-shadow:0 1px 2px rgba(15,42,31,0.1),0 8px 20px rgba(27,67,50,0.18)}
+        .btn-primary:hover{background:var(--forest-deep);transform:translateY(-2px);box-shadow:0 1px 2px rgba(15,42,31,0.1),0 14px 28px rgba(27,67,50,0.26)}
+        .btn-primary:disabled{opacity:0.7;cursor:default;transform:none}
+        .btn-secondary{background:var(--white);color:var(--ink);border:1.5px solid var(--card-border)}
+        .btn-secondary:hover{border-color:var(--forest);transform:translateY(-2px)}
+        .btn-sm{padding:11px 20px;font-size:13.5px}
+
+        .reveal{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+        .reveal.in{opacity:1;transform:translateY(0)}
+
+        .hs-hero{padding:88px 32px 120px;position:relative}
+        .hs-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1160px;margin:0 auto}
+        .hs-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;background:var(--gold-bg);color:#8a5a10;font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:100px;margin-bottom:26px}
+        .hs-hero h1{font-size:clamp(38px,5vw,58px);font-weight:800;line-height:1.04;letter-spacing:-1.4px;margin-bottom:24px}
+        .hs-hero p{font-size:18px;line-height:1.65;color:var(--muted);max-width:460px;margin-bottom:34px}
+        .hero-form{display:flex;gap:10px;max-width:440px;margin-bottom:16px}
+        .hero-form input{flex:1;padding:15px 18px;border-radius:100px;border:1.5px solid var(--card-border);background:white;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .2s ease,box-shadow .2s ease}
+        .hero-form input:focus{border-color:var(--forest);box-shadow:0 0 0 4px rgba(27,67,50,0.08)}
+        .hs-hero-note{font-size:13px;color:var(--muted-soft);font-weight:500}
+
+        .hs-hero-visual{position:relative}
+        .hs-hero-glow{position:absolute;inset:-40px;background:radial-gradient(ellipse at 60% 30%,rgba(212,160,23,0.16) 0%,transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(27,67,50,0.12) 0%,transparent 55%);pointer-events:none;filter:blur(6px)}
+        .hs-hero-shot{position:relative;background:#14201A;border-radius:20px;overflow:hidden;box-shadow:var(--shadow-lg);transform:rotate(1.5deg)}
+        .hs-shot-bar{background:#1c2c22;padding:12px 16px;display:flex;align-items:center;gap:12px}
+        .hs-shot-bar .dots{display:flex;gap:6px}
+        .hs-shot-bar span{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.18)}
+        .hs-shot-bar .url{flex:1;background:rgba(0,0,0,0.2);border-radius:6px;padding:5px 12px;font-size:11px;color:rgba(255,255,255,0.35);font-family:ui-monospace,monospace}
+        .hs-shot-body{display:flex;height:340px}
+        .hs-sidebar{width:160px;background:#0F2A1F;flex-shrink:0;padding:18px 12px}
+        .hs-sidebar-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:3px}
+        .hs-sidebar-item svg{width:15px;height:15px;stroke-width:1.8;flex-shrink:0}
+        .hs-sidebar-item.on{background:var(--sage);color:white;font-weight:700}
+        .hs-shot-main{flex:1;padding:20px 22px;background:#182b21}
+        .hs-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+        .hs-stat{background:rgba(255,255,255,0.05);border-radius:10px;padding:12px}
+        .hs-stat .l{font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;font-weight:600}
+        .hs-stat .v{color:var(--gold);font-weight:800;font-size:17px;letter-spacing:-0.3px}
+        .hs-table{background:rgba(255,255,255,0.03);border-radius:10px;overflow:hidden}
+        .hs-row{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:12px}
+        .hs-row:last-child{border-bottom:none}
+        .hs-hero-float{position:absolute;bottom:-22px;left:-26px;background:white;border-radius:14px;padding:14px 18px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;transform:rotate(-2deg)}
+        .hs-hero-float .n{font-weight:800;font-size:18px;color:var(--forest)}
+        .hs-hero-float .l{font-size:11px;color:var(--muted);font-weight:600}
+
+        .hs-section{padding:110px 32px}
+        .hs-eyebrow{display:block;font-size:12.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--sage);margin-bottom:14px}
+        .hs-page h2{font-size:clamp(28px,3.6vw,38px);font-weight:800;letter-spacing:-0.8px;line-height:1.12;margin-bottom:16px}
+
+        .hs-sec-header{text-align:center;max-width:600px;margin:0 auto 52px}
+        .hs-sec-header p{color:var(--muted);font-size:16.5px;line-height:1.65}
+
+        .hs-nav-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1160px;margin:0 auto}
+        .hs-nav-card{background:var(--white);border:1.5px solid var(--card-border);border-radius:18px;padding:24px;display:flex;align-items:center;gap:16px;text-decoration:none;color:var(--ink);transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s ease;box-shadow:var(--shadow-sm);cursor:pointer}
+        .hs-nav-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-md);border-color:transparent}
+        .hs-nav-card .icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .hs-nav-card .icon svg{width:22px;height:22px;stroke-width:1.7}
+        .hs-nav-card .txt div:first-child{font-weight:700;font-size:15.5px;margin-bottom:3px;letter-spacing:-0.2px}
+        .hs-nav-card .txt div:last-child{font-size:12.5px;color:var(--muted)}
+
+        .hs-biz{background:var(--forest);border-radius:28px;max-width:1160px;margin:0 auto;padding:64px 56px;display:flex;gap:52px;align-items:center;position:relative;overflow:hidden}
+        .hs-biz::before{content:'';position:absolute;top:-120px;right:-120px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(212,160,23,0.14) 0%,transparent 70%)}
+        .hs-biz-content{flex:1;position:relative;z-index:1}
+        .hs-biz-content .hs-eyebrow{color:#9FD9BC}
+        .hs-biz-content h2{color:white}
+        .hs-biz-content p{color:rgba(255,255,255,0.65);font-size:16px;line-height:1.7;margin-bottom:30px;max-width:440px}
+        .hs-biz-actions{display:flex;gap:12px}
+        .hs-biz-stats{flex:0 0 230px;display:flex;flex-direction:column;gap:16px;position:relative;z-index:1}
+        .hs-biz-stat{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px}
+        .hs-biz-stat .v{font-size:30px;font-weight:800;color:var(--gold);letter-spacing:-0.5px}
+        .hs-biz-stat .l{font-size:12.5px;color:rgba(255,255,255,0.55);margin-top:4px;font-weight:500}
+
+        .hs-tab-bar{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:40px}
+        .hs-tab-btn{background:transparent;border:none;border-radius:100px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);font-family:inherit;transition:all .25s var(--ease)}
+        .hs-tab-btn:hover{color:var(--ink)}
+        .hs-tab-btn.active{background:var(--forest);color:white;box-shadow:var(--shadow-sm)}
+        .hs-lib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1160px;margin:0 auto}
+        .hs-lib-card{background:var(--white);border:1.5px solid var(--card-border);border-radius:18px;padding:26px;box-shadow:var(--shadow-sm);transition:transform .3s var(--ease),box-shadow .3s var(--ease);animation:hsCardIn .4s var(--ease) both}
+        .hs-lib-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+        @keyframes hsCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .hs-lib-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:100px;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px}
+        .hs-lib-card h3{font-size:16px;font-weight:800;margin-bottom:8px;letter-spacing:-0.2px}
+        .hs-lib-card p{font-size:13px;color:var(--muted);line-height:1.65}
+
+        .hs-faq{max-width:760px;margin:0 auto}
+        .hs-faq-item{border-bottom:1.5px solid var(--card-border)}
+        .hs-faq-btn{all:unset;box-sizing:border-box;cursor:pointer;padding:22px 4px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;width:100%;letter-spacing:-0.2px}
+        .hs-faq-icon{width:22px;height:22px;flex-shrink:0;position:relative}
+        .hs-faq-icon::before,.hs-faq-icon::after{content:'';position:absolute;background:var(--sage);top:50%;left:50%;transform:translate(-50%,-50%)}
+        .hs-faq-icon::before{width:14px;height:2px}
+        .hs-faq-icon::after{width:2px;height:14px;transition:transform .3s var(--ease)}
+        .hs-faq-item.open .hs-faq-icon::after{transform:translate(-50%,-50%) rotate(90deg)}
+        .hs-faq-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+        .hs-faq-item.open .hs-faq-body{grid-template-rows:1fr}
+        .hs-faq-body-inner{overflow:hidden}
+        .hs-faq-body p{padding:0 4px 22px;color:var(--muted);font-size:14.5px;line-height:1.7;max-width:640px}
+
+        .hs-capture{background:var(--cream-deep);border-radius:28px;max-width:1160px;margin:0 auto;padding:64px 56px;text-align:center;position:relative;overflow:hidden}
+        .hs-capture::before{content:'';position:absolute;width:420px;height:420px;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(27,67,50,0.05) 0%,transparent 70%)}
+        .hs-capture h2{margin-bottom:10px;position:relative}
+        .hs-capture p{color:var(--muted);font-size:15.5px;margin-bottom:28px;position:relative}
+        .hs-capture .hero-form{margin:0 auto;position:relative}
+
+        .hs-footer{background:var(--forest-deep);color:rgba(255,255,255,0.55);padding:64px 32px 32px}
+        .hs-foot-grid{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:32px;margin-bottom:44px}
+        .hs-foot-grid h4{color:white;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:16px}
+        .hs-foot-grid a{display:block;font-size:13.5px;text-decoration:none;color:rgba(255,255,255,0.55);margin-bottom:11px;transition:color .2s ease;cursor:pointer}
+        .hs-foot-grid a:hover{color:white}
+        .hs-foot-bottom{max-width:1160px;margin:0 auto;border-top:1px solid rgba(255,255,255,0.1);padding-top:24px;font-size:12.5px;display:flex;justify-content:space-between}
+
+        @media (max-width:900px){
+          .hs-section{padding:72px 24px}
+          .hs-hero{padding:56px 24px 100px}
+          .hs-hero-grid{grid-template-columns:1fr;gap:56px}
+          .hs-hero-float{display:none}
+          .hs-nav-grid{grid-template-columns:1fr 1fr}
+          .hs-lib-grid{grid-template-columns:1fr}
+          .hs-biz{flex-direction:column;padding:40px 28px}
+          .hs-biz-stats{flex-direction:row;width:100%}
+          .hs-foot-grid{grid-template-columns:1fr 1fr}
+          .hs-nav-links{display:none}
         }
       `}</style>
 
-      <div className="pitch-progress" id="pitch-progress" />
+      <div className="hs-promo">Now onboarding Singapore charities — set up in 24 hours, completely free<a onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started →</a></div>
 
-      {/* ── NAV ── */}
-      <div className="pitch-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src={logo} style={{ width: 30, height: 30, objectFit: 'contain' }} />
-          <span style={{ fontWeight: 800, fontSize: 16, color: 'white' }}>Giving Tree</span>
+      <nav className={`hs-nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="hs-nav-brand"><div className="dot"><Icon name="leaf" /></div>Giving Tree</div>
+        <div className="hs-nav-links">
+          <a onClick={() => document.getElementById('nav-grid')?.scrollIntoView({ behavior: 'smooth' })}>What you need</a>
+          <a onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>Features</a>
+          <a onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</a>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
-          <a href="#features" className="pitch-nav-link">Features</a>
-          <a href="#how-it-works" className="pitch-nav-link">How it works</a>
-          <a href="#contact" className="pitch-nav-cta">Get started free</a>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-pill btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>Log in</button>
+          <button className="btn-pill btn-primary btn-sm" onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started free</button>
         </div>
-      </div>
+      </nav>
 
-      {/* ── HERO ── */}
-      <section className="pitch-hero">
-        <div className="pitch-hero-grid" />
-        <div className="pitch-hero-inner">
-          <div style={{ flex: '1 1 460px', minWidth: 300 }}>
-            <div className="pitch-eyebrow-pill">✦ Free for Singapore charities</div>
-            <h1 className="pitch-hero-title">
-              Run your charity's<br />
-              <span className="pitch-rotate-wrap"><span key={wordIndex} className="pitch-rotate-word">{ROTATE_WORDS[wordIndex]}</span></span>
-            </h1>
-            <p className="pitch-hero-sub">Type an amount below — watch your dashboard update live, right next to it.</p>
-
-            <div className="pitch-demo-box">
-              <div className="pitch-lbl" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Try it — log a donation</div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div className="pitch-demo-inputwrap">
-                  <span>$</span>
-                  <input
-                    value={demoAmount}
-                    onChange={e => setDemoAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                    onKeyDown={e => { if (e.key === 'Enter') logDemoDonation() }}
-                    placeholder="150"
-                    inputMode="decimal"
-                  />
-                </div>
-                <MagneticButton onClick={logDemoDonation} className="pitch-btn-primary" style={{ whiteSpace: 'nowrap' }}>Log donation</MagneticButton>
-              </div>
-              {lastReceipt && (
-                <div key={lastReceipt.number} className="pitch-demo-receipt">
-                  <span>✓ Receipt {lastReceipt.number}</span>
-                  <span>${lastReceipt.amount} · dashboard updated →</span>
-                </div>
-              )}
-            </div>
-
-            <div className="pitch-hero-actions" style={{ marginTop: 22 }}>
-              <MagneticButton href="#contact" className="pitch-btn-ghost">Request a demo →</MagneticButton>
-              <button onClick={() => setWordsPaused(p => !p)} className="pitch-pause-btn" aria-label={wordsPaused ? 'Resume animation' : 'Pause animation'}>
-                {wordsPaused ? '▶' : '⏸'}
-              </button>
-            </div>
-            <p className="pitch-hero-note">Zero contracts. Zero setup fees. We onboard you personally.</p>
+      <section className="hs-hero">
+        <div className="hs-hero-grid">
+          <div>
+            <span className="hs-hero-eyebrow">Free for IPC-registered charities</span>
+            <h1>Run your charity's donations without the admin headache.</h1>
+            <p>Log donations, issue IRAS-ready receipts, and track every donor — all from one dashboard built for small charity teams, not accountants.</p>
+            <EmailCapture cta="Get started" />
+            <div className="hs-hero-note">Zero contracts · Zero setup fees · Live in 24 hours</div>
           </div>
-
-          <div className="pitch-hero-preview">
-            <TiltCard baseRotate={3} style={{ background: '#14201A', borderRadius: 18, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,0.4)' }}>
-              <div style={{ background: '#1c2c22', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E27D60' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E8C547' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#6FCF97' }} />
-                <div style={{ marginLeft: 8, fontSize: 10.5, color: 'rgba(255,255,255,0.5)' }}>charity.givingtree.sg</div>
+          <div className="hs-hero-visual">
+            <div className="hs-hero-glow" />
+            <div className="hs-hero-shot">
+              <div className="hs-shot-bar">
+                <div className="dots"><span /><span /><span /></div>
+                <div className="url">charity.givingtree.sg</div>
               </div>
-              <div style={{ padding: 18 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginBottom: 14 }}>
-                  <div key={totalRaised} className="pitch-stat-bump" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 10px' }}>
-                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Total raised</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 700, color: 'var(--amber)' }}>${totalRaised.toLocaleString()}</div>
+              <div className="hs-shot-body">
+                <div className="hs-sidebar">
+                  <div className="hs-sidebar-item on"><Icon name="chart" />Dashboard</div>
+                  <div className="hs-sidebar-item"><Icon name="card" />Donations</div>
+                  <div className="hs-sidebar-item"><Icon name="chart" />Analytics</div>
+                  <div className="hs-sidebar-item"><Icon name="bank" />IRAS Export</div>
+                </div>
+                <div className="hs-shot-main">
+                  <div className="hs-stat-row">
+                    <div className="hs-stat"><div className="l">Raised</div><div className="v">$48,200</div></div>
+                    <div className="hs-stat"><div className="l">Donors</div><div className="v">312</div></div>
+                    <div className="hs-stat"><div className="l">Pending</div><div className="v">3</div></div>
                   </div>
-                  <div key={donationCount} className="pitch-stat-bump" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 10px' }}>
-                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Donations</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 700, color: 'var(--amber)' }}>{donationCount}</div>
+                  <div className="hs-table">
+                    <div className="hs-row"><span>Tan Wei Ming</span><span style={{ color: 'var(--gold)', fontWeight: 700 }}>$150</span></div>
+                    <div className="hs-row"><span>Cold Storage Supermarket</span><span style={{ color: 'var(--gold)', fontWeight: 700 }}>$2,200</span></div>
+                    <div className="hs-row"><span>Marcus Ng</span><span style={{ color: 'var(--gold)', fontWeight: 700 }}>$500</span></div>
                   </div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' }}>
-                  <div style={{ padding: '9px 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Recent donations</div>
-                  {demoRows.map((r, i) => (
-                    <div key={r.id} className={i === 0 && r.id > 0 ? 'pitch-row-pop' : undefined} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 12px', borderBottom: i < demoRows.length - 1 ? '1px solid rgba(255,255,255,0.06)' : undefined, fontSize: 11.5 }}>
-                      <span style={{ color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--amber)', fontWeight: 700, flexShrink: 0 }}>{r.amount}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TiltCard>
-          </div>
-        </div>
-      </section>
-
-      <div className="pitch-trust-bar">
-        <div className="pitch-trust-item">🏛️ IPC-registered charities</div>
-        <div className="pitch-trust-item">🧾 IRAS-ready export</div>
-        <div className="pitch-trust-item">💳 PayNow · Cheque · Cash · Wire</div>
-        <div className="pitch-trust-item">🔒 Funds direct to your UEN</div>
-      </div>
-
-      {/* ── WHO WE BUILT THIS FOR ── */}
-      <section style={{ background: 'var(--forest-deep)', padding: '76px 24px' }}>
-        <div className="pitch-container" style={{ textAlign: 'center', maxWidth: 860, margin: '0 auto' }}>
-          <div className="pitch-reveal">
-            <span className="pitch-section-eyebrow" style={{ background: 'rgba(232,169,59,0.15)', color: 'var(--amber)' }}>Who we built this for</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.6vw,34px)', color: 'white', marginBottom: 16 }}>
-              For the small teams carrying <span style={{ color: 'var(--amber)' }}>big hearts.</span>
-            </h2>
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8, fontWeight: 500, maxWidth: 580, margin: '0 auto 28px' }}>
-              Behind every IPC-registered charity in Singapore is a small team doing extraordinary work — often without a finance team, a tech team, or even a full-time admin.
-            </p>
-          </div>
-          <div className="pitch-quote-grid">
-            {PAIN_QUOTES.map((p, i) => (
-              <div key={i} className="pitch-reveal pitch-quote-card" style={{ transitionDelay: `${i * 100}ms`, borderTop: '3px solid var(--amber)' }}>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 1.65, fontWeight: 600, margin: '0 0 14px' }}>{p.q}</p>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{p.tag}</div>
-              </div>
-            ))}
-          </div>
-          <div className="pitch-reveal" style={{ display: 'inline-block', background: 'var(--amber)', borderRadius: 100, padding: '13px 30px' }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--forest-deep)' }}>Giving Tree was built for them. And it's completely free.</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES + PRODUCT TOUR ── */}
-      <section id="features" style={{ background: 'var(--cream)', padding: '76px 24px' }}>
-        <div className="pitch-container">
-          <div className="pitch-reveal" style={{ textAlign: 'center', marginBottom: 40 }}>
-            <span className="pitch-section-eyebrow" style={{ background: 'rgba(22,59,42,0.08)', color: 'var(--forest)' }}>What we built for you</span>
-            <h2 className="pitch-section-title">Everything you need. <span style={{ color: 'var(--forest)' }}>One dashboard.</span></h2>
-            <p style={{ fontSize: 14.5, color: 'var(--muted)', lineHeight: 1.8, fontWeight: 500, maxWidth: 480, margin: '0 auto' }}>Capture every donation on your dashboard — every donor recognised, every receipt issued, every thank-you sent.</p>
-          </div>
-
-          <ProductTour />
-          <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', margin: '10px 0 32px', fontWeight: 600 }}>Illustrative preview — not a live screenshot. Auto-advances, or click a dot.</div>
-
-          <div className="pitch-feature-grid">
-            {FEATURE_CARDS.map((f, i) => (
-              <div key={i} className="pitch-reveal pitch-feature-card" style={{ transitionDelay: `${(i % 2) * 90}ms`, display: 'flex', gap: 14, padding: 22, background: 'white', border: '2px solid var(--border)', borderRadius: 16 }}>
-                <div style={{ width: 4, background: 'var(--amber)', borderRadius: 2, flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 5 }}>{f.title}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.7, fontWeight: 500 }}>{f.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── STEPS ── */}
-      <section id="how-it-works" style={{ background: 'var(--amber)', padding: '76px 24px' }}>
-        <div className="pitch-container">
-          <div className="pitch-reveal" style={{ textAlign: 'center', marginBottom: 40 }}>
-            <span className="pitch-section-eyebrow" style={{ background: 'var(--forest-deep)', color: 'var(--amber)' }}>Getting started</span>
-            <h2 className="pitch-section-title" style={{ color: 'var(--forest-deep)' }}>Up and running <span style={{ color: 'white' }}>in under 24 hours.</span></h2>
-          </div>
-          <div className="pitch-steps-grid">
-            {STEPS.map((s, i) => (
-              <div key={s.n} className="pitch-reveal pitch-step-card" style={{ transitionDelay: `${i * 100}ms` }}>
-                <div className="pitch-step-num">{s.n}</div>
-                <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>{s.title}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.65, fontWeight: 500, marginBottom: 14 }}>{s.desc}</div>
-                <div style={{ display: 'inline-block', background: 'var(--cream)', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontWeight: 800, color: 'var(--forest)' }}>{s.tag}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIAL ── */}
-      <section style={{ background: 'var(--forest-deep)', padding: '76px 24px', textAlign: 'center' }}>
-        <div className="pitch-container pitch-reveal" style={{ maxWidth: 660, margin: '0 auto' }}>
-          <blockquote style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(20px,3.2vw,30px)', color: 'white', lineHeight: 1.45, margin: '0 auto 20px', letterSpacing: '-0.3px' }}>
-            "The charities doing the most <span style={{ color: 'var(--amber)' }}>important</span> work in Singapore are often the ones with the least support. We built Giving Tree to change that."
-          </blockquote>
-          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700 }}>— The Giving Tree Team</div>
-        </div>
-      </section>
-
-      {/* ── CONTACT ── */}
-      <section id="contact" style={{ background: 'var(--forest)', padding: '90px 24px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div className="pitch-reveal" style={{ position: 'relative', zIndex: 1, maxWidth: 520, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(26px,4vw,36px)', color: 'white', marginBottom: 14 }}>Your cause deserves<br />to be <span style={{ color: 'var(--amber)' }}>found.</span></h2>
-          <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.7)', fontWeight: 500, lineHeight: 1.8, marginBottom: 34 }}>If you're an IPC-registered charity in Singapore, we'd love to have you. It takes 5 minutes to get started, and it's completely free.</p>
-
-          {sent ? (
-            <div style={{ position: 'relative', background: 'rgba(232,169,59,0.15)', border: '2px solid var(--amber)', borderRadius: 16, padding: '24px 28px', fontSize: 14, color: 'white', lineHeight: 1.7, textAlign: 'left', overflow: 'visible', fontWeight: 600 }}>
-              <ConfettiBurst />
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <span style={{ fontSize: 20, marginRight: 8 }}>🎉</span>
-                Thanks — we've got your request and will be in touch shortly. In the meantime, feel free to email <span style={{ color: 'var(--amber)' }}>hello@givingtree.sg</span> directly.
               </div>
             </div>
-          ) : (
-            <div style={{ background: 'white', borderRadius: 20, padding: 30, textAlign: 'left' }}>
-              {error && (
-                <div style={{ background: '#FBEAEA', border: '1.5px solid #E2A0A0', color: '#A32D2D', padding: '10px 14px', borderRadius: 10, fontSize: 12.5, marginBottom: 16, fontWeight: 600 }}>{error}</div>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <label className="pitch-lbl">Your name</label>
-                  <input className="pitch-input" value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Jane Tan" />
-                </div>
-                <div>
-                  <label className="pitch-lbl">Charity name</label>
-                  <input className="pitch-input" value={form.charity_name} onChange={e => setForm(f => ({ ...f, charity_name: e.target.value }))} placeholder="Your charity" />
-                </div>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <label className="pitch-lbl">Email</label>
-                <input className="pitch-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@charity.org.sg" />
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <label className="pitch-lbl">Phone (optional)</label>
-                <input className="pitch-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+65 1234 5678" />
-              </div>
-              <div style={{ marginBottom: 18 }}>
-                <label className="pitch-lbl">Message (optional)</label>
-                <textarea className="pitch-input" style={{ minHeight: 72, resize: 'vertical' }} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tell us a bit about your charity and what you'd like help with..." />
-              </div>
-              <MagneticButton onClick={submitDemoRequest} className="pitch-btn-primary" style={{ width: '100%', textAlign: 'center', opacity: sending ? 0.7 : 1 }}>
-                {sending ? 'Sending...' : 'Get in touch →'}
-              </MagneticButton>
-            </div>
-          )}
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 22, lineHeight: 1.7, fontWeight: 500 }}>
-            Or write directly to <a href="mailto:hello@givingtree.sg" style={{ color: 'white' }}>hello@givingtree.sg</a><br />
-            Already have an account? <span onClick={() => navigate('/dashboard')} style={{ color: 'white', textDecoration: 'underline', cursor: 'pointer' }}>Sign in here</span>
-          </p>
+            <div className="hs-hero-float"><span className="n">312</span><span className="l">donors<br />tracked</span></div>
+          </div>
         </div>
       </section>
 
-      <footer style={{ background: 'var(--forest-deep)', padding: '22px 32px', textAlign: 'center', fontSize: 11.5, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-        © {new Date().getFullYear()} Giving Tree · hello@givingtree.sg
+      <section id="nav-grid" className="hs-section">
+        <div className="hs-sec-header">
+          <span className="hs-eyebrow">What does your charity need</span>
+          <h2>Whatever's piling up, we've got it covered.</h2>
+          <p>Pick what's giving your team the most trouble right now.</p>
+        </div>
+        <div className="hs-nav-grid">
+          {NAV_CARDS.map((c, i) => (
+            <div key={i} className="hs-nav-card reveal" onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>
+              <div className="icon" style={{ background: c.bg, color: c.fg }}><Icon name={c.icon} /></div>
+              <div className="txt"><div>{c.title}</div><div>{c.sub}</div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="hs-section">
+        <div className="hs-biz reveal">
+          <div className="hs-biz-content">
+            <span className="hs-eyebrow">For charities of every size</span>
+            <h2>Small team, big admin load?<br />We built this for you.</h2>
+            <p>No finance team, no tech team, no full-time admin — just people doing the work. Giving Tree handles the paperwork so you don't have to.</p>
+            <div className="hs-biz-actions">
+              <button className="btn-pill btn-primary" onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Request a demo</button>
+              <button className="btn-pill" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1.5px solid rgba(255,255,255,0.25)' }} onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>See what it does</button>
+            </div>
+          </div>
+          <div className="hs-biz-stats">
+            <div className="hs-biz-stat"><div className="v">24 hrs</div><div className="l">From sign-up to live dashboard</div></div>
+            <div className="hs-biz-stat"><div className="v">$0</div><div className="l">Cost to IPC-registered charities</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="library" className="hs-section">
+        <div className="hs-sec-header">
+          <span className="hs-eyebrow">Explore what's inside</span>
+          <h2>Everything your charity's admin needs.</h2>
+          <p>One dashboard, built specifically around how a small charity team actually works.</p>
+        </div>
+        <div className="hs-tab-bar">
+          {LIB_TABS.map(tab => (
+            <button key={tab} className={`hs-tab-btn${activeTab === tab ? ' active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
+          ))}
+        </div>
+        <div className="hs-lib-grid">
+          {LIB_CARDS.filter(c => c.cat === activeTab).map((c, i) => (
+            <div key={activeTab + i} className="hs-lib-card" style={{ animationDelay: `${i * 60}ms` }}>
+              <span className="hs-lib-tag" style={{ background: c.tagBg, color: c.tagFg }}>{c.tag}</span>
+              <h3>{c.title}</h3>
+              <p>{c.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="faq" className="hs-section">
+        <div className="hs-sec-header">
+          <span className="hs-eyebrow">Frequently asked questions</span>
+          <h2>Good to know before you sign up.</h2>
+        </div>
+        <div className="hs-faq">
+          {FAQS.map((f, i) => (
+            <div key={i} className={`hs-faq-item${openFaq === i ? ' open' : ''}`}>
+              <button className="hs-faq-btn" onClick={() => setOpenFaq(o => o === i ? null : i)}>{f.q}<span className="hs-faq-icon" /></button>
+              <div className="hs-faq-body"><div className="hs-faq-body-inner"><p>{f.a}</p></div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="capture" className="hs-section">
+        <div className="hs-capture reveal">
+          <h2>Ready to get started?</h2>
+          <p>Leave your email and we'll reach out to set up your dashboard — no obligation.</p>
+          <EmailCapture cta="Request a demo" />
+        </div>
+      </section>
+
+      <footer className="hs-footer">
+        <div className="hs-foot-grid">
+          <div>
+            <h4>Product</h4>
+            <a onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>Donations</a>
+            <a onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>Receipts & IRAS</a>
+            <a onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>Donor CRM</a>
+            <a onClick={() => document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' })}>Analytics</a>
+          </div>
+          <div>
+            <h4>Charities</h4>
+            <a onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started</a>
+            <a onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Request a demo</a>
+            <a onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</a>
+          </div>
+          <div>
+            <h4>Company</h4>
+            <a href="mailto:hello@givingtree.sg">Contact</a>
+          </div>
+          <div>
+            <h4>Legal</h4>
+            <a href="https://givingtree.sg/privacy">Privacy policy</a>
+            <a href="https://givingtree.sg/terms">Terms of use</a>
+          </div>
+          <div>
+            <h4>Get in touch</h4>
+            <a href="mailto:hello@givingtree.sg">hello@givingtree.sg</a>
+          </div>
+        </div>
+        <div className="hs-foot-bottom">
+          <span>© {new Date().getFullYear()} Giving Tree</span>
+          <span>Made for small Singapore charities</span>
+        </div>
       </footer>
     </div>
   )
