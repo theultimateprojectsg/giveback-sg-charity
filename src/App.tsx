@@ -117,23 +117,23 @@ const EMAIL_TEMPLATE_DEFS = [
 const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
-    body: '',
+    body: "Dear {{donor_name}},\n\nThank you so much for your generous gift to {{charity_name}}. Your support makes a real difference to the people and causes we serve.\n\nWith gratitude,\n{{charity_name}}",
   },
   major_gift: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "Dear {{donor_name}},\n\nWe were truly moved by your generous gift of ${{amount}}. Contributions like yours make an outsized difference in what we're able to do, and we don't take that for granted.\n\nWith heartfelt thanks,\n{{charity_name}}",
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "Dear {{donor_name}},\n\nThank you for your very first gift to {{charity_name}} — we're so glad to have you with us. It's donors like you who make our work possible, and we hope this is the start of a long relationship.\n\nWith gratitude,\n{{charity_name}}",
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
-    body: '',
+    body: "Dear {{donor_name}},\n\nThank you once again for your continued support of {{charity_name}}. Your ongoing generosity gives us the stability to plan ahead and make a lasting difference.\n\nWith gratitude,\n{{charity_name}}",
   },
   nric_request: {
     subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
-    body: '',
+    body: "Dear {{donor_name}},\n\nThank you again for your gift to {{charity_name}}. To issue you a tax-deductible receipt for your donation of ${{amount}} on {{date}}, we'll need your NRIC on file — please reply to this email with it at your convenience.\n\nWith thanks,\n{{charity_name}}",
   },
   milestone_thank_you: {
     subject: 'A note from {{charity_name}} 💚',
