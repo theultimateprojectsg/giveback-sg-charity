@@ -192,7 +192,7 @@ function DonationMoreActionsMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open, setOpen])
 
-  const itemStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.text, padding: '9px 10px', borderRadius: 5 }
+  const itemStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: C.text, padding: '9px 10px', borderRadius: 5 }
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
