@@ -28,35 +28,6 @@ const STEPS = [
 
 const ROTATE_WORDS = ['donations.', 'receipts.', 'donors.', 'pledges.', 'IRAS export.']
 
-// Hand-placed points within the canopy silhouette below — deliberately
-// organic (not a grid) so leaves read as grown, not generated.
-const LEAF_NODES = [
-  { x: 160, y: 88, r: 9 }, { x: 118, y: 104, r: 8 }, { x: 204, y: 100, r: 8 },
-  { x: 88, y: 138, r: 9 }, { x: 234, y: 132, r: 8 }, { x: 150, y: 128, r: 7 },
-  { x: 70, y: 176, r: 8 }, { x: 252, y: 170, r: 9 }, { x: 190, y: 150, r: 7 },
-  { x: 108, y: 176, r: 8 }, { x: 214, y: 190, r: 8 }, { x: 160, y: 172, r: 7 },
-  { x: 130, y: 202, r: 8 }, { x: 186, y: 208, r: 7 },
-]
-
-// The literal "Giving Tree" — grows a new leaf each time the hero demo
-// below generates a receipt, rather than illustrating the brand once and
-// leaving it static.
-function GrowingTree({ leafCount }: { leafCount: number }) {
-  const visible = LEAF_NODES.slice(0, Math.min(leafCount, LEAF_NODES.length))
-  return (
-    <svg viewBox="0 0 320 380" style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
-      <ellipse cx="160" cy="150" rx="128" ry="96" fill="#1d4a35" opacity="0.9" />
-      <ellipse cx="108" cy="176" rx="76" ry="62" fill="#163B2A" opacity="0.85" />
-      <ellipse cx="216" cy="168" rx="82" ry="66" fill="#194832" opacity="0.85" />
-      <ellipse cx="160" cy="118" rx="90" ry="58" fill="#20573e" opacity="0.9" />
-      <path d="M148 380 L150 250 Q150 232 160 220 Q170 232 170 250 L172 380 Z" fill="#0F2A1F" />
-      {visible.map((n, i) => (
-        <circle key={i} cx={n.x} cy={n.y} r={n.r} fill="#E8A93B" stroke="#0F2A1F" strokeWidth="1.5" className="pitch-leaf-pop" />
-      ))}
-    </svg>
-  )
-}
-
 const TOUR_SLIDES = [
   { key: 'Dashboard', icon: '📊', title: 'One dashboard, the whole picture', desc: 'Total raised, unique donors, and what still needs a receipt — the moment you log in.' },
   { key: 'Donations', icon: '💳', title: 'Every donation, however it arrives', desc: 'Cash, cheque, bank wire, PayNow, GIRO — logged once, tracked forever.' },
@@ -363,17 +334,26 @@ export default function PitchLandingPage() {
   const [wordIndex, setWordIndex] = useState(0)
   const [wordsPaused, setWordsPaused] = useState(false)
   const [demoAmount, setDemoAmount] = useState('')
-  const [leafCount, setLeafCount] = useState(4)
   const [receiptSeq, setReceiptSeq] = useState(417)
   const [lastReceipt, setLastReceipt] = useState<{ amount: string, number: string } | null>(null)
+  const [totalRaised, setTotalRaised] = useState(48200)
+  const [donationCount, setDonationCount] = useState(312)
+  const [demoRows, setDemoRows] = useState<{ id: number, name: string, amount: string }[]>([
+    { id: -1, name: 'Cold Storage Supermarket', amount: '$2,200' },
+    { id: -2, name: 'Marcus Ng', amount: '$500' },
+    { id: -3, name: 'Tan Wei Ming', amount: '$150' },
+  ])
 
-  function growTree() {
+  function logDemoDonation() {
     const amt = parseFloat(demoAmount)
     if (!amt || amt <= 0) return
     const nextSeq = receiptSeq + 1
     setReceiptSeq(nextSeq)
-    setLastReceipt({ amount: amt.toLocaleString(undefined, { maximumFractionDigits: 0 }), number: `GT-2026-0${nextSeq}` })
-    setLeafCount(c => Math.min(c + 1, LEAF_NODES.length))
+    const formatted = amt.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    setLastReceipt({ amount: formatted, number: `GT-2026-0${nextSeq}` })
+    setTotalRaised(t => t + amt)
+    setDonationCount(c => c + 1)
+    setDemoRows(rows => [{ id: nextSeq, name: 'You (just now)', amount: `$${formatted}` }, ...rows].slice(0, 4))
     setDemoAmount('')
   }
 
@@ -460,9 +440,10 @@ export default function PitchLandingPage() {
         .pitch-demo-inputwrap input{flex:1;background:none;border:none;outline:none;color:white;font-family:var(--font-mono);font-size:15px;padding:13px 0;min-width:0}
         .pitch-demo-inputwrap input::placeholder{color:rgba(255,255,255,0.35)}
         .pitch-demo-receipt{margin-top:12px;display:flex;justify-content:space-between;gap:10px;background:rgba(232,169,59,0.16);border:1px solid rgba(232,169,59,0.4);border-radius:10px;padding:10px 14px;font-family:var(--font-mono);font-size:12px;color:var(--amber);animation:pitchFadeUp .35s ease both}
-        .pitch-leaf-pop{animation:pitchLeafPop .5s cubic-bezier(.2,1.4,.4,1) both}
-        @keyframes pitchLeafPop{from{transform:scale(0);opacity:0}60%{opacity:1}to{transform:scale(1);opacity:1}}
-        .pitch-leaf-pop{transform-origin:center;transform-box:fill-box}
+        .pitch-stat-bump{animation:pitchStatBump .4s ease both}
+        @keyframes pitchStatBump{0%{transform:scale(1)}30%{transform:scale(1.06)}100%{transform:scale(1)}}
+        .pitch-row-pop{animation:pitchRowPop .5s cubic-bezier(.2,1.4,.4,1) both;background:rgba(232,169,59,0.14) !important}
+        @keyframes pitchRowPop{from{transform:translateX(-8px);opacity:0;background:rgba(232,169,59,0.35)}to{transform:translateX(0);opacity:1}}
         @keyframes pitchConfetti{from{transform:translate(-50%,-50%) rotate(0deg);opacity:1}to{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) rotate(var(--rot));opacity:0}}
         .pitch-progress{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--forest),var(--amber));z-index:200;transition:width .1s linear}
         .pitch-trust-bar{padding:16px 32px;display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;background:var(--cream);border-bottom:1px solid var(--border)}
@@ -523,7 +504,7 @@ export default function PitchLandingPage() {
               Run your charity's<br />
               <span className="pitch-rotate-wrap"><span key={wordIndex} className="pitch-rotate-word">{ROTATE_WORDS[wordIndex]}</span></span>
             </h1>
-            <p className="pitch-hero-sub">Type an amount below and watch it happen — a real receipt, generated instantly, and a new leaf on the tree.</p>
+            <p className="pitch-hero-sub">Type an amount below — watch your dashboard update live, right next to it.</p>
 
             <div className="pitch-demo-box">
               <div className="pitch-lbl" style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Try it — log a donation</div>
@@ -533,17 +514,17 @@ export default function PitchLandingPage() {
                   <input
                     value={demoAmount}
                     onChange={e => setDemoAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                    onKeyDown={e => { if (e.key === 'Enter') growTree() }}
+                    onKeyDown={e => { if (e.key === 'Enter') logDemoDonation() }}
                     placeholder="150"
                     inputMode="decimal"
                   />
                 </div>
-                <MagneticButton onClick={growTree} className="pitch-btn-primary" style={{ whiteSpace: 'nowrap' }}>Log donation</MagneticButton>
+                <MagneticButton onClick={logDemoDonation} className="pitch-btn-primary" style={{ whiteSpace: 'nowrap' }}>Log donation</MagneticButton>
               </div>
               {lastReceipt && (
                 <div key={lastReceipt.number} className="pitch-demo-receipt">
                   <span>✓ Receipt {lastReceipt.number}</span>
-                  <span>${lastReceipt.amount} · leaf grown 🌱</span>
+                  <span>${lastReceipt.amount} · dashboard updated →</span>
                 </div>
               )}
             </div>
@@ -558,10 +539,35 @@ export default function PitchLandingPage() {
           </div>
 
           <div className="pitch-hero-preview">
-            <GrowingTree leafCount={leafCount} />
-            <div style={{ textAlign: 'center', marginTop: 10, fontSize: 12.5, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
-              {leafCount} leaves grown so far — every one, a real donation
-            </div>
+            <TiltCard baseRotate={3} style={{ background: '#14201A', borderRadius: 18, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,0.4)' }}>
+              <div style={{ background: '#1c2c22', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E27D60' }} />
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#E8C547' }} />
+                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#6FCF97' }} />
+                <div style={{ marginLeft: 8, fontSize: 10.5, color: 'rgba(255,255,255,0.5)' }}>charity.givingtree.sg</div>
+              </div>
+              <div style={{ padding: 18 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginBottom: 14 }}>
+                  <div key={totalRaised} className="pitch-stat-bump" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 10px' }}>
+                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Total raised</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 700, color: 'var(--amber)' }}>${totalRaised.toLocaleString()}</div>
+                  </div>
+                  <div key={donationCount} className="pitch-stat-bump" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 10px' }}>
+                    <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Donations</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 700, color: 'var(--amber)' }}>{donationCount}</div>
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ padding: '9px 12px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Recent donations</div>
+                  {demoRows.map((r, i) => (
+                    <div key={r.id} className={i === 0 && r.id > 0 ? 'pitch-row-pop' : undefined} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 12px', borderBottom: i < demoRows.length - 1 ? '1px solid rgba(255,255,255,0.06)' : undefined, fontSize: 11.5 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--amber)', fontWeight: 700, flexShrink: 0 }}>{r.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TiltCard>
           </div>
         </div>
       </section>
