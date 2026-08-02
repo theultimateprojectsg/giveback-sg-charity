@@ -32,7 +32,7 @@ const LIB_CARDS: { cat: typeof LIB_TABS[number], tagBg: string, tagFg: string, t
 ]
 
 const FAQS = [
-  { q: 'Is Giving Tree really free?', a: "Yes, for IPC-registered charities. There's no setup fee and no contract — we onboard you personally and get you live within 24 hours." },
+  { q: 'Is Giving Tree free?', a: "We offer a free trial period so you can try it risk-free before committing to anything. After your trial, pricing is designed to be affordable for small charities — there's no setup fee, no long contract, and we onboard you personally within 24 hours." },
   { q: 'How does the IRAS export work?', a: 'Once your donations are logged with valid NRICs, you can download a fully formatted file for myTax Portal in one click — no manual formatting needed.' },
   { q: 'Is donor NRIC data handled securely?', a: "Yes — NRICs are used only to generate IRAS tax-deduction records and are never shared or sold. Access is restricted to your own charity's staff." },
   { q: 'Can more than one staff member use it?', a: 'Yes, you can add staff, board, and volunteer accounts with different levels of access — from full admin to read-only.' },
@@ -262,7 +262,7 @@ export default function PitchLandingPage() {
         }
       `}</style>
 
-      <div className="hs-promo">Now onboarding Singapore charities — set up in 24 hours, completely free<a onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started →</a></div>
+      <div className="hs-promo">Now onboarding small registered charities in Singapore — start your free trial today<a onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started →</a></div>
 
       <nav className={`hs-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="hs-nav-brand"><div className="dot"><Icon name="leaf" /></div>Giving Tree</div>
@@ -273,18 +273,18 @@ export default function PitchLandingPage() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn-pill btn-secondary btn-sm" onClick={() => navigate('/dashboard')}>Log in</button>
-          <button className="btn-pill btn-primary btn-sm" onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Get started free</button>
+          <button className="btn-pill btn-primary btn-sm" onClick={() => document.getElementById('capture')?.scrollIntoView({ behavior: 'smooth' })}>Start free trial</button>
         </div>
       </nav>
 
       <section className="hs-hero">
         <div className="hs-hero-grid">
           <div>
-            <span className="hs-hero-eyebrow">Free for IPC-registered charities</span>
+            <span className="hs-hero-eyebrow">Built for small registered charities in Singapore</span>
             <h1>Run your charity's donations without the admin headache.</h1>
             <p>Log donations, issue IRAS-ready receipts, and track every donor — all from one dashboard built for small charity teams, not accountants.</p>
-            <EmailCapture cta="Get started" />
-            <div className="hs-hero-note">Zero contracts · Zero setup fees · Live in 24 hours</div>
+            <EmailCapture cta="Start free trial" />
+            <div className="hs-hero-note">Free trial · Zero setup fees · Live in 24 hours</div>
           </div>
           <div className="hs-hero-visual">
             <div className="hs-hero-glow" />
@@ -338,7 +338,7 @@ export default function PitchLandingPage() {
       <section className="hs-section">
         <div className="hs-biz reveal">
           <div className="hs-biz-content">
-            <span className="hs-eyebrow">For charities of every size</span>
+            <span className="hs-eyebrow">Built for small charities</span>
             <h2>Small team, big admin load?<br />We built this for you.</h2>
             <p>No finance team, no tech team, no full-time admin — just people doing the work. Giving Tree handles the paperwork so you don't have to.</p>
             <div className="hs-biz-actions">
@@ -348,7 +348,7 @@ export default function PitchLandingPage() {
           </div>
           <div className="hs-biz-stats">
             <div className="hs-biz-stat"><div className="v">24 hrs</div><div className="l">From sign-up to live dashboard</div></div>
-            <div className="hs-biz-stat"><div className="v">$0</div><div className="l">Cost to IPC-registered charities</div></div>
+            <div className="hs-biz-stat"><div className="v">Free</div><div className="l">Trial period, no credit card needed</div></div>
           </div>
         </div>
       </section>
