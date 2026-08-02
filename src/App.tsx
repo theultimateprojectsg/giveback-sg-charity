@@ -6150,16 +6150,6 @@ export default function App() {
 
   const charityUen   = session?.user?.app_metadata?.charity_uen  || ''
 
-  useEffect(() => {
-    if (!selectedDonor || !session?.user?.email) return
-    supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'donor_profile_viewed',
-      details: { donor_name: selectedDonor.name, donor_email: selectedDonor.email, charity_uen: charityUen },
-    }).then()
-  }, [selectedDonor?.email || selectedDonor?.name])
-
   function logExport(reportName: string, details?: any) {
     if (!session?.user?.email) return
     supabase.from('audit_log').insert({
@@ -6169,16 +6159,6 @@ export default function App() {
       details: { report: reportName, charity_uen: charityUen, ...details },
     }).then()
   }
-
-  useEffect(() => {
-    if (!selectedDonation || !session?.user?.email) return
-    supabase.from('audit_log').insert({
-      actor_type: 'charity',
-      actor_email: session.user.email,
-      action: 'donation_viewed',
-      details: { donation_id: selectedDonation.id, donor_name: selectedDonation.donor_name, charity_uen: charityUen },
-    }).then()
-  }, [selectedDonation?.id])
 
   const totalAllTime = donations.reduce((s, d) => s + d.amount, 0)
   const totalThisYear = filterYear === 'All'
