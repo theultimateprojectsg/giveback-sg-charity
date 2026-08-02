@@ -12281,18 +12281,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               >{rnOutreach.donorEmail?.trim() ? 'Preview email →' : 'No email on file'}</button>
               <button style={{ ...s.viewBtn, flex: 1, justifyContent: 'center' }} disabled={rnSending} onClick={() => setRnOutreach(null)}>Cancel</button>
             </div>
-            <div style={{ textAlign: 'center', marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 6 }}>Reached out another way — a call, in person, or your own email?</div>
-              <button
-                style={{ fontSize: 12.5, color: C.forest, fontWeight: 600, background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 14px', cursor: rnSending ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-                disabled={rnSending}
-                onClick={async () => {
-                  setRnSending(true)
-                  await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} — logged as done`, 'note')
-                  setRnSending(false); setRnOutreach(null); showToast('Logged as done ✓')
-                }}
-              >✓ Just log it as done</button>
-            </div>
           </div>
         </div>
       )}
