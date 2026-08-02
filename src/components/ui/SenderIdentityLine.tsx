@@ -18,7 +18,7 @@ export function SenderIdentityLine({ recipientName, recipientEmail, senderDomain
   const displayName = isVerified ? (charityName || 'Your charity') : `${charityName || 'Your charity'} via Giving Tree`
   const fromAddress = isVerified ? `${senderEmailLocalPart}@${senderDomain}` : 'hello@givingtree.sg'
   const rowStyle = { display: 'flex', gap: 10, padding: '6px 0' }
-  const labelStyle = { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, width: 58, flexShrink: 0, paddingTop: 1 }
+  const labelStyle = { fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, width: 78, flexShrink: 0, paddingTop: 1, whiteSpace: 'nowrap' as const }
   return (
     <div style={{ marginBottom: 14, background: isVerified ? C.successBg : (C.gold + '14'), border: `1px solid ${isVerified ? C.sage : C.gold}`, borderRadius: 8, padding: '10px 14px' }}>
       <div style={{ ...rowStyle, borderBottom: `1px solid ${isVerified ? C.sage : C.gold}33` }}>
