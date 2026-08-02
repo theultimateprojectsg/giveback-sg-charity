@@ -388,7 +388,6 @@ export function AnalyticsPage({
     { key: 'ma_snapshot', label: 'Snapshot Tiles' },
     { key: 'ma_listStrip', label: 'List Strip Tiles' },
     { key: 'ma_appealsTrend', label: 'Appeals Trend' },
-    { key: 'ma_responseSpeed', label: 'Response Speed' },
     { key: 'ma_conversion', label: 'Mass Appeal Conversion' },
     { key: 'ma_listHealth', label: 'Appeal List Health' },
   ]
@@ -1676,7 +1675,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const { trendData, yr, medianResponseDays, respBuckets, respTotal, within24h, within7d } = appealTrendStats
+                const { trendData, yr } = appealTrendStats
 
                 return (
                   <>
@@ -1702,42 +1701,6 @@ export function AnalyticsPage({
                       </DraggableCard>
                     )}
 
-                    {!hidden('ma_responseSpeed') && (
-                    <DraggableCard sectionId="ma" cardKey="ma_responseSpeed" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_responseSpeed')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>Response Speed — {yr} <InfoTip text="How long after a mass appeal is sent donors typically respond, measured from the appeal recipient's send time to their matched confirmed donation." /></div>
-                      {medianResponseDays === null ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No converted appeal recipients yet {filterYear !== 'All' ? `in ${yr}` : ''}.</div>
-                      ) : (
-                        <>
-                          <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{medianResponseDays} day{medianResponseDays !== 1 ? 's' : ''}</div>
-                          <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>median time from appeal sent to donation</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {respBuckets.map((b: any, i: any) => {
-                              const pct = respTotal > 0 ? Math.round((b.count / respTotal) * 100) : 0
-                              return (
-                                <div key={i}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.muted, marginBottom: 4 }}>
-                                    <span>{b.label}</span>
-                                    <span>{pct}%</span>
-                                  </div>
-                                  <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                    <div style={{ width: `${pct}%`, height: '100%', background: b.color, borderRadius: 3 }} />
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {within24h + within7d >= respTotal * 0.7 ? (
-                            <ActionBanner tone="success" text="Results are mostly in within a week" sub="Safe to report final numbers after 7 days" />
-                          ) : (
-                            <ActionBanner tone="warning" text="A meaningful share of responses arrive late" sub="Wait longer than a week before reporting final numbers" />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    </DraggableCard>
-                    )}
                   </>
                 )
               })()}
