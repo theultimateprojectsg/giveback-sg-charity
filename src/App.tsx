@@ -10078,6 +10078,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             editingNoteId={editingNoteId} setEditingNoteId={setEditingNoteId} noteText={noteText} setNoteText={setNoteText}
             editingImpactNoteId={editingImpactNoteId} setEditingImpactNoteId={setEditingImpactNoteId} impactNoteText={impactNoteText} setImpactNoteText={setImpactNoteText}
             donationPledgeLink={donationPledgeLink} recurringGifts={recurringGifts} refunds={refunds} deleteRefund={deleteRefund} exportSingleReceiptPDF={exportSingleReceiptPDF}
+            setActiveTab={setActiveTab} setRecurringSearchTerm={setRecurringSearchTerm}
             pledges={pledges} setShowManualPledgeLinkModal={setShowManualPledgeLinkModal}
             showRefundForm={showRefundForm} setShowRefundForm={setShowRefundForm} refundForm={refundForm} setRefundForm={setRefundForm} savingRefund={savingRefund} saveRefund={saveRefund}
             setShowVoidModal={setShowVoidModal} setVoidReason={setVoidReason}

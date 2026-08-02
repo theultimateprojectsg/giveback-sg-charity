@@ -136,6 +136,8 @@ interface DonationsPageProps {
   refunds: { id: string, donation_id: string, refund_amount: number, refund_date: string, reason: string }[]
   deleteRefund: (r: any) => void
   exportSingleReceiptPDF: (d: Donation) => void
+  setActiveTab: (tab: string) => void
+  setRecurringSearchTerm: Dispatch<SetStateAction<string>>
   pledges: Pledge[]
   setShowManualPledgeLinkModal: Dispatch<SetStateAction<boolean>>
   showRefundForm: boolean
@@ -167,7 +169,7 @@ export function DonationsPage({
   showManualForm, setShowManualForm, closeManualForm, editingDonationId, setEditingDonationId,
   manualError, manualDuplicateWarning, setManualDuplicateWarning, manualForm, setManualForm, manualReferralSearch, setManualReferralSearch,
   donorList, generatePayNowEntry, saveManualEntry, savingManual, myCauses,
-  payNowQrDonation, setPayNowQrDonation, resetManualForm, confirmManualPayNow, confirmingPayNow,
+  payNowQrDonation, setPayNowQrDonation, resetManualForm, confirmManualPayNow, confirmingPayNow, setActiveTab, setRecurringSearchTerm,
   unconfirmedCountForYear, awaitingThankYouCountForYear, missingNricThisYear, clearDonationFilters,
   setFilterType, setFilterThankYou, setFilterNric, filterYear, setFilterYear,
   showDonationFilters, setShowDonationFilters, searchTerm, setSearchTerm, filterType, filterNric, filterSource, setFilterSource,
@@ -961,6 +963,22 @@ export function DonationsPage({
                     }
                   </div>
                 )}
+
+                {selectedDonation.recurring_gift_id && (() => {
+                  const linkedGift = recurringGifts.find(g => g.id === selectedDonation.recurring_gift_id)
+                  return linkedGift ? (
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 14 }}>
+                      🔁 From a recurring gift — <span
+                        style={{ color: C.forest, fontWeight: 500, textDecoration: 'underline', cursor: 'pointer' }}
+                        onClick={() => {
+                          setSelectedDonation(null); resetManualForm(); setQuickEmailInput(''); setQuickNricInput('')
+                          setRecurringSearchTerm(linkedGift.donor_email?.trim() || linkedGift.donor_name)
+                          setActiveTab('recurring')
+                        }}
+                      >{linkedGift.reference || `$${Number(linkedGift.amount).toLocaleString()}/${linkedGift.frequency}`}</span>
+                    </div>
+                  ) : null
+                })()}
                 </div>
 
                 <div>
@@ -1030,14 +1048,6 @@ export function DonationsPage({
                       ✓ Already linked to {donationPledgeLink.pledgeDonorName || 'a'} pledge (${Number(donationPledgeLink.amount_applied).toLocaleString()}){donationPledgeLink.pledgeReference ? ` · ${donationPledgeLink.pledgeReference}` : ''}
                     </div>
                   )}
-                  {selectedDonation.recurring_gift_id && (() => {
-                    const linkedGift = recurringGifts.find(g => g.id === selectedDonation.recurring_gift_id)
-                    return linkedGift ? (
-                      <div style={{ fontSize: 12, color: C.forest, fontWeight: 500, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 12px' }}>
-                        🔁 From recurring gift · {linkedGift.reference || `$${Number(linkedGift.amount).toLocaleString()}/${linkedGift.frequency}`}
-                      </div>
-                    ) : null
-                  })()}
                   {(() => {
                     const myRefunds119 = refunds.filter(r => r.donation_id === selectedDonation.id)
                     return myRefunds119.length > 0 ? (
