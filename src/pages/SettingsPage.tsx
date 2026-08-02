@@ -102,16 +102,20 @@ interface SettingsPageProps {
   setMigrationComplete: Dispatch<SetStateAction<unknown>>
   setMigrationProgress: Dispatch<SetStateAction<unknown>>
   EMAIL_TEMPLATE_DEFS: EmailTemplateGroup[]
-  emailTemplates: Record<string, { subject?: string, body?: string } | undefined>
+  emailTemplates: Record<string, { subject?: string, body?: string, banner_title?: string, banner_subtitle?: string } | undefined>
   editingEmailTemplate: string | null
   setEditingEmailTemplate: Dispatch<SetStateAction<string | null>>
   setEmailTemplateSubjectInput: Dispatch<SetStateAction<string>>
   setEmailTemplateBodyInput: Dispatch<SetStateAction<string>>
-  EMAIL_TEMPLATE_DEFAULTS: Record<string, { subject?: string, body?: string } | undefined>
+  EMAIL_TEMPLATE_DEFAULTS: Record<string, { subject?: string, body?: string, banner_title?: string, banner_subtitle?: string } | undefined>
   emailTemplateSubjectInput: string
   emailTemplateBodyInput: string
   EMAIL_TEMPLATE_PREVIEW_VARS: Record<string, unknown>
-  saveEmailTemplate: (key: string, value: { subject: string, body: string } | null) => void
+  saveEmailTemplate: (key: string, value: { subject: string, body: string, banner_title?: string, banner_subtitle?: string } | null) => void
+  emailTemplateBannerTitleInput: string
+  setEmailTemplateBannerTitleInput: Dispatch<SetStateAction<string>>
+  emailTemplateBannerSubtitleInput: string
+  setEmailTemplateBannerSubtitleInput: Dispatch<SetStateAction<string>>
 }
 
 export function SettingsPage({
@@ -141,6 +145,7 @@ export function SettingsPage({
   EMAIL_TEMPLATE_DEFS, emailTemplates, editingEmailTemplate, setEditingEmailTemplate,
   setEmailTemplateSubjectInput, setEmailTemplateBodyInput, EMAIL_TEMPLATE_DEFAULTS,
   emailTemplateSubjectInput, emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS, saveEmailTemplate,
+  emailTemplateBannerTitleInput, setEmailTemplateBannerTitleInput, emailTemplateBannerSubtitleInput, setEmailTemplateBannerSubtitleInput,
 }: SettingsPageProps) {
   return (
     <div style={s.content}>
@@ -636,11 +641,28 @@ export function SettingsPage({
                           setEditingEmailTemplate(t.key)
                           setEmailTemplateSubjectInput(saved?.subject ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.subject ?? '')
                           setEmailTemplateBodyInput(saved?.body ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.body ?? '')
+                          setEmailTemplateBannerTitleInput(saved?.banner_title ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title ?? '')
+                          setEmailTemplateBannerSubtitleInput(saved?.banner_subtitle ?? EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_subtitle ?? '')
                         }}>{saved ? 'Edit' : 'Customize'}</button>
                       )}
                     </div>
-                    {isEditing && (
+                    {isEditing && (() => {
+                      const hasBanner = EMAIL_TEMPLATE_DEFAULTS[t.key]?.banner_title !== undefined
+                      return (
                       <div style={{ marginTop: 14 }}>
+                        {hasBanner && (
+                          <>
+                            <label style={{ display: 'block', marginBottom: 10 }}>
+                              <div style={s.formLabel}>Banner Headline</div>
+                              <input style={s.formInput} value={emailTemplateBannerTitleInput} onChange={e => setEmailTemplateBannerTitleInput(e.target.value)} />
+                            </label>
+                            <label style={{ display: 'block', marginBottom: 10 }}>
+                              <div style={s.formLabel}>Banner Subtitle (optional)</div>
+                              <input style={s.formInput} value={emailTemplateBannerSubtitleInput} onChange={e => setEmailTemplateBannerSubtitleInput(e.target.value)} />
+                            </label>
+                            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Shown in the bold header of the email, above your message below.</div>
+                          </>
+                        )}
                         <label style={{ display: 'block', marginBottom: 10 }}>
                           <div style={s.formLabel}>Subject</div>
                           <input style={s.formInput} value={emailTemplateSubjectInput} onChange={e => setEmailTemplateSubjectInput(e.target.value)} />
@@ -652,9 +674,15 @@ export function SettingsPage({
                         <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
                           Available tokens: {t.tokens.map(tok => <code key={tok} style={{ marginRight: 6 }}>{`{{${tok}}}`}</code>)}
                         </div>
-                        {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim()) && (
+                        {(emailTemplateSubjectInput.trim() || emailTemplateBodyInput.trim() || emailTemplateBannerTitleInput.trim()) && (
                           <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 8, padding: 14, marginBottom: 12 }}>
                             <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: C.muted, marginBottom: 8 }}>Preview with sample data</div>
+                            {hasBanner && emailTemplateBannerTitleInput.trim() && (
+                              <div style={{ background: C.forest, borderRadius: 6, padding: '10px 12px', marginBottom: 8, textAlign: 'center' }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{fillTemplate(emailTemplateBannerTitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
+                                {emailTemplateBannerSubtitleInput.trim() && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 3 }}>{fillTemplate(emailTemplateBannerSubtitleInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>}
+                              </div>
+                            )}
                             <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 8 }}>{fillTemplate(emailTemplateSubjectInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
                             <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{fillTemplate(emailTemplateBodyInput, EMAIL_TEMPLATE_PREVIEW_VARS)}</div>
                           </div>
@@ -663,9 +691,12 @@ export function SettingsPage({
                           <button style={s.issueBtn} onClick={() => {
                             const trimmedSubject = emailTemplateSubjectInput.trim()
                             const trimmedBody = emailTemplateBodyInput.trim()
+                            const trimmedBannerTitle = emailTemplateBannerTitleInput.trim()
+                            const trimmedBannerSubtitle = emailTemplateBannerSubtitleInput.trim()
                             const def = EMAIL_TEMPLATE_DEFAULTS[t.key]
                             const matchesDefault = trimmedSubject === (def?.subject || '') && trimmedBody === (def?.body || '')
-                            saveEmailTemplate(t.key, matchesDefault ? null : { subject: trimmedSubject, body: trimmedBody })
+                              && trimmedBannerTitle === (def?.banner_title || '') && trimmedBannerSubtitle === (def?.banner_subtitle || '')
+                            saveEmailTemplate(t.key, matchesDefault ? null : { subject: trimmedSubject, body: trimmedBody, ...(hasBanner ? { banner_title: trimmedBannerTitle, banner_subtitle: trimmedBannerSubtitle } : {}) })
                             setEditingEmailTemplate(null)
                           }}>Save</button>
                           <button style={s.viewBtn} onClick={() => setEditingEmailTemplate(null)}>Cancel</button>
@@ -674,7 +705,8 @@ export function SettingsPage({
                           )}
                         </div>
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                 )
               })}

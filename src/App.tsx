@@ -118,50 +118,74 @@ const EMAIL_TEMPLATE_DEFAULTS = {
   standard: {
     subject: 'Thank you for your donation to {{charity_name}}! 💚',
     body: "Dear {{donor_name}},\n\nThank you so much for your generous gift to {{charity_name}}. Your support makes a real difference to the people and causes we serve.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: 'Thank You, {{donor_name}}!',
+    banner_subtitle: 'Your generosity makes a difference',
   },
   major_gift: {
     subject: 'Thank You, {{donor_name}}!',
     body: "Dear {{donor_name}},\n\nWe were truly moved by your generous gift of ${{amount}}. Contributions like yours make an outsized difference in what we're able to do, and we don't take that for granted.\n\nWith heartfelt thanks,\n{{charity_name}}",
+    banner_title: 'A Gift That Changes Things',
+    banner_subtitle: 'Thank you, {{donor_name}}, for your extraordinary generosity',
   },
   new_donor: {
     subject: 'Thank You, {{donor_name}}!',
     body: "Dear {{donor_name}},\n\nThank you for your very first gift to {{charity_name}} — we're so glad to have you with us. It's donors like you who make our work possible, and we hope this is the start of a long relationship.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: 'Welcome, {{donor_name}}!',
+    banner_subtitle: 'Thank you for your first gift to {{charity_name}}',
   },
   recurring_donor: {
     subject: 'Thank You, {{donor_name}}!',
     body: "Dear {{donor_name}},\n\nThank you once again for your continued support of {{charity_name}}. Your ongoing generosity gives us the stability to plan ahead and make a lasting difference.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: 'Thank You for Your Continued Support',
+    banner_subtitle: '{{donor_name}}, your steady giving makes a real difference',
   },
   nric_request: {
     subject: 'Action Required: Provide NRIC for tax deduction — {{charity_name}}',
     body: "Dear {{donor_name}},\n\nThank you again for your gift to {{charity_name}}. To issue you a tax-deductible receipt for your donation of ${{amount}} on {{date}}, we'll need your NRIC on file — please reply to this email with it at your convenience.\n\nWith thanks,\n{{charity_name}}",
+    banner_title: 'Action Required',
+    banner_subtitle: 'Provide your NRIC to claim your tax deduction',
   },
   milestone_thank_you: {
     subject: 'A note from {{charity_name}} 💚',
     body: "Dear {{donor_name}},\n\nWe wanted to take a moment, outside of any receipt or transaction, to just say thank you. Your support has genuinely meant a great deal to us and to the people we serve.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: 'A note from {{charity_name}}',
+    banner_subtitle: '',
   },
   pledge_thank_you: {
     subject: 'Thank you for fulfilling your pledge, {{donor_name}}!',
     body: "Dear {{donor_name}},\n\nYour pledge just came through — thank you for following through on it. Promises like this are easy to make and easy to forget, so the fact that you didn't means a great deal to us.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: '🎉 Pledge Fulfilled!',
+    banner_subtitle: 'Thank you, {{donor_name}}',
   },
   pledge_reminder_upcoming: {
     subject: 'Following up on your pledge to {{charity_name}}',
     body: "Dear {{donor_name}},\n\nJust a gentle, friendly reminder that your pledge of ${{amount}} is expected around {{due_date}}. No pressure at all — we just wanted to give you a heads-up. Thank you again for your generosity; we're genuinely looking forward to it.\n\nWith thanks,\n{{charity_name}}",
+    banner_title: 'A quick note from {{charity_name}}',
+    banner_subtitle: '',
   },
   pledge_reminder_overdue: {
     subject: 'Following up on your pledge to {{charity_name}}',
     body: "Dear {{donor_name}},\n\nWe haven't yet received your pledge of ${{amount}}, which was expected around {{due_date}} — just wanted to check in, no rush and no worries at all. If something's come up or you need a hand with anything, just let us know.\n\nWith thanks,\n{{charity_name}}",
+    banner_title: 'A quick note from {{charity_name}}',
+    banner_subtitle: '',
   },
   recurring_gift_reminder: {
     subject: 'A quick note about your recurring gift to {{charity_name}}',
     body: "Dear {{donor_name}},\n\nWe noticed we haven't received your usual ${{amount}} {{frequency}} gift recently. This happens sometimes — an expired card, updated bank details, a lapsed standing instruction — so nothing to worry about, we just wanted to flag it in case you'd like to check on your end.\n\nThank you, as always, for your continued support.\n\nWith thanks,\n{{charity_name}}",
+    banner_title: 'A quick note from {{charity_name}}',
+    banner_subtitle: '',
   },
   lapsed_reminder_lapsed: {
     subject: 'We miss you, {{donor_name}}!',
     body: "Dear {{donor_name}},\n\nIt's been a while since your last gift, and we wanted to reach out simply because we've missed you. Your past support of ${{amount}} over {{count}} gifts made a real difference, and we'd love to have you back whenever the time feels right.\n\nNo pressure at all — just wanted you to know we're thinking of you.\n\nWith gratitude,\n{{charity_name}}",
+    banner_title: 'A note from {{charity_name}}',
+    banner_subtitle: '',
   },
   lapsed_reminder_giving_change: {
     subject: 'Just checking in, {{donor_name}}',
     body: "Dear {{donor_name}},\n\nWe noticed your most recent gift looked a little different from your usual giving, and we just wanted to check in — no concerns at all, we simply value you as a supporter and wanted to make sure everything's okay on your end.\n\nYour generosity over the years has meant a lot to us, and we're grateful for your continued support in whatever way works for you.\n\nWarmly,\n{{charity_name}}",
+    banner_title: 'A note from {{charity_name}}',
+    banner_subtitle: '',
   },
   mass_appeal: {
     subject: '{{charity_name}} needs your support — {{cause_title}}',
@@ -908,6 +932,8 @@ export default function App() {
   const [editingEmailTemplate, setEditingEmailTemplate] = useState<any>(null)
   const [emailTemplateSubjectInput, setEmailTemplateSubjectInput] = useState<any>('')
   const [emailTemplateBodyInput, setEmailTemplateBodyInput] = useState<any>('')
+  const [emailTemplateBannerTitleInput, setEmailTemplateBannerTitleInput] = useState<any>('')
+  const [emailTemplateBannerSubtitleInput, setEmailTemplateBannerSubtitleInput] = useState<any>('')
   const [charityLogoUrl, setCharityLogoUrl] = useState<any>(null)
   const [charityLogoDataUrl, setCharityLogoDataUrl] = useState<any>(null)
   const [uploadingLogo, setUploadingLogo] = useState<any>(false)
@@ -2857,6 +2883,18 @@ export default function App() {
 
   const senderIdentity = { senderDomainStatus, senderDomain, senderEmailLocalPart, replyToEmail: session?.user?.email, charityName }
 
+  // Resolves the charity's custom banner headline/subtitle for a template (falling back to
+  // EMAIL_TEMPLATE_DEFAULTS), filled with the given vars. Shared by every send site so the
+  // banner shown in Settings, in previews, and in the actual sent email always stays in sync.
+  function emailBannerFor(key: any, vars: any) {
+    const saved = emailTemplates[key]
+    const def = EMAIL_TEMPLATE_DEFAULTS[key as keyof typeof EMAIL_TEMPLATE_DEFAULTS] as any
+    return {
+      banner_title: fillTemplate(saved?.banner_title ?? def?.banner_title ?? '', vars),
+      banner_subtitle: fillTemplate(saved?.banner_subtitle ?? def?.banner_subtitle ?? '', vars),
+    }
+  }
+
   async function saveEmailTemplate(key: any, val: any) {
     const { error, next } = await updateCharityJsonField(charityUen, 'email_templates', (current: any) => {
       const merged = { ...(current || {}) }
@@ -3078,6 +3116,8 @@ export default function App() {
     }
     setSendingPledgeReminder(true)
     const p = pledgeReminderCandidate
+    const daysUntilSend = Math.ceil((new Date(p.expected_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    const reminderKey = daysUntilSend < 0 ? 'pledge_reminder_overdue' : 'pledge_reminder_upcoming'
     const { error } = await sendCharityEmail({
       type: 'pledge_reminder',
       donor_name: p.donor_name,
@@ -3087,6 +3127,7 @@ export default function App() {
       pledge_amount: Number(p.amount).toLocaleString(),
       subject_override: pledgeReminderSubject,
       custom_message: pledgeReminderBody,
+      ...emailBannerFor(reminderKey, { donor_name: p.donor_name, charity_name: charityName }),
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingPledgeReminder(false); return }
 
@@ -3668,6 +3709,7 @@ export default function App() {
       recurring_amount: Number(g.amount).toLocaleString(),
       subject_override: recurringReminderSubject,
       custom_message: recurringReminderBody,
+      ...emailBannerFor('recurring_gift_reminder', { donor_name: g.donor_name, charity_name: charityName }),
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingRecurringReminder(false); return }
 
@@ -3758,6 +3800,7 @@ export default function App() {
     setSendingLapsedReminder(true)
     const d = lapsedReminderCandidate
     const donorKey = d.email?.trim() || d.name
+    const lapsedKey = d.givingChangeMeta ? 'lapsed_reminder_giving_change' : 'lapsed_reminder_lapsed'
     const { error } = await sendCharityEmail({
       type: 'lapsed_donor_reminder',
       donor_name: d.name,
@@ -3766,6 +3809,7 @@ export default function App() {
       charity_uen: charityUen,
       subject_override: lapsedReminderSubject,
       custom_message: lapsedReminderBody,
+      ...emailBannerFor(lapsedKey, { donor_name: d.name, charity_name: charityName }),
     })
     if (error) { showToast('Failed to send reminder', 'error'); setSendingLapsedReminder(false); return }
 
@@ -5086,6 +5130,7 @@ export default function App() {
       pledge_amount: Number(pledge.amount).toLocaleString(),
       subject_override: pledgeThankYouSubject,
       custom_message: pledgeThankYouBody,
+      ...emailBannerFor('pledge_thank_you', { donor_name: donation.donor_name, charity_name: charityName }),
     })
     if (!emailError) {
       await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -5241,51 +5286,52 @@ export default function App() {
     const customBlock = customMessage?.trim()
       ? `<p style="font-size:13px;color:${C.text};line-height:1.6;margin:10px 0;">${escapeHtml(customMessage.trim())}</p>`
       : ''
+    // Banner headline/subtitle are the charity's own copy, set (or left at their default) in
+    // Settings → Email Templates -- nothing about the visible wording here is hardcoded.
+    const { banner_title, banner_subtitle } = emailBannerFor(templateType, { donor_name: donation.donor_name, charity_name: charityName, amount, cause_title: causeNameForDonation(donation) })
+    const safeBannerTitle = escapeHtml(banner_title)
+    const safeBannerSubtitle = escapeHtml(banner_subtitle)
 
     if (templateType === 'major_gift') {
       return `
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
           <div style="font-size:28px;margin-bottom:6px;">🌳</div>
-          <div style="font-size:17px;font-weight:700;color:white;">A Gift That Changes Things</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you, ${safeDonorName}, for your extraordinary generosity</div>
+          <div style="font-size:17px;font-weight:700;color:white;">${safeBannerTitle}</div>
+          ${banner_subtitle ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeBannerSubtitle}</div>` : ''}
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
-          <p style="font-size:13px;color:${C.text};line-height:1.6;">A gift of this size doesn't just help — it changes what we're able to do. On behalf of everyone at ${safeCharityName}, thank you.</p>
           ${customBlock}
-          <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:${customBlock ? '10px' : '0'};font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
           ${causeTitle ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;"><span style="color:${C.emailMuted};">Cause</span><span style="font-weight:700;color:${C.emailAccentGold};">🎯 ${causeTitle}</span></div>` : ''}
         </div>`
     }
     if (templateType === 'new_donor') {
       return `
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
-          <div style="font-size:17px;font-weight:700;color:white;">Welcome, ${safeDonorName}!</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Thank you for your first gift to ${safeCharityName}</div>
+          <div style="font-size:17px;font-weight:700;color:white;">${safeBannerTitle}</div>
+          ${banner_subtitle ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeBannerSubtitle}</div>` : ''}
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
-          <p style="font-size:13px;color:${C.text};line-height:1.6;">Your first gift means more than the number on this receipt — it's the start of you becoming part of our story. Thank you for your gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
-          ${causeTitle ? `<p style="font-size:13px;color:${C.text};">Your gift went toward: <strong style="color:${C.emailAccentGold};">🎯 ${causeTitle}</strong></p>` : ''}
+          <div style="display:flex;justify-content:space-between;margin-top:${customBlock ? '10px' : '0'};font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
+          ${causeTitle ? `<p style="font-size:13px;color:${C.text};margin-top:10px;">Your gift went toward: <strong style="color:${C.emailAccentGold};">🎯 ${causeTitle}</strong></p>` : ''}
         </div>`
     }
     if (templateType === 'recurring_donor') {
       return `
         <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
-          <div style="font-size:17px;font-weight:700;color:white;">Thank You for Your Continued Support</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeDonorName}, your steady giving makes a real difference</div>
+          <div style="font-size:17px;font-weight:700;color:white;">${safeBannerTitle}</div>
+          ${banner_subtitle ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeBannerSubtitle}</div>` : ''}
         </div>
         <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
-          <p style="font-size:13px;color:${C.text};line-height:1.6;">Reliable, ongoing support like yours is what lets us plan ahead with confidence. Thank you for another gift of <strong>SGD $${amount}</strong>.</p>
           ${customBlock}
+          <div style="display:flex;justify-content:space-between;margin-top:${customBlock ? '10px' : '0'};font-size:13px;"><span style="color:${C.emailMuted};">Amount</span><span style="font-weight:700;color:${C.emailAccentGreen};">SGD $${amount}</span></div>
         </div>`
     }
     return `
       <div style="background:${C.forest};border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;">
-        <div style="font-size:17px;font-weight:700;color:white;">Thank You, ${safeDonorName}!</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">Your generosity makes a difference</div>
-      </div>
-      <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};margin-bottom:16px;">
-        <p style="font-size:13px;color:${C.text};line-height:1.6;margin:0;">We don't say this often enough: thank you. Not just for this gift, but for choosing to keep giving. Consistent support like yours is what lets us plan further ahead and take on more than we could with one-off gifts alone.</p>
+        <div style="font-size:17px;font-weight:700;color:white;">${safeBannerTitle}</div>
+        ${banner_subtitle ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">${safeBannerSubtitle}</div>` : ''}
       </div>
       ${customBlock ? `<div style="background:white;border-radius:12px;padding:14px;border:1px solid ${C.border};margin-bottom:12px;">${customBlock}</div>` : ''}
       <div style="background:white;border-radius:12px;padding:16px;border:1px solid ${C.border};">
@@ -5340,6 +5386,7 @@ export default function App() {
       thank_you_template: templateTypeSend,
       subject_override: thankYouSubjectInput?.trim() || undefined,
       custom_message: thankYouCustomMessage?.trim() || null,
+      ...emailBannerFor(templateTypeSend, { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }),
     })
     if (error) { showToast('Failed to send email', 'error'); setSendingThankYouId(null); return }
     setThankYouCustomMessage('')
@@ -5390,6 +5437,7 @@ export default function App() {
         cause_title: causeNameForDonation(donation),
         receipt_pdf_base64: receiptB64,
         receipt_filename: `Receipt-${donation.receipt_number || donation.payment_ref || donation.id}.pdf`,
+        ...emailBannerFor('standard', { donor_name: donation.donor_name, charity_name: charityName, amount: donation.amount, cause_title: causeNameForDonation(donation) }),
       })
       if (!emailError) {
         await supabase.from('donations').update({ thank_you_sent: true }).eq('id', donation.id)
@@ -5549,6 +5597,7 @@ export default function App() {
           amount: donor.total,
           date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }),
           request_nric: true,
+          ...emailBannerFor('nric_request', { donor_name: donor.donor_name, charity_name: charityName }),
         })
         if (!error) sent++
       } catch (invokeErr) {
@@ -11320,6 +11369,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             EMAIL_TEMPLATE_DEFS={EMAIL_TEMPLATE_DEFS} emailTemplates={emailTemplates} editingEmailTemplate={editingEmailTemplate} setEditingEmailTemplate={setEditingEmailTemplate}
             setEmailTemplateSubjectInput={setEmailTemplateSubjectInput} setEmailTemplateBodyInput={setEmailTemplateBodyInput} EMAIL_TEMPLATE_DEFAULTS={EMAIL_TEMPLATE_DEFAULTS}
             emailTemplateSubjectInput={emailTemplateSubjectInput} emailTemplateBodyInput={emailTemplateBodyInput} EMAIL_TEMPLATE_PREVIEW_VARS={EMAIL_TEMPLATE_PREVIEW_VARS} saveEmailTemplate={saveEmailTemplate}
+            emailTemplateBannerTitleInput={emailTemplateBannerTitleInput} setEmailTemplateBannerTitleInput={setEmailTemplateBannerTitleInput}
+            emailTemplateBannerSubtitleInput={emailTemplateBannerSubtitleInput} setEmailTemplateBannerSubtitleInput={setEmailTemplateBannerSubtitleInput}
           />
         )}
 
@@ -12161,6 +12212,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     charity_uen: charityUen,
                     subject_override: subject,
                     custom_message: text,
+                    ...emailBannerFor('milestone_thank_you', { donor_name: donor.name, charity_name: charityName }),
                   })
                   if (error) { showToast('Failed to send email', 'error'); return }
                   const donorKey = donor.email?.trim() || donor.name
@@ -12271,6 +12323,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                     charity_uen: charityUen,
                     subject_override: rnOutreach.subject,
                     custom_message: rnOutreach.text,
+                    ...emailBannerFor('milestone_thank_you', { donor_name: rnOutreach.donorName, charity_name: charityName }),
                   })
                   if (error) { showToast(error.message || 'Failed to send email', 'error'); setRnSending(false); return }
                   await logDonorContact(rnOutreach.donorKey, `${rnOutreach.logNote} sent by email`, 'email', true, { subject: rnOutreach.subject, body: rnOutreach.text })
