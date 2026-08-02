@@ -1,4 +1,5 @@
-import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react'
+import type { CSSProperties, Dispatch, ReactNode, RefObject, SetStateAction } from 'react'
+import { useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { C } from '../theme'
 import { s } from '../styles'
@@ -160,6 +161,53 @@ interface DonationsPageProps {
   deleteDonation: (id: string) => void
   unconfirmPayment: (d: Donation) => void
   fyOf: (date: string | Date) => number
+}
+
+function DonationMoreActionsMenu({
+  open, setOpen, canLinkPledge, canRefund, canVoid, canUndoConfirm, canDelete, deletingId, donationId,
+  onLinkPledge, onRefund, onVoid, onUndoConfirm, onDelete,
+}: {
+  open: boolean
+  setOpen: Dispatch<SetStateAction<any>>
+  canLinkPledge: boolean
+  canRefund: boolean
+  canVoid: boolean
+  canUndoConfirm: boolean
+  canDelete: boolean
+  deletingId: string | null
+  donationId: string
+  onLinkPledge: () => void
+  onRefund: () => void
+  onVoid: () => void
+  onUndoConfirm: () => void
+  onDelete: () => void
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open, setOpen])
+
+  const itemStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.text, padding: '9px 10px', borderRadius: 5 }
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative' }}>
+      <button style={{ ...s.viewBtn, justifyContent: 'center', width: '100%' }} onClick={() => setOpen((v: boolean) => !v)}>⋯ More actions</button>
+      {open && (
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: '100%', marginBottom: 6, zIndex: 20, background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.14)' }}>
+          {canLinkPledge && <button style={itemStyle} onClick={() => { setOpen(false); onLinkPledge() }}>🤝 Link to Pledge</button>}
+          {canRefund && <button style={itemStyle} onClick={() => { setOpen(false); onRefund() }}>↩️ Refund This Donation</button>}
+          {canVoid && <button style={{ ...itemStyle, color: C.red }} onClick={() => { setOpen(false); onVoid() }}>🚫 Void & Reissue Receipt</button>}
+          {canUndoConfirm && <button style={{ ...itemStyle, color: C.warning }} onClick={() => { setOpen(false); onUndoConfirm() }}>↩️ Undo Confirmation</button>}
+          {canDelete && <button style={{ ...itemStyle, color: C.red }} disabled={deletingId === donationId} onClick={() => { setOpen(false); onDelete() }}>{deletingId === donationId ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DonationsPage({
@@ -1178,54 +1226,39 @@ export function DonationsPage({
                   )}
 
                   {(() => {
-                    const hasMoreActions =
-                      (selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0) ||
-                      (selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') ||
-                      (selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded') ||
-                      (selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed') ||
-                      selectedDonation.source === 'manual'
-                    if (!hasMoreActions) return null
+                    const canLinkPledge = selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0
+                    const myRefunds120 = refunds.filter(r => r.donation_id === selectedDonation.id)
+                    const totalRefunded120 = myRefunds120.reduce((s, r) => s + Number(r.refund_amount), 0)
+                    const canRefund = (selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') && totalRefunded120 === 0
+                    const canVoid = selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded'
+                    const canUndoConfirm = selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed'
+                    const canDelete = selectedDonation.source === 'manual'
+                    if (!canLinkPledge && !canRefund && !canVoid && !canUndoConfirm && !canDelete) return null
                     return (
                       <>
-                        <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowDonationMoreActions(v => !v)}>{showDonationMoreActions ? '▲ Fewer actions' : '⋯ More actions'}</button>
-                        {showDonationMoreActions && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 10 }}>
-                            {selectedDonation.payment_status === 'confirmed' && !donationPledgeLink && pledges.filter(p => p.status === 'pending').length > 0 && (
-                              <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowManualPledgeLinkModal(true)}>🤝 Link to Pledge</button>
-                            )}
-                            {(selectedDonation.payment_status === 'confirmed' || selectedDonation.payment_status === 'refunded') && (() => {
-                              const myRefunds120 = refunds.filter(r => r.donation_id === selectedDonation.id)
-                              const totalRefunded120 = myRefunds120.reduce((s, r) => s + Number(r.refund_amount), 0)
-                              if (totalRefunded120 > 0) return null
-                              return showRefundForm ? (
-                                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
-                                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
-                                  <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    <button style={{ ...s.btnForest, fontSize: 12, opacity: savingRefund ? 0.7 : 1 }} disabled={savingRefund} onClick={() => saveRefund(selectedDonation)}>{savingRefund ? 'Refunding...' : 'Confirm Full Refund'}</button>
-                                    <button style={{ ...s.viewBtn, fontSize: 12 }} disabled={savingRefund} onClick={() => setShowRefundForm(false)}>Cancel</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button style={{ ...s.viewBtn, justifyContent: 'center' }} onClick={() => setShowRefundForm(true)}>↩️ Refund This Donation</button>
-                              )
-                            })()}
-                            {selectedDonation.receipt_issued && selectedDonation.source === 'manual' && selectedDonation.payment_status !== 'refunded' && (
-                              <button style={{ ...s.viewBtn, color: C.red, borderColor: C.red, justifyContent: 'center' }} onClick={() => { setShowVoidModal(true); setVoidReason('') }}>🚫 Void & Reissue Receipt</button>
-                            )}
-                            {selectedDonation.payment_status === 'confirmed' && !selectedDonation.thank_you_sent && userRole === 'ed' && (
-                              <button style={{ ...s.viewBtn, justifyContent: 'center', color: C.warning, borderColor: C.warningBorder }} onClick={() => {
-                                setConfirmModal({
-                                  title: 'Undo this payment confirmation?',
-                                  description: 'This will revert the donation to "awaiting confirmation" and un-issue its receipt. Use this if the payment was confirmed by mistake.',
-                                  confirmLabel: 'Undo confirmation',
-                                  onConfirm: () => unconfirmPayment(selectedDonation),
-                                })
-                              }}>↩️ Undo Confirmation</button>
-                            )}
-                            {selectedDonation.source === 'manual' && (
-                              <button style={deletingId === selectedDonation.id ? s.issuingBtn : { ...s.viewBtn, color: C.red, borderColor: C.red }} disabled={deletingId === selectedDonation.id} onClick={() => deleteDonation(selectedDonation.id)}>{deletingId === selectedDonation.id ? '⏳ Deleting...' : '🗑️ Delete Entry'}</button>
-                            )}
+                        <DonationMoreActionsMenu
+                          open={showDonationMoreActions} setOpen={setShowDonationMoreActions}
+                          canLinkPledge={canLinkPledge} canRefund={canRefund} canVoid={canVoid} canUndoConfirm={canUndoConfirm} canDelete={canDelete}
+                          deletingId={deletingId} donationId={selectedDonation.id}
+                          onLinkPledge={() => setShowManualPledgeLinkModal(true)}
+                          onRefund={() => setShowRefundForm(true)}
+                          onVoid={() => { setShowVoidModal(true); setVoidReason('') }}
+                          onUndoConfirm={() => setConfirmModal({
+                            title: 'Undo this payment confirmation?',
+                            description: 'This will revert the donation to "awaiting confirmation" and un-issue its receipt. Use this if the payment was confirmed by mistake.',
+                            confirmLabel: 'Undo confirmation',
+                            onConfirm: () => unconfirmPayment(selectedDonation),
+                          })}
+                          onDelete={() => deleteDonation(selectedDonation.id)}
+                        />
+                        {showRefundForm && (
+                          <div style={{ background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12 }}>
+                            <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>This will refund the full ${Number(selectedDonation.amount).toLocaleString()} donation, dated today.</div>
+                            <textarea style={{ ...s.formInput, fontSize: 12, minHeight: 50, resize: 'vertical', marginBottom: 8 }} placeholder="Reason for refund" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} />
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button style={{ ...s.btnForest, fontSize: 12, opacity: savingRefund ? 0.7 : 1 }} disabled={savingRefund} onClick={() => saveRefund(selectedDonation)}>{savingRefund ? 'Refunding...' : 'Confirm Full Refund'}</button>
+                              <button style={{ ...s.viewBtn, fontSize: 12 }} disabled={savingRefund} onClick={() => setShowRefundForm(false)}>Cancel</button>
+                            </div>
                           </div>
                         )}
                       </>
