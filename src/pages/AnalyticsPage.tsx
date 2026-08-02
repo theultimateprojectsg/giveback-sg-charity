@@ -379,7 +379,6 @@ export function AnalyticsPage({
   ]
   const CAMPAIGN_PERFORMANCE_CARDS = [
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
-    { key: 'cp_goalStrip', label: 'Goal Strip Tiles' },
     { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
     { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
@@ -1429,7 +1428,8 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {!hidden('cp_goalStrip') && (() => {
+              {/* Disabled for now: too noisy with < 2 campaigns/year for a small charity. Re-enable by restoring the cp_goalStrip entry in CAMPAIGN_PERFORMANCE_CARDS and flipping this back to !hidden('cp_goalStrip'). */}
+              {false && (() => {
                 const { yr, strip } = campaignGoalStrip
                 return (
                   <DraggableCard sectionId="cp" cardKey="cp_goalStrip" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_goalStrip')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
