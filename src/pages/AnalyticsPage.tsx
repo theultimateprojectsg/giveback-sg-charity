@@ -1183,8 +1183,8 @@ export function AnalyticsPage({
                           {channelRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{r.label}</span>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{r.pct}%</span>
+                              <span style={{ fontSize: 13, color: C.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.forest, minWidth: 34, textAlign: 'right' }}>{r.pct}%</span>
                               <span style={{ fontSize: 12, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
                             </div>
                           ))}
