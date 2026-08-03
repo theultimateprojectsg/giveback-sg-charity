@@ -1168,8 +1168,8 @@ export function AnalyticsPage({
                     {channelRows.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 16 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
                           {channelRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
@@ -1179,7 +1179,7 @@ export function AnalyticsPage({
                             </div>
                           ))}
                         </div>
-                        <ResponsiveContainer width={150} height={140}>
+                        <ResponsiveContainer width={isMobile ? '100%' : 150} height={140}>
                           <PieChart>
                             <Pie data={channelRows} dataKey="amt" nameKey="label" cx="50%" cy="50%" innerRadius={38} outerRadius={64} paddingAngle={2} isAnimationActive={false}>
                               {channelRows.map((r: any, i: any) => (
