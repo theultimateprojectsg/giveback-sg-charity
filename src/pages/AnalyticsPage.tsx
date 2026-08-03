@@ -1179,7 +1179,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1407,7 +1407,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1432,7 +1432,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{t.sub}</div>
                         {t.d !== null ? (
@@ -1626,7 +1626,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1649,7 +1649,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d !== undefined ? (
                           t.d === null ? (
@@ -1941,7 +1941,7 @@ export function AnalyticsPage({
                 const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
                 const genericTile = (t: any) => (
                   <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                    <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                    <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                     {t.d === null ? (
                       <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1959,7 +1959,7 @@ export function AnalyticsPage({
                       {genericTile(pledgesMadeTile)}
                       {genericTile(amountPledgedTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
+                        <div style={s.statTileLabel}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                         {avgDelta === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1970,7 +1970,7 @@ export function AnalyticsPage({
                         )}
                       </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={s.statTileLabel}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                           {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                           <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
@@ -1983,12 +1983,12 @@ export function AnalyticsPage({
                       {genericTile(fulfilledTile)}
                       {genericTile(fulfilledOnTimeTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
+                        <div style={s.statTileLabel}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
                       </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
+                        <div style={s.statTileLabel}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
@@ -2238,7 +2238,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -2262,24 +2262,24 @@ export function AnalyticsPage({
                   <DraggableCard sectionId="rc" cardKey="rc_healthTiles" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_healthTiles')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
+                      <div style={s.statTileLabel}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
+                      <div style={s.statTileLabel}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
+                      <div style={s.statTileLabel}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
+                      <div style={s.statTileLabel}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
                     </div>
@@ -2287,7 +2287,7 @@ export function AnalyticsPage({
                       style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0, cursor: atRiskCount > 0 ? 'pointer' : 'default' }}
                       onClick={atRiskCount > 0 ? () => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
                     >
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
+                      <div style={s.statTileLabel}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                         {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
@@ -2612,7 +2612,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? (
                           <div style={{ fontSize: 11, color: C.muted }}>currently active</div>
@@ -3019,22 +3019,22 @@ export function AnalyticsPage({
                   <DraggableCard sectionId="db" cardKey="db_retentionTiles" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_retentionTiles')} flexBasis="100%" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
+                      <div style={s.statTileLabel}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>of {yr - 1}'s donors gave again in {yr}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
+                      <div style={s.statTileLabel}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatDonorRate}%</div>
                       <div style={{ fontSize: 11, color: C.muted }}>gave 2+ times, all-time</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
+                      <div style={s.statTileLabel}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgLTV.toLocaleString()}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>per donor, all-time</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
+                      <div style={s.statTileLabel}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeCount} <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>/ {lapsedCount}</span></div>
                       <div style={{ fontSize: 11, color: C.muted }}>active vs lapsed donors</div>
                     </div>

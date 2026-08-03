@@ -85,7 +85,7 @@ mobileOverflowItem: {
   sectionBand: { background: C.forest, borderRadius: '12px 12px 0 0', borderBottom: `5px solid ${C.gold}`, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionBandLabel: { fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: 0.2 },
   analyticsCardTitle: { fontSize: 12, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
-  statTileLabel: { fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
+  statTileLabel: { fontSize: 10.5, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
   analyticsSubTitle: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   analyticsSubTitleDivider: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 },
   analyticsStatNumber: { fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 },
