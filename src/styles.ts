@@ -81,6 +81,12 @@ mobileOverflowItem: {
   // boundary, not a thin uppercase label easy to miss while scrolling.
   sectionBand: { background: C.tealBg, borderRadius: 12, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionBandLabel: { fontSize: 13, fontWeight: 700, color: C.forest, letterSpacing: 0.2 },
+  // TEMPORARY — two live A/B variants for comparison, applied to one section
+  // each. Once a direction is picked, fold it into sectionBand/sectionBandLabel
+  // above and delete these three.
+  sectionBandForest: { background: C.forest, borderRadius: 12, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sectionBandForestLabel: { fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: 0.2 },
+  sectionBandIvoryGold: { background: C.ivoryDark, borderRadius: '12px 12px 0 0', borderBottom: `2.5px solid ${C.gold}`, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   analyticsCardTitle: { fontSize: 12, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
   statTileLabel: { fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
   analyticsSubTitle: { fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
