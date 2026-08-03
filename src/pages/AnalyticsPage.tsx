@@ -1084,7 +1084,7 @@ export function AnalyticsPage({
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : `repeat(${mixTiles.length}, minmax(0, 1fr))` }}>
                     {mixTiles.map((t, i) => (
-                      <div key={t.label} style={{ padding: '14px 16px', cursor: 'pointer', borderRight: !isMobile && i !== mixTiles.length - 1 ? `1px solid ${C.border}` : 'none', borderBottom: isMobile && i < mixTiles.length - (mixTiles.length % 2 === 0 ? 2 : 1) ? `1px solid ${C.border}` : 'none' }} onClick={() => setActiveTab(t.tab)}>
+                      <div key={t.label} style={{ padding: '14px 16px', paddingLeft: !isMobile && i === 0 ? 20 : 16, paddingRight: !isMobile && i === mixTiles.length - 1 ? 20 : 16, cursor: 'pointer', borderRight: !isMobile && i !== mixTiles.length - 1 ? `1px solid ${C.border}` : 'none', borderBottom: isMobile && i < mixTiles.length - (mixTiles.length % 2 === 0 ? 2 : 1) ? `1px solid ${C.border}` : 'none' }} onClick={() => setActiveTab(t.tab)}>
                         <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{t.label}</div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{t.count}</div>
                         {t.flag && <div style={{ fontSize: 10, color: t.flag.color, fontWeight: 500, marginTop: 5 }}>{t.flag.text}</div>}
