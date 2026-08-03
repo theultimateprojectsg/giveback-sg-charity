@@ -896,7 +896,7 @@ export function AnalyticsPage({
               const { end: goalYearEnd } = fiscalYearBounds(goalYear, fyEndMonth, fyEndDay)
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
               return (
-              <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+              <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="440px" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
               <div style={s.card}>
                 <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -1022,7 +1022,6 @@ export function AnalyticsPage({
             {!hidden('fo_fundingMix') && (() => {
               const now03 = new Date()
               const liveCampaignsList = myCauses.filter(c => c.status === 'approved' && c.type === 'campaign' && (!c.end_date || new Date(c.end_date) >= now03))
-              const campaignRevenue = liveCampaignsList.reduce((s, c) => s + (causeRaisedMap[c.id]?.total || 0), 0)
               const behindPaceCampaigns = liveCampaignsList.filter(c => {
                 // Matches the Campaigns page's own time-proportional pace calculation exactly --
                 // a flat "under 40% raised" threshold previously flagged brand-new campaigns as
@@ -1038,10 +1037,6 @@ export function AnalyticsPage({
               })
 
               const activeGrantsList = grantsWithNextReport.filter((g: any) => g.status === 'active')
-              const grantsReceived = activeGrantsList.reduce((s: any, g: any) => {
-                if (g.is_matching) return s + (grantMatchClaims[g.id] || []).reduce((s2: any, c: any) => s2 + Number(c.amount), 0)
-                return s + Number(g.amount)
-              }, 0)
               const nearestGrantDeadline = activeGrantsList
                 .filter((g: any) => g.report_due_date)
                 .map((g: any) => Math.ceil((new Date(g.report_due_date).getTime() - now03.getTime()) / (1000 * 60 * 60 * 24)))
@@ -1063,108 +1058,38 @@ export function AnalyticsPage({
               const daysSinceLastAppeal = lastAppeal ? Math.floor((now03.getTime() - new Date(lastAppeal.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null
 
               const activeRecurringList = recurringGifts.filter(g => g.status === 'active')
-              const recurringMonthlyTotal = activeRecurringList.reduce((s, g) => {
-                const amt = Number(g.amount) || 0
-                if (g.frequency === 'weekly') return s + amt * 4.33
-                if (g.frequency === 'quarterly') return s + amt / 3
-                if (g.frequency === 'annually') return s + amt / 12
-                return s + amt
-              }, 0)
               const escalatedGiroList = giroMissedCycles.filter((g: any) => g.missedCycles >= 2)
 
-              const pledgesFulfilledRevenue = pledges.filter(p => p.status === 'fulfilled').reduce((s, p) => s + Number(p.amount), 0)
-              const massAppealRevenue = thisYearAppeals.reduce((s: any, a: any) => s + (Number(a.amount) || 0) * (a.sent_count || 0) / Math.max(1, a.donor_count || 1), 0)
-              const totalChannelRevenue = campaignRevenue + grantsReceived + pledgesFulfilledRevenue + massAppealRevenue + recurringMonthlyTotal
-              const shareOf = (amt: any) => totalChannelRevenue > 0 ? Math.round((amt / totalChannelRevenue) * 100) : 0
-              const shareOfTip = "Share of this mix, not of overall confirmed revenue — this blends all-time/active totals (active grants, all-time fulfilled pledges) with a single month of recurring income, so it won't match the fiscal-year percentages on the Revenue by Channel chart below."
-
+              const mixTiles = [
+                { label: 'Campaigns', count: liveCampaignsList.length, tab: 'promotions',
+                  flag: behindPaceCampaigns.length > 0 ? { text: `⚠ ${behindPaceCampaigns.length} behind pace`, color: C.gold }
+                    : liveCampaignsList.length > 0 ? { text: '✓ On pace', color: C.sage } : null },
+                { label: 'Grants', count: activeGrantsList.length, tab: 'grants',
+                  flag: nearestGrantDeadline !== undefined ? { text: `⚠ Report due ${nearestGrantDeadline}d`, color: nearestGrantDeadline <= 30 ? C.red : C.gold }
+                    : activeGrantsList.length > 0 ? { text: '✓ No deadlines soon', color: C.sage } : null },
+                { label: 'Pledges', count: pendingPledgesList.length, tab: 'pledges',
+                  flag: overduePledgesList.length > 0 ? { text: `⚠ $${overduePledgeTotal.toLocaleString()} overdue`, color: C.red }
+                    : pendingPledgesList.length > 0 ? { text: '✓ None overdue', color: C.sage } : null },
+                { label: 'Appeals', count: thisYearAppeals.length, tab: 'promotions',
+                  flag: daysSinceLastAppeal !== null ? { text: daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`, color: daysSinceLastAppeal > 60 ? C.gold : C.muted } : null },
+                { label: 'Recurring', count: activeRecurringList.length, tab: 'recurring',
+                  flag: escalatedGiroList.length > 0 ? { text: `⚠ ${escalatedGiroList.length} missed cycles`, color: C.red }
+                    : activeRecurringList.length > 0 ? { text: '✓ All on schedule', color: C.sage } : null },
+              ]
               return (
-                <DraggableCard sectionId="fo" cardKey="fo_fundingMix" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_fundingMix')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16 }}>
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('promotions')}>
-                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{liveCampaignsList.length}</div>
-                    {behindPaceCampaigns.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
-                    ) : liveCampaignsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ On pace</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${campaignRevenue.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(campaignRevenue)}%`, height: '100%', background: C.forest }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(campaignRevenue)}% of current funding mix <InfoTip text={shareOfTip} /></div>
-                    </div>
+                <DraggableCard sectionId="fo" cardKey="fo_fundingMix" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_fundingMix')} flexBasis="440px" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                <div style={{ ...s.card, padding: 0, overflow: 'hidden' }}>
+                  <div style={{ padding: '18px 20px 4px' }}>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 0 }}>Funding Mix — active items <InfoTip text="Quick snapshot of what's active or pending across each fundraising channel. Click a tile to jump to that section." /></div>
                   </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('grants')}>
-                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeGrantsList.length}</div>
-                    {nearestGrantDeadline !== undefined ? (
-                      <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
-                    ) : activeGrantsList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ No deadlines soon</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${grantsReceived.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(grantsReceived)}%`, height: '100%', background: C.sage }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))' }}>
+                    {mixTiles.map((t, i) => (
+                      <div key={t.label} style={{ padding: '14px 16px', cursor: 'pointer', borderRight: !isMobile && (i + 1) % 3 !== 0 ? `1px solid ${C.border}` : 'none', borderBottom: (isMobile ? i < mixTiles.length - (mixTiles.length % 2 === 0 ? 2 : 1) : i < 3) ? `1px solid ${C.border}` : 'none' }} onClick={() => setActiveTab(t.tab)}>
+                        <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{t.label}</div>
+                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{t.count}</div>
+                        {t.flag && <div style={{ fontSize: 10, color: t.flag.color, fontWeight: 500, marginTop: 5 }}>{t.flag.text}</div>}
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(grantsReceived)}% of current funding mix <InfoTip text={shareOfTip} /></div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('pledges')}>
-                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{pendingPledgesList.length}</div>
-                    {overduePledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
-                    ) : pendingPledgesList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ None overdue</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${pledgesFulfilledRevenue.toLocaleString()}</div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(pledgesFulfilledRevenue)}%`, height: '100%', background: C.teal }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(pledgesFulfilledRevenue)}% of current funding mix <InfoTip text={shareOfTip} /></div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('promotions')}>
-                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{thisYearAppeals.length}</div>
-                    {daysSinceLastAppeal !== null ? (
-                      <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(massAppealRevenue).toLocaleString()}</div>
-                        <InfoTip text="Estimated, not actual matched donations: (suggested amount × recipients sent) ÷ donors reached, averaged per appeal. See Analytics > Mass Appeals for real matched-donation revenue." />
-                      </div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(massAppealRevenue)}%`, height: '100%', background: C.gold }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(massAppealRevenue)}% of current funding mix (est.) <InfoTip text={shareOfTip} /></div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('recurring')}>
-                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
-                    <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeRecurringList.length}</div>
-                    {escalatedGiroList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
-                    ) : activeRecurringList.length > 0 ? (
-                      <div style={{ fontSize: 11.5, color: C.sage, fontWeight: 500, marginTop: 6 }}>✓ All on schedule</div>
-                    ) : null}
-                    <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 10 }}>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(recurringMonthlyTotal).toLocaleString()}<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
-                      <div style={{ background: C.ivoryDark, borderRadius: 6, height: 5, overflow: 'hidden', marginBottom: 4 }}>
-                        <div style={{ width: `${shareOf(recurringMonthlyTotal)}%`, height: '100%', background: C.muted }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: C.muted, display: 'flex', alignItems: 'center', gap: 3 }}>{shareOf(recurringMonthlyTotal)}% of current funding mix <InfoTip text={shareOfTip} /></div>
-                    </div>
+                    ))}
                   </div>
                 </div>
                 </DraggableCard>
