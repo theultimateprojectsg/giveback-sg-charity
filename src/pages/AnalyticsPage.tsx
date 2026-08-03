@@ -1206,20 +1206,19 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
                       <>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, marginBottom: 2, lineHeight: 1 }}>{predictablePct}%</div>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>of revenue is predictable</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 14 }}>
-                          <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage, borderRadius: 3 }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 2px' }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{predictablePct}% · ${predictableAmt.toLocaleString()}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>Predictable</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{100 - predictablePct}% · ${oneOffAmt.toLocaleString()}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>One-off</div>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 12.5, color: C.text }}>Predictable</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${predictableAmt.toLocaleString()}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 12.5, color: C.text }}>One-off</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${oneOffAmt.toLocaleString()}</span>
-                          </div>
+                        <div style={{ display: 'flex', borderRadius: 100, overflow: 'hidden', height: 14 }}>
+                          <div style={{ width: `${predictablePct}%`, background: C.sage }} />
+                          <div style={{ width: `${100 - predictablePct}%`, background: C.gold }} />
                         </div>
                       </>
                     )}
