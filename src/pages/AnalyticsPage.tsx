@@ -478,8 +478,8 @@ export function AnalyticsPage({
             </div>
             <div id="analytics-section-today" style={{ scrollMarginTop: 20 }}>
             <div style={{ marginBottom: 40 }}>
-              <div style={s.sectionBandForest}>
-                <span style={s.sectionBandForestLabel}>Today's Overview</span>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Today's Overview</span>
               </div>
 
             {/* ── THIS WEEK, IN WORDS ── */}
@@ -883,7 +883,7 @@ export function AnalyticsPage({
             </div>
 
             <div style={{ marginBottom: 40 }}>
-              <div style={s.sectionBandIvoryGold}>
+              <div style={s.sectionBand}>
                 <span style={s.sectionBandLabel}>Financial Overview</span>
                 <CustomizeSectionButton sectionId="fo" cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
