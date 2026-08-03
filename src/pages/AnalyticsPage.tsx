@@ -1162,14 +1162,14 @@ export function AnalyticsPage({
               {!hidden('fp_revenueByChannel') && (() => {
                 const { yr, channelRows } = revenueByChannelStats
                 return (
-                  <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="480px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
                     {channelRows.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <>
-                        <ResponsiveContainer width="100%" height={140}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <ResponsiveContainer width="45%" height={140}>
                           <PieChart>
                             <Pie data={channelRows} dataKey="amt" nameKey="label" cx="50%" cy="50%" innerRadius={38} outerRadius={64} paddingAngle={2} isAnimationActive={false}>
                               {channelRows.map((r: any, i: any) => (
@@ -1179,7 +1179,7 @@ export function AnalyticsPage({
                             <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
                           </PieChart>
                         </ResponsiveContainer>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
                           {channelRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
@@ -1189,7 +1189,7 @@ export function AnalyticsPage({
                             </div>
                           ))}
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                   </DraggableCard>
