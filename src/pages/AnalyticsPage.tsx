@@ -1125,11 +1125,7 @@ export function AnalyticsPage({
                           </div>
                         )}
                         {t.extra && (
-                          typeof t.extra === 'string' && t.extra.startsWith('median') ? (
-                            <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${C.border}` }}>{t.extra} <span style={{ fontSize: 10, fontWeight: 400, color: C.muted }}>(less skewed by large gifts)</span></div>
-                          ) : (
-                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>
-                          )
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{t.extra}</div>
                         )}
                       </div>
                     ))}
