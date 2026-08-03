@@ -911,10 +911,11 @@ export function AnalyticsPage({
                       <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
                       <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
                     </div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: onTrack ? C.successBg : C.warningBg, color: onTrack ? C.sage : '#8A6708', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100 }}>
-                      {onTrack
-                        ? `✓ On pace — projected $${projectedTotal.toLocaleString()} by ${goalYearEndLabel}`
-                        : `⚠ Off pace — projected $${projectedTotal.toLocaleString()} by ${goalYearEndLabel}`}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: onTrack ? C.successFill : C.warningFill, borderRadius: 20, padding: '7px 14px 7px 10px' }}>
+                      <span style={{ fontSize: 14, color: C.white, lineHeight: 1, flexShrink: 0 }}>{onTrack ? '✓' : '⚠'}</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: C.white }}>
+                        {onTrack ? 'On pace' : 'Off pace'} — projected ${projectedTotal.toLocaleString()} by {goalYearEndLabel}
+                      </span>
                     </span>
                   </div>
                 </div>
