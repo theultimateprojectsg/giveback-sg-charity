@@ -553,7 +553,7 @@ export function AnalyticsPage({
               }
 
               return (
-                <div style={{ background: C.forest, borderRadius: 4, padding: 24, marginBottom: 20 }}>
+                <div style={{ background: C.forest, borderRadius: 14, padding: 24, marginBottom: 20, boxShadow: C.shadow }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Your Week So Far</div>
                   <div style={{ fontSize: 16, color: 'white', lineHeight: 1.7 }}>{sentences.join(' ')}</div>
                   {/* "Generate AI summary" button hidden for now (feature flagged off, not removed) — see generateAiSummary above and aiWeekSummary/aiWeekSummaryError state. */}
@@ -598,7 +598,7 @@ export function AnalyticsPage({
                     {snoozedActiveItems.length} snoozed · {showSnoozedItems ? 'Hide' : 'Show'}
                   </span>
                   {showSnoozedItems && (
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, marginTop: 6, background: C.white, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                       {snoozedActiveItems.map((item: any, i: any) => {
                         const entry = snoozedItems[item.key] || {}
                         const daysLeft = Math.max(1, Math.ceil((entry.until - nowMs) / (1000 * 60 * 60 * 24)))
@@ -618,7 +618,7 @@ export function AnalyticsPage({
               if (actionItemsVisible.length === 0 && fyiItemsVisible.length === 0) {
                 return (
                   <>
-                    <div style={{ borderRadius: 4, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0 }}>
+                    <div style={{ borderRadius: 14, border: `1px solid ${C.border}`, background: C.white, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: snoozedActiveItems.length > 0 ? 12 : 0, boxShadow: C.shadow }}>
                       <span style={{ fontSize: 13, color: C.forest, fontWeight: 500 }}>You're all caught up.</span>
                       <span style={{ fontSize: 13, color: C.muted }}>Nothing needs your attention right now — nice work.</span>
                     </div>
@@ -641,7 +641,7 @@ export function AnalyticsPage({
               return (
                 <>
                 {actionItemsVisible.length > 0 && (
-                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}` }}>
+                  <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 16, border: `1px solid ${highItems.length > 0 ? C.red : C.warning}`, boxShadow: C.shadow }}>
                     <div style={{ background: highItems.length > 0 ? C.red : C.warning, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{actionItemsVisible.length} thing{actionItemsVisible.length > 1 ? 's' : ''} need{actionItemsVisible.length === 1 ? 's' : ''} your attention{criticalCount > 0 ? ` — ${criticalCount} urgent` : ''}</span>
                     </div>
@@ -661,7 +661,7 @@ export function AnalyticsPage({
                 )}
 
                 {fyiItemsVisible.length > 0 && (
-                  <div style={{ borderRadius: 4, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}` }}>
+                  <div style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 16, border: `1px solid ${C.gold}`, boxShadow: C.shadow }}>
                     <div style={{ background: C.gold, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>{fyiItemsVisible.length} thing{fyiItemsVisible.length > 1 ? 's' : ''} worth knowing</span>
                     </div>
