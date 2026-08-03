@@ -1149,11 +1149,6 @@ export function AnalyticsPage({
                         <Bar dataKey="total" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
-                    {cagr !== null && (
-                      <div style={{ fontSize: 11.5, color: cagr >= 0 ? C.sage : C.red, fontWeight: 500, marginTop: 10 }}>
-                        {cagr >= 0 ? '✓' : '⚠'} {Math.abs(cagr)}% average annual growth from {firstYr.year} to {lastYr.year}
-                      </div>
-                    )}
                   </div>
                   </DraggableCard>
                 )
