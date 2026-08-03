@@ -899,14 +899,24 @@ export function AnalyticsPage({
               <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
               <div style={s.card}>
                 <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-                  <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
-                  <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: onTrack ? C.sage : C.gold, fontWeight: 500 }}>
-                  {onTrack
-                    ? `✓ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} above goal`
-                    : `⚠ On pace to raise $${projectedTotal.toLocaleString()} by ${goalYearEndLabel} — $${gap.toLocaleString()} short of goal`}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                  <svg width="76" height="76" viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
+                    <circle cx="38" cy="38" r="32" fill="none" stroke={C.ivoryDark} strokeWidth="8" />
+                    <circle cx="38" cy="38" r="32" fill="none" stroke={onTrack ? C.sage : C.gold} strokeWidth="8" strokeLinecap="round"
+                      strokeDasharray="201" strokeDashoffset={201 - Math.min(100, pct) / 100 * 201} transform="rotate(-90 38 38)" />
+                    <text x="38" y="43" textAnchor="middle" fontSize="15" fontWeight="700" fill={C.forest} fontFamily="inherit">{pct}%</text>
+                  </svg>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                      <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
+                      <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal</span>
+                    </div>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: onTrack ? C.successBg : C.warningBg, color: onTrack ? C.sage : '#8A6708', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100 }}>
+                      {onTrack
+                        ? `✓ On pace — projected $${projectedTotal.toLocaleString()} by ${goalYearEndLabel}`
+                        : `⚠ Off pace — projected $${projectedTotal.toLocaleString()} by ${goalYearEndLabel}`}
+                    </span>
+                  </div>
                 </div>
               </div>
               </DraggableCard>
