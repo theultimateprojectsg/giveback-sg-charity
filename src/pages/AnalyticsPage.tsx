@@ -1169,10 +1169,17 @@ export function AnalyticsPage({
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
                       <>
-                        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
-                          {channelRows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: r.color }} />)}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <ResponsiveContainer width="100%" height={140}>
+                          <PieChart>
+                            <Pie data={channelRows} dataKey="amt" nameKey="label" cx="50%" cy="50%" innerRadius={38} outerRadius={64} paddingAngle={2} isAnimationActive={false}>
+                              {channelRows.map((r: any, i: any) => (
+                                <Cell key={i} fill={r.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
                           {channelRows.map((r: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
