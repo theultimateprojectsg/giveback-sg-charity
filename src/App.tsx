@@ -9885,6 +9885,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               title={item.label}
               style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
               onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+              {activeTab === item.id && <div style={s.navRail} />}
               <span style={s.navIcon}>{item.icon}</span>
               {!sidebarCollapsed && item.label}
             </div>
@@ -9903,6 +9904,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   title={item.label}
                   style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
                   onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  {activeTab === item.id && <div style={s.navRail} />}
                   <span style={s.navIcon}>{item.icon}</span>
                   {!sidebarCollapsed && item.label}
                 </div>
@@ -9917,6 +9919,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                   title={item.label}
                   style={{ ...s.navItem, ...(activeTab === item.id ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
                   onClick={() => { setActiveTab(item.id); setSelectedDonor(null) }}>
+                  {activeTab === item.id && <div style={s.navRail} />}
                   <span style={s.navIcon}>{item.icon}</span>
                   {!sidebarCollapsed && item.label}
                 </div>
@@ -9928,6 +9931,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             title="Settings"
             style={{ ...s.navItem, ...(activeTab === 'settings' ? s.navItemActive : {}), justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
             onClick={() => { setActiveTab('settings'); setSelectedDonor(null) }}>
+            {activeTab === 'settings' && <div style={s.navRail} />}
             <span style={s.navIcon}>⚙️</span>
             {!sidebarCollapsed && 'Settings'}
           </div>

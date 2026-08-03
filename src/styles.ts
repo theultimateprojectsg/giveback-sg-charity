@@ -17,8 +17,13 @@ export const s = {
   charityUen: { fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   navSection: { padding: '6px 12px', flex: 1 },
   navLabel: { fontFamily: C.fontMono, fontSize: 10.5, fontWeight: 500, color: C.gold, textTransform: 'uppercase', letterSpacing: 1.5, padding: '10px 12px 5px' },
-  navItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 1, fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)' },
-  navItemActive: { background: 'rgba(255,255,255,0.07)', color: 'white', boxShadow: `inset 3px 0 0 ${C.gold}` },
+  navItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, cursor: 'pointer', marginBottom: 1, fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)', position: 'relative' },
+  navItemActive: { background: 'rgba(255,255,255,0.07)', color: 'white', fontWeight: 700 },
+  // Rendered as a real absolutely-positioned child (not a CSS pseudo-element,
+  // since this is a plain inline-style codebase) — a rounded bar inset from
+  // the pill's own edges so it reads as one shape, not a straight rail
+  // cutting across a curved corner.
+  navRail: { position: 'absolute', left: 4, top: 4, bottom: 4, width: 3, borderRadius: 3, background: C.gold },
   navIcon: { fontSize: 16, width: 20, textAlign: 'center' },
   sidebarFooter: { padding: 16, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 10 },
   footerAvatar: { width: 32, height: 32, background: C.sage, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: 'white', flexShrink: 0 },
