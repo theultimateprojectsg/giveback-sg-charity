@@ -53,6 +53,30 @@ function Icon({ name, className }: { name: string, className?: string }) {
   }
 }
 
+// Concentric arc rings anchored at a corner, decorative line-art in the
+// spirit of the nested-circle motif — not tied to any real data, just
+// texture behind the content.
+function ArcRings({ corner, color = 'var(--forest)', opacity = 0.14 }: { corner: 'tl' | 'tr' | 'bl' | 'br', color?: string, opacity?: number }) {
+  const cx = corner.includes('l') ? 0 : 340
+  const cy = corner.includes('t') ? 0 : 340
+  const posStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: corner.includes('t') ? 0 : undefined,
+    bottom: corner.includes('b') ? 0 : undefined,
+    left: corner.includes('l') ? 0 : undefined,
+    right: corner.includes('r') ? 0 : undefined,
+    width: 340, height: 340, pointerEvents: 'none',
+  }
+  const radii = [26, 58, 92, 128, 166, 206, 248]
+  return (
+    <svg viewBox="0 0 340 340" style={posStyle} aria-hidden="true">
+      {radii.map(r => (
+        <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeOpacity={opacity} strokeWidth="1.5" />
+      ))}
+    </svg>
+  )
+}
+
 function EmailCapture({ placeholder = 'you@charity.org.sg', cta = 'Get started', style }: { placeholder?: string, cta?: string, style?: React.CSSProperties }) {
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
@@ -155,8 +179,8 @@ export default function PitchLandingPage() {
         .reveal{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
         .reveal.in{opacity:1;transform:translateY(0)}
 
-        .hs-hero{padding:88px 32px 120px;position:relative}
-        .hs-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1160px;margin:0 auto}
+        .hs-hero{padding:88px 32px 120px;position:relative;overflow:hidden}
+        .hs-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1160px;margin:0 auto;position:relative;z-index:1}
         .hs-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;background:var(--gold-bg);color:#8a5a10;font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:100px;margin-bottom:26px}
         .hs-hero h1{font-size:clamp(38px,5vw,58px);font-weight:800;line-height:1.04;letter-spacing:-1.4px;margin-bottom:24px}
         .hs-hero p{font-size:18px;line-height:1.65;color:var(--muted);max-width:460px;margin-bottom:34px}
@@ -189,7 +213,7 @@ export default function PitchLandingPage() {
         .hs-hero-float .n{font-weight:800;font-size:18px;color:var(--forest)}
         .hs-hero-float .l{font-size:11px;color:var(--muted);font-weight:600}
 
-        .hs-section{padding:110px 32px;position:relative}
+        .hs-section{padding:110px 32px;position:relative;overflow:hidden}
         .hs-section-glow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
         .hs-section-glow::before,.hs-section-glow::after{content:'';position:absolute;border-radius:50%;filter:blur(4px)}
         .hs-glow-gold::before{top:-60px;right:8%;width:360px;height:360px;background:radial-gradient(circle,rgba(180,135,14,0.09) 0%,transparent 70%)}
@@ -291,6 +315,8 @@ export default function PitchLandingPage() {
       </nav>
 
       <section className="hs-hero">
+        <ArcRings corner="bl" color="var(--gold)" opacity={0.22} />
+        <ArcRings corner="tr" color="var(--forest)" opacity={0.1} />
         <div className="hs-hero-grid">
           <div>
             <span className="hs-hero-eyebrow">Built for small registered charities in Singapore</span>
@@ -334,6 +360,7 @@ export default function PitchLandingPage() {
 
       <section id="nav-grid" className="hs-section">
         <div className="hs-section-glow hs-glow-gold" />
+        <ArcRings corner="tr" color="var(--forest)" opacity={0.09} />
         <div className="hs-sec-header">
           <span className="hs-eyebrow">What does your charity need</span>
           <h2>Whatever's piling up, we've got it covered.</h2>
@@ -392,6 +419,7 @@ export default function PitchLandingPage() {
 
       <section id="faq" className="hs-section">
         <div className="hs-section-glow hs-glow-gold" />
+        <ArcRings corner="br" color="var(--gold)" opacity={0.12} />
         <div className="hs-sec-header">
           <span className="hs-eyebrow">Frequently asked questions</span>
           <h2>Good to know before you sign up.</h2>
