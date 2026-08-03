@@ -1163,7 +1163,7 @@ export function AnalyticsPage({
                 const { yr, channelRows } = revenueByChannelStats
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                     <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
                     {channelRows.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
@@ -1205,22 +1205,22 @@ export function AnalyticsPage({
                     {totalRevenue === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 2px' }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.forest }}>{predictablePct}% · ${predictableAmt.toLocaleString()}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted }}>Predictable</div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{100 - predictablePct}% · ${oneOffAmt.toLocaleString()}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted }}>One-off</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.sage, lineHeight: 1 }}>${predictableAmt.toLocaleString()}</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>Predictable · {predictablePct}%</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${predictablePct}%`, height: '100%', background: C.sage }} />
                           </div>
                         </div>
-                        <div style={{ display: 'flex', borderRadius: 100, overflow: 'hidden', height: 14 }}>
-                          <div style={{ width: `${predictablePct}%`, background: C.sage }} />
-                          <div style={{ width: `${100 - predictablePct}%`, background: C.gold }} />
+                        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                          <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.gold, lineHeight: 1 }}>${oneOffAmt.toLocaleString()}</div>
+                          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>One-off · {100 - predictablePct}%</div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${100 - predictablePct}%`, height: '100%', background: C.gold }} />
+                          </div>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                   </DraggableCard>
