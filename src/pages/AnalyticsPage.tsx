@@ -1286,11 +1286,12 @@ export function AnalyticsPage({
                 if (years58.length < 2) return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend — {years58.length > 0 ? Math.max(...years58) : new Date().getFullYear()}</div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
                   </div>
                   </DraggableCard>
                 )
+                const latestYr58 = Math.max(...years58)
                 const byMonth58 = monthNames58.map((name, i) => {
                   const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
                   const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
@@ -1302,7 +1303,7 @@ export function AnalyticsPage({
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Seasonality Trend</div>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend — {latestYr58}</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 100, marginBottom: 8 }}>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100 }}>
