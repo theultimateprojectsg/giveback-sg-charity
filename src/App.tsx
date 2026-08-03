@@ -6377,7 +6377,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       { label: 'Campaigns', amt: campaignsAmt, color: C.bucket1 },
       { label: 'Mass Appeals', amt: massAppealAmt, color: C.gold },
       { label: 'Recurring Gifts', amt: recurringAmt, color: C.red },
-      { label: 'Grants', amt: grantsAmt, color: C.forest },
+      { label: 'Grants', amt: grantsAmt, color: C.slate },
       { label: 'General / Unrestricted', amt: generalAmt, color: C.muted },
     ].filter(r => r.amt > 0).sort((a, b) => b.amt - a.amt).map(r => ({ ...r, pct: totalRevenue > 0 ? Math.round((r.amt / totalRevenue) * 100) : 0, rawPct: totalRevenue > 0 ? (r.amt / totalRevenue) * 100 : 0 }))
 
