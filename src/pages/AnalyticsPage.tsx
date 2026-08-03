@@ -898,7 +898,7 @@ export function AnalyticsPage({
               return (
               <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
               <div style={s.card}>
-                <div style={s.statTileLabel}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
+                <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
                   <span style={s.analyticsStatNumber}>${totalThisGoalYear.toLocaleString()}</span>
                   <span style={{ fontSize: 11.5, color: C.muted }}>of ${annualGoal.toLocaleString()} goal · {pct}%</span>
@@ -933,7 +933,7 @@ export function AnalyticsPage({
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
                   {/* Coverage ratio */}
                   <div style={{ ...s.card, marginBottom: 0, ...(coverageRatio !== null && coverageRatio < 0.75 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
-                    <div style={s.statTileLabel}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -951,7 +951,7 @@ export function AnalyticsPage({
 
                   {/* Cash runway */}
                   <div style={{ ...s.card, marginBottom: 0, ...(runwayMonthsFH !== null && runwayMonthsFH < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
-                    <div style={s.statTileLabel}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
                     {runwayMonthsFH === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -969,7 +969,7 @@ export function AnalyticsPage({
 
                   {/* Unrestricted funding coverage */}
                   <div style={{ ...s.card, marginBottom: 0, ...(unrestrictedCoverageMonths !== null && unrestrictedCoverageMonths < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
-                    <div style={s.statTileLabel}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
                     {unrestrictedCoverageMonths === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -987,7 +987,7 @@ export function AnalyticsPage({
 
                   {/* Fixed-cost coverage from recurring income */}
                   <div style={{ ...s.card, marginBottom: 0, ...(fixedCostCoveragePct !== null && fixedCostCoveragePct < 25 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
-                    <div style={s.statTileLabel}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
                     {fixedCostCoveragePct === null ? (
                       <div>
                         <div style={{ fontSize: 13, color: C.muted, marginBottom: 6 }}>Set expenses</div>
@@ -1071,7 +1071,7 @@ export function AnalyticsPage({
                 <DraggableCard sectionId="fo" cardKey="fo_fundingMix" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_fundingMix')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: 16 }}>
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('promotions')}>
-                    <div style={s.statTileLabel}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Active Campaigns <InfoTip text="Campaigns currently live and accepting donations, and how much they've raised so far." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{liveCampaignsList.length}</div>
                     {behindPaceCampaigns.length > 0 ? (
                       <div style={{ fontSize: 11.5, color: C.gold, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 6 }}>⚠ "{behindPaceCampaigns[0].title}"{behindPaceCampaigns.length > 1 ? ` +${behindPaceCampaigns.length - 1} more` : ''} behind pace</div>
@@ -1088,7 +1088,7 @@ export function AnalyticsPage({
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('grants')}>
-                    <div style={s.statTileLabel}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Active Grants <InfoTip text="Grants currently active, how much of the funding remains unspent, and any upcoming funder report deadlines." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeGrantsList.length}</div>
                     {nearestGrantDeadline !== undefined ? (
                       <div style={{ fontSize: 11.5, color: nearestGrantDeadline <= 30 ? C.red : C.gold, fontWeight: 500, marginTop: 6 }}>⚠ Report due in {nearestGrantDeadline}d</div>
@@ -1105,7 +1105,7 @@ export function AnalyticsPage({
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('pledges')}>
-                    <div style={s.statTileLabel}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Pending Pledges <InfoTip text="Pledges not yet fulfilled, split into upcoming and overdue based on the expected date." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{pendingPledgesList.length}</div>
                     {overduePledgesList.length > 0 ? (
                       <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ ${overduePledgeTotal.toLocaleString()} overdue</div>
@@ -1122,7 +1122,7 @@ export function AnalyticsPage({
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('promotions')}>
-                    <div style={s.statTileLabel}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Mass Appeals <InfoTip text="Mass appeals sent this year, and how long ago the most recent one went out." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{thisYearAppeals.length}</div>
                     {daysSinceLastAppeal !== null ? (
                       <div style={{ fontSize: 11.5, color: daysSinceLastAppeal > 60 ? C.gold : C.muted, fontWeight: 500, marginTop: 6 }}>{daysSinceLastAppeal > 60 ? `⚠ Last sent ${daysSinceLastAppeal}d ago` : `Last sent ${daysSinceLastAppeal}d ago`}</div>
@@ -1140,7 +1140,7 @@ export function AnalyticsPage({
                   </div>
 
                   <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', cursor: 'pointer', boxShadow: C.shadow }} onClick={() => setActiveTab('recurring')}>
-                    <div style={s.statTileLabel}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Recurring Giving <InfoTip text="Active GIRO and habitual PayNow donors, expected monthly income, and whether any have missed 2 or more cycles." /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeRecurringList.length}</div>
                     {escalatedGiroList.length > 0 ? (
                       <div style={{ fontSize: 11.5, color: C.red, fontWeight: 500, marginTop: 6 }}>⚠ {escalatedGiroList.length} missed 2+ cycles</div>
@@ -1179,7 +1179,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1407,7 +1407,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1432,7 +1432,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{t.sub}</div>
                         {t.d !== null ? (
@@ -1626,7 +1626,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1649,7 +1649,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {strip.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d !== undefined ? (
                           t.d === null ? (
@@ -1941,7 +1941,7 @@ export function AnalyticsPage({
                 const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
                 const genericTile = (t: any) => (
                   <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                    <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                    <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                     {t.d === null ? (
                       <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1959,7 +1959,7 @@ export function AnalyticsPage({
                       {genericTile(pledgesMadeTile)}
                       {genericTile(amountPledgedTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                         {avgDelta === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -1970,7 +1970,7 @@ export function AnalyticsPage({
                         )}
                       </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                           {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                           <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
@@ -1983,12 +1983,12 @@ export function AnalyticsPage({
                       {genericTile(fulfilledTile)}
                       {genericTile(fulfilledOnTimeTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
                       </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
                         <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
@@ -2238,7 +2238,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
                           <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
@@ -2262,24 +2262,24 @@ export function AnalyticsPage({
                   <DraggableCard sectionId="rc" cardKey="rc_healthTiles" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_healthTiles')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
                     </div>
@@ -2287,7 +2287,7 @@ export function AnalyticsPage({
                       style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0, cursor: atRiskCount > 0 ? 'pointer' : 'default' }}
                       onClick={atRiskCount > 0 ? () => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
                     >
-                      <div style={s.statTileLabel}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
                         {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
                         <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
@@ -2612,7 +2612,7 @@ export function AnalyticsPage({
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     {tiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={s.statTileLabel}>{t.label} <InfoTip text={t.tip} /></div>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? (
                           <div style={{ fontSize: 11, color: C.muted }}>currently active</div>
@@ -3019,22 +3019,22 @@ export function AnalyticsPage({
                   <DraggableCard sectionId="db" cardKey="db_retentionTiles" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_retentionTiles')} flexBasis="100%" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Retention Rate <InfoTip text={`Share of donors who gave in ${yr - 1} and gave again in ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>of {yr - 1}'s donors gave again in {yr}</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Repeat Donor Rate <InfoTip text="Share of all-time donors who have given 2 or more times." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatDonorRate}%</div>
                       <div style={{ fontSize: 11, color: C.muted }}>gave 2+ times, all-time</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg Lifetime Value <InfoTip text="Average total confirmed giving per donor, across all time." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgLTV.toLocaleString()}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>per donor, all-time</div>
                     </div>
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={s.statTileLabel}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
+                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Active vs Lapsed <InfoTip text={`Donors who gave in ${yr} vs donors who gave in a prior year but not ${yr}.`} /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{activeCount} <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>/ {lapsedCount}</span></div>
                       <div style={{ fontSize: 11, color: C.muted }}>active vs lapsed donors</div>
                     </div>
