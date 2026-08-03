@@ -41,7 +41,7 @@ function CustomizeSectionButton({ sectionId, cards, hiddenDashboardCards, toggle
   return (
     <div ref={wrapperRef} style={{ position: 'relative' }}>
       <button
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}
+        style={{ background: 'rgba(255,255,255,0.14)', border: 'none', borderRadius: 100, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: 4 }}
         onClick={() => setOpen(v => !v)}
       >⚙ Customize</button>
       {open && (

@@ -82,7 +82,7 @@ mobileOverflowItem: {
   // scrolling. (Landed on this after live-comparing a pale teal tint, a
   // solid-forest block, and an ivory+gold-underline version — this merges
   // the underline shape from the ivory version with the forest color.)
-  sectionBand: { background: C.forest, borderRadius: '12px 12px 0 0', borderBottom: `2.5px solid ${C.gold}`, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sectionBand: { background: C.forest, borderRadius: '12px 12px 0 0', borderBottom: `5px solid ${C.gold}`, padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionBandLabel: { fontSize: 13, fontWeight: 700, color: 'white', letterSpacing: 0.2 },
   analyticsCardTitle: { fontSize: 12, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 5 },
   statTileLabel: { fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
