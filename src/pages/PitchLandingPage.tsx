@@ -121,7 +121,13 @@ export default function PitchLandingPage() {
           --shadow-lg:0 1px 3px rgba(33,31,27,0.05),0 30px 60px rgba(27,67,50,0.14);
         }
         .hs-page *,.hs-page *::before,.hs-page *::after{box-sizing:border-box}
-        .hs-page{font-family:var(--font);background:var(--cream);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5}
+        .hs-page{
+          font-family:var(--font);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5;
+          position:relative;
+          background-color:var(--cream);
+          background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.1 0 0 0 0 0.09 0 0 0 0 0.07 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          background-size:180px 180px;
+        }
         .hs-page a{color:inherit}
         .hs-page svg{display:block}
         .hs-container{max-width:1160px;margin:0 auto;padding:0 32px}
@@ -183,7 +189,14 @@ export default function PitchLandingPage() {
         .hs-hero-float .n{font-weight:800;font-size:18px;color:var(--forest)}
         .hs-hero-float .l{font-size:11px;color:var(--muted);font-weight:600}
 
-        .hs-section{padding:110px 32px}
+        .hs-section{padding:110px 32px;position:relative}
+        .hs-section-glow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+        .hs-section-glow::before,.hs-section-glow::after{content:'';position:absolute;border-radius:50%;filter:blur(4px)}
+        .hs-glow-gold::before{top:-60px;right:8%;width:360px;height:360px;background:radial-gradient(circle,rgba(180,135,14,0.09) 0%,transparent 70%)}
+        .hs-glow-gold::after{bottom:-100px;left:2%;width:280px;height:280px;background:radial-gradient(circle,rgba(27,67,50,0.06) 0%,transparent 70%)}
+        .hs-glow-forest::before{top:10%;left:-100px;width:340px;height:340px;background:radial-gradient(circle,rgba(27,67,50,0.07) 0%,transparent 70%)}
+        .hs-glow-forest::after{bottom:-80px;right:6%;width:300px;height:300px;background:radial-gradient(circle,rgba(180,135,14,0.08) 0%,transparent 70%)}
+        .hs-section > *:not(.hs-section-glow){position:relative;z-index:1}
         .hs-eyebrow{display:block;font-size:12.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--sage);margin-bottom:14px}
         .hs-page h2{font-size:clamp(28px,3.6vw,38px);font-weight:800;letter-spacing:-0.8px;line-height:1.12;margin-bottom:16px}
 
@@ -320,6 +333,7 @@ export default function PitchLandingPage() {
       </section>
 
       <section id="nav-grid" className="hs-section">
+        <div className="hs-section-glow hs-glow-gold" />
         <div className="hs-sec-header">
           <span className="hs-eyebrow">What does your charity need</span>
           <h2>Whatever's piling up, we've got it covered.</h2>
@@ -354,6 +368,7 @@ export default function PitchLandingPage() {
       </section>
 
       <section id="library" className="hs-section">
+        <div className="hs-section-glow hs-glow-forest" />
         <div className="hs-sec-header">
           <span className="hs-eyebrow">Explore what's inside</span>
           <h2>Everything your charity's admin needs.</h2>
@@ -376,6 +391,7 @@ export default function PitchLandingPage() {
       </section>
 
       <section id="faq" className="hs-section">
+        <div className="hs-section-glow hs-glow-gold" />
         <div className="hs-sec-header">
           <span className="hs-eyebrow">Frequently asked questions</span>
           <h2>Good to know before you sign up.</h2>
