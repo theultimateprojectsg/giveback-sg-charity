@@ -467,7 +467,7 @@ export function PledgesPage({
           const pledgeStatusInfo = (pledgeStatusMap as Record<string, { bg: string, color: string, label: string }>)[p.status] || { bg: C.ivory, color: C.muted, label: p.status }
           const hasActivity = (donationsByPledge[p.id] || []).length > 0 || (p.status === 'pending' && ((pledgeReminderHistory[p.id] || []).length > 0 || (pledgeRescheduleHistory[p.id] || []).length > 0)) || p.resolution_notes
           return (
-            <div key={p.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={p.id} style={{ ...s.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
 
               {/* Header: who */}
               <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
@@ -751,7 +751,7 @@ export function PledgesPage({
             <div style={{ marginBottom: 32 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Outstanding Pledges ({outstanding.length})</div>
               {outstanding.length === 0 ? (
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
+                <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No outstanding pledges.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                   {outstanding.map(renderPledgeCard)}
@@ -769,7 +769,7 @@ export function PledgesPage({
               </div>
               {showFulfilledPledges && (
                 fulfilled.length === 0 ? (
-                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
+                  <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No fulfilled pledges yet.</div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                     {fulfilled.map(renderPledgeCard)}

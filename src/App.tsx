@@ -10671,7 +10671,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
             {(() => {
               if (massAppeals.length === 0) return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ ...s.card, padding: '16px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, fontWeight: 500, color: C.forest }}>📢 No appeals sent yet</span>
                   <button style={{ ...s.viewBtn, fontSize: 11, padding: '5px 10px' }} onClick={() => { setMassAppealStep('setup'); setMassAppealForm({ cause_id: '', amount: '', message: defaultMassAppealMessage(), customLabel: '' }); setMassAppealRefs([]); setShowMassAppealModal(true) }}>📣 New Appeal</button>
                 </div>
@@ -10731,7 +10731,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
               searchedAppeals.forEach((a: any) => { const y = fyOf(a.created_at); if (!byYear[y]) byYear[y] = []; byYear[y].push(a) })
               const years = Object.keys(byYear).map(Number).sort((a, b) => b - a)
               return (
-                <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 4, padding: '16px 18px', marginBottom: 20 }}>
+                <div style={{ ...s.card, padding: '16px 18px', marginBottom: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: generalAppealsExpanded ? 14 : 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => setGeneralAppealsExpanded((v: any) => !v)}>
                       <span style={{ fontSize: 11, color: C.muted }}>{generalAppealsExpanded ? '▾' : '▸'}</span>
@@ -10917,7 +10917,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                 const campaignAppeals = massAppeals.filter(a => a.cause_id === c.id)
                 const cHasActivity = true
                 return (
-                  <div key={c.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div key={c.id} style={{ ...s.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
 
                     {/* Header: who */}
                     <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
@@ -11101,7 +11101,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
                         onCta={() => { setCauseForm(EMPTY_CAUSE_FORM); setShowCampaignModal(true) }}
                       />
                     ) : activeCauses.length === 0 ? (
-                      <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns right now — click "+ New Campaign" to start one.</div>
+                      <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active campaigns right now — click "+ New Campaign" to start one.</div>
                     ) : (
                       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                         {activeCauses.map(renderCard)}

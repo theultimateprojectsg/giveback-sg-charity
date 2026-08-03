@@ -580,7 +580,7 @@ export function DonorsPage({
         </div>
 
             {donorProfileTab === 'settings' && (
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Duplicate Donor?</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this is the same person as another donor record, merge their giving history together. This cannot be undone.</div>
               {(() => {
@@ -658,7 +658,7 @@ export function DonorsPage({
             )}
 
             {donorProfileTab === 'details' && (<>
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Communication Preferences</div>
               {(() => {
                 const donorKey44 = selectedDonor.email?.trim() || selectedDonor.name
@@ -704,7 +704,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Household</div>
               {(() => {
                 const donorKey43 = selectedDonor.email?.trim() || selectedDonor.name
@@ -759,7 +759,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Receipt Name Override</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>If this donor's receipts should show a different name (e.g. a spouse or company), set it once here — it'll apply to all future receipts automatically.</div>
               {(() => {
@@ -805,7 +805,7 @@ export function DonorsPage({
             </div>
 
             {selectedDonor.deceased && (
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Family / Estate Contact</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Who to reach instead, since this donor is marked deceased.</div>
               {(() => {
@@ -841,7 +841,7 @@ export function DonorsPage({
             </div>
             )}
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Visit Scheduling</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>For major donors — track in-person visits.</div>
               {(() => {
@@ -880,7 +880,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Birthday</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Optional — used to flag upcoming birthdays.</div>
               {(() => {
@@ -914,7 +914,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Tax Residency</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Informational — for donors requesting specific documentation formats.</div>
               {(() => {
@@ -949,7 +949,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Mailing Address</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>Only needed if this donor wants receipts mailed physically.</div>
               {(() => {
@@ -984,7 +984,7 @@ export function DonorsPage({
               })()}
             </div>
 
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 4 }}>Personal PayNow QR</div>
               <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 12 }}>A standing code for this donor to use anytime — not tied to any campaign or amount. Print and mail once.</div>
               {(() => {
@@ -1162,7 +1162,7 @@ export function DonorsPage({
 
               if (moments.length === 0) return null
               return (
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.gold}`, marginBottom: 16, overflow: 'hidden' }}>
+                <div style={{ ...s.card, border: `1px solid ${C.gold}`, marginBottom: 16, overflow: 'hidden', padding: 0 }}>
                   <div style={{ background: C.gold, padding: '8px 16px' }}>
                     <span style={{ fontSize: 12.5, fontWeight: 500, color: 'white' }}>Right now</span>
                   </div>
@@ -1192,7 +1192,7 @@ export function DonorsPage({
                 </div>
               )
             })()}
-          <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+          <div style={{ ...s.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Donation History</div>
             {(() => {
               const donorHistoryPageSize = 8
@@ -1238,7 +1238,7 @@ export function DonorsPage({
           )}
 
           {donorProfileTab === 'logs' && (
-            <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+            <div style={{ ...s.card, padding: '16px 18px' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Communication Log</div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 <select
@@ -1337,7 +1337,7 @@ export function DonorsPage({
             const donorKeyPR = selectedDonor.email?.trim() || selectedDonor.name
             const linkedRecurring = recurringGifts.filter(g => (g.donor_email?.trim() || g.donor_name) === donorKeyPR)
             return (
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+              <div style={{ ...s.card, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Recurring Gifts</div>
                 {linkedRecurring.length === 0 ? (
                   <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No recurring gifts on file.</div>
@@ -1362,7 +1362,7 @@ export function DonorsPage({
             const donorKeyPR = selectedDonor.email?.trim() || selectedDonor.name
             const linkedPledges = pledges.filter(p => (p.donor_email?.trim() || p.donor_name) === donorKeyPR)
             return (
-              <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+              <div style={{ ...s.card, padding: '16px 18px' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Pledges</div>
                 {linkedPledges.length === 0 ? (
                   <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No pledges on file.</div>
@@ -1384,7 +1384,7 @@ export function DonorsPage({
           })()}
 
           {donorProfileTab === 'settings' && (
-          <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px', marginBottom: 16 }}>
+          <div style={{ ...s.card, padding: '16px 18px', marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Tags</div>
             {(() => {
               const donorKeyTags = selectedDonor.email?.trim() || selectedDonor.name
@@ -1415,7 +1415,7 @@ export function DonorsPage({
           )}
 
           {donorProfileTab === 'settings' && (
-          <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 18px' }}>
+          <div style={{ ...s.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.forest, marginBottom: 12 }}>Account Actions</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {selectedDonor.isContactOnly && (

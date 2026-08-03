@@ -254,7 +254,7 @@ export function GrantsPage({
           const linkedCause = g.cause_id ? myCauses.find(c => c.id === g.cause_id) : null
           const subtitleParts = [(funderTypeLabels as Record<string, string>)[g.funder_type || ''], linkedCause?.title, g.agreement_reference ? `Ref: ${g.agreement_reference}` : null, g.contact_name].filter(Boolean)
           return (
-            <div key={g.id} id={`grant-card-${g.id}`} style={{ background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'background 0.3s, border-color 0.3s' }}>
+            <div key={g.id} id={`grant-card-${g.id}`} style={{ ...s.card, background: isHighlighted ? C.successBg : C.white, border: `1px solid ${isHighlighted ? C.sage : C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0, transition: 'background 0.3s, border-color 0.3s' }}>
 
               {/* Header: who */}
               <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
@@ -415,7 +415,7 @@ export function GrantsPage({
             <div style={{ marginBottom: 32 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Active Grants ({activeGrants.length})</div>
               {activeGrants.length === 0 ? (
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
+                <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active grants right now.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                   {activeGrants.map(renderGrantCard)}

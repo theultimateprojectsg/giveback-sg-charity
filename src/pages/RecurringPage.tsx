@@ -307,7 +307,7 @@ export function RecurringPage({
           const isActiveStatus = ['active'].includes(g.status)
           const rHasActivity = recurringGivenTotals[g.id] || !isCancelled || (recurringSkipHistory[g.id] || []).length > 0 || (recurringFailedDeductionHistory[g.id] || []).length > 0 || (isActiveStatus && (recurringReminderHistory[g.id] || []).length > 0) || (donationsByRecurringGift[g.id] || []).length > 0
           return (
-            <div key={g.id} style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={g.id} style={{ ...s.card, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}>
 
               {/* Header: who */}
               <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${C.ivoryDark}` }}>
@@ -575,7 +575,7 @@ export function RecurringPage({
             <div style={{ marginBottom: 32 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: C.forest, marginBottom: 12 }}>Active Recurring Gifts ({active.length})</div>
               {active.length === 0 ? (
-                <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
+                <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No active recurring gifts.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                   {active.map(renderRecurringCard)}
@@ -593,7 +593,7 @@ export function RecurringPage({
               </div>
               {showPausedRecurring && (
                 paused.length === 0 ? (
-                  <div style={{ background: C.white, borderRadius: 4, border: `1px solid ${C.border}`, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
+                  <div style={{ ...s.card, padding: '16px 20px', fontSize: 13, color: C.muted, fontStyle: 'italic' }}>No paused recurring gifts.</div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 16, alignItems: 'start' }}>
                     {paused.map(renderRecurringCard)}
