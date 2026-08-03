@@ -1281,7 +1281,8 @@ export function AnalyticsPage({
                 </DraggableCard>
                 )}
               {!hidden('fp_seasonality') && (() => {
-                const monthNames58 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                const fyStartMonth58 = (fyEndMonth + 1) % 12
+                const monthNames58 = Array.from({ length: 12 }, (_, i) => new Date(2000, (fyStartMonth58 + i) % 12, 1).toLocaleDateString('en-SG', { month: 'short' }))
                 const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
                 if (years58.length < 2) return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
@@ -1292,7 +1293,8 @@ export function AnalyticsPage({
                   </DraggableCard>
                 )
                 const byMonth58 = monthNames58.map((name, i) => {
-                  const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
+                  const monthIdx = (fyStartMonth58 + i) % 12
+                  const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === monthIdx }).reduce((s, d) => s + d.amount, 0))
                   const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
                   const avg = nonZeroTotals.length > 0 ? totalsAcrossYears.reduce((s, t) => s + t, 0) / years58.length : 0
                   return { name, avg }
@@ -1303,7 +1305,8 @@ export function AnalyticsPage({
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Seasonality Trend — Last {years58.length} Years <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
-                    <ResponsiveContainer width="100%" height={140}>
+                    <div style={{ flex: 1, minHeight: 140 }}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={byMonth58} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                         <XAxis dataKey="name" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1316,6 +1319,7 @@ export function AnalyticsPage({
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
+                    </div>
                     <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted, marginTop: 8 }}>
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
