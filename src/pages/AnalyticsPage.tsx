@@ -1146,7 +1146,7 @@ export function AnalyticsPage({
                         <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                         <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Total raised']} />
-                        <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                        <Bar dataKey="total" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
                     {cagr !== null && (
@@ -1245,7 +1245,7 @@ export function AnalyticsPage({
                           <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
                           <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [value, name === 'count' ? `New donors, ${yr}` : `New donors, ${yr - 1}`]} />
                           {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 3.5 }} isAnimationActive={false} />}
-                          <Line type="monotone" dataKey="count" stroke={C.forest} strokeWidth={2.5} dot={{ fill: C.forest, r: 4 }} isAnimationActive={false} />
+                          <Line type="monotone" dataKey="count" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
                         </LineChart>
                       </ResponsiveContainer>
                     )}
@@ -1273,7 +1273,7 @@ export function AnalyticsPage({
                       <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [value, name === 'count' ? filterYear : (filterYear !== 'All' ? `${parseInt(String(filterYear)) - 1}` : 'Previous year')]} />
                       {filterYear !== 'All' && <Line type="monotone" dataKey="lastYearCount" stroke={C.gold} strokeWidth={2.5} dot={{ fill: C.gold, r: 3.5 }} isAnimationActive={false} />}
-                      <Line type="monotone" dataKey="count" stroke={C.forest} strokeWidth={2.5} dot={{ fill: C.forest, r: 4 }} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="count" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1470,7 +1470,7 @@ export function AnalyticsPage({
                                 <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                                 <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Avg per campaign']} />
-                                <Bar dataKey="avgPerCampaign" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                                <Bar dataKey="avgPerCampaign" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                               </BarChart>
                             </ResponsiveContainer>
                             <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
@@ -1616,7 +1616,7 @@ export function AnalyticsPage({
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                             <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Raised']} />
-                            <Bar dataKey="raised" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            <Bar dataKey="raised" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total raised from appeals, by year.</div>
@@ -2247,7 +2247,7 @@ export function AnalyticsPage({
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                             <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'MRR']} />
-                            <Bar dataKey="mrr" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                            <Bar dataKey="mrr" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
@@ -2577,7 +2577,7 @@ export function AnalyticsPage({
                               <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                               <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `$${v.toLocaleString()}`} />
                               <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Secured']} />
-                              <Bar dataKey="total" fill={C.forest} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                              <Bar dataKey="total" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
