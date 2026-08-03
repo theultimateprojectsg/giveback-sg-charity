@@ -34,6 +34,16 @@ export const C = {
   emailMuted: '#7A6E62',
   emailAccentGreen: '#40916C',
   emailAccentGold: '#D4A017',
+  // Secondary accent, deliberately not gold — reserves gold for its actual
+  // warning/pending meaning instead of using it as the default accent
+  // everywhere, which reads as flat/generic when overused.
+  slate: '#3B5A6B',
+  slateBg: '#E9F0F3',
+  // Shared shadow so cards/tables get consistent depth instead of a flat
+  // 1px border everywhere. Radius is intentionally NOT here — it's a
+  // number, not a color, and this palette is consumed elsewhere as
+  // Record<string, string> (e.g. a theme color list).
+  shadow: '0 1px 2px rgba(15,42,31,0.04), 0 8px 20px rgba(15,42,31,0.06)',
   fontVoice: "'Fraunces', serif",
   fontMono:  "'IBM Plex Mono', monospace",
 }
