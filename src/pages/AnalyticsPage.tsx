@@ -1162,26 +1162,26 @@ export function AnalyticsPage({
               {!hidden('fp_revenueByChannel') && (() => {
                 const { yr, channelRows } = revenueByChannelStats
                 return (
-                  <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="480px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <DraggableCard sectionId="fp" cardKey="fp_revenueByChannel" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueByChannel')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Revenue by Channel — {yr} <InfoTip text="Where your confirmed revenue actually came from this year: campaigns, mass appeals, recurring gifts, grants, and undesignated general giving." /></div>
                     {channelRows.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 16 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 12 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
                           {channelRows.map((r: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 10, height: 10, borderRadius: 3, background: r.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: 13, color: C.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: C.forest, minWidth: 34, textAlign: 'right' }}>{r.pct}%</span>
-                              <span style={{ fontSize: 12, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 9, height: 9, borderRadius: 3, background: r.color, flexShrink: 0 }} />
+                              <span style={{ fontSize: 12.5, color: C.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
+                              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest, minWidth: 30, textAlign: 'right' }}>{r.pct}%</span>
+                              <span style={{ fontSize: 11, color: C.muted, minWidth: 52, textAlign: 'right' }}>${r.amt.toLocaleString()}</span>
                             </div>
                           ))}
                         </div>
-                        <ResponsiveContainer width={isMobile ? '100%' : 150} height={140}>
+                        <ResponsiveContainer width={isMobile ? '100%' : 100} height={110}>
                           <PieChart>
-                            <Pie data={channelRows} dataKey="amt" nameKey="label" cx="50%" cy="50%" innerRadius={38} outerRadius={64} paddingAngle={2} isAnimationActive={false}>
+                            <Pie data={channelRows} dataKey="amt" nameKey="label" cx="50%" cy="50%" innerRadius={26} outerRadius={46} paddingAngle={2} isAnimationActive={false}>
                               {channelRows.map((r: any, i: any) => (
                                 <Cell key={i} fill={r.color} />
                               ))}
@@ -1200,7 +1200,7 @@ export function AnalyticsPage({
                 const { yr, totalRevenue, predictablePct, predictableAmt, oneOffAmt } = predictableVsOneOffStats
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_predictableVsOneOff" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_predictableVsOneOff')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                     <div style={s.analyticsCardTitle}>Predictable vs One-Off Revenue — {yr} <InfoTip text="Predictable revenue is recurring gifts, grants, and fulfilled pledges — money you can count on without re-soliciting. One-off is everything else: campaign, mass appeal, and general gifts that each need to be earned fresh." /></div>
                     {totalRevenue === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No revenue recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
