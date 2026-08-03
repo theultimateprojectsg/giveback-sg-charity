@@ -477,10 +477,9 @@ export function AnalyticsPage({
               ))}
             </div>
             <div id="analytics-section-today" style={{ scrollMarginTop: 20 }}>
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Today's Overview</span>
+            <div style={{ marginBottom: 40 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Today's Overview</span>
               </div>
 
             {/* ── THIS WEEK, IN WORDS ── */}
@@ -883,10 +882,9 @@ export function AnalyticsPage({
 
             </div>
 
-            <div style={{ position: 'relative', paddingLeft: 24, marginBottom: 40 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Financial Overview</span>
+            <div style={{ marginBottom: 40 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Financial Overview</span>
                 <CustomizeSectionButton sectionId="fo" cards={FINANCIAL_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -1166,10 +1164,9 @@ export function AnalyticsPage({
             </div>
             </div>
 
-            <div id="analytics-section-fundraising" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Fundraising Performance</span>
+            <div id="analytics-section-fundraising" style={{ marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Fundraising Performance</span>
                 <CustomizeSectionButton sectionId="fp" cards={FUNDRAISING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -1395,10 +1392,9 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-campaigns" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.campaigns === false ? 'none' : undefined }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Campaign Performance</span>
+            <div id="analytics-section-campaigns" style={{ marginBottom: 40, scrollMarginTop: 20, display: enabledModules.campaigns === false ? 'none' : undefined }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Campaign Performance</span>
                 <CustomizeSectionButton sectionId="cp" cards={CAMPAIGN_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -1615,10 +1611,9 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-massappeals" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Mass Appeals</span>
+            <div id="analytics-section-massappeals" style={{ marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Mass Appeals</span>
                 <CustomizeSectionButton sectionId="ma" cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -1932,10 +1927,9 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-pledges" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.pledges === false ? 'none' : undefined }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Pledge Performance</span>
+            <div id="analytics-section-pledges" style={{ marginBottom: 40, scrollMarginTop: 20, display: enabledModules.pledges === false ? 'none' : undefined }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Pledge Performance</span>
                 <CustomizeSectionButton sectionId="pp" cards={PLEDGE_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -2229,10 +2223,9 @@ export function AnalyticsPage({
 
               </div>
 
-            <div id="analytics-section-recurring" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.recurring === false ? 'none' : undefined }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Recurring Donations Performance</span>
+            <div id="analytics-section-recurring" style={{ marginBottom: 40, scrollMarginTop: 20, display: enabledModules.recurring === false ? 'none' : undefined }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Recurring Donations Performance</span>
                 <CustomizeSectionButton sectionId="rc" cards={RECURRING_PERFORMANCE_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -2604,10 +2597,9 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-grants" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20, display: enabledModules.grants === false ? 'none' : undefined }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Grants Overview</span>
+            <div id="analytics-section-grants" style={{ marginBottom: 40, scrollMarginTop: 20, display: enabledModules.grants === false ? 'none' : undefined }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Grants Overview</span>
                 <CustomizeSectionButton sectionId="gr" cards={GRANTS_OVERVIEW_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
@@ -3013,10 +3005,9 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-donorbehavior" style={{ position: 'relative', paddingLeft: 24, marginBottom: 40, scrollMarginTop: 20 }}>
-              <div style={{ position: 'absolute', left: 0, top: 4, bottom: 4, width: 1, background: C.borderStrong }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase', color: C.forest, fontWeight: 500 }}>Donor Behavior & Retention</span>
+            <div id="analytics-section-donorbehavior" style={{ marginBottom: 40, scrollMarginTop: 20 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Donor Behavior & Retention</span>
                 <CustomizeSectionButton sectionId="db" cards={DONOR_BEHAVIOR_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
               </div>
 
