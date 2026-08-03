@@ -1286,12 +1286,11 @@ export function AnalyticsPage({
                 if (years58.length < 2) return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Seasonality Trend — {years58.length > 0 ? Math.max(...years58) : new Date().getFullYear()} <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
                   </div>
                   </DraggableCard>
                 )
-                const latestYr58 = Math.max(...years58)
                 const byMonth58 = monthNames58.map((name, i) => {
                   const totalsAcrossYears = years58.map(y => confirmedDonations.filter(d => { const dt = new Date(d.created_at); return dt.getFullYear() === y && dt.getMonth() === i }).reduce((s, d) => s + d.amount, 0))
                   const nonZeroTotals = totalsAcrossYears.filter(t => t > 0)
@@ -1303,19 +1302,21 @@ export function AnalyticsPage({
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Seasonality Trend — {latestYr58} <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
-                    <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Average revenue per calendar month across {years58.length} years — use this to time your appeals.</div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 100, marginBottom: 8 }}>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100 }}>
-                        {byMonth58.map((m, i) => (
-                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <div style={{ width: '100%', height: `${Math.max(4, (m.avg / maxAvg58) * 90)}px`, background: m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong, borderRadius: 2 }} />
-                            <span style={{ fontSize: 9, color: C.muted }}>{m.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted }}>
+                    <div style={s.analyticsCardTitle}>Seasonality Trend — Last {years58.length} Years <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
+                    <ResponsiveContainer width="100%" height={140}>
+                      <BarChart data={byMonth58} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
+                        <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'Avg revenue']} />
+                        <Bar dataKey="avg" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                          {byMonth58.map((m, i) => (
+                            <Cell key={i} fill={m.avg >= overallAvg58 * 1.15 ? C.sage : m.avg <= overallAvg58 * 0.7 ? C.red : C.borderStrong} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.muted, marginTop: 8 }}>
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.sage, borderRadius: 2, marginRight: 4 }} />Strong month</span>
                       <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, borderRadius: 2, marginRight: 4 }} />Weak month</span>
                     </div>
