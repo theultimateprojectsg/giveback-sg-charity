@@ -2389,12 +2389,17 @@ export function AnalyticsPage({
                       {byProgrammeRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
                           {byProgrammeRows.map((r: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            <div key={i}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                              </div>
+                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                                <div style={{ width: `${r.pct}%`, height: '100%', background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2403,12 +2408,17 @@ export function AnalyticsPage({
                       {byTypeRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {byTypeRows.map((r: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                              <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                            <div key={i}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                              </div>
+                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                                <div style={{ width: `${r.pct}%`, height: '100%', background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
+                              </div>
                             </div>
                           ))}
                         </div>
