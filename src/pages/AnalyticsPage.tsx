@@ -1993,8 +1993,7 @@ export function AnalyticsPage({
                 )
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_snapshot" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_snapshot')} flexBasis="100%" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div>
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                       {genericTile(amountPledgedTile)}
                       {genericTile(pledgesMadeTile)}
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
@@ -2016,7 +2015,6 @@ export function AnalyticsPage({
                           </div>
                         )}
                       </div>
-                    </div>
                   </div>
                   </DraggableCard>
                 )
