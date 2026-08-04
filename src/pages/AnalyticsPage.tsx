@@ -2094,11 +2094,6 @@ export function AnalyticsPage({
                         <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
                         <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
                       </div>
-                      {netPledgeValue >= 0 ? (
-                        <ActionBanner tone="success" text="Net pledge value growing" sub={`New commitments are outpacing cancellations so far in ${yr}`} />
-                      ) : (
-                        <ActionBanner tone="danger" text="Net pledge value shrinking" sub="Cancellations are outpacing new commitments — worth checking why pledges are falling through" />
-                      )}
                     </div>
                     </DraggableCard>
                     )}
