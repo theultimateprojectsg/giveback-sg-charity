@@ -2029,7 +2029,7 @@ export function AnalyticsPage({
                       const rateColor = (r: number) => r >= 70 ? C.sage : r >= 40 ? C.gold : C.red
                       return (
                       <DraggableCard sectionId="pp" cardKey="pp_revenueTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_revenueTrend')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                         <div style={s.analyticsCardTitle}>Pledge Revenue & Fulfillment — Last {trendData.length} Years <InfoTip text="Total value of pledges expected per year (bar height), with the fulfilled portion colored and the fulfillment % labeled on top. The current year is still in progress, so its rate will look lower until it closes out." /></div>
                         <ResponsiveContainer width="100%" height={155}>
                           <BarChart data={stackData} margin={{ top: 34, right: 10, left: 0, bottom: 0 }}>
