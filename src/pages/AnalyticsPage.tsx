@@ -2044,11 +2044,14 @@ export function AnalyticsPage({
                                 dataKey="rate"
                                 position="top"
                                 offset={6}
-                                content={(p: any) => (
-                                  <text x={p.x + p.width / 2} y={p.y - 6} textAnchor="middle" fontSize={9} fill={C.muted}>
-                                    ${p.payload.fulfilled.toLocaleString()} / ${p.payload.pledged.toLocaleString()}
-                                  </text>
-                                )}
+                                content={(p: any) => {
+                                  if (!p.payload) return null
+                                  return (
+                                    <text x={p.x + p.width / 2} y={p.y - 6} textAnchor="middle" fontSize={9} fill={C.muted}>
+                                      ${p.payload.fulfilled.toLocaleString()} / ${p.payload.pledged.toLocaleString()}
+                                    </text>
+                                  )
+                                }}
                               />
                             </Bar>
                           </BarChart>
