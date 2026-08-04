@@ -1143,9 +1143,10 @@ export function AnalyticsPage({
                 const { trendData, firstYr, lastYr, cagr } = revenueTrendStats
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_revenueTrend" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_revenueTrend')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Revenue Trend — Last {trendData.length} Years <InfoTip text="Total confirmed donations per calendar year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
-                    <ResponsiveContainer width="100%" height={130}>
+                    <div style={{ flex: 1, minHeight: 130 }}>
+                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                         <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1154,6 +1155,7 @@ export function AnalyticsPage({
                         <Bar dataKey="total" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                       </BarChart>
                     </ResponsiveContainer>
+                    </div>
                   </div>
                   </DraggableCard>
                 )
@@ -1231,7 +1233,7 @@ export function AnalyticsPage({
                 const { yr, newDonorChartData, totalNew } = newDonorAcquisitionStats
                 return (
                   <DraggableCard sectionId="fp" cardKey="fp_newDonorAcquisition" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_newDonorAcquisition')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>New Donor Acquisition — {yr}{filterYear !== 'All' && ` vs ${yr - 1}`} <InfoTip text="First-time donors by the month of their very first confirmed gift, compared against the same months last year. Shows whether your donor base is actually growing, not just cycling the same supporters." /></div>
                     <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                       {filterYear !== 'All' && (
@@ -1244,7 +1246,8 @@ export function AnalyticsPage({
                     {totalNew === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No new donors recorded {filterYear !== 'All' ? `in ${yr}` : 'yet'}.</div>
                     ) : (
-                      <ResponsiveContainer width="100%" height={180}>
+                      <div style={{ flex: 1, minHeight: 180 }}>
+                      <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={newDonorChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                           <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1254,6 +1257,7 @@ export function AnalyticsPage({
                           <Line type="monotone" dataKey="count" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
                         </LineChart>
                       </ResponsiveContainer>
+                      </div>
                     )}
                   </div>
                   </DraggableCard>
@@ -1262,7 +1266,7 @@ export function AnalyticsPage({
 
                 {!hidden('fp_donationsPerMonth') && (
                 <DraggableCard sectionId="fp" cardKey="fp_donationsPerMonth" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_donationsPerMonth')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                <div style={s.card}>
+                <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                   <div style={s.analyticsCardTitle}>Number of Donations per Month — {filterYear}{filterYear !== 'All' && ` vs ${parseInt(String(filterYear)) - 1}`} <InfoTip text="Count of individual confirmed donations received each month, regardless of amount, compared against the same months last year." /></div>
                   <div style={{ minHeight: 22, display: 'flex', gap: 14, fontSize: 10.5, color: C.muted }}>
                     {filterYear !== 'All' && (
@@ -1272,7 +1276,8 @@ export function AnalyticsPage({
                       </>
                     )}
                   </div>
-                  <ResponsiveContainer width="100%" height={180}>
+                  <div style={{ flex: 1, minHeight: 180 }}>
+                  <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={monthlyCountData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1282,6 +1287,7 @@ export function AnalyticsPage({
                       <Line type="monotone" dataKey="count" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
+                  </div>
                 </div>
                 </DraggableCard>
                 )}
@@ -1715,9 +1721,10 @@ export function AnalyticsPage({
                   <>
                     {!hidden('ma_appealsTrend') && trendData.length >= 2 && (
                       <DraggableCard sectionId="ma" cardKey="ma_appealsTrend" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_appealsTrend')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Appeals Trend — Last {trendData.length} Years <InfoTip text="Total raised from mass appeals per year, so you can see the long-term trajectory rather than just this year vs last year." /></div>
-                        <ResponsiveContainer width="100%" height={130}>
+                        <div style={{ flex: 1, minHeight: 130 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1726,6 +1733,7 @@ export function AnalyticsPage({
                             <Bar dataKey="raised" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
+                        </div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Total raised from appeals, by year.</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, marginTop: 12, paddingTop: 12 }}>
                           <span style={{ fontSize: 11, color: C.muted }}>Conversion rate trend</span>
@@ -2384,9 +2392,10 @@ export function AnalyticsPage({
                   <>
                     {!hidden('rc_revenueTrend') && trendData.length >= 2 && (
                       <DraggableCard sectionId="rc" cardKey="rc_revenueTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_revenueTrend')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
-                        <ResponsiveContainer width="100%" height={140}>
+                        <div style={{ flex: 1, minHeight: 140 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -2395,6 +2404,7 @@ export function AnalyticsPage({
                             <Bar dataKey="mrr" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
+                        </div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
                       </div>
                       </DraggableCard>
