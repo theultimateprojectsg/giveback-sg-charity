@@ -2069,14 +2069,14 @@ export function AnalyticsPage({
                     {!hidden('pp_newVsCancelled') && (
                     <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above. Chart above shows the same split across recent years." /></div>
+                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="Tracks fresh pledging activity, not the expected-revenue pipeline shown in the tiles above. New pledges made is scoped by when the pledge was recorded (created date) — a pulse check on new commitments coming in this year. Cancelled value is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above. Chart above shows the same split across recent years." /></div>
                       {newVsCancelledTrend.length >= 2 && (
                         <ResponsiveContainer width="100%" height={110}>
                           <BarChart data={newVsCancelledTrend.map((t: any) => ({ ...t, cancelledNeg: -t.cancelledValue }))} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => `$${Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(Math.abs(v) % 1000 === 0 ? 0 : 1) + 'K' : Math.abs(v)}`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Math.abs(Number(value)).toLocaleString()}`, name === 'newValue' ? 'New committed' : 'Cancelled']} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Math.abs(Number(value)).toLocaleString()}`, name === 'newValue' ? 'New pledges made' : 'Cancelled']} />
                             <Bar dataKey="newValue" fill={C.sage} radius={[4, 4, 0, 0]} isAnimationActive={false} />
                             <Bar dataKey="cancelledNeg" fill={C.red} radius={[0, 0, 4, 4]} isAnimationActive={false} />
                           </BarChart>
@@ -2084,7 +2084,7 @@ export function AnalyticsPage({
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.successText }}>+ New pledges committed</span>
+                          <span style={{ fontSize: 12, color: C.successText }}>+ New pledges made this year</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>${Math.round(newPledgeValue).toLocaleString()}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.dangerBg, borderRadius: 4 }}>
