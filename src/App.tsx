@@ -6973,12 +6973,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
 
     const lastYearFulfilled = lastYearPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
-    const lastYearOnTime = lastYearFulfilled.filter(p => {
+    const lastYearFulfilledWithDates = lastYearFulfilled.map(p => {
       const donation = donations.find(d => d.id === p.fulfilled_donation_id)
-      if (!donation) return false
-      return new Date(donation.created_at) <= new Date(p.expected_date)
-    }).length
-    const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTime / lastYearPledges.length) * 100) : null
+      if (!donation) return null
+      const daysLate = Math.ceil((new Date(donation.created_at).getTime() - new Date(p.expected_date).getTime()) / (1000 * 60 * 60 * 24))
+      return { pledge: p, daysLate }
+    }).filter(Boolean)
+    const lastYearOnTimeGroup = lastYearFulfilledWithDates.filter(f => f.daysLate <= 0)
+    const lastYearSlightlyLateGroup = lastYearFulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
+    const lastYearVeryLateGroup = lastYearFulfilledWithDates.filter(f => f.daysLate > 14)
+    const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTimeGroup.length / lastYearPledges.length) * 100) : null
 
     const today = new Date()
     const donorKey = (p: any) => p.donor_email?.trim() || p.donor_name
@@ -6997,7 +7001,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter((p: any) => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
-    return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList }
+    return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, lastYearFulfilledWithDates, lastYearOnTimeGroup, lastYearSlightlyLateGroup, lastYearVeryLateGroup, watchList }
   }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf, pledgeRescheduleHistory])
 
   const pledgeConcentrationStats = React.useMemo(() => {
