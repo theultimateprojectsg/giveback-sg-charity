@@ -2027,9 +2027,10 @@ export function AnalyticsPage({
                   <>
                     {!hidden('pp_revenueTrend') && trendData.length >= 2 && (
                       <DraggableCard sectionId="pp" cardKey="pp_revenueTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_revenueTrend')} flexBasis="360px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Pledge Revenue Trend — Last {trendData.length} Years <InfoTip text="Total value of pledges expected per year, by the pledge's expected date." /></div>
-                        <ResponsiveContainer width="100%" height={130}>
+                        <div style={{ flex: 1, minHeight: 130 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -2038,6 +2039,7 @@ export function AnalyticsPage({
                             <Bar dataKey="pledged" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                           </BarChart>
                         </ResponsiveContainer>
+                        </div>
                       </div>
                       </DraggableCard>
                     )}
@@ -2046,9 +2048,10 @@ export function AnalyticsPage({
                       const rateData = trendData.map((t: any) => ({ ...t, rate: t.pledged > 0 ? Math.round((t.fulfilled / t.pledged) * 100) : 0 }))
                       return (
                       <DraggableCard sectionId="pp" cardKey="pp_fulfillmentTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_fulfillmentTrend')} flexBasis="360px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Pledge Fulfillment Rate — Last {trendData.length} Years <InfoTip text="Share of each year's pledged value that's been fulfilled. The current year is still in progress, so its rate will look lower until it closes out." /></div>
-                        <ResponsiveContainer width="100%" height={130}>
+                        <div style={{ flex: 1, minHeight: 130 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={rateData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -2057,6 +2060,7 @@ export function AnalyticsPage({
                             <Line type="monotone" dataKey="rate" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
                           </LineChart>
                         </ResponsiveContainer>
+                        </div>
                       </div>
                       </DraggableCard>
                       )
