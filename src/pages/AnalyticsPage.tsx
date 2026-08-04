@@ -1490,7 +1490,7 @@ export function AnalyticsPage({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                           <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                           {campaignRows.length > 1 && (
-                            <div style={{ display: 'flex', gap: 4, marginRight: 26 }}>
+                            <div style={{ display: 'flex', gap: 4, marginRight: 44 }}>
                               {([
                                 ['raised', 'Total Raised'],
                                 ['behind', 'Most Behind Pace'],
