@@ -1283,7 +1283,7 @@ export function AnalyticsPage({
               {!hidden('fp_seasonality') && (() => {
                 const fyStartMonth58 = (fyEndMonth + 1) % 12
                 const monthNames58 = Array.from({ length: 12 }, (_, i) => new Date(2000, (fyStartMonth58 + i) % 12, 1).toLocaleDateString('en-SG', { month: 'short' }))
-                const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))]
+                const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).slice(0, 4).sort((a, b) => a - b)
                 if (years58.length < 2) return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
