@@ -1400,7 +1400,7 @@ export function AnalyticsPage({
 
                     {!hidden('cp_leaderboard') && (() => {
                       const donorGrowth = donorGrowthAgg ? (() => {
-                        const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
+                        const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant } = donorGrowthAgg
                         return (
                           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
                             <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
@@ -1425,6 +1425,8 @@ export function AnalyticsPage({
                               )}
                             </div>
 
+                            {(appealReliant.length > 0 || standoutOrganic.length > 0 || stagnant.length > 0) && (
+                            <>
                             <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                               {appealReliant.map((r: any, i: any) => (
@@ -1445,13 +1447,9 @@ export function AnalyticsPage({
                                   <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
                                 </div>
                               ))}
-                              {restCount > 0 && (
-                                <div style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{restCount} other campaign{restCount !== 1 ? 's are' : ' is'} mostly organic with a healthy new-donor mix</div>
-                                  <div style={{ fontSize: 10.5, color: C.muted }}>Nothing to flag — steady, unassisted growth</div>
-                                </div>
-                              )}
                             </div>
+                            </>
+                            )}
                           </div>
                         )
                       })() : null
