@@ -2076,7 +2076,7 @@ export function AnalyticsPage({
 
                     {!hidden('pp_newVsCancelled') && (
                     <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="Tracks fresh pledging activity, not the expected-revenue pipeline shown in the tiles above. New pledges made is scoped by when the pledge was recorded (created date) — a pulse check on new commitments coming in this year. Cancelled value is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above. Chart above shows the same split across recent years." /></div>
                       {newVsCancelledTrend.length >= 2 && (
                         <ResponsiveContainer width="100%" height={110}>
@@ -2090,7 +2090,7 @@ export function AnalyticsPage({
                           </BarChart>
                         </ResponsiveContainer>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
                           <span style={{ fontSize: 12, color: C.successText }}>+ New pledges made this year</span>
                           <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>${Math.round(newPledgeValue).toLocaleString()}</span>
