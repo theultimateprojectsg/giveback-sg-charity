@@ -2102,7 +2102,7 @@ export function AnalyticsPage({
               })()}
 
               {!hidden('pp_reliability') && (() => {
-                const { yearNum, lastYearPledges, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearFulfilledWithDates, lastYearOnTimeGroup, lastYearSlightlyLateGroup, lastYearVeryLateGroup, watchList } = pledgeReliabilityStats
+                const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
                 const { donorRanked } = pledgeConcentrationStats
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2111,23 +2111,17 @@ export function AnalyticsPage({
                 const onTimePct = fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0
                 const slightlyLatePct = fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0
                 const veryLatePct = fulfilledWithDates.length > 0 ? Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100) : 0
-                const lastYearOnTimeAmt = lastYearOnTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
-                const lastYearSlightlyLateAmt = lastYearSlightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
-                const lastYearVeryLateAmt = lastYearVeryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
-                const lastYearOnTimePct = lastYearFulfilledWithDates.length > 0 ? Math.round((lastYearOnTimeGroup.length / lastYearFulfilledWithDates.length) * 100) : 0
-                const lastYearSlightlyLatePct = lastYearFulfilledWithDates.length > 0 ? Math.round((lastYearSlightlyLateGroup.length / lastYearFulfilledWithDates.length) * 100) : 0
-                const lastYearVeryLatePct = lastYearFulfilledWithDates.length > 0 ? Math.round((lastYearVeryLateGroup.length / lastYearFulfilledWithDates.length) * 100) : 0
 
                 return (
                   <>
                   {(fulfilledWithDates.length > 0 || donorRanked.length > 0) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability & Concentration — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, and your largest outstanding pledges by value." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability & Concentration <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, and your largest outstanding pledges by value." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges: how late did they run?</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges — last 4 years: how late did they run?</div>
                         <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
                           {onTimePct > 0 && <div style={{ width: `${onTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{onTimePct}%</span>}</div>}
                           {slightlyLatePct > 0 && <div style={{ width: `${slightlyLatePct}%`, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{slightlyLatePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{slightlyLatePct}%</span>}</div>}
@@ -2138,24 +2132,6 @@ export function AnalyticsPage({
                           <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.forest, borderRadius: 2, marginRight: 5 }} />1–14 days late ({slightlyLateGroup.length} · ${slightlyLateAmt.toLocaleString()})</span>
                           {veryLateGroup.length > 0 && (
                             <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />15+ days late ({veryLateGroup.length} · ${veryLateAmt.toLocaleString()})</span>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    {lastYearFulfilledWithDates.length > 0 && (
-                      <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>{yearNum - 1}: how late did they run?</div>
-                        <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
-                          {lastYearOnTimePct > 0 && <div style={{ width: `${lastYearOnTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lastYearOnTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{lastYearOnTimePct}%</span>}</div>}
-                          {lastYearSlightlyLatePct > 0 && <div style={{ width: `${lastYearSlightlyLatePct}%`, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lastYearSlightlyLatePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{lastYearSlightlyLatePct}%</span>}</div>}
-                          {lastYearVeryLatePct > 0 && <div style={{ width: `${lastYearVeryLatePct}%`, background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{lastYearVeryLatePct >= 12 && <span style={{ fontSize: 9, fontWeight: 700, color: C.white }}>{lastYearVeryLatePct}%</span>}</div>}
-                        </div>
-                        <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: C.muted, flexWrap: 'wrap', marginBottom: 14 }}>
-                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />On time or early ({lastYearOnTimeGroup.length} · ${lastYearOnTimeAmt.toLocaleString()})</span>
-                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.forest, borderRadius: 2, marginRight: 5 }} />1–14 days late ({lastYearSlightlyLateGroup.length} · ${lastYearSlightlyLateAmt.toLocaleString()})</span>
-                          {lastYearVeryLateGroup.length > 0 && (
-                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />15+ days late ({lastYearVeryLateGroup.length} · ${lastYearVeryLateAmt.toLocaleString()})</span>
                           )}
                         </div>
                       </>

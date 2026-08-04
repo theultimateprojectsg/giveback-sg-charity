@@ -6956,11 +6956,12 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
 
   const pledgeReliabilityStats = React.useMemo(() => {
     const yearNum = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)
-    const scopedPledges = pledges.filter(p => fyOf(p.expected_date) === yearNum)
-    const lastYearPledges = pledges.filter(p => fyOf(p.expected_date) === yearNum - 1)
-    const lastYearTotal = lastYearPledges.reduce((s, p) => s + Number(p.amount), 0)
 
-    const fulfilled = scopedPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
+    // For small charities with few pledges, splitting reliability by single year fragments
+    // an already-small sample into near-empty buckets. Pool the last 4 fiscal years of
+    // fulfilled pledges into one aggregate breakdown instead of a per-year split.
+    const last4YearsPledges = pledges.filter(p => { const y = fyOf(p.expected_date); return y > yearNum - 4 && y <= yearNum })
+    const fulfilled = last4YearsPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
     const fulfilledWithDates = fulfilled.map(p => {
       const donation = donations.find(d => d.id === p.fulfilled_donation_id)
       if (!donation) return null
@@ -6971,18 +6972,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const onTimeGroup = fulfilledWithDates.filter(f => f.daysLate <= 0)
     const slightlyLateGroup = fulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
     const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
-
-    const lastYearFulfilled = lastYearPledges.filter(p => p.status === 'fulfilled' && p.fulfilled_donation_id)
-    const lastYearFulfilledWithDates = lastYearFulfilled.map(p => {
-      const donation = donations.find(d => d.id === p.fulfilled_donation_id)
-      if (!donation) return null
-      const daysLate = Math.ceil((new Date(donation.created_at).getTime() - new Date(p.expected_date).getTime()) / (1000 * 60 * 60 * 24))
-      return { pledge: p, daysLate }
-    }).filter(Boolean)
-    const lastYearOnTimeGroup = lastYearFulfilledWithDates.filter(f => f.daysLate <= 0)
-    const lastYearSlightlyLateGroup = lastYearFulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
-    const lastYearVeryLateGroup = lastYearFulfilledWithDates.filter(f => f.daysLate > 14)
-    const lastYearOnTimeRate = lastYearPledges.length > 0 ? Math.round((lastYearOnTimeGroup.length / lastYearPledges.length) * 100) : null
 
     const today = new Date()
     const donorKey = (p: any) => p.donor_email?.trim() || p.donor_name
@@ -7001,7 +6990,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter((p: any) => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
-    return { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, lastYearFulfilledWithDates, lastYearOnTimeGroup, lastYearSlightlyLateGroup, lastYearVeryLateGroup, watchList }
+    return { yearNum, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList }
   }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf, pledgeRescheduleHistory])
 
   const pledgeConcentrationStats = React.useMemo(() => {
