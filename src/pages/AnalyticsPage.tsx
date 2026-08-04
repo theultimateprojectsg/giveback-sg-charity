@@ -1402,9 +1402,10 @@ export function AnalyticsPage({
 
                         {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
                           <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                          <div style={s.card}>
+                          <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                             <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
-                            <ResponsiveContainer width="100%" height={130}>
+                            <div style={{ flex: 1, minHeight: 130 }}>
+                            <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                                 <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -1413,6 +1414,7 @@ export function AnalyticsPage({
                                 <Bar dataKey="avgPerCampaign" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
                               </BarChart>
                             </ResponsiveContainer>
+                            </div>
                           </div>
                           </DraggableCard>
                         )}
@@ -1426,7 +1428,7 @@ export function AnalyticsPage({
                           ].filter(s => s.pct > 0)
                           return (
                           <DraggableCard sectionId="cp" cardKey="cp_donorGrowth" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorGrowth')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                          <div style={s.card}>
+                          <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                             <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
 
                             {aggTotal === 0 ? (
