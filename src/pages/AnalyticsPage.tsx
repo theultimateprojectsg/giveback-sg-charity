@@ -379,9 +379,8 @@ export function AnalyticsPage({
   ]
   const CAMPAIGN_PERFORMANCE_CARDS = [
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
-    { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
+    { key: 'cp_leaderboard', label: 'Funding Mix & Campaign Leaderboard' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
-    { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
   ]
   const MASS_APPEALS_CARDS = [
     { key: 'ma_snapshot', label: 'Snapshot Tiles' },
@@ -1399,9 +1398,67 @@ export function AnalyticsPage({
                       </div>
                     )}
 
-                    {!hidden('cp_leaderboard') && (
-                      <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    {!hidden('cp_leaderboard') && (() => {
+                      const donorGrowth = donorGrowthAgg ? (() => {
+                        const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
+                        return (
+                          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
+                            <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
+
+                            <div style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+                              <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
+                              {aggTotal === 0 ? (
+                                <div style={{ fontSize: 12.5, color: C.muted }}>No campaign revenue yet.</div>
+                              ) : (
+                                <>
+                                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
+                                    {aggOrganicRawPct > 0 && <div style={{ width: `${aggOrganicRawPct}%`, background: C.sage }} />}
+                                    {aggAppealRawPct > 0 && <div style={{ width: `${aggAppealRawPct}%`, background: C.gold }} />}
+                                    {aggReferralRawPct > 0 && <div style={{ width: `${aggReferralRawPct}%`, background: C.muted }} />}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text, flexWrap: 'wrap' }}>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{aggOrganicPct}% organic</span>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />{aggAppealPct}% mass appeal</span>
+                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.muted, borderRadius: 2, marginRight: 5 }} />{aggReferralPct}% referral</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {appealReliant.map((r: any, i: any) => (
+                                <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{r.title} is {r.appealPct}% reliant on a mass appeal</div>
+                                  <div style={{ fontSize: 10.5, color: C.warning }}>{r.newPct}% new donors · without that appeal, this campaign would have raised far less on its own</div>
+                                </div>
+                              ))}
+                              {standoutOrganic.map((r: any, i: any) => (
+                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: C.successBg, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.successText }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
+                                  <div style={{ fontSize: 10.5, color: C.successText }}>100% new, fully organic — no appeal or referral involved</div>
+                                </div>
+                              ))}
+                              {stagnant.map((r: any, i: any) => (
+                                <div key={`stagnant-${i}`} style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{r.title} hasn't attracted any new donors</div>
+                                  <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
+                                </div>
+                              ))}
+                              {restCount > 0 && (
+                                <div style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
+                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{restCount} other campaign{restCount !== 1 ? 's are' : ' is'} mostly organic with a healthy new-donor mix</div>
+                                  <div style={{ fontSize: 10.5, color: C.muted }}>Nothing to flag — steady, unassisted growth</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })() : null
+                      return (
+                      <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
+                        {donorGrowth}
                         <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                         {campaignRows.length === 0 ? (
                           <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
@@ -1465,7 +1522,8 @@ export function AnalyticsPage({
                         })()}
                       </div>
                       </DraggableCard>
-                      )}
+                      )
+                    })()}
 
                         {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
                           <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
@@ -1484,66 +1542,6 @@ export function AnalyticsPage({
                           </div>
                           </DraggableCard>
                         )}
-
-                        {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
-                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant, restCount } = donorGrowthAgg
-
-                          return (
-                          <DraggableCard sectionId="cp" cardKey="cp_donorGrowth" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorGrowth')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                          <div style={s.card}>
-                            <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
-
-                            <div style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-                              <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
-                              {aggTotal === 0 ? (
-                                <div style={{ fontSize: 12.5, color: C.muted }}>No campaign revenue yet.</div>
-                              ) : (
-                                <>
-                                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
-                                    {aggOrganicRawPct > 0 && <div style={{ width: `${aggOrganicRawPct}%`, background: C.sage }} />}
-                                    {aggAppealRawPct > 0 && <div style={{ width: `${aggAppealRawPct}%`, background: C.gold }} />}
-                                    {aggReferralRawPct > 0 && <div style={{ width: `${aggReferralRawPct}%`, background: C.muted }} />}
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text, flexWrap: 'wrap' }}>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{aggOrganicPct}% organic</span>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />{aggAppealPct}% mass appeal</span>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.muted, borderRadius: 2, marginRight: 5 }} />{aggReferralPct}% referral</span>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {appealReliant.map((r: any, i: any) => (
-                                <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{r.title} is {r.appealPct}% reliant on a mass appeal</div>
-                                  <div style={{ fontSize: 10.5, color: C.warning }}>{r.newPct}% new donors · without that appeal, this campaign would have raised far less on its own</div>
-                                </div>
-                              ))}
-                              {standoutOrganic.map((r: any, i: any) => (
-                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: C.successBg, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.successText }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
-                                  <div style={{ fontSize: 10.5, color: C.successText }}>100% new, fully organic — no appeal or referral involved</div>
-                                </div>
-                              ))}
-                              {stagnant.map((r: any, i: any) => (
-                                <div key={`stagnant-${i}`} style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{r.title} hasn't attracted any new donors</div>
-                                  <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
-                                </div>
-                              ))}
-                              {restCount > 0 && (
-                                <div style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{restCount} other campaign{restCount !== 1 ? 's are' : ' is'} mostly organic with a healthy new-donor mix</div>
-                                  <div style={{ fontSize: 10.5, color: C.muted }}>Nothing to flag — steady, unassisted growth</div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          </DraggableCard>
-                          )
-                        })()}
                   </>
                 )
               })()}
