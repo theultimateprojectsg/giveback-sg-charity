@@ -396,7 +396,7 @@ export function AnalyticsPage({
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
     { key: 'pp_revenueTrend', label: 'Pledge Revenue & Fulfillment' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
-    { key: 'pp_timing', label: 'Fulfillment Timing & Largest Pledges' },
+    { key: 'pp_timing', label: 'Pledge Reliability & Concentration' },
     { key: 'pp_reliability', label: 'Pledge Reliability' },
     { key: 'pp_concentration', label: 'Pledge Concentration' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
@@ -2127,7 +2127,7 @@ export function AnalyticsPage({
                   {(fulfilledWithDates.length > 0 || donorRanked.length > 0) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Fulfillment Timing & Largest Pledges — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, and your largest outstanding pledges by value." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability & Concentration — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, and your largest outstanding pledges by value." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
