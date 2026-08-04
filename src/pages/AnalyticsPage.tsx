@@ -2178,6 +2178,7 @@ export function AnalyticsPage({
                   </DraggableCard>
                   )}
 
+                  {false && (
                   <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
                     <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="Which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
@@ -2237,6 +2238,7 @@ export function AnalyticsPage({
                     )}
                   </div>
                   </DraggableCard>
+                  )}
                   </>
                 )
               })()}
