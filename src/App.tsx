@@ -6558,7 +6558,16 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
         ? Math.floor((today.getTime() - new Date(campDonations[0].created_at).getTime()) / (1000 * 60 * 60 * 24))
         : (row.created_at ? Math.floor((today.getTime() - new Date(row.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null)
       const isStalled = !isEnded && daysSinceLastGift !== null && daysSinceLastGift >= 14
-      return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind }
+      const campaignAppeals = massAppeals.filter((a: any) => a.cause_id === row.id)
+      let appealSummary = null
+      if (campaignAppeals.length > 0) {
+        const appealIds = new Set(campaignAppeals.map((a: any) => a.id))
+        const recipients = allAppealRecipients.filter((r: any) => appealIds.has(r.appeal_id))
+        const converted = recipients.filter((r: any) => r.status === 'converted').length
+        const lastSent = campaignAppeals.reduce((latest: any, a: any) => !latest || new Date(a.created_at) > new Date(latest.created_at) ? a : latest, null)
+        appealSummary = { count: campaignAppeals.length, recipients: recipients.length, converted, lastSentDate: lastSent.created_at }
+      }
+      return { ...row, hasGoal, pctToGoal, pctElapsed, daysToEnd, isStalled, goalReached, behind, slightlyBehind, appealSummary }
     }).sort((a, b) => b.total - a.total)
 
     const endingSoon = campaignRows.filter(r => r.hasGoal && r.daysToEnd !== null && r.daysToEnd >= 0 && r.daysToEnd <= 7).sort((a, b) => a.daysToEnd - b.daysToEnd)
@@ -6620,7 +6629,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     }
 
     return { endingSoon, campaignRows, trendData, donorGrowthRows, donorGrowthAgg }
-  }, [filterYear, myCauses, causePerformanceThisYear, donations, donorFirstGiftDate, allAppealRecipients, campaignCauseIds, fyOf])
+  }, [filterYear, myCauses, causePerformanceThisYear, donations, donorFirstGiftDate, allAppealRecipients, campaignCauseIds, fyOf, massAppeals])
 
   const appealSnapshotStats = React.useMemo(() => {
     const yr = filterYear === 'All' ? fyOf(new Date()) : parseInt(filterYear)

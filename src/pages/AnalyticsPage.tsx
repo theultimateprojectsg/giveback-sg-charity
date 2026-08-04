@@ -1621,6 +1621,17 @@ export function AnalyticsPage({
                                       </span>
                                     </div>
                                   )}
+                                  {row.appealSummary ? (
+                                    <div style={{ marginTop: 8 }}>
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.ivory, border: `1px solid ${C.border}`, borderRadius: 100, padding: '4px 10px', fontSize: 11, color: C.text }}
+                                        onClick={e => { e.stopPropagation(); setActiveTab('promotions') }}
+                                      >
+                                        📣 <b style={{ color: C.forest }}>{row.appealSummary.count} appeal{row.appealSummary.count !== 1 ? 's' : ''} sent</b> · {new Date(row.appealSummary.lastSentDate).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' })} · {row.appealSummary.converted} of {row.appealSummary.recipients} converted
+                                      </span>
+                                    </div>
+                                  ) : row.behind ? (
+                                    <div style={{ fontSize: 10.5, color: C.gold, fontWeight: 500, marginTop: 8 }}>⚠ No appeal sent yet — consider one given it's behind pace</div>
+                                  ) : null}
                                 </div>
                               )
                             })}
