@@ -361,6 +361,7 @@ export function AnalyticsPage({
   showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
+  const [campaignSort, setCampaignSort] = useState<'raised' | 'behind' | 'roi' | 'ending'>('raised')
   const hidden = (cardKey: string) => hiddenDashboardCards.includes(cardKey)
   const cardOrd = (sectionId: string, defaultCards: { key: string }[], cardKey: string) => getCardOrderIndex(dashboardCardOrder, sectionId, defaultCards.map(c => c.key), cardKey)
   const FINANCIAL_OVERVIEW_CARDS = [
@@ -1457,12 +1458,49 @@ export function AnalyticsPage({
                       <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
                         {donorGrowth}
-                        <div style={s.analyticsCardTitle}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, ranked by total raised, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                          <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
+                          {campaignRows.length > 1 && (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {([
+                                ['raised', 'Total Raised'],
+                                ['behind', 'Most Behind Pace'],
+                                ['roi', 'Highest ROI'],
+                                ['ending', 'Ending Soonest'],
+                              ] as const).map(([key, label]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setCampaignSort(key)}
+                                  style={{
+                                    fontSize: 10.5, fontWeight: 600, padding: '4px 9px', borderRadius: 100, cursor: 'pointer',
+                                    border: `1px solid ${campaignSort === key ? C.forest : C.border}`,
+                                    background: campaignSort === key ? C.forest : 'none',
+                                    color: campaignSort === key ? C.white : C.muted,
+                                  }}
+                                >{label}</button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         {campaignRows.length === 0 ? (
                           <div style={{ fontSize: 13, color: C.muted, padding: '8px 0' }}>No campaigns launched {filterYear !== 'All' ? `in ${filterYear}` : 'yet'}.</div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {campaignRows.map((row: any, i: any) => {
+                            {[...campaignRows].sort((a: any, b: any) => {
+                              if (campaignSort === 'behind') {
+                                const g = (r: any) => r.hasGoal && !r.goalReached && r.pctElapsed !== null ? r.pctElapsed - r.pctToGoal : -Infinity
+                                return g(b) - g(a)
+                              }
+                              if (campaignSort === 'roi') {
+                                const r = (row: any) => row.cost > 0 ? row.total / row.cost : -Infinity
+                                return r(b) - r(a)
+                              }
+                              if (campaignSort === 'ending') {
+                                const e = (row: any) => row.hasGoal && row.daysToEnd !== null && row.daysToEnd >= 0 ? row.daysToEnd : Infinity
+                                return e(a) - e(b)
+                              }
+                              return b.total - a.total
+                            }).map((row: any, i: any) => {
                               const bg = row.behind ? C.dangerBg : row.slightlyBehind ? C.warningBg : row.hasGoal && row.goalReached ? C.successBg : C.ivory
                               const accentColor = row.behind ? C.red : row.slightlyBehind ? C.gold : row.hasGoal && row.goalReached ? C.successText : C.forest
                               const barColor = row.behind ? C.red : row.slightlyBehind ? C.gold : C.sage
