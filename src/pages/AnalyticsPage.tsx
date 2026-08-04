@@ -394,8 +394,7 @@ export function AnalyticsPage({
   ]
   const PLEDGE_PERFORMANCE_CARDS = [
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
-    { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
-    { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Rate' },
+    { key: 'pp_revenueTrend', label: 'Pledge Revenue & Fulfillment' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_reliability', label: 'Pledge Reliability' },
     { key: 'pp_concentration', label: 'Pledge Concentration & Timing' },
@@ -2021,42 +2020,27 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const { yr, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue } = pledgeStatsAndTrend
+                const { yr, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, newVsCancelledTrend } = pledgeStatsAndTrend
 
                 return (
                   <>
-                    {!hidden('pp_revenueTrend') && trendData.length >= 2 && (
-                      <DraggableCard sectionId="pp" cardKey="pp_revenueTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_revenueTrend')} flexBasis="360px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    {!hidden('pp_revenueTrend') && trendData.length >= 2 && (() => {
+                      const stackData = trendData.map((t: any) => ({ ...t, rate: t.pledged > 0 ? Math.round((t.fulfilled / t.pledged) * 100) : 0, outstanding: t.pledged - t.fulfilled }))
+                      const rateColor = (r: number) => r >= 70 ? C.sage : r >= 40 ? C.gold : C.red
+                      return (
+                      <DraggableCard sectionId="pp" cardKey="pp_revenueTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_revenueTrend')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Pledge Revenue Trend — Last {trendData.length} Years <InfoTip text="Total value of pledges expected per year, by the pledge's expected date." /></div>
-                        <ResponsiveContainer width="100%" height={130}>
-                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <div style={s.analyticsCardTitle}>Pledge Revenue & Fulfillment — Last {trendData.length} Years <InfoTip text="Total value of pledges expected per year (bar height), with the fulfilled portion colored and the fulfillment % labeled on top. The current year is still in progress, so its rate will look lower until it closes out." /></div>
+                        <ResponsiveContainer width="100%" height={155}>
+                          <BarChart data={stackData} margin={{ top: 34, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Pledged']} />
-                            <Bar dataKey="pledged" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                      </DraggableCard>
-                    )}
-
-                    {!hidden('pp_fulfillmentTrend') && trendData.length >= 2 && (() => {
-                      const rateData = trendData.map((t: any) => ({ ...t, rate: t.pledged > 0 ? Math.round((t.fulfilled / t.pledged) * 100) : 0 }))
-                      const rateColor = (r: number) => r >= 70 ? C.sage : r >= 40 ? C.gold : C.red
-                      return (
-                      <DraggableCard sectionId="pp" cardKey="pp_fulfillmentTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_fulfillmentTrend')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Rate — Last {trendData.length} Years <InfoTip text="Share of each year's pledged value that's been fulfilled. The current year is still in progress, so its rate will look lower until it closes out." /></div>
-                        <ResponsiveContainer width="100%" height={155}>
-                          <BarChart data={rateData} margin={{ top: 34, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={34} domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => [`${value}% ($${entry.payload.fulfilled.toLocaleString()} of $${entry.payload.pledged.toLocaleString()})`, 'Fulfilled']} />
-                            <Bar dataKey="rate" radius={[6, 6, 0, 0]} isAnimationActive={false}>
-                              {rateData.map((t: any, i: any) => <Cell key={i} fill={rateColor(t.rate)} />)}
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => name === 'fulfilled' ? [`$${Number(value).toLocaleString()} (${entry.payload.rate}%)`, 'Fulfilled'] : [`$${Number(value).toLocaleString()}`, 'Still outstanding']} />
+                            <Bar dataKey="fulfilled" stackId="a" isAnimationActive={false}>
+                              {stackData.map((t: any, i: any) => <Cell key={i} fill={rateColor(t.rate)} />)}
+                            </Bar>
+                            <Bar dataKey="outstanding" stackId="a" fill={C.ivoryDark} radius={[6, 6, 0, 0]} isAnimationActive={false}>
                               <LabelList dataKey="rate" position="top" offset={20} formatter={(v: any) => `${v}%`} style={{ fontSize: 11, fontWeight: 700, fill: C.forest }} />
                               <LabelList
                                 dataKey="rate"
@@ -2074,6 +2058,10 @@ export function AnalyticsPage({
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
+                        <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: C.muted, marginTop: 8 }}>
+                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />Fulfilled</span>
+                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.ivoryDark, borderRadius: 2, marginRight: 5 }} />Still outstanding</span>
+                        </div>
                       </div>
                       </DraggableCard>
                       )
@@ -2082,7 +2070,19 @@ export function AnalyticsPage({
                     {!hidden('pp_newVsCancelled') && (
                     <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={s.card}>
-                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
+                      <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="How much pledge value was newly committed this year, vs cancelled. New is scoped by when the pledge was recorded; cancelled is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above. Chart above shows the same split across recent years." /></div>
+                      {newVsCancelledTrend.length >= 2 && (
+                        <ResponsiveContainer width="100%" height={110}>
+                          <BarChart data={newVsCancelledTrend.map((t: any) => ({ ...t, cancelledNeg: -t.cancelledValue }))} margin={{ top: 6, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => `$${Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(Math.abs(v) % 1000 === 0 ? 0 : 1) + 'K' : Math.abs(v)}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Math.abs(Number(value)).toLocaleString()}`, name === 'newValue' ? 'New committed' : 'Cancelled']} />
+                            <Bar dataKey="newValue" fill={C.sage} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                            <Bar dataKey="cancelledNeg" fill={C.red} radius={[0, 0, 4, 4]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
                           <span style={{ fontSize: 12, color: C.successText }}>+ New pledges committed</span>

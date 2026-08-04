@@ -6943,7 +6943,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { year: y.toString(), pledged: pledgedTotal, fulfilled: fulfilledTotal }
     })
 
-    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue }
+    const allYearsWithPledgeActivity = [...new Set([...pledges.map(p => fyOf(p.created_at)), ...pledges.map(p => fyOf(p.expected_date))])].sort((a, b) => a - b)
+    const netTrendYears = allYearsWithPledgeActivity.slice(-5)
+    const newVsCancelledTrend = netTrendYears.map(y => {
+      const newValue = pledges.filter(p => fyOf(p.created_at) === y).reduce((s, p) => s + Number(p.amount), 0)
+      const cancelledValue = pledges.filter(p => fyOf(p.expected_date) === y && p.status === 'cancelled').reduce((s, p) => s + Number(p.amount), 0)
+      return { year: y.toString(), newValue, cancelledValue, net: newValue - cancelledValue }
+    })
+
+    return { yr, overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate, trendData, newPledgeValue, cancelledPledgeValue, netPledgeValue, newVsCancelledTrend }
   }, [filterYear, pledges, pledgeInstalments, fyOf])
 
   const pledgeReliabilityStats = React.useMemo(() => {
