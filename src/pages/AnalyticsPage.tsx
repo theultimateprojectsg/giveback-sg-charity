@@ -394,7 +394,8 @@ export function AnalyticsPage({
   ]
   const PLEDGE_PERFORMANCE_CARDS = [
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
-    { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Trend' },
+    { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
+    { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Rate' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_reliability', label: 'Pledge Reliability' },
     { key: 'pp_concentration', label: 'Pledge Concentration & Timing' },
@@ -2024,6 +2025,23 @@ export function AnalyticsPage({
 
                 return (
                   <>
+                    {!hidden('pp_revenueTrend') && trendData.length >= 2 && (
+                      <DraggableCard sectionId="pp" cardKey="pp_revenueTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_revenueTrend')} flexBasis="360px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                      <div style={s.card}>
+                        <div style={s.analyticsCardTitle}>Pledge Revenue Trend — Last {trendData.length} Years <InfoTip text="Total value of pledges expected per year, by the pledge's expected date." /></div>
+                        <ResponsiveContainer width="100%" height={130}>
+                          <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Pledged']} />
+                            <Bar dataKey="pledged" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      </DraggableCard>
+                    )}
+
                     {!hidden('pp_fulfillmentTrend') && trendData.length >= 2 && (() => {
                       const rateData = trendData.map((t: any) => ({ ...t, rate: t.pledged > 0 ? Math.round((t.fulfilled / t.pledged) * 100) : 0 }))
                       const rateColor = (r: number) => r >= 70 ? C.sage : r >= 40 ? C.gold : C.red
