@@ -404,7 +404,7 @@ export function AnalyticsPage({
   ]
   const RECURRING_PERFORMANCE_CARDS = [
     { key: 'rc_snapshot', label: 'Snapshot Tiles' },
-    { key: 'rc_healthTiles', label: 'Health Tiles (MRR, Retention, Reliability, Lifespan, At Risk)' },
+    { key: 'rc_healthTiles', label: 'Health Tiles (MRR, Retention Rate)' },
     { key: 'rc_revenueTrend', label: 'Recurring Revenue Trend' },
     { key: 'rc_composition', label: 'Revenue Composition' },
     { key: 'rc_newVsChurned', label: 'New vs Churned MRR' },
@@ -2316,12 +2316,14 @@ export function AnalyticsPage({
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
 
-              {!hidden('rc_snapshot') && (() => {
+              {(!hidden('rc_snapshot') || !hidden('rc_healthTiles')) && (() => {
                 const { yr, tiles } = recurringSnapshotStats
+                const { mrr, mrrDiffPct, retentionRate } = recurringHealthStats
+                const snapshotTiles = hidden('rc_snapshot') ? [] : tiles
                 return (
                   <DraggableCard sectionId="rc" cardKey="rc_snapshot" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_snapshot')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                    {tiles.map((t: any, i: any) => (
+                    {snapshotTiles.map((t: any, i: any) => (
                       <div key={i} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
@@ -2334,27 +2336,20 @@ export function AnalyticsPage({
                         )}
                       </div>
                     ))}
-                  </div>
-                  </DraggableCard>
-                )
-              })()}
-
-              {!hidden('rc_healthTiles') && (() => {
-                const { mrr, mrrDiffPct, retentionRate } = recurringHealthStats
-
-                return (
-                  <DraggableCard sectionId="rc" cardKey="rc_healthTiles" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_healthTiles')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                    {!hidden('rc_healthTiles') && (
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                       <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>MRR <InfoTip text="Total monthly recurring revenue from currently active GIRO and habitual PayNow gifts, compared to 90 days ago." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${Math.round(mrr).toLocaleString()}</div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: mrrDiffPct === null ? C.muted : mrrDiffPct >= 0 ? C.sage : C.red }}>{mrrDiffPct !== null ? `${mrrDiffPct >= 0 ? '▲' : '▼'} ${Math.abs(mrrDiffPct)}% vs 90 days ago` : 'vs 90 days ago'}</div>
                     </div>
+                    )}
+                    {!hidden('rc_healthTiles') && (
                     <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                       <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
                     </div>
+                    )}
                   </div>
                   </DraggableCard>
                 )
