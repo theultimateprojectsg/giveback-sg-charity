@@ -943,7 +943,7 @@ export function AnalyticsPage({
                 <DraggableCard sectionId="fo" cardKey="fo_keyMetrics" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_keyMetrics')} flexBasis="100%" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : isTablet ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
                   {/* Coverage ratio */}
-                  <div style={{ ...s.card, marginBottom: 0, ...(coverageRatio !== null && coverageRatio < 0.75 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Monthly Coverage <InfoTip text="This month's donations divided by your monthly expenses. 1.0x means you're breaking even. Set your expenses in Settings." /></div>
                     {coverageRatio === null ? (
                       <div>
@@ -961,7 +961,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Cash runway */}
-                  <div style={{ ...s.card, marginBottom: 0, ...(runwayMonthsFH !== null && runwayMonthsFH < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Cash Runway <InfoTip text="Based on your average monthly donations over the last 3 months, how many months of expenses that pace would cover. See Analytics for more detail." /></div>
                     {runwayMonthsFH === null ? (
                       <div>
@@ -979,7 +979,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Unrestricted funding coverage */}
-                  <div style={{ ...s.card, marginBottom: 0, ...(unrestrictedCoverageMonths !== null && unrestrictedCoverageMonths < 1 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Unrestricted Funding <InfoTip text="Unrestricted funding from active grants divided by your monthly expenses — restricted grant money can't legally cover operating costs, so this shows how many months your genuinely free-to-use funds could cover on their own." /></div>
                     {unrestrictedCoverageMonths === null ? (
                       <div>
@@ -997,7 +997,7 @@ export function AnalyticsPage({
                   </div>
 
                   {/* Fixed-cost coverage from recurring income */}
-                  <div style={{ ...s.card, marginBottom: 0, ...(fixedCostCoveragePct !== null && fixedCostCoveragePct < 25 ? { background: C.dangerBg, border: `1px solid ${C.dangerBorder}` } : {}) }}>
+                  <div style={{ ...s.card, marginBottom: 0 }}>
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Fixed-Cost Coverage <InfoTip text="Recurring donations (MRR) divided by monthly expenses — if one-off giving stopped tomorrow, this is how much of your fixed costs your recurring donors alone would still cover." /></div>
                     {fixedCostCoveragePct === null ? (
                       <div>
