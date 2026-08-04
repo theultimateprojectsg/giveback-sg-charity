@@ -2340,8 +2340,7 @@ export function AnalyticsPage({
               })()}
 
               {!hidden('rc_healthTiles') && (() => {
-                const { mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, reliabilityPct, reliabilityDelta, reliabilityYr } = recurringHealthStats
-                const lifespanSub = cancelledGifts.length > 0 ? `based on ${cancelledGifts.length} cancelled gift${cancelledGifts.length !== 1 ? 's' : ''} to date` : 'no cancelled gifts yet'
+                const { mrr, mrrDiffPct, retentionRate } = recurringHealthStats
 
                 return (
                   <DraggableCard sectionId="rc" cardKey="rc_healthTiles" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_healthTiles')} flexBasis="100%" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
@@ -2355,29 +2354,6 @@ export function AnalyticsPage({
                       <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Retention rate <InfoTip text="Share of recurring gifts that were active a year ago and are still active today." /></div>
                       <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, marginBottom: 6, color: retentionRate === null ? C.forest : retentionRate >= 80 ? C.sage : retentionRate >= 60 ? C.gold : C.red }}>{retentionRate !== null ? `${retentionRate}%` : '—'}</div>
                       <div style={{ fontSize: 11, color: C.muted }}>vs a year ago</div>
-                    </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Reliability — FY{reliabilityYr} <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, across every gift live at some point in it. Distinct from retention rate — a gift can stay active while still missing cycles constantly." /></div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: reliabilityPct === null ? C.forest : reliabilityPct >= 80 ? C.sage : reliabilityPct >= 60 ? C.gold : C.red }}>{reliabilityPct !== null ? `${reliabilityPct}%` : '—'}</span>
-                      </div>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: reliabilityDelta === null ? C.muted : reliabilityDelta >= 0 ? C.sage : C.red }}>{reliabilityDelta !== null ? `${reliabilityDelta >= 0 ? '▲' : '▼'} ${Math.abs(reliabilityDelta)}pt vs FY${reliabilityYr - 1}` : `vs FY${reliabilityYr - 1}`}</div>
-                    </div>
-                    <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg. lifespan <InfoTip text="Average time between a recurring gift starting and being cancelled, based on gifts cancelled to date. New or still-active gifts aren't counted." /></div>
-                      <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{avgLifespanMonths !== null ? `${avgLifespanMonths} mo` : '—'}</div>
-                      <div style={{ fontSize: 11, color: C.muted }}>{lifespanSub}</div>
-                    </div>
-                    <div
-                      style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0, cursor: atRiskCount > 0 ? 'pointer' : 'default' }}
-                      onClick={atRiskCount > 0 ? () => document.getElementById('recurring-gift-risk-card-analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
-                    >
-                      <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>At risk <InfoTip text="Active recurring gifts that have missed enough consecutive deduction cycles to cross your configured risk threshold." /></div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
-                        {atRiskCount > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, lineHeight: 1, color: atRiskCount > 0 ? C.red : C.forest }}>{atRiskCount}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: atRiskCount > 0 ? C.forest : C.muted, fontWeight: atRiskCount > 0 ? 500 : 400, textDecoration: atRiskCount > 0 ? 'underline' : 'none' }}>{atRiskCount > 0 ? `$${Math.round(atRiskMrr).toLocaleString()} MRR at risk — see who ↓` : 'gifts flagged at risk'}</div>
                     </div>
                   </div>
                   </DraggableCard>

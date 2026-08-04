@@ -7049,11 +7049,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
     const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-    const activeGiftsCount = recurringGifts.filter(g => g.status === 'active').length
     const tiles = [
-      { label: 'Active Recurring Gifts', val: activeGiftsCount, tip: 'Recurring gifts currently marked active, as of today. Not scoped to a year — this reflects your live portfolio right now.' },
       { label: 'Total Raised (Recurring)', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations collected through recurring gifts in ${yr}, compared to ${yr - 1}.` },
-      { label: 'New Recurring Gifts', val: cur.newGifts, d: delta(cur.newGifts, prev.newGifts), tip: `Number of new recurring gifts (GIRO or habitual PayNow) started in ${yr}, compared to ${yr - 1}.` },
       { label: 'Recurring Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who made at least one recurring donation in ${yr}, compared to ${yr - 1}.` },
     ]
     return { yr, tiles }
