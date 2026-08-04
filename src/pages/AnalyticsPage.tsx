@@ -396,6 +396,7 @@ export function AnalyticsPage({
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
     { key: 'pp_revenueTrend', label: 'Pledge Revenue & Fulfillment' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
+    { key: 'pp_timing', label: 'Fulfillment Timing & Largest Pledges' },
     { key: 'pp_reliability', label: 'Pledge Reliability' },
     { key: 'pp_concentration', label: 'Pledge Concentration' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
@@ -2122,9 +2123,11 @@ export function AnalyticsPage({
                 const veryLatePct = fulfilledWithDates.length > 0 ? Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100) : 0
 
                 return (
-                  <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, your largest outstanding pledges, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
+                  <>
+                  {(fulfilledWithDates.length > 0 || donorRanked.length > 0) && (
+                  <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                    <div style={s.analyticsCardTitle}>Fulfillment Timing & Largest Pledges — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, and your largest outstanding pledges by value." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
@@ -2151,7 +2154,7 @@ export function AnalyticsPage({
                     {donorRanked.length > 0 && (
                       <>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest outstanding pledges</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
                             <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
@@ -2171,8 +2174,15 @@ export function AnalyticsPage({
                         </div>
                       </>
                     )}
+                  </div>
+                  </DraggableCard>
+                  )}
 
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Currently overdue</div>
+                  <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="Which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
+
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Currently overdue</div>
                     {overdueUnits.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No overdue pledges right now.</div>
                     ) : (
@@ -2227,6 +2237,7 @@ export function AnalyticsPage({
                     )}
                   </div>
                   </DraggableCard>
+                  </>
                 )
               })()}
 
