@@ -1118,7 +1118,7 @@ export function AnalyticsPage({
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -1349,7 +1349,7 @@ export function AnalyticsPage({
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -1568,7 +1568,7 @@ export function AnalyticsPage({
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -1592,7 +1592,7 @@ export function AnalyticsPage({
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d !== undefined ? (
                           t.d === null ? (
-                            <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                           ) : (
                             <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                               {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -1883,7 +1883,7 @@ export function AnalyticsPage({
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                     <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                     {t.d === null ? (
-                      <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                     ) : (
                       <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                         {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -1901,7 +1901,7 @@ export function AnalyticsPage({
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                         {avgDelta === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: avgDelta > 0 ? C.sage : avgDelta < 0 ? C.red : C.muted }}>
                             {avgDelta > 0 ? '▲' : avgDelta < 0 ? '▼' : '–'} {Math.abs(avgDelta)}% vs {yr - 1}
@@ -2180,7 +2180,7 @@ export function AnalyticsPage({
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{t.val}</div>
                         {t.d === undefined ? null : t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}
@@ -2556,7 +2556,7 @@ export function AnalyticsPage({
                         {t.d === undefined ? (
                           <div style={{ fontSize: 11, color: C.muted }}>currently active</div>
                         ) : t.d === null ? (
-                          <div style={{ fontSize: 11, color: C.muted }}>new in {yr}</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>no activity in {yr - 1} to compare</div>
                         ) : (
                           <div style={{ fontSize: 11, fontWeight: 500, color: t.d > 0 ? C.sage : t.d < 0 ? C.red : C.muted }}>
                             {t.d > 0 ? '▲' : t.d < 0 ? '▼' : '–'} {Math.abs(t.d)}% vs {yr - 1}

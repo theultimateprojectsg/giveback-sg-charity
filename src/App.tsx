@@ -6467,14 +6467,11 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const cur = statsForYear(yr)
     const prev = statsForYear(yr - 1)
     const delta = (c: any, p: any) => p === 0 ? (c > 0 ? null : 0) : Math.round(((c - p) / p) * 100)
-    const orgWideDs = donations.filter(d => d.payment_status === 'confirmed' && fyOf(d.created_at) === yr)
-    const orgWideAvgGift = orgWideDs.length > 0 ? orgWideDs.reduce((s, d) => s + d.amount, 0) / orgWideDs.length : 0
-    const giftDiff = Math.round(cur.avgGift - orgWideAvgGift)
     const tiles = [
       { label: 'Total Raised', val: `$${cur.total.toLocaleString()}`, d: delta(cur.total, prev.total), tip: `Total confirmed donations tagged to a campaign in ${yr}, compared to ${yr - 1}. Excludes grants, mass appeals, and other donations not tied to a campaign.` },
       { label: 'Campaigns Run', val: cur.campaignsRun, d: delta(cur.campaignsRun, prev.campaignsRun), tip: `Number of campaigns launched in ${yr}, compared to ${yr - 1}. Includes campaigns that received no donations.` },
       { label: 'Unique Donors', val: cur.donors, d: delta(cur.donors, prev.donors), tip: `Distinct donors who gave to any campaign in ${yr}, compared to ${yr - 1}. A donor giving to multiple campaigns is only counted once.` },
-      { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.`, extra: orgWideDs.length > 0 ? `$${Math.abs(giftDiff).toLocaleString()} ${giftDiff >= 0 ? 'above' : 'below'} your org-wide avg` : null },
+      { label: 'Avg Gift Size', val: `$${cur.avgGift.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, d: delta(cur.avgGift, prev.avgGift), tip: `Average confirmed campaign donation amount in ${yr}, compared to ${yr - 1}.` },
     ]
     return { yr, tiles }
   }, [filterYear, donations, campaignCauseIds, myCauses, fyOf])
