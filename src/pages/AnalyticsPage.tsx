@@ -458,7 +458,7 @@ export function AnalyticsPage({
                 { id: 'analytics-section-today', label: 'Today' },
                 { id: 'analytics-section-fundraising', label: 'Fundraising' },
                 ...(enabledModules.campaigns !== false ? [{ id: 'analytics-section-campaigns', label: 'Campaigns' }] : []),
-                { id: 'analytics-section-massappeals', label: 'Mass Appeals' },
+                ...(false ? [{ id: 'analytics-section-massappeals', label: 'Mass Appeals' }] : []),
                 ...(enabledModules.pledges !== false ? [{ id: 'analytics-section-pledges', label: 'Pledges' }] : []),
                 ...(enabledModules.recurring !== false ? [{ id: 'analytics-section-recurring', label: 'Recurring' }] : []),
                 ...(enabledModules.grants !== false ? [{ id: 'analytics-section-grants', label: 'Grants' }] : []),
@@ -1647,7 +1647,7 @@ export function AnalyticsPage({
               </div>
             </div>
 
-            <div id="analytics-section-massappeals" style={{ marginBottom: 40, scrollMarginTop: 20 }}>
+            <div id="analytics-section-massappeals" style={{ marginBottom: 40, scrollMarginTop: 20, display: 'none' }}>
               <div style={s.sectionBand}>
                 <span style={s.sectionBandLabel}>Mass Appeals</span>
                 <CustomizeSectionButton sectionId="ma" cards={MASS_APPEALS_CARDS} hiddenDashboardCards={hiddenDashboardCards} toggleDashboardCard={toggleDashboardCard} resetDashboardSection={resetDashboardSection} setConfirmModal={setConfirmModal} />
