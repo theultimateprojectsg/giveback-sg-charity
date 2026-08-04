@@ -397,7 +397,8 @@ export function AnalyticsPage({
     { key: 'pp_revenueTrend', label: 'Pledge Revenue & Fulfillment' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_reliability', label: 'Pledge Reliability' },
-    { key: 'pp_concentration', label: 'Pledge Concentration & Timing' },
+    { key: 'pp_concentration', label: 'Pledge Concentration' },
+    { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
   ]
   const RECURRING_PERFORMANCE_CARDS = [
     { key: 'rc_snapshot', label: 'Snapshot Tiles' },
@@ -2112,29 +2113,32 @@ export function AnalyticsPage({
               {!hidden('pp_reliability') && (() => {
                 const { yearNum, lastYearPledges, lastYearTotal, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, lastYearOnTimeRate, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
+                const { donorRanked } = pledgeConcentrationStats
+                const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
+                const slightlyLateAmt = slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
+                const veryLateAmt = veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
+                const onTimePct = fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0
+                const slightlyLatePct = fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0
+                const veryLatePct = fulfilledWithDates.length > 0 ? Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100) : 0
 
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="How punctual fulfilled pledges have been this year, your largest outstanding pledges, which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges: how late did they run?</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 12, color: C.text }}>On time or early</span>
-                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.sage }}>{fulfilledWithDates.length > 0 ? Math.round((onTimeGroup.length / fulfilledWithDates.length) * 100) : 0}% · {onTimeGroup.length} · ${onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4 }}>
-                            <span style={{ fontSize: 12, color: C.text }}>1–14 days late</span>
-                            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.forest }}>{fulfilledWithDates.length > 0 ? Math.round((slightlyLateGroup.length / fulfilledWithDates.length) * 100) : 0}% · {slightlyLateGroup.length} · ${slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
-                          </div>
+                        <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
+                          {onTimePct > 0 && <div style={{ width: `${onTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{onTimePct}%</span>}</div>}
+                          {slightlyLatePct > 0 && <div style={{ width: `${slightlyLatePct}%`, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{slightlyLatePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{slightlyLatePct}%</span>}</div>}
+                          {veryLatePct > 0 && <div style={{ width: `${veryLatePct}%`, background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{veryLatePct >= 12 && <span style={{ fontSize: 9, fontWeight: 700, color: C.white }}>{veryLatePct}%</span>}</div>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: C.muted, flexWrap: 'wrap', marginBottom: 14 }}>
+                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />On time or early ({onTimeGroup.length} · ${onTimeAmt.toLocaleString()})</span>
+                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.forest, borderRadius: 2, marginRight: 5 }} />1–14 days late ({slightlyLateGroup.length} · ${slightlyLateAmt.toLocaleString()})</span>
                           {veryLateGroup.length > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.warningBg, borderRadius: 4 }}>
-                              <span style={{ fontSize: 12, color: C.warning }}>15+ days late</span>
-                              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.warning }}>{Math.round((veryLateGroup.length / fulfilledWithDates.length) * 100)}% · {veryLateGroup.length} · ${veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0).toLocaleString()}</span>
-                            </div>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />15+ days late ({veryLateGroup.length} · ${veryLateAmt.toLocaleString()})</span>
                           )}
                         </div>
                       </>
@@ -2142,6 +2146,30 @@ export function AnalyticsPage({
 
                     {lastYearPledges.length > 0 && (
                       <div style={{ fontSize: 11, color: C.muted, marginBottom: 14 }}>{yearNum - 1}: {lastYearPledges.length} pledge{lastYearPledges.length !== 1 ? 's' : ''} · ${lastYearTotal.toLocaleString()} pledged{lastYearOnTimeRate !== null ? ` · ${lastYearOnTimeRate}% fulfilled on time` : ''}</div>
+                    )}
+
+                    {donorRanked.length > 0 && (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest outstanding pledges</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
+                            <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                                <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
+                                <span style={{ fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
+                              </div>
+                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.max(4, d.pct)}%`, height: '100%', background: i === 0 ? C.red : i === 1 ? C.gold : C.sage }} />
+                              </div>
+                            </div>
+                          ))}
+                          {donorRanked.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeConcentration(v => !v)}>
+                              {showAllPledgeConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
 
                     <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Currently overdue</div>
@@ -2208,7 +2236,7 @@ export function AnalyticsPage({
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_concentration" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_concentration')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={s.card}>
-                    <div style={s.analyticsCardTitle}>Pledge Concentration & Timing <InfoTip text="Share of outstanding pledge value tied to your single largest donor, and which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Concentration <InfoTip text="Share of outstanding pledge value tied to your single largest donor. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
                     {tooFewDonors ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
@@ -2221,47 +2249,6 @@ export function AnalyticsPage({
                         </div>
                       </>
                     )}
-
-                    {donorRanked.length > 0 && (
-                      <>
-                        <div style={s.analyticsSubTitleDivider}>Largest outstanding pledges</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
-                              <span style={{ fontSize: 12, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
-                            </div>
-                          ))}
-                          {donorRanked.length > 5 && (
-                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeConcentration(v => !v)}>
-                              {showAllPledgeConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    <div style={s.analyticsSubTitle}>Outstanding pledges by expected month</div>
-                    {monthsRanked.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {monthsRanked.map((m: any, i: any) => {
-                          const isHeaviest = heaviestMonth && m.label === heaviestMonth.label && monthsRanked.length > 1
-                          return (
-                            <div key={i} style={{ padding: '10px 12px', background: isHeaviest ? C.warningBg : C.ivory, borderRadius: 4 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: isHeaviest ? C.warning : C.text }}>{m.label}</span>
-                                <span style={{ fontSize: 11, color: isHeaviest ? C.warning : C.muted }}>${m.amount.toLocaleString()} · {m.count} pledge{m.count !== 1 ? 's' : ''}</span>
-                              </div>
-                              {isHeaviest && (
-                                <div style={{ fontSize: 11, color: C.warning, marginTop: 2 }}>Heaviest single month — worth confirming these are on track</div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
                     {!tooFewDonors && (highRisk ? (
                       <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
                     ) : medRisk ? (
@@ -2269,6 +2256,39 @@ export function AnalyticsPage({
                     ) : (
                       <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
                     ))}
+                  </div>
+                  </DraggableCard>
+                )
+              })()}
+
+              {!hidden('pp_monthlyTiming') && (() => {
+                const { monthsRanked, heaviestMonth } = pledgeConcentrationStats
+                return (
+                  <DraggableCard sectionId="pp" cardKey="pp_monthlyTiming" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_monthlyTiming')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={s.card}>
+                    <div style={s.analyticsCardTitle}>Outstanding Pledges by Month <InfoTip text="Which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    {monthsRanked.length === 0 ? (
+                      <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
+                    ) : (
+                      <>
+                        <ResponsiveContainer width="100%" height={130}>
+                          <BarChart data={monthsRanked} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="label" tick={{ fontSize: 9.5, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => [`$${Number(value).toLocaleString()} (${entry.payload.count} pledge${entry.payload.count !== 1 ? 's' : ''})`, 'Outstanding']} />
+                            <Bar dataKey="amount" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                              {monthsRanked.map((m: any, i: any) => (
+                                <Cell key={i} fill={heaviestMonth && m.label === heaviestMonth.label && monthsRanked.length > 1 ? C.gold : C.ivoryDark} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                        {heaviestMonth && monthsRanked.length > 1 && (
+                          <div style={{ fontSize: 11, color: C.warning, marginTop: 8 }}>⚠ {heaviestMonth.label} is heaviest — ${heaviestMonth.amount.toLocaleString()} across {heaviestMonth.count} pledge{heaviestMonth.count !== 1 ? 's' : ''}, worth confirming these are on track</div>
+                        )}
+                      </>
+                    )}
                   </div>
                   </DraggableCard>
                 )
