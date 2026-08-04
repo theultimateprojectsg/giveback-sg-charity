@@ -902,7 +902,7 @@ export function AnalyticsPage({
               const goalYearEndLabel = goalYearEnd.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
               return (
               <DraggableCard sectionId="fo" cardKey="fo_goal" order={cardOrd('fo', FINANCIAL_OVERVIEW_CARDS, 'fo_goal')} flexBasis="440px" defaultOrder={FINANCIAL_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-              <div style={s.card}>
+              <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Annual Fundraising Goal — FY{goalYear} <InfoTip text="Total confirmed donations this fiscal year against the goal you've set. Includes donations only, not grants. Always shows the current fiscal year, regardless of the year filter above. Set or change your goal in Settings, and your fiscal year end in Charity Governance." /></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                   <svg width="76" height="76" viewBox="0 0 76 76" style={{ flexShrink: 0 }}>
@@ -1297,7 +1297,7 @@ export function AnalyticsPage({
                 const years58 = [...new Set(confirmedDonations.map(d => new Date(d.created_at).getFullYear()))].sort((a, b) => b - a).slice(0, 4).sort((a, b) => a - b)
                 if (years58.length < 2) return (
                   <DraggableCard sectionId="fp" cardKey="fp_seasonality" order={cardOrd('fp', FUNDRAISING_PERFORMANCE_CARDS, 'fp_seasonality')} flexBasis="360px" defaultOrder={FUNDRAISING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Seasonality Trend <InfoTip text="Average confirmed revenue per calendar month, averaged across all years of data — helps identify which months tend to be strong or weak so you can time appeals accordingly." /></div>
                     <div style={{ fontSize: 13, color: C.muted }}>Needs at least 2 years of data to spot a repeating pattern — check back once you have more history.</div>
                   </div>
@@ -1546,7 +1546,7 @@ export function AnalyticsPage({
                     {!hidden('cp_leaderboard') && (() => {
                       return (
                       <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={s.card}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                           <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                           {campaignRows.length > 1 && (
@@ -1752,7 +1752,7 @@ export function AnalyticsPage({
 
                   return (
                     <DraggableCard sectionId="ma" cardKey="ma_conversion" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_conversion')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Mass Appeal Conversion — {filterYear} <InfoTip text="Matches appeal recipients to actual donations by PayNow reference to show which appeals converted into real gifts. Only donations made using the QR code sent in the appeal are counted." /></div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 6 }}>
@@ -1855,7 +1855,7 @@ export function AnalyticsPage({
 
                   return (
                     <DraggableCard sectionId="ma" cardKey="ma_listHealth" order={cardOrd('ma', MASS_APPEALS_CARDS, 'ma_listHealth')} flexBasis="460px" defaultOrder={MASS_APPEALS_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Appeal List Health <InfoTip text="Bounces are bad contact data — the message couldn't be delivered. Opt-outs are donors who actively blocked appeals — a stewardship signal, not a data problem." /></div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 10 }}>
@@ -2176,7 +2176,7 @@ export function AnalyticsPage({
 
                   {false && (
                   <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="Which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
 
                     <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Currently overdue</div>
@@ -2244,7 +2244,7 @@ export function AnalyticsPage({
 
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_concentration" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_concentration')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Pledge Concentration <InfoTip text="Share of outstanding pledge value tied to your single largest donor. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
 
                     {tooFewDonors ? (
@@ -2412,7 +2412,7 @@ export function AnalyticsPage({
 
                     {!hidden('rc_composition') && (
                     <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
                       <div style={s.analyticsSubTitleDivider}>By programme</div>
                       {byProgrammeRows.length === 0 ? (
@@ -2454,7 +2454,7 @@ export function AnalyticsPage({
 
                   return (
                     <DraggableCard sectionId="rc" cardKey="rc_newVsChurned" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_newVsChurned')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>New vs Churned MRR — {yr} <InfoTip text="How much monthly recurring revenue was added by new recurring gifts this year, vs lost to cancellations, netting to the change in MRR." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
@@ -2525,7 +2525,7 @@ export function AnalyticsPage({
 
                   return (
                     <DraggableCard sectionId="rc" cardKey="rc_authRisk" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_authRisk')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Authorization & Mandate Risk <InfoTip text="GIRO and Standing Order gifts by bank authorization status. A terminated mandate means the bank has cut off the deduction — the donor needs to be contacted to re-authorize, or the gift will keep silently failing." /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
                         <div>
@@ -2822,7 +2822,7 @@ export function AnalyticsPage({
                   <>
                     {!hidden('gr_grantFunding') && (
                     <DraggableCard sectionId="gr" cardKey="gr_grantFunding" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_grantFunding')} flexBasis="460px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Grant Funding — {filterYear} <InfoTip text="Whether spending on each active grant that was active at any point during the selected fiscal year is keeping pace with its report deadline, plus overall utilization for those grants. A multi-year grant stays visible in every fiscal year it spans, not just the one it started in. Switch the year filter above to change scope." /></div>
 
                       {utilizationRate !== null && (
@@ -2892,7 +2892,7 @@ export function AnalyticsPage({
                     {!hidden('gr_grantConcentration') && (() => {
                       return (
                     <DraggableCard sectionId="gr" cardKey="gr_grantConcentration" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_grantConcentration')} flexBasis="460px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, and which active grants are approaching their final report date within 6 months with no successor lined up." /></div>
 
                     {tooFewFunders ? (
@@ -2961,7 +2961,7 @@ export function AnalyticsPage({
                   <>
                     {!hidden('gr_matchingClaims') && (
                     <DraggableCard sectionId="gr" cardKey="gr_matchingClaims" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_matchingClaims')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Matching Grant Claims <InfoTip text="How much matched funding has been claimed against the cap across all active matching grants, and which ones are ending within 6 months with unclaimed match still on the table." /></div>
                       {totalMatchCap === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active matching grants.</div>
@@ -3001,7 +3001,7 @@ export function AnalyticsPage({
 
                     {!hidden('gr_disbursementTranches') && (
                     <DraggableCard sectionId="gr" cardKey="gr_disbursementTranches" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_disbursementTranches')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Disbursement Tranches <InfoTip text="Committed disbursement amounts vs cash actually received across active grants — a grant can be fully 'utilized' on paper while the cash for a later tranche hasn't landed yet." /></div>
                       {totalCommitted === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No disbursement tranches logged yet.</div>
@@ -3042,7 +3042,7 @@ export function AnalyticsPage({
 
                     {!hidden('gr_reportCompliance') && (
                     <DraggableCard sectionId="gr" cardKey="gr_reportCompliance" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_reportCompliance')} flexBasis="360px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={s.card}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Report Compliance <InfoTip text="How reliably your reports get submitted on time, scoped to reports due in the selected fiscal year, with the change vs the prior fiscal year." /></div>
                       {reportCompliance.total === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No report deadlines due in {reportCompliance.yr} yet.</div>
@@ -3168,7 +3168,7 @@ export function AnalyticsPage({
 
                 return (
                   <DraggableCard sectionId="db" cardKey="db_paymentMix" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_paymentMix')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ ...s.analyticsCardTitle, display: 'flex', alignItems: 'center', gap: 5 }}>How Donors Are Paying — {filterYear} <InfoTip text="Breakdown of confirmed donations by payment method — PayNow, cash, bank transfer, and other methods you've logged." /></div>
                     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 10, marginBottom: 14 }}>
                       {rows.map((r: any, i: any) => <div key={i} style={{ width: `${r.rawPct}%`, background: colors[i % colors.length] }} />)}
@@ -3214,7 +3214,7 @@ export function AnalyticsPage({
 
                 return (
                   <DraggableCard sectionId="db" cardKey="db_fundingConcentration" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_fundingConcentration')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Funding Concentration <InfoTip text="Share of total revenue coming from your top N donors, where N is selectable. High concentration means your income depends heavily on a small number of people." /></div>
                       <select style={{ fontSize: 11, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px', color: C.forest, background: C.white, fontFamily: 'inherit' }} value={concentrationTopN} onChange={e => { const v = Number(e.target.value); setConcentrationTopN(v); supabase.from('charity_contacts').update({ concentration_top_n: v }).eq('charity_uen', charityUen) }}>
@@ -3266,7 +3266,7 @@ export function AnalyticsPage({
                 const quiet = quietDonorsStats
                 return (
                   <DraggableCard sectionId="db" cardKey="db_slowingDown" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_slowingDown')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Slowing Down</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Used to give regularly, but their gap since the last gift is more than double their usual rhythm — worth checking in before they fully lapse.</div>
                     {quiet.length === 0 ? (
@@ -3293,7 +3293,7 @@ export function AnalyticsPage({
                 const quietlyPaying75 = quietlyPayingStats
                 return (
                   <DraggableCard sectionId="db" cardKey="db_quietlyPaying" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_quietlyPaying')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Paying, But No Contact</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Still giving on schedule, but no personal contact logged in over a year — the relationship may be going cold even though the payments aren't.</div>
                     {quietlyPaying75.length === 0 ? (
@@ -3405,7 +3405,7 @@ export function AnalyticsPage({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {!hidden('db_topDonorsLTV') && (
               <DraggableCard sectionId="db" cardKey="db_topDonorsLTV" order={cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_topDonorsLTV')} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-              <div style={s.card}>
+              <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ ...s.analyticsCardTitle, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 5 }}>Top Donors & Lifetime Value <InfoTip text="Your top 5 donors by total lifetime giving, plus average lifetime value across all donors — not scoped to the year filter above." /></div>
                   <div style={{ fontSize: 12, color: C.sage, fontWeight: 500, cursor: 'pointer' }} onClick={() => setActiveTab('donors')}>View all →</div>
@@ -3462,7 +3462,7 @@ export function AnalyticsPage({
                 const order78 = cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_topConnectors')
                 if (rows78.length === 0) return (
                   <DraggableCard sectionId="db" cardKey="db_topConnectors" order={order78} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No referrals recorded yet — capture them when logging a new manual donor.</div>
                   </div>
@@ -3470,7 +3470,7 @@ export function AnalyticsPage({
                 )
                 return (
                   <DraggableCard sectionId="db" cardKey="db_topConnectors" order={order78} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Top Connectors</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Donors whose referrals led to real, ongoing giving — worth a personal thank-you.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -3494,7 +3494,7 @@ export function AnalyticsPage({
                 const order57 = cardOrd('db', DONOR_BEHAVIOR_CARDS, 'db_acquisitionSources')
                 if (rows57.length === 0) return (
                   <DraggableCard sectionId="db" cardKey="db_acquisitionSources" order={order57} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
                     <div style={{ fontSize: 13, color: C.muted }}>No acquisition source data yet — start selecting a source when logging new manual donors.</div>
                   </div>
@@ -3502,7 +3502,7 @@ export function AnalyticsPage({
                 )
                 return (
                   <DraggableCard sectionId="db" cardKey="db_acquisitionSources" order={order57} flexBasis="460px" defaultOrder={DONOR_BEHAVIOR_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Donor Acquisition Sources</div>
                     <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Which channels bring in donors who come back and give again.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
