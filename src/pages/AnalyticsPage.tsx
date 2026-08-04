@@ -1973,8 +1973,8 @@ export function AnalyticsPage({
 
               {!hidden('pp_snapshot') && (() => {
                 const { yr, tiles } = pledgeSnapshotStats
-                const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta, cancellationRate, repeatPledgeRate } = pledgeStatsAndTrend
-                const [pledgesMadeTile, amountPledgedTile, fulfilledTile, fulfilledOnTimeTile] = tiles
+                const { overdueUnits, overdueTotal, avgPledgeSize, avgDelta } = pledgeStatsAndTrend
+                const [pledgesMadeTile, amountPledgedTile] = tiles
                 const genericTile = (t: any) => (
                   <div key={t.label} style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                     <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>{t.label} <InfoTip text={t.tip} /></div>
@@ -1991,9 +1991,17 @@ export function AnalyticsPage({
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_snapshot" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_snapshot')} flexBasis="100%" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div>
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      {genericTile(pledgesMadeTile)}
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
                       {genericTile(amountPledgedTile)}
+                      {genericTile(pledgesMadeTile)}
+                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
+                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
+                          {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted }}>pending pledges past their due date</div>
+                      </div>
                       <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
                         <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Avg Pledge Size <InfoTip text={`Average pledge amount among pledges expected in ${yr}, compared to ${yr - 1}.`} /></div>
                         <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>${avgPledgeSize.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
@@ -2004,29 +2012,6 @@ export function AnalyticsPage({
                             {avgDelta > 0 ? '▲' : avgDelta < 0 ? '▼' : '–'} {Math.abs(avgDelta)}% vs {yr - 1}
                           </div>
                         )}
-                      </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Currently Overdue <InfoTip text="Pending pledges (or unpaid instalments of multi-year pledges) whose expected date has already passed. Not gated by any threshold — this counts every overdue pledge." /></div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
-                          {overdueUnits.length > 0 && <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>}
-                          <span style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{overdueUnits.length} <span style={{ fontSize: 15, fontWeight: 400, color: C.muted }}>· ${overdueTotal.toLocaleString()}</span></span>
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>pending pledges past their due date</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
-                      {genericTile(fulfilledTile)}
-                      {genericTile(fulfilledOnTimeTile)}
-                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Cancellation Rate <InfoTip text={`Share of pledges expected in ${yr} that were cancelled.`} /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{cancellationRate}%</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>of pledges made were cancelled</div>
-                      </div>
-                      <div style={{ ...s.card, flex: 1, minWidth: isMobile ? 'calc(50% - 6px)' : 0 }}>
-                        <div style={{ ...s.analyticsCardTitle, letterSpacing: 0.5, marginBottom: 6 }}>Repeat Pledge Rate <InfoTip text="Share of donors who have ever made a pledge who have made more than one pledge, across all time. A one-time pledger vs. someone who pledges again and again." /></div>
-                        <div style={{ fontFamily: C.fontVoice, fontSize: 26, fontWeight: 500, color: C.forest, lineHeight: 1, marginBottom: 6 }}>{repeatPledgeRate}%</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>of pledge donors have pledged 2+ times</div>
                       </div>
                     </div>
                   </div>
