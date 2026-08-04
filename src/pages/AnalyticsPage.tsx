@@ -1490,7 +1490,7 @@ export function AnalyticsPage({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                           <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                           {campaignRows.length > 1 && (
-                            <div style={{ display: 'flex', gap: 4 }}>
+                            <div style={{ display: 'flex', gap: 4, marginRight: 26 }}>
                               {([
                                 ['raised', 'Total Raised'],
                                 ['behind', 'Most Behind Pace'],
@@ -1575,16 +1575,6 @@ export function AnalyticsPage({
                             })}
                           </div>
                         )}
-                        {(() => {
-                          const behindCount = campaignRows.filter((r: any) => r.behind).length
-                          const withGoalCount = campaignRows.filter((r: any) => r.hasGoal).length
-                          if (withGoalCount === 0) return null
-                          return behindCount > 0 ? (
-                            <ActionBanner tone="danger" text={`${behindCount} campaign${behindCount !== 1 ? 's' : ''} behind pace`} sub="Consider a mass appeal or check in with the campaign owner" />
-                          ) : (
-                            <ActionBanner tone="success" text="All campaigns on pace" sub={`${withGoalCount} campaign${withGoalCount !== 1 ? 's' : ''} tracking toward its goal`} />
-                          )
-                        })()}
                       </div>
                       </DraggableCard>
                       )
