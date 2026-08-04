@@ -2266,13 +2266,14 @@ export function AnalyticsPage({
                 const { monthsRanked, heaviestMonth } = pledgeConcentrationStats
                 return (
                   <DraggableCard sectionId="pp" cardKey="pp_monthlyTiming" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_monthlyTiming')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={s.card}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Outstanding Pledges by Month <InfoTip text="Which months carry an unusually large share of expected pledge income. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
                     {monthsRanked.length === 0 ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>No outstanding pledges right now.</div>
                     ) : (
                       <>
-                        <ResponsiveContainer width="100%" height={130}>
+                        <div style={{ flex: 1, minHeight: 130 }}>
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={monthsRanked} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="label" tick={{ fontSize: 9.5, fill: C.muted }} axisLine={false} tickLine={false} />
@@ -2285,6 +2286,7 @@ export function AnalyticsPage({
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
+                        </div>
                         {heaviestMonth && monthsRanked.length > 1 && (
                           <div style={{ fontSize: 11, color: C.warning, marginTop: 8 }}>⚠ {heaviestMonth.label} is heaviest — ${heaviestMonth.amount.toLocaleString()} across {heaviestMonth.count} pledge{heaviestMonth.count !== 1 ? 's' : ''}, worth confirming these are on track</div>
                         )}
