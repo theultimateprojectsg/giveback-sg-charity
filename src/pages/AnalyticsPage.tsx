@@ -382,6 +382,7 @@ export function AnalyticsPage({
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
     { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
+    { key: 'cp_donorInsights', label: 'Donor Acquisition Insights' },
     { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
   ]
   const MASS_APPEALS_CARDS = [
@@ -1390,7 +1391,7 @@ export function AnalyticsPage({
               })()}
 
               {(() => {
-                const { endingSoon, campaignRows, trendData, donorGrowthAgg } = campaignLeaderboardStats
+                const { endingSoon, campaignRows, trendData, donorGrowthAgg, donorGrowthRows } = campaignLeaderboardStats
 
                 return (
                   <>
@@ -1479,6 +1480,54 @@ export function AnalyticsPage({
                               ))}
                             </div>
                             </>
+                            )}
+                          </div>
+                          </DraggableCard>
+                          )
+                        })()}
+
+                        {!hidden('cp_donorInsights') && donorGrowthRows.length > 0 && (() => {
+                          const totalNew = donorGrowthRows.reduce((s: any, r: any) => s + r.newCount, 0)
+                          const totalReturning = donorGrowthRows.reduce((s: any, r: any) => s + r.existingCount, 0)
+                          const totalDonorsSum = totalNew + totalReturning
+                          const pctNew = totalDonorsSum > 0 ? Math.round((totalNew / totalDonorsSum) * 100) : 0
+                          const totalDonorsAcrossCampaigns = campaignRows.reduce((s: any, r: any) => s + r.donors, 0)
+                          const avgDonorsPerCampaign = campaignRows.length > 0 ? totalDonorsAcrossCampaigns / campaignRows.length : 0
+                          const costedRows = campaignRows.filter((r: any) => r.cost > 0)
+                          const totalCostLogged = costedRows.reduce((s: any, r: any) => s + r.cost, 0)
+                          const totalDonorsInCostedCampaigns = costedRows.reduce((s: any, r: any) => s + r.donors, 0)
+                          const costPerDonor = totalDonorsInCostedCampaigns > 0 ? totalCostLogged / totalDonorsInCostedCampaigns : null
+                          return (
+                          <DraggableCard sectionId="cp" cardKey="cp_donorInsights" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorInsights')} flexBasis="360px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                            <div style={s.analyticsCardTitle}>Donor Acquisition Insights — {filterYear} <InfoTip text="New vs returning donors across all campaigns, how many donors each campaign typically attracts, and the cost to acquire a donor where campaign cost is logged." /></div>
+                            <div style={{ display: 'flex', gap: 20, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
+                              <div>
+                                <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.sage, lineHeight: 1 }}>{totalNew}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4 }}>new donors</div>
+                              </div>
+                              <div>
+                                <div style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 500, color: C.forest, lineHeight: 1 }}>{totalReturning}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4 }}>returning donors</div>
+                              </div>
+                              {totalDonorsSum > 0 && (
+                                <div style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: C.sage, background: C.successBg, padding: '4px 10px', borderRadius: 100 }}>{pctNew}% new</span>
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                              <div style={{ flex: 1, padding: '10px 12px', background: C.ivory, borderRadius: 4, textAlign: 'center' }}>
+                                <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{avgDonorsPerCampaign.toFixed(1)}</div>
+                                <div style={{ fontSize: 9.5, color: C.muted, marginTop: 2 }}>avg donors / campaign</div>
+                              </div>
+                              <div style={{ flex: 1, padding: '10px 12px', background: C.ivory, borderRadius: 4, textAlign: 'center' }}>
+                                <div style={{ fontFamily: C.fontVoice, fontSize: 17, fontWeight: 500, color: C.forest }}>{costPerDonor !== null ? `$${costPerDonor.toFixed(0)}` : '—'}</div>
+                                <div style={{ fontSize: 9.5, color: C.muted, marginTop: 2 }}>cost / donor acquired</div>
+                              </div>
+                            </div>
+                            {costPerDonor === null && (
+                              <div style={{ fontSize: 10, color: C.muted, marginTop: 8 }}>No campaigns with cost data logged yet</div>
                             )}
                           </div>
                           </DraggableCard>
