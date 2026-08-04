@@ -2030,16 +2030,26 @@ export function AnalyticsPage({
                       return (
                       <DraggableCard sectionId="pp" cardKey="pp_fulfillmentTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_fulfillmentTrend')} flexBasis="460px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
-                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Rate — Last {trendData.length} Years <InfoTip text="Share of each year's pledged value that's been fulfilled. The current year is still in progress, so its rate will look lower until it closes out — hover a bar for the underlying $ pledged and fulfilled." /></div>
-                        <ResponsiveContainer width="100%" height={140}>
-                          <BarChart data={rateData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Rate — Last {trendData.length} Years <InfoTip text="Share of each year's pledged value that's been fulfilled. The current year is still in progress, so its rate will look lower until it closes out." /></div>
+                        <ResponsiveContainer width="100%" height={155}>
+                          <BarChart data={rateData} margin={{ top: 34, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                             <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={34} domain={[0, 100]} tickFormatter={v => `${v}%`} />
                             <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => [`${value}% ($${entry.payload.fulfilled.toLocaleString()} of $${entry.payload.pledged.toLocaleString()})`, 'Fulfilled']} />
                             <Bar dataKey="rate" radius={[6, 6, 0, 0]} isAnimationActive={false}>
                               {rateData.map((t: any, i: any) => <Cell key={i} fill={rateColor(t.rate)} />)}
-                              <LabelList dataKey="rate" position="top" formatter={(v: any) => `${v}%`} style={{ fontSize: 11, fontWeight: 700, fill: C.forest }} />
+                              <LabelList dataKey="rate" position="top" offset={20} formatter={(v: any) => `${v}%`} style={{ fontSize: 11, fontWeight: 700, fill: C.forest }} />
+                              <LabelList
+                                dataKey="rate"
+                                position="top"
+                                offset={6}
+                                content={(p: any) => (
+                                  <text x={p.x + p.width / 2} y={p.y - 6} textAnchor="middle" fontSize={9} fill={C.muted}>
+                                    ${p.payload.fulfilled.toLocaleString()} / ${p.payload.pledged.toLocaleString()}
+                                  </text>
+                                )}
+                              />
                             </Bar>
                           </BarChart>
                         </ResponsiveContainer>
