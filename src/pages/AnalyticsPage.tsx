@@ -380,8 +380,9 @@ export function AnalyticsPage({
   ]
   const CAMPAIGN_PERFORMANCE_CARDS = [
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
-    { key: 'cp_leaderboard', label: 'Funding Mix & Campaign Leaderboard' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
+    { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
+    { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
   ]
   const MASS_APPEALS_CARDS = [
     { key: 'ma_snapshot', label: 'Snapshot Tiles' },
@@ -1399,32 +1400,59 @@ export function AnalyticsPage({
                       </div>
                     )}
 
-                    {!hidden('cp_leaderboard') && (() => {
-                      const donorGrowth = donorGrowthAgg ? (() => {
-                        const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, aggOrganicRawPct, aggAppealRawPct, aggReferralRawPct, appealReliant, standoutOrganic, stagnant } = donorGrowthAgg
-                        return (
-                          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: `1px solid ${C.border}` }}>
+                        {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
+                          <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <div style={s.card}>
+                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
+                            <ResponsiveContainer width="100%" height={140}>
+                              <LineChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
+                                <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Avg per campaign']} />
+                                <Line type="monotone" dataKey="avgPerCampaign" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
+                          </div>
+                          </DraggableCard>
+                        )}
+
+                        {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
+                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant } = donorGrowthAgg
+                          const mixSlices = [
+                            { label: 'Organic', pct: aggOrganicPct, color: C.sage },
+                            { label: 'Mass appeal', pct: aggAppealPct, color: C.gold },
+                            { label: 'Referral', pct: aggReferralPct, color: C.muted },
+                          ].filter(s => s.pct > 0)
+                          return (
+                          <DraggableCard sectionId="cp" cardKey="cp_donorGrowth" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorGrowth')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <div style={s.card}>
                             <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
 
-                            <div style={{ padding: '12px 14px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-                              <div style={{ fontSize: 10.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Funding mix across all campaigns</div>
-                              {aggTotal === 0 ? (
-                                <div style={{ fontSize: 12.5, color: C.muted }}>No campaign revenue yet.</div>
-                              ) : (
-                                <>
-                                  <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 8, marginBottom: 8 }}>
-                                    {aggOrganicRawPct > 0 && <div style={{ width: `${aggOrganicRawPct}%`, background: C.sage }} />}
-                                    {aggAppealRawPct > 0 && <div style={{ width: `${aggAppealRawPct}%`, background: C.gold }} />}
-                                    {aggReferralRawPct > 0 && <div style={{ width: `${aggReferralRawPct}%`, background: C.muted }} />}
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 14, fontSize: 11, color: C.text, flexWrap: 'wrap' }}>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />{aggOrganicPct}% organic</span>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />{aggAppealPct}% mass appeal</span>
-                                    <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.muted, borderRadius: 2, marginRight: 5 }} />{aggReferralPct}% referral</span>
-                                  </div>
-                                </>
-                              )}
-                            </div>
+                            {aggTotal === 0 ? (
+                              <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>No campaign revenue yet.</div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                                  {mixSlices.map((s2, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ width: 9, height: 9, borderRadius: 2, background: s2.color, flexShrink: 0 }} />
+                                      <span style={{ fontSize: 12.5, color: C.text, flex: 1 }}>{s2.label}</span>
+                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest }}>{s2.pct}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                <ResponsiveContainer width={100} height={110}>
+                                  <PieChart>
+                                    <Pie data={mixSlices} dataKey="pct" nameKey="label" cx="50%" cy="50%" innerRadius={26} outerRadius={46} paddingAngle={2} isAnimationActive={false}>
+                                      {mixSlices.map((s2, i) => <Cell key={i} fill={s2.color} />)}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`${value}%`, name]} />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            )}
 
                             {(appealReliant.length > 0 || standoutOrganic.length > 0 || stagnant.length > 0) && (
                             <>
@@ -1452,12 +1480,14 @@ export function AnalyticsPage({
                             </>
                             )}
                           </div>
-                        )
-                      })() : null
+                          </DraggableCard>
+                          )
+                        })()}
+
+                    {!hidden('cp_leaderboard') && (() => {
                       return (
                       <DraggableCard sectionId="cp" cardKey="cp_leaderboard" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_leaderboard')} flexBasis="100%" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={s.card}>
-                        {donorGrowth}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                           <div style={{ ...s.analyticsCardTitle, marginBottom: 0 }}>Campaign Leaderboard — {filterYear} <InfoTip text={`All campaigns launched this year, including ones that received no donations. Shows progress toward each campaign's goal where one has been set. ROI shown where cost is logged — ${campaignRows.filter((r: any) => r.cost > 0).length} of ${campaignRows.length} campaign${campaignRows.length !== 1 ? 's' : ''} have cost data. Click a row to view that campaign.`} /></div>
                           {campaignRows.length > 1 && (
@@ -1560,24 +1590,6 @@ export function AnalyticsPage({
                       </DraggableCard>
                       )
                     })()}
-
-                        {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
-                          <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                          <div style={s.card}>
-                            <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
-                            <ResponsiveContainer width="100%" height={140}>
-                              <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                                <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={40} tickFormatter={v => v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${v}`} />
-                                <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`$${value.toLocaleString()}`, 'Avg per campaign']} />
-                                <Bar dataKey="avgPerCampaign" fill={C.sage} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>{trendData[trendData.length - 1].campaignsThatYear} campaign{trendData[trendData.length - 1].campaignsThatYear !== 1 ? 's' : ''} in {trendData[trendData.length - 1].year} vs {trendData[0].campaignsThatYear} in {trendData[0].year}</div>
-                          </div>
-                          </DraggableCard>
-                        )}
                   </>
                 )
               })()}
