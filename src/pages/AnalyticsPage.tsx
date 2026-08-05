@@ -403,6 +403,7 @@ export function AnalyticsPage({
     { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_timing', label: 'Pledge Reliability' },
+    { key: 'pp_upcoming', label: 'Upcoming Pledges' },
     { key: 'pp_reliability', label: 'Pledge Reliability (legacy, unused)' },
     { key: 'pp_concentration', label: 'Largest Outstanding Pledges' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
@@ -2064,10 +2065,10 @@ export function AnalyticsPage({
 
                 return (
                   <>
-                  {(fulfilledWithDates.length > 0 || upcomingUnits.length > 0 || fulfillmentRatePct !== null) && (
+                  {(fulfilledWithDates.length > 0 || fulfillmentRatePct !== null) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="Whether pledges actually get fulfilled, and how punctual the ones that were fulfilled have been — both pooled across the last 4 fiscal years — plus which pledges are coming due in the next 60 days." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="Whether pledges actually get fulfilled, and how punctual the ones that were fulfilled have been — both pooled across the last 4 fiscal years." /></div>
 
                     {fulfillmentRatePct !== null && (
                       <div style={{ marginBottom: 14 }}>
@@ -2104,30 +2105,30 @@ export function AnalyticsPage({
                       </div>
                     )}
 
-                    {upcomingUnits.length > 0 && (() => {
-                      const hasContentAbove = fulfillmentRatePct !== null || fulfilledWithDates.length > 0
-                      return (
-                      <div style={{ borderTop: hasContentAbove ? `1px dashed ${C.border}` : 'none', paddingTop: hasContentAbove ? 14 : 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Upcoming pledges — next 60 days</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {(showAllUpcomingPledges ? upcomingUnits : upcomingUnits.slice(0, 5)).map((u: any, i: any) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
-                              <div>
-                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
-                                <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
-                              </div>
-                              <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${u.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                          {upcomingUnits.length > 5 && (
-                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingPledges(v => !v)}>
-                              {showAllUpcomingPledges ? 'Show fewer' : `Show all ${upcomingUnits.length}`}
-                            </button>
-                          )}
+                  </div>
+                  </DraggableCard>
+                  )}
+
+                  {!hidden('pp_upcoming') && upcomingUnits.length > 0 && (
+                  <DraggableCard sectionId="pp" cardKey="pp_upcoming" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_upcoming')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
+                    <div style={s.analyticsCardTitle}>Upcoming Pledges — Next 60 Days <InfoTip text="Pending pledges expected within the next 60 days, soonest first." /></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {(showAllUpcomingPledges ? upcomingUnits : upcomingUnits.slice(0, 5)).map((u: any, i: any) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                          <div>
+                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
+                            <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${u.amount.toLocaleString()}</span>
                         </div>
-                      </div>
-                      )
-                    })()}
+                      ))}
+                      {upcomingUnits.length > 5 && (
+                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingPledges(v => !v)}>
+                          {showAllUpcomingPledges ? 'Show fewer' : `Show all ${upcomingUnits.length}`}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   </DraggableCard>
                   )}
@@ -2205,14 +2206,14 @@ export function AnalyticsPage({
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                     <div style={s.analyticsCardTitle}>Largest Outstanding Pledges <InfoTip text="Your largest outstanding pledges by value, ranked by donor, plus how concentrated that outstanding value is among donors. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
                     {!tooFewDonors && (
-                      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px dashed ${C.border}` }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                          <span style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest }}>{topDonorPct}%</span>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>from your single largest pledge</span>
-                        </div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: `1px dashed ${C.border}` }}>
+                        <span style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest }}>{topDonorPct}%</span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                          color: highRisk ? C.red : medRisk ? C.gold : C.sage,
+                          background: highRisk ? C.dangerBg : medRisk ? C.warningBg : C.successBg,
+                          padding: '4px 10px', borderRadius: 100,
+                        }}>{highRisk ? 'High concentration risk' : medRisk ? 'Moderate concentration risk' : 'Low concentration risk'}</span>
                       </div>
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
