@@ -386,7 +386,7 @@ export function AnalyticsPage({
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
     { key: 'cp_revenueByCampaign', label: 'Revenue by Campaign' },
-    { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
+    { key: 'cp_donorGrowth', label: 'Campaign Funding Sources' },
     { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
   ]
   const MASS_APPEALS_CARDS = [
@@ -1469,7 +1469,7 @@ export function AnalyticsPage({
                         })()}
 
                         {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
-                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant } = donorGrowthAgg
+                          const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct } = donorGrowthAgg
                           const mixSlices = [
                             { label: 'Organic', pct: aggOrganicPct, color: C.sage },
                             { label: 'Mass appeal', pct: aggAppealPct, color: C.gold },
@@ -1478,7 +1478,7 @@ export function AnalyticsPage({
                           return (
                           <DraggableCard sectionId="cp" cardKey="cp_donorGrowth" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_donorGrowth')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                           <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                            <div style={s.analyticsCardTitle}>Donor Growth & Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals — plus callouts for campaigns that stand out: heavily appeal-reliant, fully organic new-donor wins, or stagnant with no new donors." /></div>
+                            <div style={s.analyticsCardTitle}>Campaign Funding Sources — {filterYear} <InfoTip text="Overall funding mix across all campaigns — organic giving, mass appeals (traced by PayNow reference), and referrals." /></div>
 
                             {aggTotal === 0 ? (
                               <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>No campaign revenue yet.</div>
@@ -1496,32 +1496,6 @@ export function AnalyticsPage({
                                   </BarChart>
                                 </ResponsiveContainer>
                               </div>
-                            )}
-
-                            {(appealReliant.length > 0 || standoutOrganic.length > 0 || stagnant.length > 0) && (
-                            <>
-                            <div style={{ ...s.analyticsSubTitle, color: C.muted }}>Notable</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {appealReliant.map((r: any, i: any) => (
-                                <div key={`appeal-${i}`} style={{ padding: '10px 12px', background: C.warningBg, borderRadius: 4, border: `1px solid ${C.warningBorder}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.warning }}>{r.title} is {r.appealPct}% reliant on a mass appeal</div>
-                                  <div style={{ fontSize: 10.5, color: C.warning }}>{r.newPct}% new donors · without that appeal, this campaign would have raised far less on its own</div>
-                                </div>
-                              ))}
-                              {standoutOrganic.map((r: any, i: any) => (
-                                <div key={`organic-${i}`} style={{ padding: '10px 12px', background: C.successBg, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.successText }}>{r.title} brought in {r.newCount} brand-new donor{r.newCount !== 1 ? 's' : ''}</div>
-                                  <div style={{ fontSize: 10.5, color: C.successText }}>100% new, fully organic — no appeal or referral involved</div>
-                                </div>
-                              ))}
-                              {stagnant.map((r: any, i: any) => (
-                                <div key={`stagnant-${i}`} style={{ padding: '10px 12px', background: C.ivory, borderRadius: 4, border: `1px solid ${C.border}` }}>
-                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{r.title} hasn't attracted any new donors</div>
-                                  <div style={{ fontSize: 10.5, color: C.muted }}>All {r.existingCount} donor{r.existingCount !== 1 ? 's' : ''} had given before — worth a push to reach new supporters</div>
-                                </div>
-                              ))}
-                            </div>
-                            </>
                             )}
                           </div>
                           </DraggableCard>
