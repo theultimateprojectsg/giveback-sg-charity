@@ -607,6 +607,7 @@ export default function App() {
   const [showAllOverdueUnits, setShowAllOverdueUnits] = useState<any>(false)
   const [showAllPledgeWatchlist, setShowAllPledgeWatchlist] = useState<any>(false)
   const [showAllPledgeConcentration, setShowAllPledgeConcentration] = useState<any>(false)
+  const [showAllRecurringConcentration, setShowAllRecurringConcentration] = useState<any>(false)
   const [showAllMissedPayments, setShowAllMissedPayments] = useState<any>(false)
   const [showAllEndingSoon, setShowAllEndingSoon] = useState<any>(false)
   const [showAllPausedGifts, setShowAllPausedGifts] = useState<any>(false)
@@ -7148,6 +7149,61 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     return { activeGifts, giftCountDiff, mrr, mrrDiffPct, avgLifespanMonths, cancelledGifts, atRiskCount, atRiskMrr, retentionRate, trendFlagsFiltered, upgrades, downgrades, reliabilityPct, reliabilityDelta, reliabilityYr: curFy }
   }, [recurringGifts, giroMissedCycles, recurringMissedThreshold, recurringTrendFlags, donations, fyOf, fyEndMonth, fyEndDay])
 
+  // Mirrors the Pledge Performance section's "Fulfillment Rate" trend chart and "Reliability &
+  // Concentration" combined card, so Recurring Performance offers the same shape of analysis.
+  const recurringReliabilityStats = React.useMemo(() => {
+    const today = new Date()
+    const gapDaysFor = (g: any) => (({ weekly: 7, monthly: 30, quarterly: 91, annually: 365 } as Record<string, number>)[g.frequency] || 30)
+    const reliabilityForYear = (yr: any) => {
+      const { start, end } = fiscalYearBounds(yr, fyEndMonth, fyEndDay)
+      const windowEnd = end < today ? end : today
+      let totalExpected = 0, totalReceived = 0
+      recurringGifts.forEach(g => {
+        if (!g.start_date) return
+        const gStart = new Date(g.start_date)
+        if (gStart > windowEnd) return
+        if (g.cancelled_at && new Date(g.cancelled_at) < start) return
+        const windowStart = gStart > start ? gStart : start
+        if (windowStart > windowEnd) return
+        const gapMs = gapDaysFor(g) * 24 * 60 * 60 * 1000
+        const expected = Math.max(1, Math.floor((windowEnd.getTime() - windowStart.getTime()) / gapMs) + 1)
+        const received = donations.filter(d => d.recurring_gift_id === g.id && d.payment_status === 'confirmed' && new Date(d.created_at) >= windowStart && new Date(d.created_at) <= windowEnd).length
+        totalExpected += expected
+        totalReceived += Math.min(received, expected)
+      })
+      return { totalExpected, totalReceived, pct: totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : null }
+    }
+    const curFy = fyOf(today)
+    const allYearsWithGifts = [...new Set(recurringGifts.map(g => fyOf(g.created_at)))].sort((a, b) => a - b)
+    const trendYears = allYearsWithGifts.filter(y => y <= curFy).slice(-4)
+    const trendData = trendYears.map(y => ({ year: y.toString(), ...reliabilityForYear(y) })).filter(t => t.pct !== null)
+
+    const eligibleActiveGifts = recurringGifts.filter(g => g.status === 'active' && g.authorization_status !== 'pending')
+    const missedByGiftId: Record<string, number> = {}
+    giroMissedCycles.forEach((g: any) => { missedByGiftId[g.gift_id] = g.missedCycles })
+    const onTimeGroup = eligibleActiveGifts.filter(g => !missedByGiftId[g.id])
+    const oneOrTwoMissedGroup = eligibleActiveGifts.filter(g => missedByGiftId[g.id] >= 1 && missedByGiftId[g.id] <= 2)
+    const frequentlyMissedGroup = eligibleActiveGifts.filter(g => missedByGiftId[g.id] >= 3)
+
+    const activeGifts = recurringGifts.filter(g => g.status === 'active')
+    const totalActiveMrr = activeGifts.reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
+    const byDonor: Record<string, any> = {}
+    activeGifts.forEach(g => {
+      const key = g.donor_email?.trim() || g.donor_name
+      if (!byDonor[key]) byDonor[key] = { name: g.donor_name, amount: 0 }
+      byDonor[key].amount += monthlyEquivalentAmount(g)
+    })
+    const donorRanked = Object.values(byDonor).map(({ name, amount }: any) => ({
+      name, amount, pct: totalActiveMrr > 0 ? Math.round((amount / totalActiveMrr) * 100) : 0,
+    })).sort((a, b) => b.amount - a.amount)
+    const topDonorPct = donorRanked.length > 0 ? donorRanked[0].pct : 0
+    const highRisk = donorRanked.length >= 2 && topDonorPct >= 60
+    const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
+    const tooFewDonors = donorRanked.length < 2
+
+    return { trendData, onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors }
+  }, [recurringGifts, giroMissedCycles, donations, fyOf, fyEndMonth, fyEndDay])
+
   const recurringRiskStats = React.useMemo(() => {
     const missedFiltered = giroMissedCycles.filter(g => g.missedCycles >= 1)
     const frequentSkippers = Object.entries(recurringSkipHistory).filter(([, skips]) => skips.length >= 2).map(([giftId, skips]) => {
@@ -10102,6 +10158,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             recurringCompositionStats={recurringCompositionStats} recurringGifts={recurringGifts}
             recurringHealthStats={recurringHealthStats} recurringMissedThreshold={recurringMissedThreshold}
             recurringMrrStats={recurringMrrStats} recurringRiskStats={recurringRiskStats}
+            recurringReliabilityStats={recurringReliabilityStats}
             recurringSnapshotStats={recurringSnapshotStats} recurringTrendCycles={recurringTrendCycles}
             revenueByChannelStats={revenueByChannelStats}
             revenueTrendStats={revenueTrendStats} setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} setAiWeekSummary={setAiWeekSummary} setAiWeekSummaryError={setAiWeekSummaryError}
@@ -10131,6 +10188,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             setShowAllMissedPayments={setShowAllMissedPayments} setShowAllOverGivers={setShowAllOverGivers}
             setShowAllOverdueUnits={setShowAllOverdueUnits} setShowAllPausedGifts={setShowAllPausedGifts}
             setShowAllPledgeConcentration={setShowAllPledgeConcentration}
+            setShowAllRecurringConcentration={setShowAllRecurringConcentration}
             setShowAllPledgeWatchlist={setShowAllPledgeWatchlist}
             setShowDismissedLapsedDonors={setShowDismissedLapsedDonors} setShowDoneTasks={setShowDoneTasks}
             setShowSnoozedItems={setShowSnoozedItems} setSnoozeMenuOpen={setSnoozeMenuOpen} setTaskForm={setTaskForm}
@@ -10141,6 +10199,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             showAllLapsedDonors={showAllLapsedDonors} showAllMissedPayments={showAllMissedPayments}
             showAllOverGivers={showAllOverGivers} showAllOverdueUnits={showAllOverdueUnits}
             showAllPausedGifts={showAllPausedGifts} showAllPledgeConcentration={showAllPledgeConcentration}
+            showAllRecurringConcentration={showAllRecurringConcentration}
             showAllPledgeWatchlist={showAllPledgeWatchlist} showDismissedLapsedDonors={showDismissedLapsedDonors}
             showDoneTasks={showDoneTasks} showSnoozedItems={showSnoozedItems} showToast={showToast} snoozeActionItem={snoozeActionItem} snoozeMenuOpen={snoozeMenuOpen}
             snoozedItems={snoozedItems} taskForm={taskForm} topConnectorsStats={topConnectorsStats} undismissLapsedDonor={undismissLapsedDonor} unsnoozeActionItem={unsnoozeActionItem} updateCharityJsonField={updateCharityJsonField}

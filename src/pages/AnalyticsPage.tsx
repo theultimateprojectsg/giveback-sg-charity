@@ -226,6 +226,7 @@ interface AnalyticsPageProps {
   recurringMissedThreshold: number
   recurringMrrStats: any
   recurringRiskStats: any
+  recurringReliabilityStats: any
   recurringSnapshotStats: any
   recurringTrendCycles: number
   revenueByChannelStats: any
@@ -286,6 +287,7 @@ interface AnalyticsPageProps {
   setShowAllOverdueUnits: Dispatch<SetStateAction<boolean>>
   setShowAllPausedGifts: Dispatch<SetStateAction<boolean>>
   setShowAllPledgeConcentration: Dispatch<SetStateAction<boolean>>
+  setShowAllRecurringConcentration: Dispatch<SetStateAction<boolean>>
   setShowAllPledgeWatchlist: Dispatch<SetStateAction<boolean>>
   setShowDismissedLapsedDonors: Dispatch<SetStateAction<boolean>>
   setShowDoneTasks: Dispatch<SetStateAction<boolean>>
@@ -307,6 +309,7 @@ interface AnalyticsPageProps {
   showAllOverdueUnits: boolean
   showAllPausedGifts: boolean
   showAllPledgeConcentration: boolean
+  showAllRecurringConcentration: boolean
   showAllPledgeWatchlist: boolean
   showDismissedLapsedDonors: boolean
   showDoneTasks: boolean
@@ -340,6 +343,7 @@ export function AnalyticsPage({
   pledgeStatsAndTrend, pledgeWatchThreshold, pledgesLoaded, predictableVsOneOffStats, quietDonorsStats,
   quietlyPayingStats, recurringAuthStats, recurringCompositionStats,
   recurringGifts, recurringHealthStats, recurringMissedThreshold, recurringMrrStats, recurringRiskStats,
+  recurringReliabilityStats,
   recurringSnapshotStats, recurringTrendCycles, revenueByChannelStats,
   revenueTrendStats, setActiveTab, setSettingsSection, setAiWeekSummary, setAiWeekSummaryError,
   setAiWeekSummaryLoading, setCampaignSearchTerm, setCampaignYearFilter, setConcentrationTopN, setConfirmModal,
@@ -353,12 +357,12 @@ export function AnalyticsPage({
   setSelectedDonor, setShowAddObligation, setShowAddTask, setShowAllBounceReasons,
   setShowAllConcentrationDonors, setShowAllEndingSoon, setShowAllFatigueList, setShowAllFrequentSkippers,
   setShowAllGivingChanges, setShowAllLapsedDonors, setShowAllMissedPayments, setShowAllOverGivers,
-  setShowAllOverdueUnits, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllPledgeWatchlist,
+  setShowAllOverdueUnits, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllRecurringConcentration, setShowAllPledgeWatchlist,
   setShowDismissedLapsedDonors, setShowDoneTasks, setShowSnoozedItems, setSnoozeMenuOpen, setTaskForm,
   setToast, showAddObligation, showAddTask, showAllBounceReasons, showAllConcentrationDonors,
   showAllEndingSoon, showAllFatigueList, showAllFrequentSkippers, showAllGivingChanges, showAllLapsedDonors,
   showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
-  showAllPledgeConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
+  showAllPledgeConcentration, showAllRecurringConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
   const [campaignSort, setCampaignSort] = useState<'raised' | 'behind' | 'roi' | 'ending'>('raised')
@@ -406,8 +410,10 @@ export function AnalyticsPage({
     { key: 'rc_snapshot', label: 'Snapshot Tiles' },
     { key: 'rc_healthTiles', label: 'Health Tiles (MRR, Retention Rate)' },
     { key: 'rc_revenueTrend', label: 'Recurring Revenue Trend' },
-    { key: 'rc_composition', label: 'Revenue Composition' },
+    { key: 'rc_reliabilityTrend', label: 'Recurring Reliability Trend' },
     { key: 'rc_newVsChurned', label: 'New vs Churned MRR' },
+    { key: 'rc_reliabilityConcentration', label: 'Recurring Reliability & Concentration' },
+    { key: 'rc_composition', label: 'Revenue Composition' },
     { key: 'rc_givingTrend', label: 'Giving Trend (Upgrades & Downgrades)' },
     { key: 'rc_authRisk', label: 'Authorization & Mandate Risk' },
     { key: 'rc_giftRisk', label: 'Recurring Gift Risk' },
@@ -2358,6 +2364,7 @@ export function AnalyticsPage({
               {(() => {
                 const { trendData } = recurringMrrStats
                 const { byTypeRows } = recurringCompositionStats
+                const { trendData: reliabilityTrendData } = recurringReliabilityStats
 
                 return (
                   <>
@@ -2377,6 +2384,25 @@ export function AnalyticsPage({
                         </ResponsiveContainer>
                         </div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Monthly recurring revenue as of December each year.</div>
+                      </div>
+                      </DraggableCard>
+                    )}
+
+                    {!hidden('rc_reliabilityTrend') && reliabilityTrendData.length >= 2 && (
+                      <DraggableCard sectionId="rc" cardKey="rc_reliabilityTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_reliabilityTrend')} flexBasis="360px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
+                        <div style={s.analyticsCardTitle}>Recurring Reliability Trend — Last {reliabilityTrendData.length} Years <InfoTip text="Payments actually received divided by how many cycles should have happened, across every recurring gift live at some point in each fiscal year. The current year is still in progress, so its rate will look lower until it closes out." /></div>
+                        <div style={{ flex: 1, minHeight: 130 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={reliabilityTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={34} domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => [`${value}% (${entry.payload.totalReceived} of ${entry.payload.totalExpected} cycles)`, 'Reliability']} />
+                            <Line type="monotone" dataKey="pct" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                        </div>
                       </div>
                       </DraggableCard>
                     )}
@@ -2446,6 +2472,66 @@ export function AnalyticsPage({
                       )}
                     </div>
                     </DraggableCard>
+                  )
+                })()}
+
+                {!hidden('rc_reliabilityConcentration') && (() => {
+                  const { onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked } = recurringReliabilityStats
+
+                  const onTimePct = eligibleActiveGifts.length > 0 ? Math.round((onTimeGroup.length / eligibleActiveGifts.length) * 100) : 0
+                  const oneOrTwoMissedPct = eligibleActiveGifts.length > 0 ? Math.round((oneOrTwoMissedGroup.length / eligibleActiveGifts.length) * 100) : 0
+                  const frequentlyMissedPct = eligibleActiveGifts.length > 0 ? Math.round((frequentlyMissedGroup.length / eligibleActiveGifts.length) * 100) : 0
+
+                  return (
+                    (eligibleActiveGifts.length > 0 || donorRanked.length > 0) && (
+                    <DraggableCard sectionId="rc" cardKey="rc_reliabilityConcentration" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_reliabilityConcentration')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
+                      <div style={s.analyticsCardTitle}>Recurring Reliability & Concentration <InfoTip text="How consistently active recurring gifts are actually deducting, based on missed cycles, and your largest active recurring donors by monthly value." /></div>
+
+                      {eligibleActiveGifts.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Active recurring gifts — payment consistency</div>
+                          <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
+                            {onTimePct > 0 && <div style={{ width: `${onTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{onTimePct}%</span>}</div>}
+                            {oneOrTwoMissedPct > 0 && <div style={{ width: `${oneOrTwoMissedPct}%`, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{oneOrTwoMissedPct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{oneOrTwoMissedPct}%</span>}</div>}
+                            {frequentlyMissedPct > 0 && <div style={{ width: `${frequentlyMissedPct}%`, background: C.red, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{frequentlyMissedPct >= 12 && <span style={{ fontSize: 9, fontWeight: 700, color: C.white }}>{frequentlyMissedPct}%</span>}</div>}
+                          </div>
+                          <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: C.muted, flexWrap: 'wrap', marginBottom: 14 }}>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />No missed cycles ({onTimeGroup.length})</span>
+                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.forest, borderRadius: 2, marginRight: 5 }} />1–2 missed ({oneOrTwoMissedGroup.length})</span>
+                            {frequentlyMissedGroup.length > 0 && (
+                              <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.red, borderRadius: 2, marginRight: 5 }} />3+ missed ({frequentlyMissedGroup.length})</span>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {donorRanked.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest active recurring gifts</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {(showAllRecurringConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
+                              <div key={i}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                                  <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
+                                  <span style={{ fontWeight: 600, color: C.forest }}>${Math.round(d.amount).toLocaleString()}/mo · {d.pct}%</span>
+                                </div>
+                                <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                                  <div style={{ width: `${Math.max(4, d.pct)}%`, height: '100%', background: i === 0 ? C.red : i === 1 ? C.gold : C.sage }} />
+                                </div>
+                              </div>
+                            ))}
+                            {donorRanked.length > 5 && (
+                              <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllRecurringConcentration(v => !v)}>
+                                {showAllRecurringConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    </DraggableCard>
+                    )
                   )
                 })()}
 
