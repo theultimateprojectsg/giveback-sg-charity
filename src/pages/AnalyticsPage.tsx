@@ -2070,40 +2070,49 @@ export function AnalyticsPage({
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                     <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="Whether pledges actually get fulfilled, and how punctual the ones that were fulfilled have been — both pooled across the last 4 fiscal years." /></div>
 
-                    {fulfillmentRatePct !== null && (
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfillment rate — last 4 years</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                          <span style={{ ...s.analyticsStatNumber, color: fulfillmentRatePct >= 80 ? C.sage : fulfillmentRatePct >= 60 ? C.gold : C.red }}>{fulfillmentRatePct}%</span>
-                          <span style={{ fontSize: 11.5, color: C.muted }}>{fulfilledCount4y} of {concludedCount4y} concluded pledges fulfilled</span>
-                        </div>
-                        <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 6 }}>
-                          <div style={{ width: `${fulfillmentRatePct}%`, background: C.sage }} />
-                          <div style={{ width: `${100 - fulfillmentRatePct}%`, background: C.red }} />
-                        </div>
-                        {brokenCount4y > 0 && (
-                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 6 }}>{brokenCount4y} pledge{brokenCount4y !== 1 ? 's' : ''} cancelled or never came through</div>
-                        )}
-                      </div>
-                    )}
-
-                    {fulfilledWithDates.length > 0 && (
-                      <div style={{ borderTop: fulfillmentRatePct !== null ? `1px dashed ${C.border}` : 'none', paddingTop: fulfillmentRatePct !== null ? 14 : 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges — last 4 years: how late did they run?</div>
-                        <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
-                          {onTimePct > 0 && <div style={{ width: `${onTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{onTimePct}%</span>}</div>}
-                          {slightlyLatePct > 0 && <div style={{ width: `${slightlyLatePct}%`, background: C.forest, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{slightlyLatePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{slightlyLatePct}%</span>}</div>}
-                          {veryLatePct > 0 && <div style={{ width: `${veryLatePct}%`, background: C.gold, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{veryLatePct >= 12 && <span style={{ fontSize: 9, fontWeight: 700, color: C.white }}>{veryLatePct}%</span>}</div>}
-                        </div>
-                        <div style={{ display: 'flex', gap: 12, fontSize: 10.5, color: C.muted, flexWrap: 'wrap', marginBottom: 14 }}>
-                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.sage, borderRadius: 2, marginRight: 5 }} />On time or early ({onTimeGroup.length} · ${onTimeAmt.toLocaleString()})</span>
-                          <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.forest, borderRadius: 2, marginRight: 5 }} />1–14 days late ({slightlyLateGroup.length} · ${slightlyLateAmt.toLocaleString()})</span>
-                          {veryLateGroup.length > 0 && (
-                            <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />15+ days late ({veryLateGroup.length} · ${veryLateAmt.toLocaleString()})</span>
+                    {fulfillmentRatePct !== null && (() => {
+                      const circumference = 2 * Math.PI * 30
+                      const donutColor = fulfillmentRatePct >= 80 ? C.sage : fulfillmentRatePct >= 60 ? C.gold : C.red
+                      return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16, paddingBottom: 16, borderBottom: `1px dashed ${C.border}` }}>
+                        <svg width={72} height={72} viewBox="0 0 72 72" style={{ flexShrink: 0 }}>
+                          <circle cx="36" cy="36" r="30" fill="none" stroke={C.ivoryDark} strokeWidth="8" />
+                          <circle cx="36" cy="36" r="30" fill="none" stroke={donutColor} strokeWidth="8" strokeLinecap="round"
+                            strokeDasharray={circumference} strokeDashoffset={circumference * (1 - fulfillmentRatePct / 100)} transform="rotate(-90 36 36)" />
+                          <text x="36" y="41" textAnchor="middle" fontSize="16" fontWeight="700" fill={donutColor} fontFamily="inherit">{fulfillmentRatePct}%</text>
+                        </svg>
+                        <div>
+                          <div style={{ fontSize: 12.5, color: C.text, marginBottom: 4 }}>Fulfillment rate — last 4 years</div>
+                          <div style={{ fontSize: 11, color: C.muted }}>{fulfilledCount4y} of {concludedCount4y} concluded pledges fulfilled</div>
+                          {brokenCount4y > 0 && (
+                            <div style={{ fontSize: 11, color: C.red, marginTop: 2 }}>{brokenCount4y} cancelled or never came through</div>
                           )}
                         </div>
                       </div>
-                    )}
+                      )
+                    })()}
+
+                    {fulfilledWithDates.length > 0 && (() => {
+                      const buckets = [
+                        { label: 'On time or early', count: onTimeGroup.length, pct: onTimePct, amt: onTimeAmt, bg: C.successBg, color: C.sage },
+                        { label: '1–14 days late', count: slightlyLateGroup.length, pct: slightlyLatePct, amt: slightlyLateAmt, bg: C.warningBg, color: C.gold },
+                        { label: '15+ days late', count: veryLateGroup.length, pct: veryLatePct, amt: veryLateAmt, bg: C.dangerBg, color: C.red },
+                      ].filter(b => b.count > 0)
+                      return (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Of those fulfilled, how late did they run?</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {buckets.map((b, i) => (
+                            <div key={i} style={{ flex: 1, background: b.bg, borderRadius: 8, padding: '10px 12px' }}>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: b.color }}>{b.pct}%</div>
+                              <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{b.label}</div>
+                              <div style={{ fontSize: 10, color: C.muted }}>{b.count} · ${b.amt.toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      )
+                    })()}
 
                   </div>
                   </DraggableCard>
