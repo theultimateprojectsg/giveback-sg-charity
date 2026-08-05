@@ -399,7 +399,6 @@ export function AnalyticsPage({
   const PLEDGE_PERFORMANCE_CARDS = [
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
     { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
-    { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Rate' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_timing', label: 'Pledge Reliability' },
     { key: 'pp_reliability', label: 'Pledge Reliability (legacy, unused)' },
@@ -2012,28 +2011,6 @@ export function AnalyticsPage({
                       </div>
                       </DraggableCard>
                     )}
-
-                    {!hidden('pp_fulfillmentTrend') && trendData.length >= 2 && (() => {
-                      const rateData = trendData.map((t: any) => ({ ...t, rate: t.pledged > 0 ? Math.round((t.fulfilled / t.pledged) * 100) : 0 }))
-                      return (
-                      <DraggableCard sectionId="pp" cardKey="pp_fulfillmentTrend" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_fulfillmentTrend')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                      <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                        <div style={s.analyticsCardTitle}>Pledge Fulfillment Rate — Last {trendData.length} Years <InfoTip text="Share of each year's pledged value that's been fulfilled. The current year is still in progress, so its rate will look lower until it closes out." /></div>
-                        <div style={{ flex: 1, minHeight: 130 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={rateData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                            <XAxis dataKey="year" tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} width={34} domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                            <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name, entry: any) => [`${value}% ($${entry.payload.fulfilled.toLocaleString()} of $${entry.payload.pledged.toLocaleString()})`, 'Fulfilled']} />
-                            <Line type="monotone" dataKey="rate" stroke={C.sage} strokeWidth={2.5} dot={{ fill: C.sage, r: 4 }} isAnimationActive={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                        </div>
-                      </div>
-                      </DraggableCard>
-                      )
-                    })()}
 
                     {!hidden('pp_newVsCancelled') && (
                     <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
