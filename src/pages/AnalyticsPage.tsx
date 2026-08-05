@@ -489,6 +489,9 @@ export function AnalyticsPage({
             </div>
             <div id="analytics-section-today" style={{ scrollMarginTop: 20 }}>
             <div style={{ marginBottom: 40 }}>
+              <div style={s.sectionBand}>
+                <span style={s.sectionBandLabel}>Today's Overview</span>
+              </div>
 
             {/* ── THIS WEEK, IN WORDS ── */}
             {(() => {
