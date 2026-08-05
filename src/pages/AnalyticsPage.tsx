@@ -2351,7 +2351,8 @@ export function AnalyticsPage({
                 })()}
 
                 {!hidden('rc_reliability') && (() => {
-                  const { onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts } = recurringReliabilityStats
+                  const { onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, trendData: reliabilityTrendData } = recurringReliabilityStats
+                  const currentYearReliability = reliabilityTrendData[reliabilityTrendData.length - 1]
 
                   const buckets = [
                     { label: 'No missed cycles', count: onTimeGroup.length, bg: C.successBg, color: C.sage },
@@ -2359,20 +2360,44 @@ export function AnalyticsPage({
                     { label: '3+ missed', count: frequentlyMissedGroup.length, bg: C.dangerBg, color: C.red },
                   ].filter(b => b.count > 0)
 
-                  return eligibleActiveGifts.length > 0 && (
+                  return (eligibleActiveGifts.length > 0 || currentYearReliability) && (
                     <DraggableCard sectionId="rc" cardKey="rc_reliability" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_reliability')} flexBasis="420px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Recurring Reliability <InfoTip text="How consistently active recurring gifts are actually deducting, based on missed cycles." /></div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Active recurring gifts — payment consistency</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {buckets.map((b, i) => (
-                          <div key={i} style={{ flex: 1, background: b.bg, borderRadius: 8, padding: '10px 12px' }}>
-                            <div style={{ fontSize: 18, fontWeight: 700, color: b.color }}>{eligibleActiveGifts.length > 0 ? Math.round((b.count / eligibleActiveGifts.length) * 100) : 0}%</div>
-                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{b.label}</div>
-                            <div style={{ fontSize: 10, color: C.muted }}>{b.count} gift{b.count !== 1 ? 's' : ''}</div>
+                      <div style={s.analyticsCardTitle}>Recurring Reliability <InfoTip text="Payments actually received divided by how many cycles should have happened this fiscal year, plus how consistently active recurring gifts are deducting based on missed cycles." /></div>
+
+                      {currentYearReliability && (() => {
+                        const circumference = 2 * Math.PI * 30
+                        const donutColor = currentYearReliability.pct >= 80 ? C.sage : currentYearReliability.pct >= 60 ? C.gold : C.red
+                        return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16, paddingBottom: 16, borderBottom: `1px dashed ${C.border}` }}>
+                          <svg width={72} height={72} viewBox="0 0 72 72" style={{ flexShrink: 0 }}>
+                            <circle cx="36" cy="36" r="30" fill="none" stroke={C.ivoryDark} strokeWidth="8" />
+                            <circle cx="36" cy="36" r="30" fill="none" stroke={donutColor} strokeWidth="8" strokeLinecap="round"
+                              strokeDasharray={circumference} strokeDashoffset={circumference * (1 - currentYearReliability.pct / 100)} transform="rotate(-90 36 36)" />
+                            <text x="36" y="41" textAnchor="middle" fontSize="16" fontWeight="700" fill={donutColor} fontFamily="inherit">{currentYearReliability.pct}%</text>
+                          </svg>
+                          <div>
+                            <div style={{ fontSize: 12.5, color: C.text, marginBottom: 4 }}>Reliability rate — FY{currentYearReliability.year}</div>
+                            <div style={{ fontSize: 11, color: C.muted }}>{currentYearReliability.totalReceived} of {currentYearReliability.totalExpected} expected cycles received</div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                        )
+                      })()}
+
+                      {buckets.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Of active gifts, how consistent were they?</div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {buckets.map((b, i) => (
+                              <div key={i} style={{ flex: 1, background: b.bg, borderRadius: 8, padding: '10px 12px' }}>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: b.color }}>{eligibleActiveGifts.length > 0 ? Math.round((b.count / eligibleActiveGifts.length) * 100) : 0}%</div>
+                                <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>{b.label}</div>
+                                <div style={{ fontSize: 10, color: C.muted }}>{b.count} gift{b.count !== 1 ? 's' : ''}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     </DraggableCard>
                   )
