@@ -285,6 +285,7 @@ interface AnalyticsPageProps {
   setShowAllMissedPayments: Dispatch<SetStateAction<boolean>>
   setShowAllOverGivers: Dispatch<SetStateAction<boolean>>
   setShowAllOverdueUnits: Dispatch<SetStateAction<boolean>>
+  setShowAllUpcomingPledges: Dispatch<SetStateAction<boolean>>
   setShowAllPausedGifts: Dispatch<SetStateAction<boolean>>
   setShowAllPledgeConcentration: Dispatch<SetStateAction<boolean>>
   setShowAllRecurringConcentration: Dispatch<SetStateAction<boolean>>
@@ -307,6 +308,7 @@ interface AnalyticsPageProps {
   showAllMissedPayments: boolean
   showAllOverGivers: boolean
   showAllOverdueUnits: boolean
+  showAllUpcomingPledges: boolean
   showAllPausedGifts: boolean
   showAllPledgeConcentration: boolean
   showAllRecurringConcentration: boolean
@@ -357,11 +359,11 @@ export function AnalyticsPage({
   setSelectedDonor, setShowAddObligation, setShowAddTask, setShowAllBounceReasons,
   setShowAllConcentrationDonors, setShowAllEndingSoon, setShowAllFatigueList, setShowAllFrequentSkippers,
   setShowAllGivingChanges, setShowAllLapsedDonors, setShowAllMissedPayments, setShowAllOverGivers,
-  setShowAllOverdueUnits, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllRecurringConcentration, setShowAllPledgeWatchlist,
+  setShowAllOverdueUnits, setShowAllUpcomingPledges, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllRecurringConcentration, setShowAllPledgeWatchlist,
   setShowDismissedLapsedDonors, setShowDoneTasks, setShowSnoozedItems, setSnoozeMenuOpen, setTaskForm,
   setToast, showAddObligation, showAddTask, showAllBounceReasons, showAllConcentrationDonors,
   showAllEndingSoon, showAllFatigueList, showAllFrequentSkippers, showAllGivingChanges, showAllLapsedDonors,
-  showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllPausedGifts,
+  showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllUpcomingPledges, showAllPausedGifts,
   showAllPledgeConcentration, showAllRecurringConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
@@ -2052,7 +2054,7 @@ export function AnalyticsPage({
               {!hidden('pp_reliability') && (() => {
                 const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
-                const { topDonorPct, highRisk, medRisk, tooFewDonors } = pledgeConcentrationStats
+                const { upcomingUnits } = pledgeConcentrationStats
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const slightlyLateAmt = slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const veryLateAmt = veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2062,10 +2064,10 @@ export function AnalyticsPage({
 
                 return (
                   <>
-                  {(fulfilledWithDates.length > 0 || !tooFewDonors) && (
+                  {(fulfilledWithDates.length > 0 || upcomingUnits.length > 0) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, and how concentrated your outstanding pledge value is among donors." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, plus which pledges are coming due in the next 60 days." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
@@ -2085,13 +2087,24 @@ export function AnalyticsPage({
                       </>
                     )}
 
-                    {!tooFewDonors && (
+                    {upcomingUnits.length > 0 && (
                       <div style={{ borderTop: fulfilledWithDates.length > 0 ? `1px dashed ${C.border}` : 'none', paddingTop: fulfilledWithDates.length > 0 ? 14 : 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Pledge concentration</div>
-                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Upcoming pledges — next 60 days</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {(showAllUpcomingPledges ? upcomingUnits : upcomingUnits.slice(0, 5)).map((u: any, i: any) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                              <div>
+                                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
+                                <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${u.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                          {upcomingUnits.length > 5 && (
+                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingPledges(v => !v)}>
+                              {showAllUpcomingPledges ? 'Show fewer' : `Show all ${upcomingUnits.length}`}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -2165,12 +2178,23 @@ export function AnalyticsPage({
               })()}
 
               {!hidden('pp_concentration') && (() => {
-                const { donorRanked } = pledgeConcentrationStats
+                const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors } = pledgeConcentrationStats
 
                 return donorRanked.length > 0 && (
                   <DraggableCard sectionId="pp" cardKey="pp_concentration" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_concentration')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Largest Outstanding Pledges <InfoTip text="Your largest outstanding pledges by value, ranked by donor. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    <div style={s.analyticsCardTitle}>Largest Outstanding Pledges <InfoTip text="Your largest outstanding pledges by value, ranked by donor, plus how concentrated that outstanding value is among donors. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    {!tooFewDonors && (
+                      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px dashed ${C.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                          <span style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest }}>{topDonorPct}%</span>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>from your single largest pledge</span>
+                        </div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
                         <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>

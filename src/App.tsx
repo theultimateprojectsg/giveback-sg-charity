@@ -605,6 +605,7 @@ export default function App() {
   const [showDismissedLapsedDonors, setShowDismissedLapsedDonors] = useState<any>(false)
   const [showAllLapsedDonors, setShowAllLapsedDonors] = useState<any>(false)
   const [showAllOverdueUnits, setShowAllOverdueUnits] = useState<any>(false)
+  const [showAllUpcomingPledges, setShowAllUpcomingPledges] = useState<any>(false)
   const [showAllPledgeWatchlist, setShowAllPledgeWatchlist] = useState<any>(false)
   const [showAllPledgeConcentration, setShowAllPledgeConcentration] = useState<any>(false)
   const [showAllRecurringConcentration, setShowAllRecurringConcentration] = useState<any>(false)
@@ -7035,7 +7036,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const monthsRanked = Object.values(byMonth).sort((a, b) => a.sortKey - b.sortKey)
     const heaviestMonth = [...monthsRanked].sort((a, b) => b.amount - a.amount)[0]
 
-    return { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth }
+    const today = new Date()
+    const sixtyDaysOut = new Date()
+    sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60)
+    const upcomingUnits = outstandingUnits
+      .filter(u => new Date(u.expected_date) >= today && new Date(u.expected_date) <= sixtyDaysOut)
+      .map(u => ({ ...u, daysUntil: Math.ceil((new Date(u.expected_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) }))
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+
+    return { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth, upcomingUnits }
   }, [pledges, pledgeInstalments])
 
   const recurringSnapshotStats = React.useMemo(() => {
@@ -10186,7 +10195,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             setShowAllFatigueList={setShowAllFatigueList} setShowAllFrequentSkippers={setShowAllFrequentSkippers}
             setShowAllGivingChanges={setShowAllGivingChanges} setShowAllLapsedDonors={setShowAllLapsedDonors}
             setShowAllMissedPayments={setShowAllMissedPayments} setShowAllOverGivers={setShowAllOverGivers}
-            setShowAllOverdueUnits={setShowAllOverdueUnits} setShowAllPausedGifts={setShowAllPausedGifts}
+            setShowAllOverdueUnits={setShowAllOverdueUnits} setShowAllUpcomingPledges={setShowAllUpcomingPledges} setShowAllPausedGifts={setShowAllPausedGifts}
             setShowAllPledgeConcentration={setShowAllPledgeConcentration}
             setShowAllRecurringConcentration={setShowAllRecurringConcentration}
             setShowAllPledgeWatchlist={setShowAllPledgeWatchlist}
@@ -10197,7 +10206,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             showAllEndingSoon={showAllEndingSoon} showAllFatigueList={showAllFatigueList}
             showAllFrequentSkippers={showAllFrequentSkippers} showAllGivingChanges={showAllGivingChanges}
             showAllLapsedDonors={showAllLapsedDonors} showAllMissedPayments={showAllMissedPayments}
-            showAllOverGivers={showAllOverGivers} showAllOverdueUnits={showAllOverdueUnits}
+            showAllOverGivers={showAllOverGivers} showAllOverdueUnits={showAllOverdueUnits} showAllUpcomingPledges={showAllUpcomingPledges}
             showAllPausedGifts={showAllPausedGifts} showAllPledgeConcentration={showAllPledgeConcentration}
             showAllRecurringConcentration={showAllRecurringConcentration}
             showAllPledgeWatchlist={showAllPledgeWatchlist} showDismissedLapsedDonors={showDismissedLapsedDonors}
