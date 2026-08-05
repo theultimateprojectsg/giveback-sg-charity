@@ -2113,16 +2113,9 @@ export function AnalyticsPage({
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Pledge concentration</div>
                         <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
                         <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 10 }}>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
                           <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                         </div>
-                        {highRisk ? (
-                          <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
-                        ) : medRisk ? (
-                          <ActionBanner tone="warning" text="Moderate pledge concentration" sub="Worth watching as your pledge portfolio grows" />
-                        ) : (
-                          <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
-                        )}
                       </div>
                     )}
                   </div>
