@@ -404,7 +404,6 @@ export function AnalyticsPage({
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_timing', label: 'Pledge Reliability' },
     { key: 'pp_upcoming', label: 'Upcoming Pledges' },
-    { key: 'pp_reliability', label: 'Pledge Reliability (legacy, unused)' },
     { key: 'pp_concentration', label: 'Largest Outstanding Pledges' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
   ]
@@ -2040,9 +2039,8 @@ export function AnalyticsPage({
                 )
               })()}
 
-              {!hidden('pp_reliability') && (() => {
-                const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList, fulfillmentRatePct, fulfilledCount4y, brokenCount4y, concludedCount4y } = pledgeReliabilityStats
-                const { overdueUnits } = pledgeStatsAndTrend
+              {!hidden('pp_timing') && (() => {
+                const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, fulfillmentRatePct, fulfilledCount4y, brokenCount4y, concludedCount4y } = pledgeReliabilityStats
                 const { upcomingUnits } = pledgeConcentrationStats
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const slightlyLateAmt = slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2130,67 +2128,6 @@ export function AnalyticsPage({
                   </DraggableCard>
                   )}
 
-                  {false && (
-                  <DraggableCard sectionId="pp" cardKey="pp_reliability" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_reliability')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                  <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability — {filterYear} <InfoTip text="Which pledges are currently overdue, and which donors have a pattern of broken or overdue pledges. Totals and on-time rate are shown in the tiles above." /></div>
-
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Currently overdue</div>
-                    {overdueUnits.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 18 }}>No overdue pledges right now.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-                        {(showAllOverdueUnits ? overdueUnits : overdueUnits.slice(0, 5)).map((u: any, i: any) => (
-                          <div key={i} style={{ padding: '9px 11px', background: C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 500, color: C.red }}>{u.donor_name}</span>
-                              <span style={{ fontSize: 12, fontWeight: 500, color: C.red }}>${u.amount.toLocaleString()}</span>
-                            </div>
-                            <div style={{ fontSize: 10.5, color: C.red }}>{u.daysOverdue} day{u.daysOverdue !== 1 ? 's' : ''} overdue</div>
-                          </div>
-                        ))}
-                        {overdueUnits.length > 5 && (
-                          <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllOverdueUnits(v => !v)}>
-                            {showAllOverdueUnits ? 'Show fewer' : `Show all ${overdueUnits.length}`}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Donors worth watching</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ fontSize: 10.5, color: C.muted }}>Flagged after {pledgeWatchThreshold} broken pledge{pledgeWatchThreshold !== 1 ? 's' : ''}</span>
-                        <AdjustInSettingsLink setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} />
-                      </div>
-                    </div>
-                    {watchList.length === 0 ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>No donors currently meet this threshold.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {(showAllPledgeWatchlist ? watchList : watchList.slice(0, 5)).map((d: any, i: any) => (
-                          <div key={i} style={{ padding: '10px 12px', background: d.overdueNow.length > 0 ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                              <span style={{ fontSize: 12.5, fontWeight: 500, color: d.overdueNow.length > 0 ? C.red : C.forest }}>{d.name}{d.overdueNow.length > 0 ? ' — overdue now' : ''}</span>
-                              <span style={{ fontSize: 11, color: d.overdueNow.length > 0 ? C.red : C.muted }}>{d.pledges.length} pledge{d.pledges.length !== 1 ? 's' : ''}, {d.brokenCount} broken · ${d.broken.reduce((s: any, p: any) => s + Number(p.amount), 0).toLocaleString()}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {watchList.length > 5 && (
-                          <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeWatchlist(v => !v)}>
-                            {showAllPledgeWatchlist ? 'Show fewer' : `Show all ${watchList.length}`}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {watchList.length > 0 ? (
-                      <ActionBanner tone="danger" text={`${watchList.length} donor${watchList.length !== 1 ? 's' : ''} worth watching`} sub="A pattern of broken or overdue pledges — worth a conversation before the next ask" />
-                    ) : (
-                      <ActionBanner tone="success" text="No donors flagged" sub="No one currently meets your broken-pledge threshold" />
-                    )}
-                  </div>
-                  </DraggableCard>
-                  )}
                   </>
                 )
               })()}
