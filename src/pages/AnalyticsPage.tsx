@@ -2362,7 +2362,7 @@ export function AnalyticsPage({
                 return (
                   <>
                     {!hidden('rc_revenueTrend') && trendData.length >= 2 && (
-                      <DraggableCard sectionId="rc" cardKey="rc_revenueTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_revenueTrend')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                      <DraggableCard sectionId="rc" cardKey="rc_revenueTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_revenueTrend')} flexBasis="360px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                       <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                         <div style={s.analyticsCardTitle}>Recurring Revenue Trend — Last {trendData.length} Years <InfoTip text="Monthly recurring revenue as of December each year, based on which gifts were active at that point. Shows the long-term trajectory of your recurring program." /></div>
                         <div style={{ flex: 1, minHeight: 140 }}>
@@ -2382,7 +2382,7 @@ export function AnalyticsPage({
                     )}
 
                     {!hidden('rc_composition') && (
-                    <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="360px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>Revenue Composition by Type <InfoTip text="Active recurring revenue broken down by payment type — GIRO, habitual PayNow, standing order, or other." /></div>
                       {byTypeRows.length === 0 ? (
