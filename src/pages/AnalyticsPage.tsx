@@ -385,6 +385,7 @@ export function AnalyticsPage({
   const CAMPAIGN_PERFORMANCE_CARDS = [
     { key: 'cp_snapshot', label: 'Snapshot Tiles' },
     { key: 'cp_revenueTrend', label: 'Campaign Revenue Trend' },
+    { key: 'cp_revenueByCampaign', label: 'Revenue by Campaign' },
     { key: 'cp_donorGrowth', label: 'Donor Growth & Funding Sources' },
     { key: 'cp_donorInsights', label: 'Donor Acquisition Insights' },
     { key: 'cp_leaderboard', label: 'Campaign Leaderboard' },
@@ -1435,6 +1436,39 @@ export function AnalyticsPage({
                           </DraggableCard>
                         )}
 
+                        {!hidden('cp_revenueByCampaign') && (() => {
+                          const fundedCampaigns = campaignRows.filter((r: any) => r.total > 0).sort((a: any, b: any) => b.total - a.total)
+                          const campaignTotal = fundedCampaigns.reduce((s: any, r: any) => s + r.total, 0)
+                          const palette = [C.forest, C.sage, C.gold, C.teal, C.muted, C.red]
+                          return fundedCampaigns.length > 0 && (
+                          <DraggableCard sectionId="cp" cardKey="cp_revenueByCampaign" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueByCampaign')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                            <div style={s.analyticsCardTitle}>Revenue by Campaign — {filterYear} <InfoTip text="Share of confirmed campaign revenue attributable to each campaign." /></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                                {fundedCampaigns.map((r: any, i: any) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 9, height: 9, borderRadius: 2, background: palette[i % palette.length], flexShrink: 0 }} />
+                                    <span style={{ fontSize: 12.5, color: C.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                                    <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest }}>{campaignTotal > 0 ? Math.round((r.total / campaignTotal) * 100) : 0}%</span>
+                                    <span style={{ fontSize: 11, color: C.muted, minWidth: 60, textAlign: 'right' }}>${r.total.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <ResponsiveContainer width={100} height={110}>
+                                <PieChart>
+                                  <Pie data={fundedCampaigns} dataKey="total" nameKey="title" cx="50%" cy="50%" innerRadius={26} outerRadius={46} paddingAngle={2} isAnimationActive={false}>
+                                    {fundedCampaigns.map((r: any, i: any) => <Cell key={i} fill={palette[i % palette.length]} />)}
+                                  </Pie>
+                                  <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                          </DraggableCard>
+                          )
+                        })()}
+
                         {!hidden('cp_donorGrowth') && donorGrowthAgg && (() => {
                           const { aggTotal, aggOrganicPct, aggAppealPct, aggReferralPct, appealReliant, standoutOrganic, stagnant } = donorGrowthAgg
                           const mixSlices = [
@@ -1450,23 +1484,17 @@ export function AnalyticsPage({
                             {aggTotal === 0 ? (
                               <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>No campaign revenue yet.</div>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                                  {mixSlices.map((s2, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                      <div style={{ width: 9, height: 9, borderRadius: 2, background: s2.color, flexShrink: 0 }} />
-                                      <span style={{ fontSize: 12.5, color: C.text, flex: 1 }}>{s2.label}</span>
-                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest }}>{s2.pct}%</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                <ResponsiveContainer width={100} height={110}>
-                                  <PieChart>
-                                    <Pie data={mixSlices} dataKey="pct" nameKey="label" cx="50%" cy="50%" innerRadius={26} outerRadius={46} paddingAngle={2} isAnimationActive={false}>
+                              <div style={{ marginBottom: 16 }}>
+                                <ResponsiveContainer width="100%" height={110}>
+                                  <BarChart data={mixSlices} layout="vertical" margin={{ top: 4, right: 30, left: 0, bottom: 4 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: C.muted }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: C.text }} axisLine={false} tickLine={false} width={80} />
+                                    <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value) => [`${value}%`, 'Share']} />
+                                    <Bar dataKey="pct" radius={[0, 4, 4, 0]} isAnimationActive={false} label={{ position: 'right', fontSize: 11, fill: C.forest, formatter: (v: any) => `${v}%` }}>
                                       {mixSlices.map((s2, i) => <Cell key={i} fill={s2.color} />)}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`${value}%`, name]} />
-                                  </PieChart>
+                                    </Bar>
+                                  </BarChart>
                                 </ResponsiveContainer>
                               </div>
                             )}
