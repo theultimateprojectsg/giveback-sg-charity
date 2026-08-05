@@ -2016,19 +2016,29 @@ export function AnalyticsPage({
                     <DraggableCard sectionId="pp" cardKey="pp_newVsCancelled" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_newVsCancelled')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
                       <div style={s.analyticsCardTitle}>New vs Cancelled Pledges — {yr} <InfoTip text="Tracks fresh pledging activity, not the expected-revenue pipeline shown in the tiles above. New pledges made is scoped by when the pledge was recorded (created date) — a pulse check on new commitments coming in this year. Cancelled value is scoped by the pledge's expected year (pledges don't track a cancellation date), matching the Cancellation Rate tile above." /></div>
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.successBg, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.successText }}>+ New pledges made this year</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: C.successText }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: 16, color: C.sage }}>▲</span>
+                          </div>
+                          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ fontSize: 12.5, color: C.text }}>New pledges made</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: C.sage }}>${Math.round(newPledgeValue).toLocaleString()}</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.dangerBg, borderRadius: 4 }}>
-                          <span style={{ fontSize: 12, color: C.red }}>− Cancelled pledges</span>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.dangerBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ fontSize: 16, color: C.red }}>▼</span>
+                          </div>
+                          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ fontSize: 12.5, color: C.text }}>Cancelled</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: C.red }}>${Math.round(cancelledPledgeValue).toLocaleString()}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginBottom: 14 }}>
-                        <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
-                        <span style={{ fontFamily: C.fontVoice, fontSize: 20, fontWeight: 500, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>Net pledge value</span>
+                          <span style={{ fontFamily: C.fontVoice, fontSize: 22, fontWeight: 700, color: netPledgeValue >= 0 ? C.sage : C.red }}>{netPledgeValue >= 0 ? '+' : '−'}${Math.abs(Math.round(netPledgeValue)).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                     </DraggableCard>
