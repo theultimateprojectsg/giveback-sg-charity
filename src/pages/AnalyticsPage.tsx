@@ -1418,7 +1418,7 @@ export function AnalyticsPage({
                     )}
 
                         {!hidden('cp_revenueTrend') && trendData.length >= 2 && (
-                          <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <DraggableCard sectionId="cp" cardKey="cp_revenueTrend" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueTrend')} flexBasis="360px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                           <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                             <div style={s.analyticsCardTitle}>Campaign Revenue Trend — Last {trendData.length} Years <InfoTip text="Average amount raised per campaign that received at least one confirmed donation, by year. Normalizes for running more or fewer campaigns year to year." /></div>
                             <div style={{ flex: 1, minHeight: 130 }}>
@@ -1441,7 +1441,7 @@ export function AnalyticsPage({
                           const campaignTotal = fundedCampaigns.reduce((s: any, r: any) => s + r.total, 0)
                           const palette = [C.forest, C.sage, C.gold, C.teal, C.muted, C.red]
                           return fundedCampaigns.length > 0 && (
-                          <DraggableCard sectionId="cp" cardKey="cp_revenueByCampaign" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueByCampaign')} flexBasis="460px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                          <DraggableCard sectionId="cp" cardKey="cp_revenueByCampaign" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueByCampaign')} flexBasis="360px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                           <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                             <div style={s.analyticsCardTitle}>Revenue by Campaign — {filterYear} <InfoTip text="Share of confirmed campaign revenue attributable to each campaign." /></div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
