@@ -6975,6 +6975,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const slightlyLateGroup = fulfilledWithDates.filter(f => f.daysLate > 0 && f.daysLate <= 14)
     const veryLateGroup = fulfilledWithDates.filter(f => f.daysLate > 14)
 
+    // Fulfillment rate answers "did the pledge actually come through", separate from the
+    // timing breakdown above which only covers pledges that WERE fulfilled. Only pledges whose
+    // outcome is settled count -- cancelled, fulfilled, or pending-but-past-due (broken in
+    // practice even if never formally cancelled). Pledges not yet due haven't failed yet, so
+    // they're excluded rather than counted against reliability.
+    const cancelledLast4 = last4YearsPledges.filter(p => p.status === 'cancelled')
+    const overduePendingLast4 = last4YearsPledges.filter(p => p.status === 'pending' && new Date(p.expected_date) < new Date())
+    const brokenCount4y = cancelledLast4.length + overduePendingLast4.length
+    const concludedCount4y = fulfilled.length + brokenCount4y
+    const fulfillmentRatePct = concludedCount4y > 0 ? Math.round((fulfilled.length / concludedCount4y) * 100) : null
+
     const today = new Date()
     const donorKey = (p: any) => p.donor_email?.trim() || p.donor_name
     const byDonor: Record<string, any> = {}
@@ -6992,7 +7003,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       return { ...d, brokenCount: broken.length, broken, overdueNow: d.pledges.filter((p: any) => p.status === 'pending' && new Date(p.expected_date) < today) }
     }).filter(d => d.brokenCount >= pledgeWatchThreshold).sort((a, b) => b.brokenCount - a.brokenCount)
 
-    return { yearNum, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList }
+    return { yearNum, fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList, fulfillmentRatePct, fulfilledCount4y: fulfilled.length, brokenCount4y, concludedCount4y }
   }, [filterYear, pledges, donations, pledgeWatchThreshold, fyOf, pledgeRescheduleHistory])
 
   const pledgeConcentrationStats = React.useMemo(() => {

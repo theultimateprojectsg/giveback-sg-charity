@@ -2052,7 +2052,7 @@ export function AnalyticsPage({
               })()}
 
               {!hidden('pp_reliability') && (() => {
-                const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList } = pledgeReliabilityStats
+                const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList, fulfillmentRatePct, fulfilledCount4y, brokenCount4y, concludedCount4y } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
                 const { upcomingUnits } = pledgeConcentrationStats
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2064,13 +2064,30 @@ export function AnalyticsPage({
 
                 return (
                   <>
-                  {(fulfilledWithDates.length > 0 || upcomingUnits.length > 0) && (
+                  {(fulfilledWithDates.length > 0 || upcomingUnits.length > 0 || fulfillmentRatePct !== null) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, plus which pledges are coming due in the next 60 days." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="Whether pledges actually get fulfilled, and how punctual the ones that were fulfilled have been — both pooled across the last 4 fiscal years — plus which pledges are coming due in the next 60 days." /></div>
+
+                    {fulfillmentRatePct !== null && (
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfillment rate — last 4 years</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                          <span style={{ ...s.analyticsStatNumber, color: fulfillmentRatePct >= 80 ? C.sage : fulfillmentRatePct >= 60 ? C.gold : C.red }}>{fulfillmentRatePct}%</span>
+                          <span style={{ fontSize: 11.5, color: C.muted }}>{fulfilledCount4y} of {concludedCount4y} concluded pledges fulfilled</span>
+                        </div>
+                        <div style={{ display: 'flex', borderRadius: 3, overflow: 'hidden', height: 6 }}>
+                          <div style={{ width: `${fulfillmentRatePct}%`, background: C.sage }} />
+                          <div style={{ width: `${100 - fulfillmentRatePct}%`, background: C.red }} />
+                        </div>
+                        {brokenCount4y > 0 && (
+                          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 6 }}>{brokenCount4y} pledge{brokenCount4y !== 1 ? 's' : ''} cancelled or never came through</div>
+                        )}
+                      </div>
+                    )}
 
                     {fulfilledWithDates.length > 0 && (
-                      <>
+                      <div style={{ borderTop: fulfillmentRatePct !== null ? `1px dashed ${C.border}` : 'none', paddingTop: fulfillmentRatePct !== null ? 14 : 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Fulfilled pledges — last 4 years: how late did they run?</div>
                         <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 22, marginBottom: 8 }}>
                           {onTimePct > 0 && <div style={{ width: `${onTimePct}%`, background: C.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onTimePct >= 12 && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.white }}>{onTimePct}%</span>}</div>}
@@ -2084,11 +2101,13 @@ export function AnalyticsPage({
                             <span><span style={{ display: 'inline-block', width: 9, height: 9, background: C.gold, borderRadius: 2, marginRight: 5 }} />15+ days late ({veryLateGroup.length} · ${veryLateAmt.toLocaleString()})</span>
                           )}
                         </div>
-                      </>
+                      </div>
                     )}
 
-                    {upcomingUnits.length > 0 && (
-                      <div style={{ borderTop: fulfilledWithDates.length > 0 ? `1px dashed ${C.border}` : 'none', paddingTop: fulfilledWithDates.length > 0 ? 14 : 0 }}>
+                    {upcomingUnits.length > 0 && (() => {
+                      const hasContentAbove = fulfillmentRatePct !== null || fulfilledWithDates.length > 0
+                      return (
+                      <div style={{ borderTop: hasContentAbove ? `1px dashed ${C.border}` : 'none', paddingTop: hasContentAbove ? 14 : 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Upcoming pledges — next 60 days</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {(showAllUpcomingPledges ? upcomingUnits : upcomingUnits.slice(0, 5)).map((u: any, i: any) => (
@@ -2107,7 +2126,8 @@ export function AnalyticsPage({
                           )}
                         </div>
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                   </DraggableCard>
                   )}
