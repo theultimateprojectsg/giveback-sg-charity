@@ -401,9 +401,9 @@ export function AnalyticsPage({
     { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
     { key: 'pp_fulfillmentTrend', label: 'Pledge Fulfillment Rate' },
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
-    { key: 'pp_timing', label: 'Pledge Reliability & Concentration' },
-    { key: 'pp_reliability', label: 'Pledge Reliability' },
-    { key: 'pp_concentration', label: 'Pledge Concentration' },
+    { key: 'pp_timing', label: 'Pledge Reliability' },
+    { key: 'pp_reliability', label: 'Pledge Reliability (legacy, unused)' },
+    { key: 'pp_concentration', label: 'Largest Outstanding Pledges' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
   ]
   const RECURRING_PERFORMANCE_CARDS = [
@@ -2075,7 +2075,7 @@ export function AnalyticsPage({
               {!hidden('pp_reliability') && (() => {
                 const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, watchList } = pledgeReliabilityStats
                 const { overdueUnits } = pledgeStatsAndTrend
-                const { donorRanked } = pledgeConcentrationStats
+                const { topDonorPct, highRisk, medRisk, tooFewDonors } = pledgeConcentrationStats
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const slightlyLateAmt = slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const veryLateAmt = veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2085,10 +2085,10 @@ export function AnalyticsPage({
 
                 return (
                   <>
-                  {(fulfilledWithDates.length > 0 || donorRanked.length > 0) && (
+                  {(fulfilledWithDates.length > 0 || !tooFewDonors) && (
                   <DraggableCard sectionId="pp" cardKey="pp_timing" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_timing')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Reliability & Concentration <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, and your largest outstanding pledges by value." /></div>
+                    <div style={s.analyticsCardTitle}>Pledge Reliability <InfoTip text="How punctual fulfilled pledges have been, pooled across the last 4 fiscal years, and how concentrated your outstanding pledge value is among donors." /></div>
 
                     {fulfilledWithDates.length > 0 && (
                       <>
@@ -2108,28 +2108,22 @@ export function AnalyticsPage({
                       </>
                     )}
 
-                    {donorRanked.length > 0 && (
-                      <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, borderTop: `1px dashed ${C.border}`, paddingTop: 14 }}>Largest outstanding pledges</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
-                            <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                                <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
-                                <span style={{ fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
-                              </div>
-                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
-                                <div style={{ width: `${Math.max(4, d.pct)}%`, height: '100%', background: i === 0 ? C.red : i === 1 ? C.gold : C.sage }} />
-                              </div>
-                            </div>
-                          ))}
-                          {donorRanked.length > 5 && (
-                            <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeConcentration(v => !v)}>
-                              {showAllPledgeConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
-                            </button>
-                          )}
+                    {!tooFewDonors && (
+                      <div style={{ borderTop: fulfilledWithDates.length > 0 ? `1px dashed ${C.border}` : 'none', paddingTop: fulfilledWithDates.length > 0 ? 14 : 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.forest, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Pledge concentration</div>
+                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
+                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
+                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 10 }}>
+                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
                         </div>
-                      </>
+                        {highRisk ? (
+                          <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
+                        ) : medRisk ? (
+                          <ActionBanner tone="warning" text="Moderate pledge concentration" sub="Worth watching as your pledge portfolio grows" />
+                        ) : (
+                          <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
+                        )}
+                      </div>
                     )}
                   </div>
                   </DraggableCard>
@@ -2201,31 +2195,30 @@ export function AnalyticsPage({
               })()}
 
               {!hidden('pp_concentration') && (() => {
-                const { donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, monthsRanked, heaviestMonth } = pledgeConcentrationStats
+                const { donorRanked } = pledgeConcentrationStats
 
-                return (
+                return donorRanked.length > 0 && (
                   <DraggableCard sectionId="pp" cardKey="pp_concentration" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_concentration')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Pledge Concentration <InfoTip text="Share of outstanding pledge value tied to your single largest donor. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
-
-                    {tooFewDonors ? (
-                      <div style={{ fontSize: 12.5, color: C.muted }}>Too few outstanding pledges to assess concentration yet.</div>
-                    ) : (
-                      <>
-                        <div style={{ ...s.analyticsStatNumber, color: highRisk ? C.red : medRisk ? C.gold : C.forest, marginBottom: 4 }}>{topDonorPct}%</div>
-                        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8 }}>of outstanding pledge value from your single largest pledge</div>
-                        <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden', marginBottom: 6 }}>
-                          <div style={{ width: `${topDonorPct}%`, height: '100%', background: highRisk ? C.red : medRisk ? C.gold : C.sage, borderRadius: 3 }} />
+                    <div style={s.analyticsCardTitle}>Largest Outstanding Pledges <InfoTip text="Your largest outstanding pledges by value, ranked by donor. Multi-year pledges are counted by their remaining unpaid instalments, not their full multi-year total." /></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {(showAllPledgeConcentration ? donorRanked : donorRanked.slice(0, 5)).map((d: any, i: any) => (
+                        <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(d.name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                            <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{d.name}</span>
+                            <span style={{ fontWeight: 600, color: C.forest }}>${d.amount.toLocaleString()} · {d.pct}%</span>
+                          </div>
+                          <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.max(4, d.pct)}%`, height: '100%', background: i === 0 ? C.red : i === 1 ? C.gold : C.sage }} />
+                          </div>
                         </div>
-                      </>
-                    )}
-                    {!tooFewDonors && (highRisk ? (
-                      <ActionBanner tone="danger" text="High pledge concentration" sub="Prioritise diversifying who you're asking for pledges" />
-                    ) : medRisk ? (
-                      <ActionBanner tone="warning" text="Moderate pledge concentration" sub="Worth watching as your pledge portfolio grows" />
-                    ) : (
-                      <ActionBanner tone="success" text="Well diversified" sub="No single donor dominates your outstanding pledges" />
-                    ))}
+                      ))}
+                      {donorRanked.length > 5 && (
+                        <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllPledgeConcentration(v => !v)}>
+                          {showAllPledgeConcentration ? 'Show fewer' : `Show all ${donorRanked.length}`}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   </DraggableCard>
                 )
