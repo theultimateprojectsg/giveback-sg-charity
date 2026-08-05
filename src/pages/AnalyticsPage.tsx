@@ -1443,6 +1443,7 @@ export function AnalyticsPage({
                           <DraggableCard sectionId="cp" cardKey="cp_revenueByCampaign" order={cardOrd('cp', CAMPAIGN_PERFORMANCE_CARDS, 'cp_revenueByCampaign')} flexBasis="420px" defaultOrder={CAMPAIGN_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                           <div style={{ ...s.card, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', overflow: 'hidden' }}>
                             <div style={s.analyticsCardTitle}>Revenue by Campaign — {filterYear} <InfoTip text="Share of confirmed campaign revenue attributable to each campaign." /></div>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 12, minWidth: 0 }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
                                 {fundedCampaigns.map((r: any, i: any) => (
@@ -1462,6 +1463,7 @@ export function AnalyticsPage({
                                   <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
                                 </PieChart>
                               </ResponsiveContainer>
+                            </div>
                             </div>
                           </div>
                           </DraggableCard>
@@ -1483,7 +1485,7 @@ export function AnalyticsPage({
                             {aggTotal === 0 ? (
                               <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 16 }}>No campaign revenue yet.</div>
                             ) : (
-                              <div style={{ marginBottom: 16 }}>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                 <ResponsiveContainer width="100%" height={110}>
                                   <BarChart data={mixSlices} layout="vertical" margin={{ top: 4, right: 30, left: 0, bottom: 4 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
