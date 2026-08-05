@@ -56,7 +56,7 @@ mobileOverflowItem: {
   padding: '12px 18px', fontSize: 13, fontWeight: 500, color: C.forest,
   cursor: 'pointer', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.ivoryDark}`,
 },
-  content: { padding: 32 },
+  content: { padding: 32, maxWidth: 2000, margin: '0 auto' },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   pageTitle: { fontSize: 24, fontWeight: 800, color: C.forest, marginBottom: 4 },
   pageSub: { fontSize: 13, color: C.muted },
