@@ -401,9 +401,9 @@ export function AnalyticsPage({
   const PLEDGE_PERFORMANCE_CARDS = [
     { key: 'pp_snapshot', label: 'Snapshot Tiles' },
     { key: 'pp_revenueTrend', label: 'Pledge Revenue Trend' },
-    { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_timing', label: 'Pledge Reliability' },
     { key: 'pp_upcoming', label: 'Upcoming Pledges' },
+    { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_concentration', label: 'Largest Outstanding Pledges' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
   ]
