@@ -2388,19 +2388,27 @@ export function AnalyticsPage({
                       {byTypeRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {byTypeRows.map((r: any, i: any) => (
-                            <div key={i}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.label}</span>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
+                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 12 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
+                            {byTypeRows.map((r: any, i: any) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ width: 9, height: 9, borderRadius: 3, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
+                                <span style={{ fontSize: 12.5, color: C.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 700, color: C.forest, minWidth: 30, textAlign: 'right' }}>{r.pct}%</span>
+                                <span style={{ fontSize: 11, color: C.muted, minWidth: 52, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
                               </div>
-                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                                <div style={{ width: `${r.pct}%`, height: '100%', background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                          <ResponsiveContainer width={isMobile ? '100%' : 100} height={110}>
+                            <PieChart>
+                              <Pie data={byTypeRows} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={26} outerRadius={46} paddingAngle={2} isAnimationActive={false}>
+                                {byTypeRows.map((r: any, i: any) => (
+                                  <Cell key={i} fill={[C.forest, C.sage, C.gold, C.teal, C.muted][i % 5]} />
+                                ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 12 }} formatter={(value, name) => [`$${Number(value).toLocaleString()}`, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
                         </div>
                       )}
                     </div>
