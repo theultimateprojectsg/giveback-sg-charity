@@ -7177,17 +7177,6 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeGifts = recurringGifts.filter(g => g.status === 'active')
     const totalActive = activeGifts.reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
 
-    const byProgramme: Record<string, any> = {}
-    activeGifts.forEach(g => {
-      const key = g.cause_id || 'none'
-      if (!byProgramme[key]) byProgramme[key] = 0
-      byProgramme[key] += monthlyEquivalentAmount(g)
-    })
-    const byProgrammeRows = Object.entries(byProgramme).map(([key, amt]) => ({
-      key, title: key === 'none' ? 'General / unrestricted' : (myCauses.find(c => c.id === key)?.title || 'Unknown programme'),
-      amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
-    })).sort((a, b) => b.amount - a.amount)
-
     const typeLabels: Record<string, string> = { giro: 'GIRO', habitual_paynow: 'Habitual PayNow', standing_order: 'Standing Order', other: 'Other' }
     const byType: Record<string, any> = {}
     activeGifts.forEach(g => {
@@ -7199,8 +7188,8 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       key, label: typeLabels[key] || key, amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
     })).sort((a, b) => b.amount - a.amount)
 
-    return { byProgrammeRows, byTypeRows }
-  }, [recurringGifts, myCauses])
+    return { byTypeRows }
+  }, [recurringGifts])
 
   const grantsWithNextReport = React.useMemo(() => {
     return grants.map(g => {

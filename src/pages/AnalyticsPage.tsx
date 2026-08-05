@@ -2357,7 +2357,7 @@ export function AnalyticsPage({
 
               {(() => {
                 const { trendData } = recurringMrrStats
-                const { byProgrammeRows, byTypeRows } = recurringCompositionStats
+                const { byTypeRows } = recurringCompositionStats
 
                 return (
                   <>
@@ -2384,27 +2384,7 @@ export function AnalyticsPage({
                     {!hidden('rc_composition') && (
                     <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="460px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Revenue Composition <InfoTip text="Active recurring revenue broken down by linked programme and by payment type." /></div>
-                      <div style={s.analyticsSubTitleDivider}>By programme</div>
-                      {byProgrammeRows.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active recurring gifts yet.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-                          {byProgrammeRows.map((r: any, i: any) => (
-                            <div key={i}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{r.title}</span>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>{r.pct}%</span>
-                                <span style={{ fontSize: 11, color: C.muted, minWidth: 65, textAlign: 'right' }}>${r.amount.toLocaleString()}</span>
-                              </div>
-                              <div style={{ background: C.ivoryDark, borderRadius: 3, height: 5, overflow: 'hidden' }}>
-                                <div style={{ width: `${r.pct}%`, height: '100%', background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5] }} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div style={s.analyticsSubTitleDivider}>By type</div>
+                      <div style={s.analyticsCardTitle}>Revenue Composition by Type <InfoTip text="Active recurring revenue broken down by payment type — GIRO, habitual PayNow, standing order, or other." /></div>
                       {byTypeRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
                       ) : (
