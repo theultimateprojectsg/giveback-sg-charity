@@ -606,6 +606,7 @@ export default function App() {
   const [showAllLapsedDonors, setShowAllLapsedDonors] = useState<any>(false)
   const [showAllOverdueUnits, setShowAllOverdueUnits] = useState<any>(false)
   const [showAllUpcomingPledges, setShowAllUpcomingPledges] = useState<any>(false)
+  const [showAllUpcomingRecurringPayments, setShowAllUpcomingRecurringPayments] = useState<any>(false)
   const [showAllPledgeWatchlist, setShowAllPledgeWatchlist] = useState<any>(false)
   const [showAllPledgeConcentration, setShowAllPledgeConcentration] = useState<any>(false)
   const [showAllRecurringConcentration, setShowAllRecurringConcentration] = useState<any>(false)
@@ -7221,7 +7222,17 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const medRisk = donorRanked.length >= 2 && topDonorPct >= 40 && topDonorPct < 60
     const tooFewDonors = donorRanked.length < 2
 
-    return { trendData, onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors }
+    const sixtyDaysOut = new Date()
+    sixtyDaysOut.setDate(sixtyDaysOut.getDate() + 60)
+    const upcomingPayments = activeGifts
+      .filter(g => g.next_expected_date && new Date(g.next_expected_date) >= today && new Date(g.next_expected_date) <= sixtyDaysOut)
+      .map(g => ({
+        donor_name: g.donor_name, amount: monthlyEquivalentAmount(g), gift_id: g.id,
+        daysUntil: Math.ceil((new Date(g.next_expected_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+      }))
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+
+    return { trendData, onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, upcomingPayments }
   }, [recurringGifts, giroMissedCycles, donations, fyOf, fyEndMonth, fyEndDay])
 
   const recurringRiskStats = React.useMemo(() => {
@@ -10206,7 +10217,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             setShowAllFatigueList={setShowAllFatigueList} setShowAllFrequentSkippers={setShowAllFrequentSkippers}
             setShowAllGivingChanges={setShowAllGivingChanges} setShowAllLapsedDonors={setShowAllLapsedDonors}
             setShowAllMissedPayments={setShowAllMissedPayments} setShowAllOverGivers={setShowAllOverGivers}
-            setShowAllOverdueUnits={setShowAllOverdueUnits} setShowAllUpcomingPledges={setShowAllUpcomingPledges} setShowAllPausedGifts={setShowAllPausedGifts}
+            setShowAllOverdueUnits={setShowAllOverdueUnits} setShowAllUpcomingPledges={setShowAllUpcomingPledges} setShowAllUpcomingRecurringPayments={setShowAllUpcomingRecurringPayments} setShowAllPausedGifts={setShowAllPausedGifts}
             setShowAllPledgeConcentration={setShowAllPledgeConcentration}
             setShowAllRecurringConcentration={setShowAllRecurringConcentration}
             setShowAllPledgeWatchlist={setShowAllPledgeWatchlist}
@@ -10217,7 +10228,7 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
             showAllEndingSoon={showAllEndingSoon} showAllFatigueList={showAllFatigueList}
             showAllFrequentSkippers={showAllFrequentSkippers} showAllGivingChanges={showAllGivingChanges}
             showAllLapsedDonors={showAllLapsedDonors} showAllMissedPayments={showAllMissedPayments}
-            showAllOverGivers={showAllOverGivers} showAllOverdueUnits={showAllOverdueUnits} showAllUpcomingPledges={showAllUpcomingPledges}
+            showAllOverGivers={showAllOverGivers} showAllOverdueUnits={showAllOverdueUnits} showAllUpcomingPledges={showAllUpcomingPledges} showAllUpcomingRecurringPayments={showAllUpcomingRecurringPayments}
             showAllPausedGifts={showAllPausedGifts} showAllPledgeConcentration={showAllPledgeConcentration}
             showAllRecurringConcentration={showAllRecurringConcentration}
             showAllPledgeWatchlist={showAllPledgeWatchlist} showDismissedLapsedDonors={showDismissedLapsedDonors}

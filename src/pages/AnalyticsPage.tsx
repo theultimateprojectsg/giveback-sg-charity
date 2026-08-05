@@ -286,6 +286,7 @@ interface AnalyticsPageProps {
   setShowAllOverGivers: Dispatch<SetStateAction<boolean>>
   setShowAllOverdueUnits: Dispatch<SetStateAction<boolean>>
   setShowAllUpcomingPledges: Dispatch<SetStateAction<boolean>>
+  setShowAllUpcomingRecurringPayments: Dispatch<SetStateAction<boolean>>
   setShowAllPausedGifts: Dispatch<SetStateAction<boolean>>
   setShowAllPledgeConcentration: Dispatch<SetStateAction<boolean>>
   setShowAllRecurringConcentration: Dispatch<SetStateAction<boolean>>
@@ -309,6 +310,7 @@ interface AnalyticsPageProps {
   showAllOverGivers: boolean
   showAllOverdueUnits: boolean
   showAllUpcomingPledges: boolean
+  showAllUpcomingRecurringPayments: boolean
   showAllPausedGifts: boolean
   showAllPledgeConcentration: boolean
   showAllRecurringConcentration: boolean
@@ -359,11 +361,11 @@ export function AnalyticsPage({
   setSelectedDonor, setShowAddObligation, setShowAddTask, setShowAllBounceReasons,
   setShowAllConcentrationDonors, setShowAllEndingSoon, setShowAllFatigueList, setShowAllFrequentSkippers,
   setShowAllGivingChanges, setShowAllLapsedDonors, setShowAllMissedPayments, setShowAllOverGivers,
-  setShowAllOverdueUnits, setShowAllUpcomingPledges, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllRecurringConcentration, setShowAllPledgeWatchlist,
+  setShowAllOverdueUnits, setShowAllUpcomingPledges, setShowAllUpcomingRecurringPayments, setShowAllPausedGifts, setShowAllPledgeConcentration, setShowAllRecurringConcentration, setShowAllPledgeWatchlist,
   setShowDismissedLapsedDonors, setShowDoneTasks, setShowSnoozedItems, setSnoozeMenuOpen, setTaskForm,
   setToast, showAddObligation, showAddTask, showAllBounceReasons, showAllConcentrationDonors,
   showAllEndingSoon, showAllFatigueList, showAllFrequentSkippers, showAllGivingChanges, showAllLapsedDonors,
-  showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllUpcomingPledges, showAllPausedGifts,
+  showAllMissedPayments, showAllOverGivers, showAllOverdueUnits, showAllUpcomingPledges, showAllUpcomingRecurringPayments, showAllPausedGifts,
   showAllPledgeConcentration, showAllRecurringConcentration, showAllPledgeWatchlist, showDismissedLapsedDonors, showDoneTasks,
   showSnoozedItems, showToast, snoozeActionItem, snoozeMenuOpen, snoozedItems, taskForm, topConnectorsStats, undismissLapsedDonor, unsnoozeActionItem, updateCharityJsonField, }: AnalyticsPageProps) {
   const [snoozeReasonDraft, setSnoozeReasonDraft] = useState('')
@@ -415,7 +417,7 @@ export function AnalyticsPage({
     { key: 'rc_reliability', label: 'Recurring Reliability' },
     { key: 'rc_concentration', label: 'Largest Active Recurring Gifts' },
     { key: 'rc_composition', label: 'Revenue Composition' },
-    { key: 'rc_givingTrend', label: 'Giving Trend (Upgrades & Downgrades)' },
+    { key: 'rc_upcoming', label: 'Upcoming Recurring Payments' },
   ]
   const GRANTS_OVERVIEW_CARDS = [
     { key: 'gr_snapshot', label: 'Snapshot Tiles' },
@@ -2444,41 +2446,29 @@ export function AnalyticsPage({
                   )
                 })()}
 
-                {!hidden('rc_givingTrend') && (() => {
-                  const { trendFlagsFiltered, upgrades, downgrades } = recurringHealthStats
+                {!hidden('rc_upcoming') && (() => {
+                  const { upcomingPayments } = recurringReliabilityStats
 
-                  return (
-                    <DraggableCard sectionId="rc" cardKey="rc_givingTrend" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_givingTrend')} flexBasis="420px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div id="giving-trend-card-analytics" style={{ ...s.card, scrollMarginTop: 20 }}>
-                      <div style={s.analyticsCardTitle}>Giving Trend <InfoTip text="Donors whose recurring giving has consistently increased or decreased over recent cycles." /></div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingTop: 2 }}>
-                        <div style={s.analyticsSubTitle}>Sustained upgrades &amp; downgrades</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 10.5, color: C.muted }}>Flagged after {recurringTrendCycles} cycles</span>
-                          <AdjustInSettingsLink setActiveTab={setActiveTab} setSettingsSection={setSettingsSection} />
-                        </div>
-                      </div>
-                      {trendFlagsFiltered.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No sustained upgrade or downgrade patterns right now.</div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {[...upgrades, ...downgrades].slice(0, 5).map((f, i) => (
-                            <div key={i} style={{ padding: '8px 10px', background: f.direction === 'upgrade' ? C.successBg : C.dangerBg, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(f.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong }}>{f.donor_name}</span>
-                                <span style={{ fontSize: 11.5, fontWeight: 600, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong }}>{f.direction === 'upgrade' ? '↑' : '↓'} ${f.from} → ${f.to}</span>
-                              </div>
-                              <div style={{ fontSize: 11, color: f.direction === 'upgrade' ? C.successText : C.dangerTextStrong, marginTop: 2 }}>{recurringTrendCycles} consecutive cycles {f.direction === 'upgrade' ? 'increasing' : 'decreasing'}</div>
+                  return upcomingPayments.length > 0 && (
+                    <DraggableCard sectionId="rc" cardKey="rc_upcoming" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_upcoming')} flexBasis="420px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
+                      <div style={s.analyticsCardTitle}>Upcoming Recurring Payments — Next 60 Days <InfoTip text="Active recurring gifts with their next expected deduction within the next 60 days, soonest first." /></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(showAllUpcomingRecurringPayments ? upcomingPayments : upcomingPayments.slice(0, 5)).map((u: any, i: any) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(u.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                            <div>
+                              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
+                              <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                      {downgrades.length > 0 ? (
-                        <ActionBanner tone="danger" text={`${downgrades.length} donor${downgrades.length !== 1 ? 's' : ''} trending down`} sub="Worth a check-in before the pattern turns into a cancellation" />
-                      ) : (
-                        <ActionBanner tone="success" text="No sustained downgrades" sub={upgrades.length > 0 ? `${upgrades.length} donor${upgrades.length !== 1 ? 's' : ''} trending up instead` : 'Recurring giving is holding steady'} />
-                      )}
+                            <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${Math.round(u.amount).toLocaleString()}</span>
+                          </div>
+                        ))}
+                        {upcomingPayments.length > 5 && (
+                          <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingRecurringPayments(v => !v)}>
+                            {showAllUpcomingRecurringPayments ? 'Show fewer' : `Show all ${upcomingPayments.length}`}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     </DraggableCard>
                   )
