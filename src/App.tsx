@@ -7272,19 +7272,39 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
     const activeGifts = recurringGifts.filter(g => g.status === 'active')
     const totalActive = activeGifts.reduce((s, g) => s + monthlyEquivalentAmount(g), 0)
 
+    const missedByGiftId: Record<string, number> = {}
+    giroMissedCycles.forEach((g: any) => { missedByGiftId[g.gift_id] = g.missedCycles })
+    const eligibleActiveGifts = activeGifts.filter(g => g.authorization_status !== 'pending')
+
     const typeLabels: Record<string, string> = { giro: 'GIRO', habitual_paynow: 'Habitual PayNow', standing_order: 'Standing Order', other: 'Other' }
     const byType: Record<string, any> = {}
     activeGifts.forEach(g => {
       const key = g.type || 'other'
-      if (!byType[key]) byType[key] = 0
-      byType[key] += monthlyEquivalentAmount(g)
+      if (!byType[key]) byType[key] = { amount: 0, count: 0, donorKeys: new Set() }
+      byType[key].amount += monthlyEquivalentAmount(g)
+      byType[key].count += 1
+      byType[key].donorKeys.add(g.donor_email?.trim() || g.donor_name)
     })
-    const byTypeRows = Object.entries(byType).map(([key, amt]) => ({
-      key, label: typeLabels[key] || key, amount: amt, pct: totalActive > 0 ? Math.round((amt / totalActive) * 100) : 0,
-    })).sort((a, b) => b.amount - a.amount)
+    const eligibleByType: Record<string, any> = {}
+    eligibleActiveGifts.forEach(g => {
+      const key = g.type || 'other'
+      if (!eligibleByType[key]) eligibleByType[key] = { eligible: 0, onTime: 0, avgAmounts: [] as number[] }
+      eligibleByType[key].eligible += 1
+      if (!missedByGiftId[g.id]) eligibleByType[key].onTime += 1
+      eligibleByType[key].avgAmounts.push(monthlyEquivalentAmount(g))
+    })
+    const byTypeRows = Object.entries(byType).map(([key, v]: [string, any]) => {
+      const el = eligibleByType[key]
+      const avgGift = v.count > 0 ? v.amount / v.count : 0
+      return {
+        key, label: typeLabels[key] || key, amount: v.amount, pct: totalActive > 0 ? Math.round((v.amount / totalActive) * 100) : 0,
+        count: v.count, donorCount: v.donorKeys.size, avgGift,
+        reliabilityPct: el && el.eligible > 0 ? Math.round((el.onTime / el.eligible) * 100) : null,
+      }
+    }).sort((a, b) => b.amount - a.amount)
 
     return { byTypeRows }
-  }, [recurringGifts])
+  }, [recurringGifts, giroMissedCycles])
 
   const grantsWithNextReport = React.useMemo(() => {
     return grants.map(g => {

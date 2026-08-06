@@ -2292,11 +2292,12 @@ export function AnalyticsPage({
                     {!hidden('rc_composition') && (
                     <DraggableCard sectionId="rc" cardKey="rc_composition" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_composition')} flexBasis="420px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Revenue Composition by Type <InfoTip text="Active recurring revenue broken down by payment type — GIRO, habitual PayNow, standing order, or other." /></div>
+                      <div style={s.analyticsCardTitle}>Revenue Composition by Type <InfoTip text="Active recurring revenue broken down by payment type — GIRO, habitual PayNow, standing order, or other — plus how many gifts and donors each represents, the average gift size, and how reliably each type actually deducts. Different collection methods carry different risk: GIRO rarely fails silently, while PayNow depends on the donor remembering to pay." /></div>
                       {byTypeRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active recurring gifts yet.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 12 }}>
+                        <>
+                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px dashed ${C.border}` }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
                             {byTypeRows.map((r: any, i: any) => (
                               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2318,6 +2319,19 @@ export function AnalyticsPage({
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {byTypeRows.map((r: any, i: any) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 9, height: 9, borderRadius: 3, background: [C.forest, C.sage, C.gold, C.teal, C.muted][i % 5], flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, fontWeight: 500, color: C.text, minWidth: 90 }}>{r.label}</span>
+                              <span style={{ fontSize: 11, color: C.muted, flex: 1 }}>{r.count} gift{r.count !== 1 ? 's' : ''} · {r.donorCount} donor{r.donorCount !== 1 ? 's' : ''} · avg ${Math.round(r.avgGift).toLocaleString()}/mo</span>
+                              {r.reliabilityPct !== null && (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: r.reliabilityPct >= 80 ? C.sage : r.reliabilityPct >= 60 ? C.gold : C.red }}>{r.reliabilityPct}% reliable</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        </>
                       )}
                     </div>
                     </DraggableCard>
