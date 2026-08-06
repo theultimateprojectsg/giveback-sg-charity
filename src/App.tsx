@@ -7232,7 +7232,15 @@ const unconfirmedCountForYear = (filterYear === 'All' ? donations : donations.fi
       }))
       .sort((a, b) => a.daysUntil - b.daysUntil)
 
-    return { trendData, onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, upcomingPayments }
+    const overduePayments = activeGifts
+      .filter(g => g.next_expected_date && new Date(g.next_expected_date) < today)
+      .map(g => ({
+        donor_name: g.donor_name, amount: monthlyEquivalentAmount(g), gift_id: g.id,
+        daysOverdue: Math.floor((today.getTime() - new Date(g.next_expected_date).getTime()) / (1000 * 60 * 60 * 24)),
+      }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue)
+
+    return { trendData, onTimeGroup, oneOrTwoMissedGroup, frequentlyMissedGroup, eligibleActiveGifts, donorRanked, topDonorPct, highRisk, medRisk, tooFewDonors, upcomingPayments, overduePayments }
   }, [recurringGifts, giroMissedCycles, donations, fyOf, fyEndMonth, fyEndDay])
 
   const recurringRiskStats = React.useMemo(() => {

@@ -407,7 +407,7 @@ export function AnalyticsPage({
     { key: 'pp_newVsCancelled', label: 'New vs Cancelled Pledges' },
     { key: 'pp_concentration', label: 'Largest Outstanding Pledges' },
     { key: 'pp_monthlyTiming', label: 'Outstanding Pledges by Month' },
-    { key: 'pp_upcoming', label: 'Upcoming Pledges' },
+    { key: 'pp_upcoming', label: 'Upcoming & Overdue Pledges' },
   ]
   const RECURRING_PERFORMANCE_CARDS = [
     { key: 'rc_snapshot', label: 'Snapshot Tiles' },
@@ -417,7 +417,7 @@ export function AnalyticsPage({
     { key: 'rc_reliability', label: 'Recurring Reliability' },
     { key: 'rc_concentration', label: 'Largest Active Recurring Gifts' },
     { key: 'rc_composition', label: 'Revenue Composition' },
-    { key: 'rc_upcoming', label: 'Upcoming Recurring Payments' },
+    { key: 'rc_upcoming', label: 'Upcoming & Overdue Recurring Payments' },
   ]
   const GRANTS_OVERVIEW_CARDS = [
     { key: 'gr_snapshot', label: 'Snapshot Tiles' },
@@ -2042,6 +2042,11 @@ export function AnalyticsPage({
               {!hidden('pp_timing') && (() => {
                 const { fulfilledWithDates, onTimeGroup, slightlyLateGroup, veryLateGroup, fulfillmentRatePct, fulfilledCount4y, brokenCount4y, concludedCount4y } = pledgeReliabilityStats
                 const { upcomingUnits } = pledgeConcentrationStats
+                const { overdueUnits } = pledgeStatsAndTrend
+                const upcomingAndOverdue = [
+                  ...overdueUnits.map((u: any) => ({ ...u, daysUntil: -u.daysOverdue, overdue: true })),
+                  ...upcomingUnits.map((u: any) => ({ ...u, overdue: false })),
+                ].sort((a, b) => a.daysUntil - b.daysUntil)
                 const onTimeAmt = onTimeGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const slightlyLateAmt = slightlyLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
                 const veryLateAmt = veryLateGroup.reduce((s: any, f: any) => s + Number(f.pledge.amount), 0)
@@ -2104,23 +2109,23 @@ export function AnalyticsPage({
                   </DraggableCard>
                   )}
 
-                  {!hidden('pp_upcoming') && upcomingUnits.length > 0 && (
+                  {!hidden('pp_upcoming') && upcomingAndOverdue.length > 0 && (
                   <DraggableCard sectionId="pp" cardKey="pp_upcoming" order={cardOrd('pp', PLEDGE_PERFORMANCE_CARDS, 'pp_upcoming')} flexBasis="420px" defaultOrder={PLEDGE_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                   <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                    <div style={s.analyticsCardTitle}>Upcoming Pledges — Next 60 Days <InfoTip text="Pending pledges expected within the next 60 days, soonest first." /></div>
+                    <div style={s.analyticsCardTitle}>Upcoming & Overdue Pledges <InfoTip text="Pending pledges that are overdue, plus those expected within the next 60 days, soonest first. Overdue pledges are shown in red." /></div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {(showAllUpcomingPledges ? upcomingUnits : upcomingUnits.slice(0, 5)).map((u: any, i: any) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
+                      {(showAllUpcomingPledges ? upcomingAndOverdue : upcomingAndOverdue.slice(0, 5)).map((u: any, i: any) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: u.overdue ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setPledgeSearchTerm(u.donor_name); setPledgeUrgencyFilter('All'); setPledgeAmountFilter('All'); setPledgeYearFilter('All'); setPledgeTypeFilter('All'); setPledgeProgrammeFilter('All'); setActiveTab('pledges') }}>
                           <div>
-                            <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
-                            <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 500, color: u.overdue ? C.red : C.text }}>{u.donor_name}</div>
+                            <div style={{ fontSize: 10.5, color: u.overdue ? C.red : C.muted }}>{u.overdue ? `${u.daysOverdue} day${u.daysOverdue !== 1 ? 's' : ''} overdue` : `due in ${u.daysUntil} day${u.daysUntil !== 1 ? 's' : ''}`}</div>
                           </div>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${u.amount.toLocaleString()}</span>
+                          <span style={{ fontSize: 12, fontWeight: 500, color: u.overdue ? C.red : C.forest }}>${u.amount.toLocaleString()}</span>
                         </div>
                       ))}
-                      {upcomingUnits.length > 5 && (
+                      {upcomingAndOverdue.length > 5 && (
                         <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingPledges(v => !v)}>
-                          {showAllUpcomingPledges ? 'Show fewer' : `Show all ${upcomingUnits.length}`}
+                          {showAllUpcomingPledges ? 'Show fewer' : `Show all ${upcomingAndOverdue.length}`}
                         </button>
                       )}
                     </div>
@@ -2447,25 +2452,29 @@ export function AnalyticsPage({
                 })()}
 
                 {!hidden('rc_upcoming') && (() => {
-                  const { upcomingPayments } = recurringReliabilityStats
+                  const { upcomingPayments, overduePayments } = recurringReliabilityStats
+                  const upcomingAndOverdue = [
+                    ...overduePayments.map((u: any) => ({ ...u, daysUntil: -u.daysOverdue, overdue: true })),
+                    ...upcomingPayments.map((u: any) => ({ ...u, overdue: false })),
+                  ].sort((a, b) => a.daysUntil - b.daysUntil)
 
-                  return upcomingPayments.length > 0 && (
+                  return upcomingAndOverdue.length > 0 && (
                     <DraggableCard sectionId="rc" cardKey="rc_upcoming" order={cardOrd('rc', RECURRING_PERFORMANCE_CARDS, 'rc_upcoming')} flexBasis="420px" defaultOrder={RECURRING_PERFORMANCE_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Upcoming Recurring Payments — Next 60 Days <InfoTip text="Active recurring gifts with their next expected deduction within the next 60 days, soonest first." /></div>
+                      <div style={s.analyticsCardTitle}>Upcoming & Overdue Recurring Payments <InfoTip text="Active recurring gifts that are overdue on their expected deduction, plus those due within the next 60 days, soonest first. Overdue payments are shown in red." /></div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {(showAllUpcomingRecurringPayments ? upcomingPayments : upcomingPayments.slice(0, 5)).map((u: any, i: any) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(u.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
+                        {(showAllUpcomingRecurringPayments ? upcomingAndOverdue : upcomingAndOverdue.slice(0, 5)).map((u: any, i: any) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: u.overdue ? C.dangerBg : C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setRecurringSearchTerm(u.donor_name); setRecurringUrgencyFilter('All'); setRecurringAmountFilter('All'); setRecurringTypeFilter('All'); setRecurringYearFilter('All'); setRecurringProgrammeFilter('All'); setRecurringAuthFilter('All'); setActiveTab('recurring') }}>
                             <div>
-                              <div style={{ fontSize: 12.5, fontWeight: 500, color: C.text }}>{u.donor_name}</div>
-                              <div style={{ fontSize: 10.5, color: C.muted }}>due in {u.daysUntil} day{u.daysUntil !== 1 ? 's' : ''}</div>
+                              <div style={{ fontSize: 12.5, fontWeight: 500, color: u.overdue ? C.red : C.text }}>{u.donor_name}</div>
+                              <div style={{ fontSize: 10.5, color: u.overdue ? C.red : C.muted }}>{u.overdue ? `${u.daysOverdue} day${u.daysOverdue !== 1 ? 's' : ''} overdue` : `due in ${u.daysUntil} day${u.daysUntil !== 1 ? 's' : ''}`}</div>
                             </div>
-                            <span style={{ fontSize: 12, fontWeight: 500, color: C.forest }}>${Math.round(u.amount).toLocaleString()}</span>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: u.overdue ? C.red : C.forest }}>${Math.round(u.amount).toLocaleString()}</span>
                           </div>
                         ))}
-                        {upcomingPayments.length > 5 && (
+                        {upcomingAndOverdue.length > 5 && (
                           <button style={{ fontSize: 11, color: C.muted, background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0, marginTop: 2 }} onClick={() => setShowAllUpcomingRecurringPayments(v => !v)}>
-                            {showAllUpcomingRecurringPayments ? 'Show fewer' : `Show all ${upcomingPayments.length}`}
+                            {showAllUpcomingRecurringPayments ? 'Show fewer' : `Show all ${upcomingAndOverdue.length}`}
                           </button>
                         )}
                       </div>
