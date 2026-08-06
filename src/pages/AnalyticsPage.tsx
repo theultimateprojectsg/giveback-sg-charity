@@ -423,8 +423,7 @@ export function AnalyticsPage({
     { key: 'gr_snapshot', label: 'Snapshot Tiles' },
     { key: 'gr_trend', label: 'Grants Trend' },
     { key: 'gr_spendingByCategory', label: 'Spending by Category' },
-    { key: 'gr_fundingByFunderType', label: 'Funding by Funder Type' },
-    { key: 'gr_fundingRestriction', label: 'Restricted vs Unrestricted Funding' },
+    { key: 'gr_fundingComposition', label: 'Funding Composition' },
     { key: 'gr_grantFunding', label: 'Grant Funding (Pace vs Report Deadline)' },
     { key: 'gr_grantConcentration', label: 'Grant Funding Concentration' },
     { key: 'gr_expiringSoon', label: 'Grants Expiring Soon' },
@@ -2592,14 +2591,15 @@ export function AnalyticsPage({
                     </DraggableCard>
                     )}
 
-                    {!hidden('gr_fundingByFunderType') && (
-                    <DraggableCard sectionId="gr" cardKey="gr_fundingByFunderType" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_fundingByFunderType')} flexBasis="420px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
+                    {!hidden('gr_fundingComposition') && (
+                    <DraggableCard sectionId="gr" cardKey="gr_fundingComposition" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_fundingComposition')} flexBasis="420px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Funding by Funder Type <InfoTip text="Active grant funding broken down by the type of organization funding it — foundation, corporate, government, etc." /></div>
+                      <div style={s.analyticsCardTitle}>Funding Composition <InfoTip text="Active grant funding broken down by funder type, and by whether it's restricted to a specific purpose or free to use where needed most." /></div>
+                      <div style={s.analyticsSubTitle}>By funder type</div>
                       {funderTypeBreakdown.length === 0 ? (
-                        <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
+                        <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 14 }}>No active grants yet.</div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                           {funderTypeBreakdown.map((f: any, i: any) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <span style={{ fontSize: 12, color: C.text, flex: 1 }}>{f.label}</span>
@@ -2609,14 +2609,7 @@ export function AnalyticsPage({
                           ))}
                         </div>
                       )}
-                    </div>
-                    </DraggableCard>
-                    )}
-
-                    {!hidden('gr_fundingRestriction') && (
-                    <DraggableCard sectionId="gr" cardKey="gr_fundingRestriction" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_fundingRestriction')} flexBasis="420px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
-                    <div style={{ ...s.card, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Restricted vs Unrestricted Funding <InfoTip text="Active grant funding split by whether it's restricted to a specific purpose or free to use where needed most." /></div>
+                      <div style={s.analyticsSubTitleDivider}>Restricted vs unrestricted</div>
                       {(restrictedTotal + unrestrictedTotal) === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.muted }}>No active grants yet.</div>
                       ) : (
@@ -2717,7 +2710,7 @@ export function AnalyticsPage({
                       return (
                     <DraggableCard sectionId="gr" cardKey="gr_grantConcentration" order={cardOrd('gr', GRANTS_OVERVIEW_CARDS, 'gr_grantConcentration')} flexBasis="420px" defaultOrder={GRANTS_OVERVIEW_CARDS.map(c => c.key)} dashboardCardOrder={dashboardCardOrder} reorderDashboardCard={reorderDashboardCard}>
                     <div style={{ ...s.card, display: 'flex', flexDirection: 'column' }}>
-                      <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, ranked out across all active funders." /></div>
+                      <div style={s.analyticsCardTitle}>Grant Funding Concentration <InfoTip text="Share of active grant funding coming from your single largest funder, ranked out across all active funders, with whether each is renewable." /></div>
 
                     {!tooFewFunders && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 14, borderBottom: `1px dashed ${C.border}` }}>
@@ -2734,11 +2727,22 @@ export function AnalyticsPage({
                     {tooFewFunders ? (
                       <div style={{ fontSize: 12.5, color: C.muted }}>Too few active funders to assess concentration yet.</div>
                     ) : byFunder.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {byFunder.map((f: any, i: any) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.ivory, borderRadius: 4, cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(f.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 500, color: C.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{f.funder_name}</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.forest }}>${f.amount.toLocaleString()} · {f.pct}%</span>
+                          <div key={i} style={{ cursor: 'pointer' }} onClick={() => { setGrantSearchTerm(f.funder_name); setGrantUrgencyFilter('All'); setGrantAmountFilter('All'); setGrantYearFilter('All'); setActiveTab('grants') }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, marginBottom: 3, gap: 8 }}>
+                              <span style={{ color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{f.funder_name}</span>
+                              <span style={{
+                                fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0,
+                                color: f.is_renewable ? C.successText : C.muted,
+                                background: f.is_renewable ? C.successBg : C.ivoryDark,
+                                padding: '2px 7px', borderRadius: 100,
+                              }}>{f.is_renewable ? 'Renewable' : 'Non-renewable'}</span>
+                              <span style={{ fontWeight: 600, color: C.forest, flexShrink: 0 }}>${f.amount.toLocaleString()} · {f.pct}%</span>
+                            </div>
+                            <div style={{ background: C.ivoryDark, borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.max(4, f.pct)}%`, height: '100%', background: i === 0 ? C.red : i === 1 ? C.gold : C.sage }} />
+                            </div>
                           </div>
                         ))}
                       </div>
